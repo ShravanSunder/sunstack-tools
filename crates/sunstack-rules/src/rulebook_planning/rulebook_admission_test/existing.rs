@@ -205,6 +205,7 @@ fn yaml_fields_are_markdown_only_and_document_rules_can_use_another_language() {
             &fixture::fixture().join("evidence/sgconfig.yml"),
             &[inline],
             None,
+            &Default::default(),
         )
         .unwrap();
         let mut kinds = fixture::kinds();

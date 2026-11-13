@@ -75,6 +75,7 @@ pub struct EvidenceProject {
     pub inputs: Vec<PathBuf>,
     rule_directories: Vec<PathBuf>,
     rule_languages: BTreeMap<crate::EvidenceRuleId, EvidenceLanguage>,
+    pub document_settings: crate::DocumentEvidenceSettings,
 }
 
 /// Result-side language names (snake_case), distinct from authored matcher spellings.
@@ -613,10 +614,12 @@ impl ProjectCompiler {
         project: &DefinitionOrigin,
         rule_directories: Vec<PathBuf>,
         inputs: Vec<PathBuf>,
+        document_settings: &crate::DocumentEvidenceSettings,
     ) -> Result<EvidenceProject, ProjectRefusal> {
         let rules = RuleCollection::try_new(self.rules)
             .map_err(|error| ProjectRefusal::in_definition(project, error))?;
         Ok(EvidenceProject {
+            document_settings: document_settings.clone(),
             rules: Arc::new(rules),
             rule_ids: self.rule_ids,
             inputs,
@@ -631,6 +634,7 @@ pub fn compile_evidence_project(
     definitions: &EvidenceProjectDefinitions,
     inline_rules: &[InlineRule],
     inline_origin: &DefinitionOrigin,
+    document_settings: &crate::DocumentEvidenceSettings,
 ) -> Result<EvidenceProject, ProjectRefusal> {
     let mut compiler = ProjectCompiler::new(&definitions.project)?;
     for utility in &definitions.utilities {
@@ -651,6 +655,7 @@ pub fn compile_evidence_project(
         &definitions.project,
         definitions.rule_directories.clone(),
         inputs,
+        document_settings,
     )
 }
 
@@ -662,6 +667,7 @@ pub fn load_evidence_project(
     config_path: &Path,
     inline_rules: &[InlineRule],
     rules_config_path: Option<&Path>,
+    document_settings: &crate::DocumentEvidenceSettings,
 ) -> Result<EvidenceProject, ProjectRefusal> {
     let files = read_evidence_project(config_path).map_err(|failure| match failure {
         ProjectReadFailure::Unavailable(failure) => failure.refusal,
@@ -671,6 +677,7 @@ pub fn load_evidence_project(
         &files,
         inline_rules,
         &DefinitionOrigin::file(rules_config_path.unwrap_or(config_path)),
+        document_settings,
     )
 }
 
@@ -679,6 +686,7 @@ pub fn compile_evidence_project_files(
     files: &EvidenceProjectFiles,
     inline_rules: &[InlineRule],
     inline_origin: &DefinitionOrigin,
+    document_settings: &crate::DocumentEvidenceSettings,
 ) -> Result<EvidenceProject, ProjectRefusal> {
     let project = DefinitionOrigin::file(&files.project.path);
     let mut compiler = ProjectCompiler::new(&project)?;
@@ -710,7 +718,12 @@ pub fn compile_evidence_project_files(
     {
         inputs.push(path.to_owned());
     }
-    compiler.finish(&project, files.rule_directories.clone(), inputs)
+    compiler.finish(
+        &project,
+        files.rule_directories.clone(),
+        inputs,
+        document_settings,
+    )
 }
 
 fn refuse_reserved_local_utils(

@@ -3,8 +3,8 @@
 use serde::{Deserialize, Serialize};
 use std::{collections::BTreeMap, num::NonZeroU32, path::PathBuf};
 use sunstack_evidence::{
-    DefinitionOrigin, DefinitionSnapshot, EvidenceKindDefinition, EvidenceKindName, MarkerPrefix,
-    SourceLocator,
+    DefinitionOrigin, DefinitionSnapshot, DocumentEvidenceSettings, EvidenceKindDefinition,
+    EvidenceKindName, HtmlEvidenceSettings, MarkdownEvidenceSettings, MarkerPrefix, SourceLocator,
 };
 use sunstack_lint::{CheckedFiles, DecisionModelSettings, LintInvalidCode, LintLimits};
 use sunstack_rules::{FilterName, FilterWire, RuleEntryWire};
@@ -12,7 +12,7 @@ use sunstack_rules::{FilterName, FilterWire, RuleEntryWire};
 use super::matcher_transport::{AstMatcher, AstUtility};
 
 /// The SDK contract revision; bumped whenever a generated declaration changes meaning.
-pub const CONTRACT_REVISION: u32 = 6;
+pub const CONTRACT_REVISION: u32 = 7;
 
 /// Which original decoder a captured source needs.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -102,15 +102,39 @@ pub enum EvidenceDefinitions {
         #[serde(default)]
         utilities: BTreeMap<String, AstUtility>,
         kinds: BTreeMap<EvidenceKindName, EvidenceKindDefinition>,
+        /// HTML conventions: tags left out of section outlines, attributes read as text.
+        #[serde(default, skip_serializing_if = "HtmlEvidenceSettings::is_default")]
+        #[cfg_attr(feature = "typescript", specta(optional))]
+        html: HtmlEvidenceSettings,
+        /// Markdown conventions: the heading-anchor scheme, if any.
+        #[serde(default, skip_serializing_if = "MarkdownEvidenceSettings::is_default")]
+        #[cfg_attr(feature = "typescript", specta(optional))]
+        markdown: MarkdownEvidenceSettings,
     },
     Captured {
         matchers: BTreeMap<String, CapturedValue<AstMatcher>>,
         utilities: BTreeMap<String, CapturedValue<AstUtility>>,
         kinds: BTreeMap<EvidenceKindName, EvidenceKindDefinition>,
+        /// HTML conventions: tags left out of section outlines, attributes read as text.
+        #[serde(default, skip_serializing_if = "HtmlEvidenceSettings::is_default")]
+        #[cfg_attr(feature = "typescript", specta(optional))]
+        html: HtmlEvidenceSettings,
+        /// Markdown conventions: the heading-anchor scheme, if any.
+        #[serde(default, skip_serializing_if = "MarkdownEvidenceSettings::is_default")]
+        #[cfg_attr(feature = "typescript", specta(optional))]
+        markdown: MarkdownEvidenceSettings,
     },
     Project {
         config_path: PathBuf,
         kinds: BTreeMap<EvidenceKindName, EvidenceKindDefinition>,
+        /// HTML conventions: tags left out of section outlines, attributes read as text.
+        #[serde(default, skip_serializing_if = "HtmlEvidenceSettings::is_default")]
+        #[cfg_attr(feature = "typescript", specta(optional))]
+        html: HtmlEvidenceSettings,
+        /// Markdown conventions: the heading-anchor scheme, if any.
+        #[serde(default, skip_serializing_if = "MarkdownEvidenceSettings::is_default")]
+        #[cfg_attr(feature = "typescript", specta(optional))]
+        markdown: MarkdownEvidenceSettings,
     },
 }
 
@@ -120,6 +144,18 @@ impl EvidenceDefinitions {
             Self::Inline { kinds, .. }
             | Self::Captured { kinds, .. }
             | Self::Project { kinds, .. } => kinds,
+        }
+    }
+
+    /// The HTML and Markdown conventions these definitions are read with.
+    pub fn document_settings(&self) -> DocumentEvidenceSettings {
+        match self {
+            Self::Inline { html, markdown, .. }
+            | Self::Captured { html, markdown, .. }
+            | Self::Project { html, markdown, .. } => DocumentEvidenceSettings {
+                html: html.clone(),
+                markdown: markdown.clone(),
+            },
         }
     }
 }
@@ -186,6 +222,12 @@ pub struct CapturedEvidence {
     pub matchers: BTreeMap<String, CapturedValue<AstMatcher>>,
     pub utilities: BTreeMap<String, CapturedValue<AstUtility>>,
     pub kinds: BTreeMap<EvidenceKindName, EvidenceKindDefinition>,
+    #[serde(default, skip_serializing_if = "HtmlEvidenceSettings::is_default")]
+    #[cfg_attr(feature = "typescript", specta(optional))]
+    pub html: HtmlEvidenceSettings,
+    #[serde(default, skip_serializing_if = "MarkdownEvidenceSettings::is_default")]
+    #[cfg_attr(feature = "typescript", specta(optional))]
+    pub markdown: MarkdownEvidenceSettings,
 }
 
 /// The literal `captured` discriminant.

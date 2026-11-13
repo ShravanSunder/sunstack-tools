@@ -309,6 +309,15 @@ against the verification document in reverse:
 The guide explains path resolution, whole-token matching, parse policy, and
 limits of HTML anchor and model-text handling.
 
+HTML outline exclusions and extra text attributes are project settings under
+`evidence.html`. They default to empty; standard `alt`, `aria-label` and
+`<template>` outline handling remain built in. Markdown heading fragments require
+an explicit `evidence.markdown.heading_anchors: "github"` scheme. Without it,
+unresolved heading fragments are `unsupported` with reason
+`heading_scheme_not_configured`; explicit HTML ids inside Markdown still resolve.
+See the guide's [language and model views](../sunstack-evidence/docs/html-evidence.md#language-and-model-views)
+for the config shape and low-level API boundary.
+
 ## Selected and contained evidence
 
 Add `select` to an evidence kind to ask one noul question about each mechanical
@@ -413,6 +422,10 @@ Replace `input` with the native operation input. Supported operations are
 The response is either `protocol_error` with diagnostics, or `operation_result`
 whose `result` contains the operation and its unchanged native outcome.
 The raw stdin limit is 8,388,608 bytes. Bind large evidence by path.
+
+The `EvidencePlanInput` used by `sunstack exec` uses standard document defaults.
+Project HTML conventions and Markdown heading-anchor schemes are available through
+repository lint and the evidence library's direct project/select APIs.
 
 Exit 0 means the operation completed, including an unfavorable rule verdict.
 Exit 2 means invalid input or protocol refusal; 3 means failed or incomplete

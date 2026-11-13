@@ -47,6 +47,7 @@ async fn real_markdown_paragraph_and_ast_ranges() {
             language: "rust".into(),
             pattern: "call($ARG)".into(),
         },
+        &Default::default(),
         10,
     )
     .unwrap() else {
@@ -86,7 +87,8 @@ async fn duplicate_deleted_literal_and_regex_targets_use_frozen_source_ranges() 
             pattern: "(?P<word>continuation)".into(),
         },
     ] {
-        let SelectionContent::Matches { matches } = select_document(&before, &select, 10).unwrap()
+        let SelectionContent::Matches { matches } =
+            select_document(&before, &select, &Default::default(), 10).unwrap()
         else {
             unreachable!()
         };

@@ -88,6 +88,10 @@ export const wideIntegerDefinitions = {
 		generics: [],
 		shape: {
 			object: {
+				html: {
+					arguments: {},
+					ref: 'HtmlEvidenceSettings',
+				},
 				kind: {
 					arguments: {},
 					ref: 'CapturedKind',
@@ -97,6 +101,10 @@ export const wideIntegerDefinitions = {
 						arguments: {},
 						ref: 'EvidenceKindDefinition',
 					},
+				},
+				markdown: {
+					arguments: {},
+					ref: 'MarkdownEvidenceSettings',
 				},
 				matchers: {
 					map: {
@@ -666,21 +674,37 @@ export const wideIntegerDefinitions = {
 			union: [
 				{
 					object: {
+						html: {
+							arguments: {},
+							ref: 'HtmlEvidenceSettings',
+						},
 						kinds: {
 							map: {
 								arguments: {},
 								ref: 'EvidenceKindDefinition',
 							},
 						},
+						markdown: {
+							arguments: {},
+							ref: 'MarkdownEvidenceSettings',
+						},
 					},
 				},
 				{
 					object: {
+						html: {
+							arguments: {},
+							ref: 'HtmlEvidenceSettings',
+						},
 						kinds: {
 							map: {
 								arguments: {},
 								ref: 'EvidenceKindDefinition',
 							},
+						},
+						markdown: {
+							arguments: {},
+							ref: 'MarkdownEvidenceSettings',
 						},
 						matchers: {
 							map: {
@@ -702,11 +726,19 @@ export const wideIntegerDefinitions = {
 				},
 				{
 					object: {
+						html: {
+							arguments: {},
+							ref: 'HtmlEvidenceSettings',
+						},
 						kinds: {
 							map: {
 								arguments: {},
 								ref: 'EvidenceKindDefinition',
 							},
+						},
+						markdown: {
+							arguments: {},
+							ref: 'MarkdownEvidenceSettings',
 						},
 					},
 				},
@@ -1202,6 +1234,27 @@ export const wideIntegerDefinitions = {
 			},
 		},
 	},
+	HtmlEvidenceSettings: {
+		generics: [],
+		shape: {
+			object: {
+				skip_tags: {
+					list: {
+						arguments: {},
+						ref: 'HtmlTagName',
+					},
+				},
+				text_attributes: {
+					map: {
+						list: {
+							arguments: {},
+							ref: 'HtmlAttributeName',
+						},
+					},
+				},
+			},
+		},
+	},
 	HtmlUnitSelection: {
 		generics: [],
 		shape: {
@@ -1609,6 +1662,17 @@ export const wideIntegerDefinitions = {
 				reason: {
 					arguments: {},
 					ref: 'LocatorOmissionReason',
+				},
+			},
+		},
+	},
+	MarkdownEvidenceSettings: {
+		generics: [],
+		shape: {
+			object: {
+				heading_anchors: {
+					arguments: {},
+					ref: 'HeadingAnchorScheme',
 				},
 			},
 		},
@@ -3055,6 +3119,21 @@ export const wideIntegerDefinitions = {
 					ref: 'SharedEvidenceState',
 				},
 			},
+		},
+	},
+	TargetAnchor: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						reason: {
+							arguments: {},
+							ref: 'TargetAnchorUnsupportedReason',
+						},
+					},
+				},
+			],
 		},
 	},
 	TargetExclude: {

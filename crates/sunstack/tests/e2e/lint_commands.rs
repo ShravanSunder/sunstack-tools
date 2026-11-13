@@ -11,6 +11,8 @@ use sunstack_rules::test_support::controlled_http as controlled;
 use tokio::process::Command;
 #[path = "lint_commands/checked_root.rs"]
 mod checked_root;
+#[path = "lint_commands/document_conventions.rs"]
+mod document_conventions;
 #[path = "lint_commands/filter_admission.rs"]
 mod filter_admission;
 #[path = "lint_commands/filter_runtime.rs"]

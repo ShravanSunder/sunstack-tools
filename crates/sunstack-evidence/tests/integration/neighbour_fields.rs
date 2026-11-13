@@ -42,7 +42,13 @@ fn project(reverse: bool) -> (tempfile::TempDir, EvidenceProject, String, String
         )
         .unwrap();
     }
-    let project = load_evidence_project(&directory.path().join("sgconfig.yml"), &[], None).unwrap();
+    let project = load_evidence_project(
+        &directory.path().join("sgconfig.yml"),
+        &[],
+        None,
+        &Default::default(),
+    )
+    .unwrap();
     (directory, project, list.into(), item.into())
 }
 fn build(

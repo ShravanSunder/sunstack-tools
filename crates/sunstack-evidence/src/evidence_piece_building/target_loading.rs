@@ -153,13 +153,16 @@ impl EvidenceBuild {
                             } else if crate::document_evidence::markdown_document::is_markdown_path(
                                 &resolved,
                             ) {
-                                if crate::MarkdownDocument::parse(&text).has_anchor(&fragment) {
-                                    TargetAnchor::Found { fragment }
-                                } else {
-                                    TargetAnchor::Missing { fragment }
-                                }
+                                crate::MarkdownDocument::parse(&text).resolve_anchor(
+                                    fragment,
+                                    self.project.document_settings.markdown.heading_anchors,
+                                )
                             } else {
-                                TargetAnchor::Unsupported { fragment }
+                                TargetAnchor::Unsupported {
+                                    fragment,
+                                    reason:
+                                        crate::TargetAnchorUnsupportedReason::UnsupportedDocument,
+                                }
                             }
                         });
                         let opening: String = text.chars().take(*opening_chars).collect();
@@ -248,9 +251,15 @@ impl EvidenceBuild {
             .limits
             .max_matches
             .saturating_sub(index.by_rule.values().map(Vec::len).sum());
-        let native_units =
-            collect_native_units(path, text, &self.kinds, &source, &mut remaining_matches)
-                .map_err(|_| FieldUnavailable::Unreadable)?;
+        let native_units = collect_native_units(
+            path,
+            text,
+            &self.kinds,
+            &source,
+            &mut remaining_matches,
+            &self.project.document_settings.html,
+        )
+        .map_err(|_| FieldUnavailable::Unreadable)?;
         let file = MatchedFile {
             text: text.into(),
             index,

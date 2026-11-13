@@ -96,6 +96,7 @@ pub(crate) fn admit_definitions(
                 files,
                 &inline_rules,
                 &bundle.inline_kind_origin,
+                &bundle.settings.document,
             ),
             Err(ProjectReadFailure::Unavailable(failure)) => Err(failure.refusal.clone()),
             Err(ProjectReadFailure::Refused(refusal)) => Err(refusal.clone()),
@@ -105,6 +106,7 @@ pub(crate) fn admit_definitions(
                 definitions,
                 &inline_rules,
                 &bundle.inline_kind_origin,
+                &bundle.settings.document,
             )
         }
     }

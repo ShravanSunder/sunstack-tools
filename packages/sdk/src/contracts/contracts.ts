@@ -76,6 +76,8 @@ export type CapturedEvidence = {
 	matchers: { [key in string]: CapturedValue<AstMatcher> };
 	utilities: { [key in string]: CapturedValue<AstUtility> };
 	kinds: { [key in EvidenceKindName]: EvidenceKindDefinition };
+	html?: HtmlEvidenceSettings;
+	markdown?: MarkdownEvidenceSettings;
 };
 
 /**  The literal `captured` discriminant. */
@@ -354,17 +356,29 @@ export type EvidenceDefinitions =
 			matchers: { [key in string]: AstMatcher };
 			utilities?: { [key in string]: AstUtility };
 			kinds: { [key in EvidenceKindName]: EvidenceKindDefinition };
+			/**  HTML conventions: tags left out of section outlines, attributes read as text. */
+			html?: HtmlEvidenceSettings;
+			/**  Markdown conventions: the heading-anchor scheme, if any. */
+			markdown?: MarkdownEvidenceSettings;
 	  }
 	| {
 			kind: 'captured';
 			matchers: { [key in string]: CapturedValue<AstMatcher> };
 			utilities: { [key in string]: CapturedValue<AstUtility> };
 			kinds: { [key in EvidenceKindName]: EvidenceKindDefinition };
+			/**  HTML conventions: tags left out of section outlines, attributes read as text. */
+			html?: HtmlEvidenceSettings;
+			/**  Markdown conventions: the heading-anchor scheme, if any. */
+			markdown?: MarkdownEvidenceSettings;
 	  }
 	| {
 			kind: 'project';
 			config_path: string;
 			kinds: { [key in EvidenceKindName]: EvidenceKindDefinition };
+			/**  HTML conventions: tags left out of section outlines, attributes read as text. */
+			html?: HtmlEvidenceSettings;
+			/**  Markdown conventions: the heading-anchor scheme, if any. */
+			markdown?: MarkdownEvidenceSettings;
 	  };
 
 export type EvidenceKindDefinition = EvidenceKindWire;
@@ -658,6 +672,18 @@ export type GitObjectId = string;
 
 export type GlobPattern = string;
 
+/**  The configured renderer convention for Markdown heading anchors. */
+export type HeadingAnchorScheme = 'github';
+
+export type HtmlAttributeName = string;
+
+export type HtmlEvidenceSettings = {
+	skip_tags?: HtmlTagName[];
+	text_attributes?: { [key in HtmlTagName]: HtmlAttributeName[] };
+};
+
+export type HtmlTagName = string;
+
 export type HtmlUnitFilter =
 	| ({ starts_with: string } & { pattern?: never })
 	| ({ pattern: string } & { starts_with?: never });
@@ -840,6 +866,10 @@ export type LocatorOmission = {
 };
 
 export type LocatorOmissionReason = 'line_limit';
+
+export type MarkdownEvidenceSettings = {
+	heading_anchors?: HeadingAnchorScheme | null;
+};
 
 export type MarkdownUnitKind = 'section' | 'paragraph' | 'list_item';
 
@@ -1378,7 +1408,11 @@ export type StructuredJudgmentRequest = {
 export type TargetAnchor =
 	| { status: 'found'; fragment: string }
 	| { status: 'missing'; fragment: string }
-	| { status: 'unsupported'; fragment: string };
+	| { status: 'unsupported'; fragment: string; reason: TargetAnchorUnsupportedReason };
+
+export type TargetAnchorUnsupportedReason =
+	| 'heading_scheme_not_configured'
+	| 'unsupported_document';
 
 export type TargetExclude = {
 	rule: EvidenceRuleId;

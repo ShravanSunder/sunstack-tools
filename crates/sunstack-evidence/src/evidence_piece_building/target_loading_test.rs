@@ -1,4 +1,4 @@
-#![allow(clippy::unwrap_used)]
+#![allow(clippy::unwrap_used, clippy::panic)]
 use super::*;
 use serde_json::json;
 
@@ -19,8 +19,13 @@ fn markdown_targets_resolve_heading_fragments_and_percent_encoded_files() {
     .unwrap();
     std::fs::write(root.path().join("target.md"), "# Hello `code`\n").unwrap();
     std::fs::write(root.path().join("a b.md"), "# Spaced\n").unwrap();
-    let project =
-        crate::load_evidence_project(&root.path().join("sgconfig.yml"), &[], None).unwrap();
+    let project = crate::load_evidence_project(
+        &root.path().join("sgconfig.yml"),
+        &[],
+        None,
+        &serde_json::from_value(json!({"markdown":{"heading_anchors":"github"}})).unwrap(),
+    )
+    .unwrap();
     let kinds = serde_json::from_value(json!({"links":{
         "rule":"links","fields":{"targets":{"from":"target","regex":"\\]\\(([^)]+)\\)","resolve":"path"}}
     }})).unwrap();
@@ -67,6 +72,83 @@ fn markdown_targets_resolve_heading_fragments_and_percent_encoded_files() {
 }
 
 #[test]
+fn unconfigured_markdown_targets_keep_explicit_ids_and_name_unsupported_headings() {
+    let root = tempfile::tempdir().unwrap();
+    std::fs::create_dir(root.path().join("rules")).unwrap();
+    std::fs::write(root.path().join("sgconfig.yml"), "ruleDirs: [rules]\n").unwrap();
+    std::fs::write(
+        root.path().join("rules/links.yml"),
+        "id: links\nlanguage: Markdown\nrule: {kind: inline}\n",
+    )
+    .unwrap();
+    std::fs::write(
+        root.path().join("owner.md"),
+        "[heading](target.md#heading) [explicit](target.md#explicit) [other](target.txt#anchor)\n",
+    )
+    .unwrap();
+    std::fs::write(
+        root.path().join("target.md"),
+        "# Heading\n\n<span id='explicit'></span>\n",
+    )
+    .unwrap();
+    std::fs::write(root.path().join("target.txt"), "plain text\n").unwrap();
+    let project = crate::load_evidence_project(
+        &root.path().join("sgconfig.yml"),
+        &[],
+        None,
+        &Default::default(),
+    )
+    .unwrap();
+    let kinds = serde_json::from_value(json!({"links":{
+        "rule":"links","fields":{"targets":{"from":"target","regex":"\\]\\(([^)]+)\\)","resolve":"path"}}
+    }})).unwrap();
+    let mut source = crate::FilesystemCheckedSource::new(root.path()).unwrap();
+
+    let catalog = crate::build_pieces(
+        &project,
+        &kinds,
+        &["owner.md".into()],
+        &mut source,
+        PieceBuildLimits {
+            max_files: 10,
+            max_file_bytes: 10000,
+            max_total_bytes: 100000,
+            max_matches: 100,
+            evidence_max_chars: 6000,
+        },
+    );
+
+    assert!(catalog.failures.is_empty(), "{:?}", catalog.failures);
+    let FieldValue::Targets { values } =
+        &catalog.pieces[0].fields[&FieldName::new("targets").unwrap()]
+    else {
+        panic!("target field must retain typed anchor outcomes");
+    };
+    assert_eq!(values.len(), 3);
+    assert_eq!(
+        values[0].anchor,
+        Some(crate::TargetAnchor::Unsupported {
+            fragment: "heading".into(),
+            reason: crate::TargetAnchorUnsupportedReason::HeadingSchemeNotConfigured,
+        })
+    );
+    assert_eq!(
+        values[1].anchor,
+        Some(crate::TargetAnchor::Found {
+            fragment: "explicit".into()
+        })
+    );
+    assert_eq!(
+        values[2].anchor,
+        Some(crate::TargetAnchor::Unsupported {
+            fragment: "anchor".into(),
+            reason: crate::TargetAnchorUnsupportedReason::UnsupportedDocument,
+        })
+    );
+    assert!(values.iter().all(|target| target.exists));
+}
+
+#[test]
 fn target_outline_and_ast_matches_share_the_local_match_allowance() {
     let root = tempfile::tempdir().unwrap();
     std::fs::create_dir(root.path().join("rules")).unwrap();
@@ -76,8 +158,13 @@ fn target_outline_and_ast_matches_share_the_local_match_allowance() {
         "id: whole\nlanguage: Html\nrule: {kind: document}\n",
     )
     .unwrap();
-    let project =
-        crate::load_evidence_project(&root.path().join("sgconfig.yml"), &[], None).unwrap();
+    let project = crate::load_evidence_project(
+        &root.path().join("sgconfig.yml"),
+        &[],
+        None,
+        &Default::default(),
+    )
+    .unwrap();
     let kinds = serde_json::from_value(json!({"outline":{
         "html_units":{"mode":"unit","units":["section"]},
         "fields":{"body":{"from":"section","text":"full"}}
@@ -140,8 +227,13 @@ fn target_outline_budget_failure_is_unavailable_rather_than_normal_missing_field
         "<h2>Target</h2><p>Original body</p>",
     )
     .unwrap();
-    let project =
-        crate::load_evidence_project(&root.path().join("sgconfig.yml"), &[], None).unwrap();
+    let project = crate::load_evidence_project(
+        &root.path().join("sgconfig.yml"),
+        &[],
+        None,
+        &Default::default(),
+    )
+    .unwrap();
     let kinds = serde_json::from_value(json!({
         "owner":{"rule":"whole","fields":{"targets":{"from":"target","regex":"href='([^']+)'","resolve":"path","as_kind":"outline"}}},
         "outline":{"html_units":{"mode":"unit","units":["section"]},"fields":{"body":{"from":"section","text":"full"}}}

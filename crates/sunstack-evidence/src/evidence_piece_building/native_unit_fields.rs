@@ -119,6 +119,7 @@ pub(super) fn collect_native_units(
     kinds: &BTreeMap<EvidenceKindName, EvidenceKindDefinition>,
     source: &SourceRef,
     remaining: &mut usize,
+    html_settings: &crate::HtmlEvidenceSettings,
 ) -> Result<BTreeMap<EvidenceKindName, NativeMatchedKind>, String> {
     let html = if is_html_path(path)
         && kinds
@@ -126,7 +127,7 @@ pub(super) fn collect_native_units(
             .any(|kind| matches!(kind.matcher, crate::KindMatcher::HtmlUnits(_)))
     {
         Some(Arc::new(
-            html_sections(text).map_err(|error| error.to_string())?,
+            html_sections(text, html_settings).map_err(|error| error.to_string())?,
         ))
     } else {
         None
@@ -150,7 +151,8 @@ pub(super) fn collect_native_units(
                 let mut selected = Vec::new();
                 let mut limited = false;
                 for (index, section) in outline.iter().enumerate() {
-                    let visible = html_text_content(&text[section.section_range.clone()]);
+                    let visible =
+                        html_text_content(&text[section.section_range.clone()], html_settings);
                     if !selection
                         .matches_text(&visible)
                         .map_err(|error| format!("html_units {}: {error}", name.as_str()))?

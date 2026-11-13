@@ -121,7 +121,16 @@ fn filter_tree_has_distinct_root_and_second_level_unsure_routes_and_declared_lab
 
 #[test]
 fn html_filter_prepared_request_projects_text_but_keeps_raw_mechanics_and_reads_hash() {
-    let project = crate::rulebook_planning::rulebook_test_support::project();
+    let project = sunstack_evidence::load_evidence_project(
+        &crate::rulebook_planning::rulebook_test_support::fixture().join("evidence/sgconfig.yml"),
+        &[],
+        None,
+        &serde_json::from_value(json!({"html":{
+            "text_attributes":{"ex-mermaid":["label"]}
+        }}))
+        .unwrap(),
+    )
+    .unwrap();
     let kinds = serde_json::from_value(json!({
         "outline": {
             "html_units":{"mode":"unit","units":["section"]},
@@ -169,6 +178,22 @@ fn html_filter_prepared_request_projects_text_but_keeps_raw_mechanics_and_reads_
         reads: ReadsPiece::One(0),
     };
 
+    let default_project = crate::rulebook_planning::rulebook_test_support::project();
+    let default_collected = filter_piece_for(
+        &plan,
+        &folder,
+        &[raw_piece.clone()],
+        &kinds,
+        &default_project,
+        6000,
+    )
+    .ok()
+    .unwrap();
+    let default_prepared = request_for(&plan, default_collected).ok().unwrap();
+    assert_eq!(
+        serde_json::to_value(&default_prepared.request).unwrap()["state"]["description"],
+        "Heading Body [alt: Flow]"
+    );
     let collected = filter_piece_for(&plan, &folder, &[raw_piece], &kinds, &project, 6000)
         .ok()
         .unwrap();
@@ -185,6 +210,7 @@ fn html_filter_prepared_request_projects_text_but_keeps_raw_mechanics_and_reads_
         &serde_json::to_vec(&json!({"description":raw})).unwrap(),
     );
     assert_eq!(prepared.reads_sha256, expected_digest);
+    assert_eq!(default_prepared.reads_sha256, expected_digest);
     let answers =
         serde_json::from_value(json!({"picture":{"type":"noul","yes_probability":1.0}})).unwrap();
     let result = walk_filter(&plan, &collected, &Default::default(), &answers);

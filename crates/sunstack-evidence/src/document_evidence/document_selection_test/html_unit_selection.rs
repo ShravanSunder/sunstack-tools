@@ -26,7 +26,7 @@ fn html_unit_public_selector_preserves_full_lexical_utf8_ranges() {
         serde_json::from_value(json!({"kind":"html_units","mode":"unit","units":["section"]}))
             .unwrap();
 
-    let result = select_document(&doc, &selection, 10).unwrap();
+    let result = select_document(&doc, &selection, &Default::default(), 10).unwrap();
 
     let SelectionContent::Matches { matches } = result else {
         panic!("expected raw matches");
@@ -63,7 +63,8 @@ fn html_unit_filters_use_projected_visible_text_and_reject_incomplete_match_list
             .extend(filter.as_object().unwrap().clone());
         let selection = serde_json::from_value(wire).unwrap();
 
-        let SelectionContent::Matches { matches } = select_document(&doc, &selection, 10).unwrap()
+        let SelectionContent::Matches { matches } =
+            select_document(&doc, &selection, &Default::default(), 10).unwrap()
         else {
             panic!("expected matches");
         };
@@ -80,7 +81,39 @@ fn html_unit_filters_use_projected_visible_text_and_reject_incomplete_match_list
         serde_json::from_value(json!({"kind":"html_units","mode":"unit","units":["section"]}))
             .unwrap();
     assert_eq!(
-        select_document(&doc, &selection, 2).unwrap_err().code,
+        select_document(&doc, &selection, &Default::default(), 2)
+            .unwrap_err()
+            .code,
         EvidenceCode::SelectorLimit
     );
+}
+
+#[test]
+fn public_html_selector_uses_only_its_explicit_document_settings() {
+    let raw = "<custom-source><h2>Nested</h2></custom-source><h2>Main</h2><custom-diagram caption='Flow'>Body</custom-diagram>";
+    let doc = document(raw);
+    let configured: DocumentEvidenceSettings = serde_json::from_value(json!({"html":{
+        "skip_tags":["custom-source"],"text_attributes":{"custom-diagram":["caption"]}
+    }}))
+    .unwrap();
+    let selection = serde_json::from_value(json!({
+        "kind":"html_units","mode":"unit","units":["section"],"pattern":"\\[caption: Flow\\]"
+    }))
+    .unwrap();
+    for (settings, expected) in [
+        (DocumentEvidenceSettings::default(), 0),
+        (configured.clone(), 1),
+        (DocumentEvidenceSettings::default(), 0),
+    ] {
+        let SelectionContent::Matches { matches } =
+            select_document(&doc, &selection, &settings, 10).unwrap()
+        else {
+            panic!("HTML selector must produce matches");
+        };
+        assert_eq!(matches.len(), expected);
+        for found in matches {
+            assert_eq!(found.text, raw[found.span.byte_start..found.span.byte_end]);
+            assert!(found.text.starts_with("<h2>Main</h2>"));
+        }
+    }
 }

@@ -9,11 +9,17 @@ pub(crate) fn is_html_path(path: &std::path::Path) -> bool {
 
 type HtmlNode<'tree> = Node<'tree, StrDoc<SupportLang>>;
 
-pub(crate) fn html_text_content(raw: &str) -> String {
+pub(crate) fn html_text_content(raw: &str, settings: &crate::HtmlEvidenceSettings) -> String {
     let tree = SupportLang::Html.ast_grep(raw);
     let mut content = String::new();
     // Selection purpose never performs fallible raw-span recovery.
-    let _ = append_text(&tree.root(), raw, &mut content, HtmlTextPurpose::Selection);
+    let _ = append_text(
+        &tree.root(),
+        raw,
+        &mut content,
+        HtmlTextPurpose::Selection,
+        settings,
+    );
     content.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
@@ -39,10 +45,19 @@ impl HtmlProjectionReason {
 }
 
 /// Recover malformed source only for asking; selector text keeps its original projection.
-pub(crate) fn html_asking_text(raw: &str) -> HtmlAskingText {
+pub(crate) fn html_asking_text(
+    raw: &str,
+    settings: &crate::HtmlEvidenceSettings,
+) -> HtmlAskingText {
     let tree = SupportLang::Html.ast_grep(raw);
     let mut content = String::new();
-    let result = append_text(&tree.root(), raw, &mut content, HtmlTextPurpose::Asking);
+    let result = append_text(
+        &tree.root(),
+        raw,
+        &mut content,
+        HtmlTextPurpose::Asking,
+        settings,
+    );
     let text = content.split_whitespace().collect::<Vec<_>>().join(" ");
     match result {
         Ok(()) => HtmlAskingText::Complete(text),
@@ -172,6 +187,7 @@ fn append_text(
     raw: &str,
     content: &mut String,
     purpose: HtmlTextPurpose,
+    settings: &crate::HtmlEvidenceSettings,
 ) -> Result<(), HtmlProjectionReason> {
     let mut incomplete = None;
     match node.kind().as_ref() {
@@ -197,7 +213,7 @@ fn append_text(
                 return Err(HtmlProjectionReason::UnrecoverableMarkup);
             }
             content.push(' ');
-            append_tag_attributes(node, content);
+            append_tag_attributes(node, content, settings);
             content.push(' ');
         }
         "end_tag" => content.push(' '),
@@ -215,7 +231,7 @@ fn append_text(
                 if gap.chars().all(char::is_whitespace) {
                     content.push_str(gap);
                 }
-                if let Err(reason) = append_text(&child, raw, content, purpose) {
+                if let Err(reason) = append_text(&child, raw, content, purpose, settings) {
                     incomplete = Some(reason);
                 }
                 cursor = child.range().end;
@@ -236,10 +252,12 @@ fn append_text(
     }
 }
 
-fn append_tag_attributes(tag: &HtmlNode<'_>, content: &mut String) {
-    let is_mermaid = tag
-        .children()
-        .any(|child| child.kind() == "tag_name" && child.text().eq_ignore_ascii_case("ex-mermaid"));
+fn append_tag_attributes(
+    tag: &HtmlNode<'_>,
+    content: &mut String,
+    settings: &crate::HtmlEvidenceSettings,
+) {
+    let tag_name = tag.children().find(|child| child.kind() == "tag_name");
     for attribute in tag.children().filter(|child| child.kind() == "attribute") {
         let Some(name) = attribute
             .children()
@@ -248,22 +266,30 @@ fn append_tag_attributes(tag: &HtmlNode<'_>, content: &mut String) {
             continue;
         };
         let name = name.text();
-        let label = if name.eq_ignore_ascii_case("alt") {
-            "alt"
-        } else if name.eq_ignore_ascii_case("aria-label") {
-            "aria-label"
-        } else if is_mermaid && name.eq_ignore_ascii_case("label") {
-            "label"
-        } else {
+        let standard = name.eq_ignore_ascii_case("alt") || name.eq_ignore_ascii_case("aria-label");
+        let configured = tag_name.as_ref().is_some_and(|tag_name| {
+            settings
+                .text_attributes
+                .iter()
+                .any(|(configured_tag, attributes)| {
+                    configured_tag
+                        .as_str()
+                        .eq_ignore_ascii_case(&tag_name.text())
+                        && attributes
+                            .iter()
+                            .any(|attribute| attribute.as_str().eq_ignore_ascii_case(&name))
+                })
+        });
+        if !standard && !configured {
             continue;
-        };
+        }
         if let Some(value) = attribute
             .dfs()
             .find(|part| part.kind() == "attribute_value")
         {
             content.push(' ');
             content.push('[');
-            content.push_str(label);
+            content.push_str(&name.to_ascii_lowercase());
             content.push_str(": ");
             content.push_str(&decode_entities(&value.text()));
             content.push(']');

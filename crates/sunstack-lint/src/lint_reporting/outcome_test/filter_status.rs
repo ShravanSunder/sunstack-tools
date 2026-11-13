@@ -204,6 +204,7 @@ async fn runtime_filter_choice_boundary_preserves_typed_count_limit_through_repo
             &fixture_root.path().join("evidence/sgconfig.yml"),
             &[],
             None,
+            &Default::default(),
         )
         .unwrap();
         let filter_kinds = serde_json::from_value(

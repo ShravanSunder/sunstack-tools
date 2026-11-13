@@ -28,6 +28,8 @@ pub struct ConfigurationSettings {
     pub limits: Option<LintLimits>,
     pub filters: BTreeMap<FilterName, FilterWire>,
     pub kinds: BTreeMap<EvidenceKindName, EvidenceKindDefinition>,
+    /// The project's HTML and Markdown conventions, applied wherever its evidence is read.
+    pub document: sunstack_evidence::DocumentEvidenceSettings,
 }
 
 impl From<&RulesConfig> for ConfigurationSettings {
@@ -40,6 +42,7 @@ impl From<&RulesConfig> for ConfigurationSettings {
             limits: config.limits.clone(),
             filters: config.filters.clone(),
             kinds: config.evidence.kinds.clone(),
+            document: config.evidence.document_settings(),
         }
     }
 }

@@ -1,0 +1,337 @@
+{
+	"source": "Original fixed0.13/0.14/0.14.1 inputs and J1 captured rulebook source; raw pages/configs inspected before baseline; no product-generated new oracle",
+	"J1_revision": "5c02896631399f04216fbdc30668cdeb0497be43",
+	"groups": [
+		{
+			"name": "j1",
+			"config": "plugins/sunstack-workflow-v2/skills/design-review/rules/design-documents.judged.config.json",
+			"config_sha256": "ba4de0191a22f03dd58f75b263d7982ed1b0f90dbdf2d70d23afc9c1165fbfd2",
+			"files": [
+				{
+					"file": "pages/page-01.html",
+					"sha256": "6ee9ec4076b71461ca2058aae9a384c52800b10996f7a0952b1ace9b1e842414"
+				},
+				{
+					"file": "pages/page-02.html",
+					"sha256": "4eeaefc2c8ccaf2020cac90fe806193f99cd7090d58fa51a9d9258bdd5b5995e"
+				},
+				{
+					"file": "pages/page-03.html",
+					"sha256": "1296d32988079004b2695b6213ec49423a24888e7aa5799b272ae9c34297a002"
+				},
+				{
+					"file": "pages/page-04.html",
+					"sha256": "92e10102e681216c24958dd19a80ac7b917c529976643714eb6840074621cf9f"
+				},
+				{
+					"file": "pages/page-05.html",
+					"sha256": "ca3c1ca6d8cb4d47aca8a62aaa0a8b4c119d75923058451719d100094d6abea8"
+				},
+				{
+					"file": "pages/page-06.html",
+					"sha256": "9b83dd5c042bcaa28573796135338e8f1c308f8bed0cec21b51d86846aa75da4"
+				},
+				{
+					"file": "pages/page-07.html",
+					"sha256": "58e1c69b659fe1fa44ccb4e06002c8b8b873ab06a1e043e09a567a33a58e3cbc"
+				},
+				{
+					"file": "pages/page-08.html",
+					"sha256": "b09aefbfb56b52280807dfbff55df336c415020060a02dbb246f7acf15404c76"
+				},
+				{
+					"file": "pages/page-09.html",
+					"sha256": "3333e8d92caa428189f5ce7d4c6b744f97cf9e953e8b0447b1b6fe2f8df9d364"
+				},
+				{
+					"file": "pages/page-10.html",
+					"sha256": "830db7eb640a25ce38cf51c13138a1db451b42a0d276ec88554711c5c08e9c54"
+				},
+				{
+					"file": "pages/page-11.html",
+					"sha256": "9530a9085f41b7c708ca6008c4e9c1cf55a3d63a22cf3b9c39a56625c856bd95"
+				},
+				{
+					"file": "pages/page-12.html",
+					"sha256": "ea15f4335650fdf59bbf24c920a714ed72f6569b90e85141f8d2fd24cfd6a3a4"
+				},
+				{
+					"file": "pages/page-13.html",
+					"sha256": "af26efa1ce441db8aca29f1889e851c8b8092d0386fa1b4ff17c1d10edd16f99"
+				},
+				{
+					"file": "plugins/sunstack-workflow-v2/skills/design-review/rules/design-documents.judged.config.json",
+					"sha256": "ba4de0191a22f03dd58f75b263d7982ed1b0f90dbdf2d70d23afc9c1165fbfd2"
+				},
+				{
+					"file": "plugins/sunstack-workflow-v2/skills/design-review/rules/evidence/rules/design-pages.yml",
+					"sha256": "30486022f203becee40d38bfe6f54d0e318a9d76d22ac096d66b8faafc3f4d30"
+				},
+				{
+					"file": "plugins/sunstack-workflow-v2/skills/design-review/rules/evidence/sgconfig.yml",
+					"sha256": "a016c8bda6a2c9f78fde925703ca14d7bef435b645ffba5fd30c64dea1d2d914"
+				},
+				{
+					"file": "plugins/sunstack-workflow-v2/skills/design-specification/SKILL.md",
+					"sha256": "abdd286a1276ca8b4edf82640ba567252b20c71543a5fd0d634a4c07b8687a67"
+				},
+				{
+					"file": "plugins/sunstack-workflow-v2/skills/design-specification/rules/design-specification.judged.rules.json",
+					"sha256": "dd83972d05845fcacc3a8b8d57b3e9124543f8edc0293276e3cf0872c892b722"
+				},
+				{
+					"file": "source-manifest.json",
+					"sha256": "42123e3ebcd89e4250685ccc765cc421ed180394df19ac6a2f682019f8c0cf40"
+				}
+			],
+			"expected_requests": 177,
+			"expected_exit": 6,
+			"git_commit": null
+		},
+		{
+			"name": "sections",
+			"config": "sunstack.lint.json",
+			"config_sha256": "c530098718eea29cf56e819aaa7bf926d6963422d2f55d958f6a7c78f4d35c1d",
+			"files": [
+				{
+					"file": "evidence/rules/html.yml",
+					"sha256": "84eee55b4cbb15606b93e6cff86c63aa32c86600eb31c2882b3943813d76e2a7"
+				},
+				{
+					"file": "evidence/sgconfig.yml",
+					"sha256": "a016c8bda6a2c9f78fde925703ca14d7bef435b645ffba5fd30c64dea1d2d914"
+				},
+				{
+					"file": "flat.html",
+					"sha256": "92e10102e681216c24958dd19a80ac7b917c529976643714eb6840074621cf9f"
+				},
+				{
+					"file": "mixed.html",
+					"sha256": "6ce416ac91eaf3359010df803bb8924896571f2ed07ec655aaa42ed1880b680f"
+				},
+				{
+					"file": "rulebook.md",
+					"sha256": "f172c28c59c093e6fce499c2cc69a74f72de122831fe79229b08eaee202d99cf"
+				},
+				{
+					"file": "rules.json",
+					"sha256": "af9fa93ef713d91b7e0883083f2dbd19c642deaf751514098937948eb7ad485a"
+				},
+				{
+					"file": "sunstack.lint.json",
+					"sha256": "c530098718eea29cf56e819aaa7bf926d6963422d2f55d958f6a7c78f4d35c1d"
+				},
+				{
+					"file": "wrapped.html",
+					"sha256": "195a73597ef99225bfc1f588bcf53558988a2a4b84fbd1fa212c189509432ec6"
+				}
+			],
+			"expected_requests": 114,
+			"expected_exit": 6,
+			"git_commit": null
+		},
+		{
+			"name": "anchors",
+			"config": "sunstack.lint.json",
+			"config_sha256": "416ae0968f1c192d9a8f20eccaff77150021160127b0a6f92f219dd578ed7fce",
+			"files": [
+				{
+					"file": "AGENTS.md",
+					"sha256": "f13636d455df30dc156de77757d17f50e7f06f4762420d5a82dfa8760cb8f5cb"
+				},
+				{
+					"file": "docs/architecture/README.md",
+					"sha256": "a6af23e75244705764d9437049ff46556cae912b43b4eca3aa41ecbb4e189f56"
+				},
+				{
+					"file": "docs/architecture/references/admired-skills.md",
+					"sha256": "3fef34eeb29cf436a0454d476a2d885f596d9923238c990bc4b750c78980a695"
+				},
+				{
+					"file": "docs/architecture/skill-standards-linter.md",
+					"sha256": "4ea66c083115d825a058ec34cc4402243f2ba3d952b67f919a2911354efba106"
+				},
+				{
+					"file": "docs/architecture/skill-system.md",
+					"sha256": "f97ff8f36cb3714ea20b07ec45ee57794cb9dcdb2088f199a69559a34fcebf8e"
+				},
+				{
+					"file": "docs/specs/2026-11-03-skill-rules/index.md",
+					"sha256": "4080cab87308e28e940b239fe9cdff19c9236898beed6c1319ca9bf2eabbba78"
+				},
+				{
+					"file": "docs/specs/2026-11-03-skill-rules/program-design.md",
+					"sha256": "a23815d34ebf2828fdba26d7bce399db0ce937b336393d8bdbb185fa409fe663"
+				},
+				{
+					"file": "docs/specs/2026-11-03-skill-rules/requirements/index.md",
+					"sha256": "d5902a32ad1253d3c0bf7b0d8c5a3cc7aed0a2ec063421d4b26a15cf347dddf9"
+				},
+				{
+					"file": "docs/specs/2026-11-03-skill-rules/requirements/nudges.md",
+					"sha256": "7ad779553cb1377da528a6af759ec35fb92f5645abfe839274fbc45825e69ecc"
+				},
+				{
+					"file": "docs/specs/2026-11-03-skill-rules/requirements/rule-making.md",
+					"sha256": "19b7e9f863345864d9e7a033e3f4f208d336783fee6eb844c962e98edb6e62ed"
+				},
+				{
+					"file": "docs/specs/2026-11-03-skill-rules/requirements/rule-tests.md",
+					"sha256": "a734001a6f85f9318bb00bf1cc1b1cc245f54963242692844bc9515c9c6f9253"
+				},
+				{
+					"file": "docs/specs/2026-11-03-skill-rules/requirements/skill-kinds.md",
+					"sha256": "48996335253b8c3a8caecc63cbed181f83f8da676915592b5f90cb520c576f75"
+				},
+				{
+					"file": "docs/specs/2026-11-03-skill-rules/requirements/what-rules-read.md",
+					"sha256": "4a78acba1526c32cd297bd1ccee2ffe64a4aba3fb63624a26bc3e40d18228c0b"
+				},
+				{
+					"file": "docs/specs/2026-11-03-skill-rules/specification/entities.md",
+					"sha256": "cd1084e5d37a6415b5cc7027839cc5549e2ac0f72b629b1fd5bee9216f021697"
+				},
+				{
+					"file": "docs/specs/2026-11-03-skill-rules/specification/nudges.md",
+					"sha256": "5b603afe976703503c9e75a15c91e71ec187cdd0f0cc86182b39f992be4a08ec"
+				},
+				{
+					"file": "docs/specs/2026-11-03-skill-rules/specification/rule-making.md",
+					"sha256": "d86bffa1cd4f5eb388ba5e7b146ad1e2cfa10a085bd53936563703f6c24b3b4c"
+				},
+				{
+					"file": "docs/specs/2026-11-03-skill-rules/specification/rule-tests.md",
+					"sha256": "1c6993f2a86e18100b0a7dc3677452a09c933e8793832298ac0703c437035065"
+				},
+				{
+					"file": "docs/specs/2026-11-03-skill-rules/specification/skill-kinds.md",
+					"sha256": "9f277fb167b723c32443ff82ff35a3c635b35b513327105ebad1481c24c816ab"
+				},
+				{
+					"file": "docs/specs/2026-11-03-skill-rules/specification/what-rules-read.md",
+					"sha256": "9d69dd893352da1211b75a4769eed0efe48818397e0cc239a3bb5ac7d504e058"
+				},
+				{
+					"file": "docs/specs/2026-11-03-skill-rules/verification-design.md",
+					"sha256": "9554f41b0b260ffcc2d815b7e29a585895c79a3240dfd737d5de105ac9c4a1b3"
+				},
+				{
+					"file": "docs/wip/skills-authoring/2026-10-14-practices-principles/spec.md",
+					"sha256": "79e7b7b77569408ed53687e23c55ab3fa145f5c717b3c267fe0cc6319242a243"
+				},
+				{
+					"file": "docs/wip/skills-authoring/2026-10-14-role-skills/spec.md",
+					"sha256": "1c1269379ed74fef826d13b9aa08602a18b4493ed714f11c0ccd5860c787690b"
+				},
+				{
+					"file": "docs/wip/skills-authoring/2026-10-15-principle-citation/spec.md",
+					"sha256": "8c9df4095cc930e51e20d63583e4994bb050dcfb52216d18f171071087c0565a"
+				},
+				{
+					"file": "docs/wip/skills-authoring/2026-10-24-orchestration-and-planning/index.md",
+					"sha256": "50a02778958312d911dcf893ad3cc82264dee28c89eb56da128c8df9db4f36a5"
+				},
+				{
+					"file": "docs/wip/skills-authoring/2026-10-24-orchestration-and-planning/phase-composition.md",
+					"sha256": "7e4c03fe5fe1efd5565b7fb78dbe8c83aa0b388cf3e3266afe413154ae892d7a"
+				},
+				{
+					"file": "docs/wip/skills-authoring/2026-10-24-orchestration-and-planning/planning-lifecycle.md",
+					"sha256": "d2075b99548cfffec84c5d3ac152f2a8f932f48a5dcaa055fa4d072837046263"
+				},
+				{
+					"file": "docs/wip/skills-authoring/2026-10-24-orchestration-and-planning/readable-design-sets.md",
+					"sha256": "325bc09ca00d0c7ab67a628217cac52f5160001549d24fa89b0cd00a04deca00"
+				},
+				{
+					"file": "docs/wip/skills-authoring/2026-10-24-orchestration-and-planning/testing-and-verification.md",
+					"sha256": "ea9f99a19b6d3204aab6c66f81bcbfe720a0caa06df3e434e35423f93cb0e8ac"
+				},
+				{
+					"file": "docs/wip/skills-authoring/2026-10-31-rules-as-nudges/requirements.md",
+					"sha256": "918dcb9a14362141aeafef96d46a899470224c86be0f67b7f4f9e3ad29cc4a5c"
+				},
+				{
+					"file": "docs/wip/skills-authoring/2026-11-06-show-me-your-work-record/index.md",
+					"sha256": "8dd2e51546b24d5f95fc42e8330a6f29ddbc32b1d30b197570d472e82036006e"
+				},
+				{
+					"file": "docs/wip/skills-authoring/2026-11-06-show-me-your-work-record/program-design.md",
+					"sha256": "5c395a7beb84b96582d6976dc5aa45175de288cfb4dfbdfd2f5ab8687a3a721b"
+				},
+				{
+					"file": "docs/wip/skills-authoring/2026-11-06-show-me-your-work-record/specification/obligations.md",
+					"sha256": "c3de9fc99683c7bf267594bdc72c9d0857642cea2212af577288f0c902cf708d"
+				},
+				{
+					"file": "docs/wip/skills-authoring/2026-11-06-show-me-your-work-record/verification-design.md",
+					"sha256": "ab034a0056464196329ed6d5bdd56e278017d550b425132b4e9865bf3a6a931f"
+				},
+				{
+					"file": "docs/wip/skills-authoring/2026-11-07-remove-product-workflow-leaks/spec.md",
+					"sha256": "3803b76be1053ac2fdc8733a7962df450bf2f926ce775e020adf35f75a1a3c97"
+				},
+				{
+					"file": "docs/wip/skills-authoring/2026-11-07-rules-skills-standalone/spec.md",
+					"sha256": "be7d7793b70097e968eb09f0155e3fb03204d6031b533ff0da58d8799a8442b8"
+				},
+				{
+					"file": "evidence/rules/html.yml",
+					"sha256": "930cd4932d2489e2c4138d97213507a6c74d75a337643d2df25d0d24fc91b8b6"
+				},
+				{
+					"file": "evidence/sgconfig.yml",
+					"sha256": "a016c8bda6a2c9f78fde925703ca14d7bef435b645ffba5fd30c64dea1d2d914"
+				},
+				{
+					"file": "plugins/agent-router/skills/agent-collaboration/SKILL.md",
+					"sha256": "b0936691bb42c0b7bcd5a53e52a034fc8f2a1a1738ef0f1c0dc594baa163e1b7"
+				},
+				{
+					"file": "plugins/agent-router/skills/agent-collaboration/references/mcp-usage.md",
+					"sha256": "8c5711f7c85502b2c8e6eaf63fe36aa1bd810ed5384f5364086be8c5ea33c7b6"
+				},
+				{
+					"file": "plugins/agent-router/skills/agent-collaboration/references/message-board.md",
+					"sha256": "f0dfb67bb3eada13bb749b08b40c530fa8261818d1711ef936e1ac34a81ab40d"
+				},
+				{
+					"file": "plugins/skill-authoring/skills/domain-skill-crafting/SKILL.md",
+					"sha256": "2d3fd3e66b592705fc579189b7c9b94d5d1a34a363f53cadf6619c6d8c72f625"
+				},
+				{
+					"file": "plugins/skill-authoring/skills/domain-skill-crafting/references/calls-and-placement.md",
+					"sha256": "e49fa5b2d78d1e36fed0ea63013a2acc8ca6f39cf72bd93b91b9db63a1972dbb"
+				},
+				{
+					"file": "plugins/sunstack-dev/README.md",
+					"sha256": "f261eb4314123e71ad1610e5549b132545af53ce8224e523c896cc6da15e9856"
+				},
+				{
+					"file": "rulebook.md",
+					"sha256": "f172c28c59c093e6fce499c2cc69a74f72de122831fe79229b08eaee202d99cf"
+				},
+				{
+					"file": "rules.json",
+					"sha256": "4342c7161aff320c11a944e75212ddf3c757f95992213d1ccdd489ff616a5cfc"
+				},
+				{
+					"file": "sunstack.lint.json",
+					"sha256": "416ae0968f1c192d9a8f20eccaff77150021160127b0a6f92f219dd578ed7fce"
+				}
+			],
+			"expected_requests": 0,
+			"expected_exit": 1,
+			"git_commit": null
+		},
+		{
+			"name": "ai-tools",
+			"config": "plugins/skill-authoring/skills/domain-skill-crafting/rules/skill-rules.config.json",
+			"config_sha256": "495591e4e713487ced0e40a8b083494049f2083fd1604b00951417628ef266ed",
+			"files": [],
+			"expected_requests": 499,
+			"expected_exit": 6,
+			"git_commit": "cde8d5cf5b9141a08264cc5d57e3e3a58f0f2aac"
+		}
+	]
+}

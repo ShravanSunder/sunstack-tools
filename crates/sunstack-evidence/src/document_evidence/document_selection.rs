@@ -101,9 +101,10 @@ fn is_block_end(tag: TagEnd) -> bool {
 pub fn select_document(
     document: &CapturedDocument,
     selection: &EvidenceSelection,
+    settings: &DocumentEvidenceSettings,
     max_matches: usize,
 ) -> EvidenceResult<SelectionContent> {
-    let (content, limited) = select_document_bounded(document, selection, max_matches)?;
+    let (content, limited) = select_document_bounded(document, selection, settings, max_matches)?;
     if limited {
         return Err(EvidenceCode::SelectorLimit.into());
     }
@@ -113,6 +114,7 @@ pub fn select_document(
 pub(crate) fn select_document_bounded(
     document: &CapturedDocument,
     selection: &EvidenceSelection,
+    settings: &DocumentEvidenceSettings,
     max_matches: usize,
 ) -> EvidenceResult<(SelectionContent, bool)> {
     let text = document.text.as_ref();
@@ -139,11 +141,13 @@ pub(crate) fn select_document_bounded(
         EvidenceSelection::HtmlUnits(selection) => {
             selection.validate()?;
             let mut matches = Vec::new();
-            let sections = crate::document_evidence::html_outline::html_sections(text)
-                .map_err(|_| EvidenceCode::SourceUnavailable)?;
+            let sections =
+                crate::document_evidence::html_outline::html_sections(text, &settings.html)
+                    .map_err(|_| EvidenceCode::SourceUnavailable)?;
             for section in sections {
                 let raw = &text[section.section_range.clone()];
-                let visible = crate::document_evidence::html_content::html_text_content(raw);
+                let visible =
+                    crate::document_evidence::html_content::html_text_content(raw, &settings.html);
                 if selection.matches_text(&visible)? {
                     matches.push(make_match(section.section_range, BTreeMap::new()));
                     if matches.len() > max_matches {

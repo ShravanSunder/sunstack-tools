@@ -23,7 +23,7 @@ fn selection(value: serde_json::Value) -> EvidenceSelection {
 }
 
 fn units(doc: &CapturedDocument, value: serde_json::Value) -> Vec<SelectedMarkdownUnit> {
-    match select_document(doc, &selection(value), 100).unwrap() {
+    match select_document(doc, &selection(value), &Default::default(), 100).unwrap() {
         SelectionContent::MarkdownUnits { units } => units,
         other => panic!("expected markdown units: {other:?}"),
     }
@@ -119,7 +119,9 @@ fn zero_matches_and_occurrence_limits_are_real_selection_results() {
         json!({"kind":"markdown_units","mode":"call_site","units":["list_item"],"pattern":"Use"}),
     );
     assert_eq!(
-        select_document(&doc, &select, 2).unwrap_err().code,
+        select_document(&doc, &select, &Default::default(), 2)
+            .unwrap_err()
+            .code,
         EvidenceCode::SelectorLimit
     );
     assert!(units(&doc,json!({"kind":"markdown_units","mode":"call_site","units":["list_item"],"pattern":"Missing"})).is_empty());

@@ -609,7 +609,12 @@ fn anchor_exists_walks_found_missing_unsupported_and_file_only_targets() {
         ),
         (
             true,
-            json!({"status":"unsupported","fragment":"R1"}),
+            json!({"status":"unsupported","fragment":"R1","reason":"unsupported_document"}),
+            "incomplete",
+        ),
+        (
+            true,
+            json!({"status":"unsupported","fragment":"R1","reason":"heading_scheme_not_configured"}),
             "incomplete",
         ),
     ] {

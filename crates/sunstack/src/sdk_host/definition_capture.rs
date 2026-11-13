@@ -114,6 +114,7 @@ pub(crate) fn settings_of(configuration: &Configuration) -> ConfigurationSetting
         limits: configuration.limits.clone(),
         filters: configuration.filters.clone(),
         kinds: configuration.evidence.kinds().clone(),
+        document: configuration.evidence.document_settings(),
     }
 }
 
@@ -127,6 +128,7 @@ pub(crate) fn settings_value(settings: &ConfigurationSettings) -> serde_json::Va
         "limits": settings.limits,
         "filters": settings.filters,
         "kinds": settings.kinds,
+        "document": settings.document,
     }))
 }
 
