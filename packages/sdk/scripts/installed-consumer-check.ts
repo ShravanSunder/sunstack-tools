@@ -203,6 +203,7 @@ step('typecheck', join(consumer, 'node_modules', '.bin', 'tsc'), ['-p', 'tsconfi
 
 // Heading pages: a non-ASCII setext heading and an ATX child keep their Markdown source; HTML
 // entities are decoded exactly once.
+const descriptionPage = '---\ndescription: Wrong opening\n---\n\n# One\n';
 const headingGuide = 'Café *guide* &amp;\n===\n\nIntro.\n\n## Install `npm` ##\n\nSteps.\n';
 const headingPage =
 	'猫<h2>Review &lt;Widget&gt; &amp;lt;</h2><h3>1. <em>Read</em> addressed source</h3><p>Body</p>';
@@ -218,7 +219,7 @@ function headingBytes(page: string, fragment: string): string {
 const checked = join(consumer, 'checked');
 const project = join(consumer, 'project');
 for (const [path, content] of Object.entries({
-	[join(checked, 'docs', 'one.md')]: '---\ndescription: Wrong opening\n---\n\n# One\n',
+	[join(checked, 'docs', 'one.md')]: descriptionPage,
 	[join(checked, 'docs', 'guide.md')]: headingGuide,
 	[join(checked, 'docs', 'page.html')]: headingPage,
 	[join(project, 'sunstack.lint.json')]: JSON.stringify({
@@ -273,15 +274,30 @@ assert.match(headings, /check: valid/u);
 assert.match(headings, /run: clean/u);
 const guideHeading = 'Café *guide* &amp;';
 const pageHeading = 'Review <Widget> &lt;';
-const headingLines = headings.split('\n');
-for (const expected of [
-	`docs/guide.md: ${guideHeading} | ${guideHeading} @ ${headingBytes(headingGuide, 'Café *guide* &amp;\n===\n')}`,
-	`docs/guide.md: Install \`npm\` | ${guideHeading} > Install \`npm\` @ ${headingBytes(headingGuide, '## Install `npm` ##\n')}`,
-	`docs/page.html: ${pageHeading} | ${pageHeading} @ ${headingBytes(headingPage, '<h2>Review &lt;Widget&gt; &amp;lt;</h2>')}`,
-	`docs/page.html: 1. Read addressed source | ${pageHeading} > 1. Read addressed source @ ${headingBytes(headingPage, '<h3>1. <em>Read</em> addressed source</h3>')}`,
-]) {
-	assert.ok(headingLines.includes(expected), `heading line: ${expected}`);
-}
+const headingRows = (file: string): string[] =>
+	headings
+		.split('\n')
+		.filter((line) => line.startsWith(`${file}: `))
+		.toSorted();
+// Exactly these rows per file: an extra, missing or duplicated row fails.
+assert.deepEqual(
+	headingRows('docs/guide.md'),
+	[
+		`docs/guide.md: ${guideHeading} | ${guideHeading} @ ${headingBytes(headingGuide, 'Café *guide* &amp;\n===\n')}`,
+		`docs/guide.md: Install \`npm\` | ${guideHeading} > Install \`npm\` @ ${headingBytes(headingGuide, '## Install `npm` ##\n')}`,
+	].toSorted(),
+);
+assert.deepEqual(
+	headingRows('docs/page.html'),
+	[
+		`docs/page.html: ${pageHeading} | ${pageHeading} @ ${headingBytes(headingPage, '<h2>Review &lt;Widget&gt; &amp;lt;</h2>')}`,
+		`docs/page.html: 1. Read addressed source | ${pageHeading} > 1. Read addressed source @ ${headingBytes(headingPage, '<h3>1. <em>Read</em> addressed source</h3>')}`,
+	].toSorted(),
+);
+// The description page's own section is reported too, separately.
+assert.deepEqual(headingRows('docs/one.md'), [
+	`docs/one.md: One | One @ ${headingBytes(descriptionPage, '# One\n')}`,
+]);
 const inline = step('inline-configuration', process.execPath, ['inline-configuration.ts', checked]);
 assert.match(inline, /check: valid/u);
 process.stdout.write(`\nInstalled consumer passed in ${consumer}\n`);
