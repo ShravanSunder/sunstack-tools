@@ -5,6 +5,7 @@ import type {
 	Configuration,
 	EvidenceKindDefinition,
 	EvidenceLanguage,
+	FieldSource,
 	FilterDefinition,
 	HtmlEvidenceSettings,
 	LoadedConfiguration,
@@ -348,3 +349,28 @@ export const reasonOnFound = {
 	// expect TS2353
 	reason: 'unsupported_document',
 } satisfies TargetAnchor;
+
+// Heading text is a closed literal, only on section and context sources.
+export const misspelledSectionText = {
+	from: 'section',
+	// expect TS2820
+	text: 'headline',
+} satisfies FieldSource;
+
+export const misspelledContextText = {
+	from: 'enclosing',
+	kind: 'outline',
+	// expect TS2820
+	text: 'headings',
+} satisfies FieldSource;
+
+export const headingOnFirstLine = {
+	from: 'first_line',
+	// expect TS2322
+	text: 'heading',
+} satisfies FieldSource;
+
+export const sectionWithoutText = {
+	from: 'section',
+	// expect TS1360
+} satisfies FieldSource;

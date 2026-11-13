@@ -169,7 +169,12 @@ assert.ok(
 	`the SDK resolves inside the consumer: ${sdkEntry}`,
 );
 
-for (const example of ['inline-configuration.ts', 'load-and-edit.ts', 'mechanical-run.ts']) {
+for (const example of [
+	'inline-configuration.ts',
+	'load-and-edit.ts',
+	'mechanical-run.ts',
+	'heading-fields.ts',
+]) {
 	copyFileSync(join(packageDirectory, 'examples', example), join(consumer, example));
 }
 writeFileSync(
@@ -201,6 +206,7 @@ const checked = join(consumer, 'checked');
 const project = join(consumer, 'project');
 for (const [path, content] of Object.entries({
 	[join(checked, 'docs', 'one.md')]: '---\ndescription: Wrong opening\n---\n\n# One\n',
+	[join(checked, 'docs', 'guide.md')]: '# Guide\n\nIntro.\n\n## Install `npm` ##\n\nSteps.\n',
 	[join(project, 'sunstack.lint.json')]: JSON.stringify({
 		rulebook: [{ markdown: 'rulebook.md', rules: 'rules.json' }],
 		marker_prefix: 'K',
@@ -247,6 +253,12 @@ const edited = step('load-and-edit', process.execPath, ['load-and-edit.ts', proj
 assert.match(edited, /check: valid/u);
 assert.match(edited, /run: completed/u);
 assert.match(edited, /source edited/u);
+// Heading fields execute on real sections: exact own and enclosing headings, outermost first.
+const headings = step('heading-fields', process.execPath, ['heading-fields.ts', checked]);
+assert.match(headings, /check: valid/u);
+assert.match(headings, /run: clean/u);
+assert.match(headings, /^docs\/guide\.md: Guide \| Guide$/mu);
+assert.match(headings, /^docs\/guide\.md: Install `npm` \| Guide > Install `npm`$/mu);
 const inline = step('inline-configuration', process.execPath, ['inline-configuration.ts', checked]);
 assert.match(inline, /check: valid/u);
 process.stdout.write(`\nInstalled consumer passed in ${consumer}\n`);

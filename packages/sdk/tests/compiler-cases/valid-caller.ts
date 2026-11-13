@@ -4,8 +4,11 @@ import type {
 	AstMatcher,
 	AuthoredLanguage,
 	Configuration,
+	ContextText,
 	EvidenceKindDefinition,
 	EvidenceLanguage,
+	FieldSource,
+	FieldValue,
 	FilterDefinition,
 	HeadingAnchorScheme,
 	HtmlAttributeName,
@@ -16,6 +19,7 @@ import type {
 	RuleEntry,
 	RunOutcome,
 	SdkFinding,
+	SectionText,
 	TargetAnchor,
 	TargetAnchorUnsupportedReason,
 } from '../../src/index.ts';
@@ -340,5 +344,44 @@ export function reasonAdvice(reason: TargetAnchorUnsupportedReason): string {
 			return 'this document format has no anchors';
 		default:
 			return assertNever(reason);
+	}
+}
+
+// Native section heading fields: own heading text and the enclosing headings of a
+// referenced native section kind. Rust decides which references admit heading text.
+export const sectionHeading: SectionText = 'heading';
+export const contextHeading: ContextText = 'heading';
+export const headingFields = {
+	heading: { from: 'section', text: sectionHeading },
+	heading_path: { from: 'enclosing', kind: 'outline', text: contextHeading },
+	body: { from: 'section', text: 'own' },
+} as const satisfies Readonly<Record<string, FieldSource>>;
+export const headingKinds = {
+	outline: { html_units: { mode: 'unit', units: ['section'] }, fields: {} },
+	subject: { html_units: { mode: 'unit', units: ['section'] }, fields: headingFields },
+	markdownSubject: {
+		markdown_units: { mode: 'unit', units: ['section'] },
+		fields: headingFields,
+	},
+} as const satisfies Readonly<Record<string, EvidenceKindDefinition>>;
+export const configuredHeadings = {
+	...configuration,
+	evidence: { ...configuration.evidence, kinds: headingKinds },
+} satisfies Configuration;
+
+// Reading heading values: one text for the own heading, ordered texts outermost first.
+export function headingPath(value: FieldValue | undefined): readonly string[] {
+	switch (value?.state) {
+		case 'text':
+			return [value.value];
+		case 'texts':
+			return value.values;
+		case 'targets':
+		case 'absent':
+		case 'unavailable':
+		case undefined:
+			return [];
+		default:
+			return assertNever(value);
 	}
 }

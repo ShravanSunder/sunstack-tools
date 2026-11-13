@@ -145,6 +145,38 @@ keeps its file origin; an edited copy reports the root as `edited`. A change on 
 takes effect only when you call `load` again. Blank names, unknown keys and unknown
 schemes are refused by the engine.
 
+## Section heading fields
+
+Native section kinds (`html_units`, or `markdown_units` with units exactly `['section']`)
+can read a section's own heading and the headings that enclose it:
+
+```ts
+import type { FieldSource, FieldValue } from '@sunstack/sdk';
+
+const headingFields = {
+	heading: { from: 'section', text: 'heading' }, // one text
+	heading_path: { from: 'enclosing', kind: 'outline', text: 'heading' }, // outermost first
+} as const satisfies Readonly<Record<string, FieldSource>>;
+
+function texts(value: FieldValue | undefined): readonly string[] {
+	if (value?.state === 'text') return [value.value];
+	if (value?.state === 'texts') return value.values;
+	return [];
+}
+```
+
+- **HTML:** a heading is the h1–h6 element's text, with entities decoded once:
+  `&lt;Widget&gt;` reads `<Widget>`.
+- **Markdown:** a heading keeps its inline source and drops only the ATX `#` markers or
+  the setext underline.
+- **Values and spans:** stored values and the asking view hold the same heading text,
+  and spans point at the original heading.
+- **Enclosing kind:** the kind it names (`outline` above) must itself be a native
+  section kind. The engine refuses heading text from other kinds, from `same_file`,
+  and through a target's `as_kind`.
+
+`examples/heading-fields.ts` runs this without a model.
+
 ## Typed outcomes
 
 No call throws for a domain or detectable native ending. Narrow on `kind`:
