@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Document evidence: requirements</title>
+  <link rel="stylesheet" href="https://demistify.getagentstudio.dev/v1/theme.css">
+  <script type="module" src="https://demistify.getagentstudio.dev/v1/runtime.js"></script>
+</head>
+<body>
+  <ex-nav for="content">
+    <nav slot="pages" aria-label="Pages">
+      <a href="index.html">Document evidence</a>
+      <a href="requirements.html">Requirements</a>
+    </nav>
+  </ex-nav>
+  <ex-document id="content">
+    <h1>Document evidence: requirements</h1>
+
+    <p id="answer">Rules that judge documents judge whatever a heading cuts out, and the owner found those chunks wrong. This page proposes that a rule judge what a reader reads as <strong>one explanation</strong>, together with what that reader needs around it: the introduction above it, the diagram it relies on, the pages it links to. This applies to Markdown skills, HTML design pages and other text documents that link to each other. The evidence has to be proven against independent judgement before any rule is tuned on it.</p>
+
+    <p>This amends <a href="../2026-10-29-skill-rules-evidence-and-decisions/requirements.md">skill rules on evidence and decisions</a> (U1–U12 and U18) and <a href="../2026-10-30-evidence-selection/requirements.md">evidence selection</a> (U13–U17); those needs stay in force except where a need below says otherwise. The Specification, Program Design and Verification Design are not written yet.</p>
+
+    <ex-callout id="waiting" title="Waiting on you" tone="question" icon="user">
+      <p>Four answers on this page: the <a href="#confirm-capabilities">capability list</a>, the <a href="#confirm-boundary">goal boundary</a>, the <a href="#u1-amendment">U1 amendment</a> and <a href="#link-timing">when links widen evidence</a>. Each has a recommendation; nothing is selected. Use Comments to correct anything, then Copy and paste the review back.</p>
+    </ex-callout>
+
+    <section id="who">
+      <h2>Who it serves</h2>
+      <p>Three kinds of reader depend on a rule's evidence. They are hurt in different ways when a rule judges a fragment.</p>
+      <div class="ex-table-scroll">
+        <table>
+          <thead><tr><th>Who</th><th>Job</th><th>What goes wrong today</th></tr></thead>
+          <tbody>
+            <tr id="who-author"><th scope="row">Rule author (the owner, or an Opus writer)</th><td>Write a rule once about the explanation of something, for any document</td><td>The only cut is a heading section. The J1 diagram rule judged heading fragments; the owner's rulings said "somthign is wrong with your jchunks".</td></tr>
+            <tr id="who-agent"><th scope="row">The agent running the rules (design review's Reviewer, skill review, a creation self-check)</th><td>Act on what a rule found</td><td>A finding on a fragment points at the wrong thing. A diagram in the parent section reads as missing from its child.</td></tr>
+            <tr id="who-owner"><th scope="row">The owner</th><td>Trust that a finding, or its absence, means something; see what the model judged</td><td>Nothing shows how a page was broken up or what reached the model: "how much of the chunk are you getting this?  how ar eyou breakiking up the system and passign it to jev?"</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="today-wanted">
+      <h2>Today and wanted</h2>
+      <p>Today a document rule's evidence is a heading section, cut mechanically, and the model judges that cut as it is. Proposed: the cut only proposes candidates, the decision model chooses the explanations among them (as evidence selection already does for skill workflows), and each explanation travels with its context and links.</p>
+      <ex-mermaid id="today-wanted-view" label="How a document rule gets its evidence: today and wanted"><script type="text/plain">
+flowchart LR
+  subgraph today["Today"]
+    t1["Page"] --> t2["Heading sections<br/>cut mechanically"]
+    t2 --> t3["Rule judges each fragment<br/>as it is"]
+  end
+  subgraph wanted["Wanted"]
+    w1["Pages that link<br/>to each other"] --> w2["Candidates<br/>cut mechanically"]
+    w2 --> w3{"Decision model:<br/>which are explanations,<br/>which stand alone?"}
+    w3 --> w4["Units: an explanation<br/>with its parts"]
+    w4 --> w5["Plus context and links<br/>the reader needs"]
+    w5 --> w6["Rule judges the unit"]
+  end
+  class t3 slot5
+  class w4 slot3
+  class w5 slot3
+      </script></ex-mermaid>
+      <p>The picture shows what the rule receives, not how the engine builds it. Which context travels, and how far links are followed, is for the Specification and the experiments.</p>
+      <details id="today-evidence">
+        <summary>What we have observed so far, and what it does not show</summary>
+        <ul>
+          <li>The J1 owner rulings (12 Nov): one fragment's diagram sat in its parent ("actully digarm is for the seciton which isnt too bad.  it woudl come up as a mabye to check for teh agent."), one fragment could not be judged at all, and one was a bare heading with a diagram.</li>
+          <li>Blind labelling of 23 real documents (13 HTML design pages, 6 skills, 4 other Markdown files) by two independent labellers each: they agree on which heading starts a unit, which is a part and which is not an explanation for 248 of 295 headings. In the HTML pages, no heading was agreed to be a part: every agreed explanation stands on its own.</li>
+          <li>These are observations about the current corpus. They do not yet show which cut the decision model reproduces; that is the first experiment.</li>
+        </ul>
+      </details>
+    </section>
+
+    <section id="capabilities">
+      <h2>What it does, in four parts</h2>
+      <p><strong>Proposed by the Lead, not confirmed.</strong> The owner named two halves of the problem: "you are sovligna  chun,ing rpbormle n and tyring to find relevant parts". The list splits the first half into units and what a unit carries, keeps relevance as its own part, and adds the owner's two-step order.</p>
+      <ex-mermaid id="capability-map" label="Capabilities and the needs that name them"><script type="text/plain">
+flowchart TB
+  C1["C1 · Break documents into explanations"] --> U19["U19 Judge explanations, not fragments"]
+  C1 --> U20["U20 Units chosen the U13 way"]
+  C1 --> U21["U21 Markdown, HTML and text alike"]
+  C2["C2 · Carry what a unit needs"] --> U22["U22 Context from around the unit"]
+  C2 --> U23["U23 Links and backlinks across files"]
+  C2 --> U24["U24 What the model received<br/>is visible (proposed)"]
+  C3["C3 · Find the relevant parts"] --> U25["U25 Rank by similarity (hypothesis)"]
+  C4["C4 · Prove evidence before tuning rules"] --> U26["U26 Two steps: evidence, then rules"]
+  C4 --> U27["U27 No rule skips the route"]
+  class C1 slot1
+  class C2 slot2
+  class C3 slot4
+  class C4 slot6
+      </script></ex-mermaid>
+      <div class="ex-table-scroll">
+        <table>
+          <thead><tr><th>Key</th><th>Capability</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">C1</th><td>Break documents into explanations</td><td>A rule judges the span a reader reads as one explanation.</td></tr>
+            <tr><th scope="row">C2</th><td>Carry what a unit needs</td><td>The unit reaches the model with what makes it understandable, and everyone can see what that was.</td></tr>
+            <tr><th scope="row">C3</th><td>Find the relevant parts</td><td>Among many candidates across documents, the ones that matter to a rule's question are found.</td></tr>
+            <tr><th scope="row">C4</th><td>Prove evidence before tuning rules</td><td>Evidence is shown to be right first; rules are tuned on it second.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <ex-choice id="confirm-capabilities" title="Is this the right list of parts?">
+        <ex-option id="capabilities-as-proposed" title="Yes, these four (recommended)">
+          <template slot="summary">C1–C4 as above. Each need below sits under one of them.</template>
+        </ex-option>
+        <ex-option id="capabilities-merge-relevance" title="Fold relevance into C2">
+          <template slot="summary">Three parts: finding relevant parts becomes part of what a unit carries.</template>
+        </ex-option>
+        <ex-option id="capabilities-other" title="Something else">
+          <template slot="summary">Say how in a comment.</template>
+        </ex-option>
+      </ex-choice>
+    </section>
+
+    <section id="authority">
+      <h2>Where the needs come from</h2>
+      <p>Every need below quotes the owner's words from 12 November 2026 (evening, EST), spelling as written. The owner has not assigned priorities; the order of the parts is the Lead's proposal for delivery, starting with C1 and C4 because the experiments already under way serve them. Where a need says <em>proposed</em>, the Lead wrote that part to answer the owner's words; it needs the owner's confirmation. A need marked <em>hypothesis</em> came from a question, not a direction, and authorizes nothing until the owner decides.</p>
+    </section>
+
+    <section id="c1">
+      <h2>C1 · Break documents into explanations</h2>
+      <p>This part is the chunking half of the problem: what span a rule judges.</p>
+
+      <section id="U19">
+        <h3>U19 · Judge explanations, not fragments</h3>
+        <p>A document rule judges the right chunk of a document, not a fragment a heading happens to cut.</p>
+        <p><strong>Proposed by the Lead, to confirm:</strong> the right chunk is a <strong>unit</strong>, the span a reader reads as one explanation, with its parts. A sub-heading that only continues its parent's explanation is judged with it; a nested section that explains something of its own is judged on its own. This is the definition the blind labellers used; the owner has not chosen it.</p>
+        <p>Why: a rule that judges a fragment reports on the wrong thing, and its absence of findings means nothing. The owner's rulings on J1 found exactly that.</p>
+        <p>Owner's words: "how are you creating the html or markdown or ehading chunks?"; "somthign is wrong with your jchunks"; "because html and docs or doc like behvoaur it slike hunking for rag"; "you are sovligna  chun,ing rpbormle n and tyring to find relevant parts". Authority: authorized that chunks must be right and that this is a chunking problem; the definition of a unit above is a proposal.</p>
+      </section>
+
+      <section id="U20">
+        <h3>U20 · Units are chosen the U13 way</h3>
+        <p>Units come from the same route evidence selection already uses: candidates cut mechanically with no model, the decision model choosing which become units, every candidate's outcome reported (U15) and the same thresholds and hand-back of uncertain answers (U16). This holds for every document rule: J1, the design rules and the core-skill rules alike.</p>
+        <p>Why: a second, rule-specific way of cutting would bring back the heading-name guessing U13 removed.</p>
+        <p>Owner's words: the owner selected "b. All document rules (recommended): one evidence design for both Markdown skills and HTML design pages, building on your 30 October U13–U17. Every rule, J1 and the core-skill rules alike, gets candidates, then a Jev selection, then units the same way." Authority: authorized.</p>
+      </section>
+
+      <section id="U21">
+        <h3>U21 · Markdown, HTML and text alike</h3>
+        <p>The same needs hold for Markdown files, HTML pages and other text documents, and for sets of them that link to each other. Code is not in scope: its structure is already what ast-grep reads.</p>
+        <p>Owner's words: "or text dockuments"; "is ast grep maek thigns eaiser for code / this is for markdown and text with links and backlinks multi file hwo this works". Authority: authorized.</p>
+      </section>
+    </section>
+
+    <section id="c2">
+      <h2>C2 · Carry what a unit needs</h2>
+      <p>This part is about what reaches the model with a unit, and being able to see it.</p>
+
+      <section id="U22">
+        <h3>U22 · Context from around the unit</h3>
+        <p>A diagram in the parent section that a unit relies on counts as part of the unit's context, not as missing from it.</p>
+        <p><strong>Proposed by the Lead, to confirm:</strong> more generally, every unit reaches the model with what its reader would have from around it: the introduction above it, the page's opening, and where it sits in the page.</p>
+        <p>Why: the owner judged a parent's diagram relevant to its child section. A rule that sees only the child would call the diagram missing.</p>
+        <p>Owner's words: "actully digarm is for the seciton which isnt too bad.  it woudl come up as a mabye to check for teh agent." Authority: authorized for the parent's diagram, from one ruling; the general list is a proposal, and which pieces travel is measured by the experiments.</p>
+      </section>
+
+      <section id="U23">
+        <h3>U23 · Links and backlinks across files</h3>
+        <p>A unit's evidence can include what it links to and what links to it, across files, by following links (traversal).</p>
+        <p>Why: in a linked document set, the explanation a rule needs often lives on the linked page.</p>
+        <p>Owner's words: "this is for markdown and text with links and backlinks multi file hwo this works"; "there is traversal". Authority: authorized. How far links are followed, and when backlinks ship, is <a href="#link-timing">an open choice</a>.</p>
+      </section>
+
+      <section id="U24">
+        <h3>U24 · What the model received is visible (proposed)</h3>
+        <p><strong>Proposed by the Lead, from the owner's question:</strong> for every unit, the owner and the agent can see exactly what reached the model: its text, its context, its links, and anything cut for size, by name.</p>
+        <p>Why: without it, nobody can tell whether a wrong answer came from the model or from what it was given.</p>
+        <p>Owner's words: "ok how much of the chunk are you getting this?  how ar eyou breakiking up the system and passign it to jev?". Authority: <strong>proposed</strong>. The owner asked how much of a chunk reaches the model; this is the Lead's answer to make that visible every time. It would extend U15, which made candidates' outcomes visible, to what each unit carried. Today a selection request marks a cut only inline, as <code>[cut]</code>; naming what was cut depends on the per-candidate cut-fields change already queued in the engine after 0.15.1.</p>
+      </section>
+    </section>
+
+    <section id="c3">
+      <h2>C3 · Find the relevant parts</h2>
+      <p>This part is the second half of the owner's problem: finding what matters to a rule's question when there are many candidates across documents.</p>
+
+      <section id="U25">
+        <h3>U25 · Rank candidates by similarity (hypothesis)</h3>
+        <p>Before or alongside selection, candidates may be ranked by how related they are to a rule's question or to each other, using the decision model's judgement or embeddings. A ranking would only order candidates; it would never remove one silently (U15).</p>
+        <p>Owner's words: "can jev to simialrtity checsk? lime embedigns or some aprpoxiamiton". Authority: <strong>hypothesis</strong>. The owner asked a question; nothing here is authorized yet. The proposal is an offline experiment first, then an owner decision on whether the engine should support it.</p>
+      </section>
+    </section>
+
+    <section id="c4">
+      <h2>C4 · Prove evidence before tuning rules</h2>
+      <p>This part sets the order of the work and keeps it from being skipped.</p>
+
+      <section id="U26">
+        <h3>U26 · Two steps: evidence, then rules</h3>
+        <p>First, evidence is shown, by experiment against independent judgement of real documents, to give the units a reader judges and to carry what they need. Only then are rules tuned on that evidence.</p>
+        <p>Why: tuning a rule on wrong evidence makes it fit the wrong thing.</p>
+        <p>Owner's words: "lets make full deisgn and valdiate with experitmes how yo gonan actually break up stuff and proepr evidec with experiemtns"; "do you knwo how to do experiemtns and actually figure out hwo tto get proepr evdiecd fo cases that are thign swe writing rules for?"; "then use evidecne to actually tuen the rules?"; "its a two step process". Authority: authorized.</p>
+      </section>
+
+      <section id="U27">
+        <h3>U27 · No rule skips the route</h3>
+        <p>The skill that designs rules makes every document rule go through candidates, selection and units, so no rule is built on a raw heading cut again.</p>
+        <p>Owner's words: from the selected option, "It also fixes the authoring skill so no rule skips it again." Authority: authorized.</p>
+      </section>
+    </section>
+
+    <section id="carries-over">
+      <h2>What carries over from the earlier designs</h2>
+      <p>Everything the two earlier designs authorized stays in force unless this page names it as replaced.</p>
+      <ul>
+        <li><strong>Needs:</strong> U1–U12 and U18 (29 October) and U13–U17 (30 October).</li>
+        <li><strong>Still not in scope:</strong> the session pipeline; an eval harness, scoring system or calibration campaign in Rust, since rule tests live in sunstack's <code>tests/skills</code>; sending every rule's questions about one piece in one request, until an experiment shows answers stay the same; choice or score questions for selection; the rule configs' own content (which candidates are which, the questions' wording), which belongs to the configs that consume this.</li>
+        <li><strong>Still protected:</strong> generic JSONL rule sets and conversation rules keep their meaning; the <code>exec</code> protocol's JSONL and conversation rules; credential storage; Demistify; the session-pipeline branches.</li>
+        <li><strong>Replaced, with its authority:</strong> the 29 October non-goal "HTML evidence (plan and design islands). Markdown only in this step; HTML comes later on the same mechanism" is the step this design takes, authorized by the owner's selected option "one evidence design for both Markdown skills and HTML design pages". The non-goal "Releasing or tagging the CLI. The owner releases" was replaced on 30 October by the owner's "after we do teh susntack chagne you release on your own susntack i dont care".</li>
+      </ul>
+    </section>
+
+    <section id="boundary">
+      <h2>Goal boundary</h2>
+      <p><strong>Proposed by the Lead, not confirmed.</strong></p>
+      <ul>
+        <li><strong>Goal:</strong> every document rule judges explanation units chosen the U13 way, carrying their context and links, with what the model received visible, proven by experiment before any rule is tuned on it.</li>
+        <li><strong>Reuse:</strong> U1–U18 and what they built: evidence kinds and field sources, selection and <code>within</code>, model views and cuts, the native HTML and Markdown units (engine 0.13–0.14), the project conventions in 0.15.0, and the heading text in 0.15.1 (in progress, not released); plus the experiment harness already built (blind labels, desk check, instrument review).</li>
+        <li><strong>May change:</strong> the sunstack-tools engine, with generic mechanisms only; the rule configs in ai-tools (skill-authoring and design-review rules); the skill that designs rules.</li>
+        <li><strong>Protected:</strong> the engine carries no one tool's knowledge, and conventions are opt-in project configuration (the owner's standing rule); from 0.15.0 on, new mechanisms are additive and opt-in, so a configuration that uses no new setting keeps its results (0.15.0 itself changed default results, restored by three configuration lines); nothing disappears silently (U15); selection keeps U16's thresholds.</li>
+        <li><strong>Not in scope:</strong> code evidence; an embeddings provider or store in the engine before a measured gain and an owner decision; tuning J1 or any other rule before step one passes; the session pipeline.</li>
+        <li><strong>Acceptable complexity:</strong> no new rule language; the existing field sources are described as one way of gathering context rather than rewritten as one walker; no store of units across runs unless an experiment shows it is needed.</li>
+        <li><strong>Evidence of done:</strong> the experiment plan's whole gate, on real HTML, skill and Markdown documents: every unit, part and context both independent labellers agree on is found, none waived; every check the owner's comments set holds; pages that are only links or status yield no unit; every other difference from the labels is listed with its reason; the result does not flip between repeated runs; and for every required unit and every case the owner ruled on, the exact prepared view carries the deciding words, its diagram (the diagram's source, text and label) and the context it needs, with no required case left unavailable or incomplete, and every omission and size cut listed. Only then are rules rebuilt and tuned. The current desk check is not ready: heading paths are wrong on four HTML pages until 0.15.1.</li>
+      </ul>
+      <ex-choice id="confirm-boundary" title="Is this the goal boundary?">
+        <ex-option id="boundary-as-proposed" title="Yes, as written (recommended)">
+          <template slot="summary">The Specification is written inside this boundary.</template>
+        </ex-option>
+        <ex-option id="boundary-corrected" title="Yes, with corrections">
+          <template slot="summary">Name the corrections in a comment.</template>
+        </ex-option>
+        <ex-option id="boundary-rethink" title="No">
+          <template slot="summary">Say what is wrong in a comment.</template>
+        </ex-option>
+      </ex-choice>
+    </section>
+
+    <section id="open">
+      <h2>Open choices</h2>
+
+      <section id="u1-amendment-section">
+        <h3>U1 and the engine's own outline</h3>
+        <p>U1 (29 October) says: "A skill is cut along its Markdown structure by ast-grep, with no AI and no Markdown parser of our own. Each kind of evidence is defined as an ast-grep rule, written in ast-grep's own rule language." Its authority was the owner's "cut into pecies shoudl be ast grep" and "base our system around astgrep features". The engine already ships native HTML and Markdown unit kinds (0.13 and 0.14), and the units in C1 rely on them. They compute a page's outline (sections, each section's own and full text, its parent) over ast-grep's own parse, so they add no parser for sections. What they stretch is the second sentence: these kinds are not ast-grep rules. For HTML, ast-grep has no section at all, because a page's headings are flat; for Markdown, its grammar has sections but not a section's own text. The engine also already uses a second, third-party Markdown parser (pulldown-cmark) to project Markdown into the text the model reads and to resolve heading anchors.</p>
+        <ex-choice id="u1-amendment" title="Can the engine's native outline units stand beside ast-grep?">
+          <ex-option id="u1-allow-native" title="Yes: native outline units alongside ast-grep kinds (recommended)">
+            <template slot="summary">U1 is amended: ast-grep still cuts everything it can; the engine computes HTML and Markdown outlines (sections, own and full text, parents) over ast-grep's parse, as engine-native unit kinds alongside ast-grep rule kinds. Generic, no single tool's knowledge.</template>
+          </ex-option>
+          <ex-option id="u1-ast-grep-only" title="No: keep ast-grep as the only cut">
+            <template slot="summary">The native units are withdrawn; C1 needs another way to know a section's extent and parent, which today does not exist.</template>
+          </ex-option>
+        </ex-choice>
+      </section>
+
+      <section id="link-timing-section">
+        <h3>When links widen evidence</h3>
+        <p>Following one captured link to its target's opening works today. Backlinks ("what links here") and following links further than one hop need new engine work, and they widen which files a change touches, so a pull request's check would also have to cover the pages that link in.</p>
+        <ex-choice id="link-timing" title="When should backlinks and multi-hop links ship?">
+          <ex-option id="links-measure-first" title="After an experiment shows they change answers (recommended)">
+            <template slot="summary">The link experiment runs on the same real pages; backlinks and further hops ship only where they change what a rule decides.</template>
+          </ex-option>
+          <ex-option id="links-now" title="Build them now">
+            <template slot="summary">Forward links, backlinks and multi-hop go into the Specification now, before the experiment.</template>
+          </ex-option>
+        </ex-choice>
+      </section>
+
+      <section id="similarity-section">
+        <h3>Similarity ranking</h3>
+        <p>U25 stays a hypothesis until there is evidence. The proposal is an offline experiment on the same labelled pages, comparing the decision model's own judgement with embeddings for ranking, before any engine work. Say in a comment if you want it sooner, later or not at all.</p>
+      </section>
+    </section>
+
+  </ex-document>
+</body>
+</html>
