@@ -68,6 +68,30 @@ export async function observeSdkCodecRefusals(options: {
 		'Readback lost the full-width integer type or value',
 	);
 	requireSdk(Object.isFrozen(taggedValue.value), 'Decoded configuration is not frozen');
+	// This is a complete independently authored document, not the writer's output.
+	// Its file-backed definitions deliberately do not exist: decoding must not admit them.
+	const independentDocument = `{"contract_revision":${target.contractRevision},"payload":{"kind":"configuration","value":{"id":"independent","base_directory":"/nonexistent-codec-definitions","marker_prefix":"K","check":{"files":["src/**"]},"decision_model":{"model":"jev-latest"},"limits":{"max_file_bytes":18446744073709551615},"rulebooks":[{"kind":"files","markdown":"missing.md","entries":"missing.json"}],"evidence":{"kind":"project","config_path":"missing.yml","kinds":{}}}}}`;
+	const independent = outcomeSchema.parse(
+		await boundedSdkWait(deserialize(independentDocument), 'independent file-backed document'),
+	);
+	saveSdkEvidence(path.join(evidence, 'codec-independent-document.json'), {
+		input: independentDocument,
+		outcome: independent,
+	});
+	requireSdk(
+		independent.kind === 'decoded',
+		'Independent file-backed document did not decode as data',
+	);
+	const independentValue = z
+		.object({
+			kind: z.literal('configuration'),
+			value: z.object({ limits: z.object({ max_file_bytes: z.bigint() }) }),
+		})
+		.parse(independent['value']);
+	requireSdk(
+		independentValue.value.limits.max_file_bytes === 18446744073709551615n,
+		'Independent numeric token did not decode exactly',
+	);
 	const numberCases = [
 		{
 			name: 'independent-u64-max',
@@ -292,6 +316,7 @@ export async function observeSdkCodecRefusals(options: {
 	return {
 		observed: [
 			'configuration writer and Rust-backed readback preserve one full-width numeric field',
+			'independently authored exact u64 document decodes with absent referenced definition files',
 			'independent u64 maximum, structured overflows and exact-integer-to-f64 refusal with paths',
 			'independent malformed, wrong-type, duplicate-field, strict-wrapper and revision-before-payload refusals',
 			'codec calls made no controlled model requests',

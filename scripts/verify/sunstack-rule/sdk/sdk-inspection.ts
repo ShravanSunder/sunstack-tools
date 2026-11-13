@@ -2,6 +2,7 @@
 import { createHash } from 'node:crypto';
 import filesystem from 'node:fs';
 import path from 'node:path';
+import { isDeepStrictEqual } from 'node:util';
 
 import { z } from 'zod';
 
@@ -42,11 +43,12 @@ export async function observeSdkInspection(options: {
 	const root = path.join(evidence, 'inspection-root');
 	filesystem.mkdirSync(path.join(root, 'src'), { recursive: true });
 	for (const item of corpus) filesystem.writeFileSync(path.join(root, item.file), item.text);
+	filesystem.writeFileSync(path.join(root, 'src', 'ignored.ts'), 'console.log(ignored);\n');
 	const configuration = {
 		id: 'sdk-inspection',
 		base_directory: evidence,
 		marker_prefix: 'K',
-		check: { files: ['src/**'] },
+		check: { files: ['src/**'], ignore: ['src/ignored.ts'] },
 		decision_model: { model: 'jev-latest', endpoint: backend.endpoint },
 		evidence: {
 			kind: 'inline',
@@ -106,6 +108,14 @@ export async function observeSdkInspection(options: {
 		);
 	}
 	const fileCounts = z.array(recordSchema).parse(report['file_counts']);
+	requireSdk(
+		recordSchema.parse(report['exclusions'])['ignored'] === 1,
+		'Inspection did not retain the ignored-file count',
+	);
+	requireSdk(
+		!fileCounts.some((entry) => entry['file'] === 'src/ignored.ts'),
+		'Ignored file entered inspection coverage',
+	);
 	const emptyFile = fileCounts.find((entry) => entry['file'] === 'src/empty.ts');
 	requireSdk(emptyFile, 'No-match file missing from coverage');
 	const emptyKinds = recordSchema.parse(emptyFile['kinds']);
@@ -116,7 +126,7 @@ export async function observeSdkInspection(options: {
 	);
 	const cliObservations = target.cli
 		? observeSdkInspectionCli({ target, evidence, root, sdkReport: report })
-		: [];
+		: undefined;
 	const changedText = `${corpus[0].text}// Different source revision.\n`;
 	filesystem.writeFileSync(path.join(root, corpus[0].file), changedText);
 	const changed = await boundedSdkWait(
@@ -185,6 +195,10 @@ export async function observeSdkInspection(options: {
 	);
 	const incompleteReport = recordSchema.parse(incomplete['report']);
 	requireSdk(
+		recordSchema.parse(incompleteReport['limits'])['max_file_bytes'] === 1n,
+		'Limited inspection lost its effective byte limit',
+	);
+	requireSdk(
 		recordSchema.parse(incompleteReport['status'])['kind'] === 'incomplete',
 		'Limited inspection report lost incomplete status',
 	);
@@ -192,6 +206,16 @@ export async function observeSdkInspection(options: {
 		z.array(z.unknown()).parse(incompleteReport['incomplete']).length > 0,
 		'Limited inspection omitted its incomplete parts',
 	);
+	if (cliObservations) {
+		requireSdk(
+			isDeepStrictEqual(cliObservations.incomplete['incomplete'], incompleteReport['incomplete']),
+			'CLI/SDK incomplete parts differ',
+		);
+		requireSdk(
+			isDeepStrictEqual(cliObservations.incomplete['exclusions'], incompleteReport['exclusions']),
+			'CLI/SDK incomplete exclusions differ',
+		);
+	}
 	const unknown = recordSchema.parse(
 		await boundedSdkWait(
 			sdk.inspect(configuration, { ...request, evidence_kind: 'missing' }),
@@ -225,9 +249,11 @@ export async function observeSdkInspection(options: {
 	);
 	return {
 		observed: [
-			...cliObservations,
+			...(cliObservations?.observed ?? []),
+			...(cliObservations ? ['CLI/SDK limit-induced incomplete parts and exclusions agree'] : []),
 			'static TypeScript/Rust evidence text, source identity and spans',
 			'no-match file coverage, empty-rulebook inspection and legacy check refusal',
+			'ignored source is excluded and counted',
 			'unknown-kind refusal and pre-cancellation',
 			'malformed definitions and legacy empty-rulebook run refused; file limit retained incomplete status and parts',
 			'changed source bytes produce a distinct acquired content identity',
@@ -237,7 +263,7 @@ export async function observeSdkInspection(options: {
 			...(!target.cli
 				? ['CLI evidence parity, legacy admission and rule-violation witness: no CLI supplied']
 				: []),
-			'exclusions, CLI incomplete parity and in-flight cancellation',
+			'in-flight cancellation',
 			'exact incomplete/coverage detail inventory',
 		],
 	};

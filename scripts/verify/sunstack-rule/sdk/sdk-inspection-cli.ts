@@ -2,6 +2,7 @@
 import { spawnSync } from 'node:child_process';
 import filesystem from 'node:fs';
 import path from 'node:path';
+import { isDeepStrictEqual } from 'node:util';
 
 import { z } from 'zod';
 
@@ -15,7 +16,7 @@ export function observeSdkInspectionCli(options: {
 	readonly evidence: string;
 	readonly root: string;
 	readonly sdkReport: Record<string, unknown>;
-}): string[] {
+}): { readonly observed: string[]; readonly incomplete: Record<string, unknown> } {
 	const { target, evidence, root, sdkReport } = options;
 	const cliCandidate = target.cli;
 	requireSdk(cliCandidate, 'CLI parity requires a pinned CLI');
@@ -60,7 +61,7 @@ export function observeSdkInspectionCli(options: {
 	);
 	const config = {
 		marker_prefix: 'K',
-		check: { files: ['src/**'] },
+		check: { files: ['src/**'], ignore: ['src/ignored.ts'] },
 		decision_model: { model: 'jev-latest' },
 		rulebook: [{ markdown: 'rulebook.md', rules: 'rules.json' }],
 		evidence: {
@@ -97,6 +98,37 @@ export function observeSdkInspectionCli(options: {
 	);
 	const cli = recordSchema.parse(JSON.parse(listing.stdout));
 	requireSdk(recordSchema.parse(cli['status'])['kind'] === 'clean', 'CLI evidence status differs');
+	requireSdk(
+		isDeepStrictEqual(cli['exclusions'], sdkReport['exclusions']),
+		'CLI/SDK exclusions differ',
+	);
+	const cliLimits = recordSchema.parse(cli['limits']);
+	const sdkLimits = recordSchema.parse(sdkReport['limits']);
+	requireSdk(
+		isDeepStrictEqual(Object.keys(cliLimits), Object.keys(sdkLimits)),
+		'CLI/SDK limit fields differ',
+	);
+	for (const [key, value] of Object.entries(cliLimits)) {
+		const sdkValue = sdkLimits[key];
+		requireSdk(
+			typeof sdkValue === 'bigint'
+				? typeof value === 'number' && Number.isSafeInteger(value) && BigInt(value) === sdkValue
+				: Object.is(value, sdkValue),
+			`CLI/SDK limit ${key} differs`,
+		);
+	}
+	for (const key of ['diagnostics', 'incomplete', 'selections']) {
+		requireSdk(
+			z.array(z.unknown()).parse(cli[key]).length === 0 &&
+				z.array(z.unknown()).parse(sdkReport[key]).length === 0,
+			`CLI/SDK clean ${key} is not empty`,
+		);
+	}
+	requireSdk(
+		recordSchema.parse(cli['usage'])['model_requests'] === 0 &&
+			recordSchema.parse(sdkReport['usage'])['model_requests'] === 0,
+		'Static listing recorded model requests',
+	);
 	requireSdkFileCountParity(listing.stdout, sdkReport['file_counts']);
 	const cliPieces = z.array(recordSchema).parse(cli['pieces']);
 	const sdkPieces = z.array(recordSchema).parse(sdkReport['pieces']);
@@ -160,9 +192,42 @@ export function observeSdkInspectionCli(options: {
 		`${admission.stdout}\n${admission.stderr}`.toLowerCase().includes('rulebook'),
 		'Empty-rulebook refusal did not identify its cause',
 	);
-	return [
-		'CLI/SDK evidence text, source identity, spans and file counts',
-		'clean listing on source with an actual mechanical finding',
-		'CLI retains empty-rulebook admission refusal',
-	];
+	const limitedConfig = path.join(definitions, 'limited.json');
+	filesystem.writeFileSync(
+		limitedConfig,
+		JSON.stringify({ ...config, limits: { max_file_bytes: 1 } }),
+	);
+	const limited = spawnSync(
+		cliCandidate.binary,
+		['lint', '--config', limitedConfig, '--root', root, '--all', '--format', 'json', '--evidence'],
+		{ cwd: root, env, encoding: 'utf8', timeout: 30000 },
+	);
+	saveSdkEvidence(path.join(evidence, 'inspection-cli-limited.json'), {
+		status: limited.status,
+		signal: limited.signal,
+		stdout: limited.stdout,
+		stderr: limited.stderr,
+		error: limited.error?.message,
+	});
+	requireSdk(
+		!limited.error && limited.status === 3,
+		'CLI limited inspection did not exit incomplete',
+	);
+	const incomplete = recordSchema.parse(JSON.parse(limited.stdout));
+	requireSdk(
+		recordSchema.parse(incomplete['status'])['kind'] === 'incomplete',
+		'CLI limited listing lost incomplete status',
+	);
+	requireSdk(
+		recordSchema.parse(incomplete['limits'])['max_file_bytes'] === 1,
+		'CLI limited listing lost byte limit',
+	);
+	return {
+		observed: [
+			'CLI/SDK evidence text, source identity, spans, limits, exclusions and file counts',
+			'clean listing on source with an actual mechanical finding',
+			'CLI retains empty-rulebook admission refusal',
+		],
+		incomplete,
+	};
 }
