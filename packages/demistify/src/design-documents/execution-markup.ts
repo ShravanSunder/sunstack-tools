@@ -1,5 +1,5 @@
 import { type FrameExample } from './collection-model.js';
-import { requirementHref } from './document-links.js';
+import { needHref } from './document-links.js';
 import { icon, safeText } from './document-markup.js';
 
 /** Categories are authored roles, using the same palette slots as the color study. */
@@ -52,5 +52,5 @@ export function callStackMarkup(frames: readonly FrameExample[], expanded: boole
 }
 
 export function frameDetailMarkup(frame: FrameExample, preview: boolean): string {
-	return `<small>${preview ? 'Preview' : 'Selected call'} · ${safeText(frame.category)}</small><div class="ex-design-local-heading" role="heading" aria-level="3">${callTitleMarkup(frame.name)}</div><p class="ex-design-detail-description">${safeText(frame.responsibility)}</p><div class="ex-design-source-caption">${icon('code')}<span>${safeText(frame.source)}</span></div><pre><code>${safeText(frame.statement)}</code></pre><div class="ex-design-frame-requirement">${frame.requirement ? `<a class="ex-design-navigation-action" href="${requirementHref(frame.requirement)}">${icon('squares-four')} Requirements · ${frame.requirement}</a>` : '<p>No direct requirement link is declared for this call.</p>'}</div>${frame.branch ? `<p class="ex-design-frame-branch">${icon('git-branch')} ${safeText(frame.branch)}</p>` : ''}`;
+	return `<small>${preview ? 'Preview' : 'Selected call'} · ${safeText(frame.category)}</small><div class="ex-design-local-heading" role="heading" aria-level="3">${callTitleMarkup(frame.name)}</div><p class="ex-design-detail-description">${safeText(frame.responsibility)}</p><div class="ex-design-source-caption">${icon('code')}<span>${safeText(frame.source)}</span></div><pre><code>${safeText(frame.statement)}</code></pre><div class="ex-design-frame-requirement">${frame.requirement ? `<a class="ex-design-navigation-action" href="${needHref(frame.requirement)}">${icon('squares-four')} Requirements · ${frame.requirement}</a>` : '<p>No direct requirement link is declared for this call.</p>'}</div>${frame.branch ? `<p class="ex-design-frame-branch">${icon('git-branch')} ${safeText(frame.branch)}</p>` : ''}`;
 }

@@ -9,105 +9,9 @@ afterEach(async (): Promise<void> => {
 	await page.viewport(1600, 1000);
 });
 
-test('Escape closes a nested stack picker before its bottom workspace', async (): Promise<void> => {
-	// Arrange: the actual call browser supplies its own Escape consumer.
-	const { document: fixture, frame } = await openFixture(
-		'understanding',
-		'',
-		'requirements.html?need=U2&stage=program-design',
-	);
-	await frame.getByRole('button', { name: 'Open call stack', exact: true }).click();
-	const workspace = requiredElement(fixture, 'ex-drawer.ex-design-related-drawer');
-	await expect.poll(() => workspace.querySelector('ex-design-picker details')).not.toBeNull();
-	const picker = requiredElement(workspace, 'ex-design-picker details');
-	const summary = requiredElement(picker, 'summary');
-	await fixtureLocator(frame, summary).click();
-	expect(picker.hasAttribute('open')).toBe(true);
-
-	// Act: Escape belongs to the open picker.
-	await userEvent.keyboard('{Escape}');
-
-	// Assert: focus and both closing boundaries remain usable.
-	expect(picker.hasAttribute('open')).toBe(false);
-	expect(workspace.matches(':popover-open')).toBe(true);
-	expect(fixture.activeElement).toBe(summary);
-	// Once the picker is closed, Escape on its summary belongs to the workspace.
-	await userEvent.keyboard('{Escape}');
-	expect(workspace.matches(':popover-open')).toBe(false);
-	expect(fixture.activeElement?.getAttribute('aria-label')).toBe('Open call stack');
-});
-
-test.each([1024, 1440, 1600])(
-	'the open workspace keeps desktop reader controls reachable at %ipx',
-	async (width): Promise<void> => {
-		// Arrange: the real desktop page normally floats its reader controls at the bottom.
-		await page.viewport(width, 1000);
-		const { document: fixture, frame } = await openFixture(
-			'understanding',
-			'',
-			'requirements.html?need=U2',
-		);
-		await frame.getByRole('button', { name: 'View together', exact: true }).click();
-		const workspace = requiredElement(fixture, 'ex-drawer.ex-design-related-drawer');
-		await expect.poll((): boolean => workspace.matches(':popover-open')).toBe(true);
-		await expect.poll((): number => workspace.getBoundingClientRect().bottom).toBeCloseTo(1000, 0);
-
-		// Assert: pointer hit testing, not a scripted click, establishes that each control is exposed.
-		for (const selector of ['.ex-comments-trigger', '.ex-theme-toggle', '.ex-search-trigger']) {
-			const control = requiredElement(fixture, selector);
-			const controlBounds = control.getBoundingClientRect();
-			const target = fixture.elementFromPoint(
-				controlBounds.left + controlBounds.width / 2,
-				controlBounds.top + controlBounds.height / 2,
-			);
-			expect(target === control || (target !== null && control.contains(target))).toBe(true);
-		}
-		const bounds = workspace.getBoundingClientRect();
-		expect(bounds.top).toBeCloseTo(
-			requiredElement(fixture, '.ex-document-toolbar').getBoundingClientRect().bottom,
-			0,
-		);
-		expect(bounds.left).toBe(0);
-		expect(bounds.right).toBe(width);
-
-		// Act: exercise the same live controls with real pointer clicks.
-		fixture.documentElement.dataset['theme'] = 'dark';
-		await fixtureLocator(frame, requiredElement(fixture, '.ex-theme-toggle')).click();
-		expect(fixture.documentElement.dataset['theme']).toBe('light');
-		await fixtureLocator(frame, requiredElement(fixture, '.ex-comments-trigger')).click();
-		await expect
-			.element(frame.getByRole('button', { name: 'Close comments', exact: true }))
-			.toBeVisible();
-		expect(workspace.matches(':popover-open')).toBe(true);
-		for (const selector of ['.ex-comments-trigger', '.ex-theme-toggle', '.ex-search-trigger']) {
-			const control = requiredElement(fixture, selector);
-			const controlBounds = control.getBoundingClientRect();
-			const target = fixture.elementFromPoint(
-				controlBounds.left + controlBounds.width / 2,
-				controlBounds.top + controlBounds.height / 2,
-			);
-			expect(target === control || (target !== null && control.contains(target))).toBe(true);
-		}
-		await frame.getByRole('button', { name: 'Close comments', exact: true }).click();
-		await fixtureLocator(frame, requiredElement(fixture, '.ex-search-trigger')).click();
-		expect(fixture.querySelector('dialog:modal')).not.toBeNull();
-		await userEvent.keyboard('{Escape}');
-		await expect.poll(() => fixture.querySelector('dialog:modal')).toBeNull();
-		expect(workspace.matches(':popover-open')).toBe(true);
-		await frame.getByRole('button', { name: 'Close related documents', exact: true }).click();
-		expect(
-			requiredElement(fixture, '.ex-theme-toggle').getBoundingClientRect().bottom,
-		).toBeLessThanOrEqual(
-			requiredElement(fixture, '.ex-document-toolbar').getBoundingClientRect().bottom,
-		);
-	},
-);
-
 test.each([
 	['execution.html', 'light'],
 	['execution.html', 'dark'],
-	['requirements.html?need=U2&stage=program-design', 'light'],
-	['requirements.html?need=U2&stage=program-design', 'dark'],
 ])(
 	'a phone call sheet fits its body within the viewport cap: %s, %s',
 	async (file, theme): Promise<void> => {
@@ -115,8 +19,6 @@ test.each([
 		await page.viewport(390, 844);
 		const { document: fixture, frame } = await openFixture('understanding', '', file);
 		fixture.documentElement.dataset['theme'] = theme;
-		if (file.startsWith('requirements'))
-			await frame.getByRole('button', { name: 'Open call stack', exact: true }).click();
 		// The shared document toolbar can precede the app controller's module upgrade.
 		await expect.poll(() => fixture.querySelector('button[data-frame="0"]')).not.toBeNull();
 		await fixtureLocator(frame, requiredElement(fixture, 'button[data-frame="0"]')).click();

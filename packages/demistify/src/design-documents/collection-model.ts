@@ -2,13 +2,8 @@ import type { z } from 'zod';
 
 import type { frameSchema } from './collection.ts';
 import { readCollection, type PreparedCollection, type PreparedRecord } from './collection.ts';
-import { recordsForNeed } from './requirement-stages.ts';
-export interface RequirementExample {
+export interface NeedExample {
 	readonly id: string;
-	readonly capability: string;
-	readonly title: string;
-	readonly need: string;
-	readonly bodyHtml: string;
 	readonly owner: string;
 }
 
@@ -32,26 +27,32 @@ const summary = (records: readonly PreparedRecord[]): string =>
 
 /** Existing consumers are views of the prepared records, never a second authored corpus. */
 export function deriveDocumentModel(collection: PreparedCollection): {
-	requirements: readonly RequirementExample[];
+	needs: readonly NeedExample[];
 	callStacks: readonly CallStackExample[];
 	entry: {
-		readonly needId: string;
 		readonly calls:
 			| { readonly kind: 'empty' }
 			| { readonly kind: 'available'; readonly stackId: string; readonly frameId: string };
 	};
 } {
-	const requirements = collection.records.flatMap((item): RequirementExample[] => {
+	const needs = collection.records.flatMap((item): NeedExample[] => {
 		const record = item.record;
 		if (record.kind !== 'need') return [];
+		const specificationIds = new Set(
+			collection.records.flatMap(({ record: spec }) =>
+				spec.kind === 'specification' && spec.needs.includes(record.id) ? [spec.id] : [],
+			),
+		);
 		return [
 			{
 				id: record.id,
-				title: record.title,
-				capability: record.capability,
-				need: item.summary,
-				bodyHtml: item.bodyHtml,
-				owner: summary(recordsForNeed(collection, record.id, 'program-design')),
+				owner: summary(
+					collection.records.filter(
+						({ record: design }) =>
+							design.kind === 'program-design' &&
+							design.specifications.some((id) => specificationIds.has(id)),
+					),
+				),
 			},
 		];
 	});
@@ -72,15 +73,14 @@ export function deriveDocumentModel(collection: PreparedCollection): {
 			},
 		];
 	});
-	const need = requirements[0];
+	const need = needs[0];
 	const stack = callStacks[0];
 	const frame = stack?.frames[0];
 	if (!need) throw new Error('A reader collection needs at least one user need.');
 	return {
-		requirements,
+		needs,
 		callStacks,
 		entry: {
-			needId: need.id,
 			calls:
 				stack && frame
 					? { kind: 'available', stackId: stack.id, frameId: frame.id }

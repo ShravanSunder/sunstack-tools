@@ -22,7 +22,9 @@
     <p>This call-stack view organizes the supplied source descriptions and relationships. It is not captured runtime evidence.</p>
     <p>Follow how Cedar's source path relates to <a href="requirements.html">draft recovery</a> and the <a href="program-design.html">program boundary</a>.</p>
     <ex-call-stack id="cedar-import-call-stack" label="Supplied Cedar import calls"></ex-call-stack>
-  </ex-document>
+
+
+</ex-document>
   <script type="application/json" data-ex-records>
   [
     {"kind":"frame","id":"CedarPick","name":"CedarImport.read(source)","source":"cedar-import.ts:12","responsibility":"Read the chosen source without changing the draft.","statement":"const sourceText = await source.read();","requirement":"CedarKeepDraft","category":"Input"},

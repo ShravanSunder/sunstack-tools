@@ -12,13 +12,15 @@
 			><nav slot="pages" aria-label="Experiments">
 				<a href="index.html">Requirements and call-path experiments</a
 				><a href="requirements.html">Start from the user need</a
+				><a href="specification.html">Specification</a
+				><a href="program-design.html">Program Design</a><a href="verification.html">Verification</a
 				><a href="execution.html">From a call to the need it serves</a>
 			</nav></ex-nav
 		><ex-document id="content"
 			><h1>Start from the user need</h1>
 			<p>
-				Start with what the person needs to do. Group related needs by capability; selecting a need
-				keeps its specification rule, program-design owner and verification observation together.
+				Start with what the person needs to do. Read the authored needs here, then follow the
+				specification, design and verification pages for their supporting details.
 			</p>
 			<ex-callout title="Illustrative design and results" tone="note" icon="file"
 				><p>
@@ -26,9 +28,26 @@
 					They are not assertions about the current picker or another shipped product.
 				</p></ex-callout
 			>
-			<ex-zoom label="User requirements" zoom data-width="canvas"
-				><ex-requirements id="requirements-reader" data-width="canvas"></ex-requirements></ex-zoom
-		></ex-document>
+
+			<h2>U1 · Type into the active surface</h2>
+			<section id="body-U1"><p>When I open a dialog, my typing belongs to that dialog.</p></section>
+			<h2>U2 · Keep background actions inactive</h2>
+			<section id="body-U2">
+				<p>An open menu must not trigger a session action behind it.</p>
+			</section>
+			<h2>U3 · Find the command and its real key</h2>
+			<section id="body-U3">
+				<p>Help should show the key that actually runs each command.</p>
+			</section>
+			<h2>U4 · Navigate every choice by keyboard</h2>
+			<section id="body-U4"><p>I can choose a machine without switching to the mouse.</p></section>
+			<h2>U5 · Read the whole dialog cleanly</h2>
+			<section id="body-U5"><p>Text behind a dialog must not leak through its frame.</p></section>
+			<h2>U6 · Keep the draft when a request fails</h2>
+			<section id="body-U6">
+				<p>If starting a session fails, keep what I entered so I can retry.</p>
+			</section>
+		</ex-document>
 		<script type="application/json" data-ex-records>
 			[
 				{
@@ -81,17 +100,5 @@
 				}
 			]
 		</script>
-		<template id="body-U1"><p>When I open a dialog, my typing belongs to that dialog.</p></template>
-		<template id="body-U2"
-			><p>An open menu must not trigger a session action behind it.</p></template
-		>
-		<template id="body-U3"
-			><p>Help should show the key that actually runs each command.</p></template
-		>
-		<template id="body-U4"><p>I can choose a machine without switching to the mouse.</p></template>
-		<template id="body-U5"><p>Text behind a dialog must not leak through its frame.</p></template>
-		<template id="body-U6"
-			><p>If starting a session fails, keep what I entered so I can retry.</p></template
-		>
 	</body>
 </html>

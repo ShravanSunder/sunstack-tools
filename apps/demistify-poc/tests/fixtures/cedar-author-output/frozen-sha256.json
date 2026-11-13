@@ -1,0 +1,41 @@
+{
+	"sourceCommit": "b8bd05bd6a0462cac4f6a215ac55d6b25f01c5bc",
+	"files": [
+		{
+			"path": "execution.html",
+			"sha256": "dec0b8e24f4a23838bf5f610102e370ab9a13ed596623bf1a0479fdebcb6cad0"
+		},
+		{
+			"path": "program-design.html",
+			"sha256": "ff04ebbdfde53382b4c798eeceef0822dd49aae67113a518070496de8bb812b7"
+		},
+		{
+			"path": "requirements.html",
+			"sha256": "a76352fac088539624c0959a199b23f94da22aa7d38d6b823ba4942e3b4ce472"
+		},
+		{
+			"path": "specification.html",
+			"sha256": "c601d896b738073c119b5e1537fd3344db20b3439ce0c82956dca3c6666fa267"
+		},
+		{
+			"path": "verification.html",
+			"sha256": "bbed48e38ff656deeeae33a75a9b3032cb5737ff8203cb86bafd625e0ebc056a"
+		},
+		{
+			"path": "README.md",
+			"sha256": "fbd0865fbdaf28a1720d57f1d1ea325765c3c52939e2ae4abe394314cd407264"
+		},
+		{
+			"path": "provenance.json",
+			"sha256": "a95e9e817ef6bb41ed9d2b3bafb72b3b23eba75a4c28516b582a9985189cc89e"
+		},
+		{
+			"path": "input/request.md",
+			"sha256": "cff636006603db31dd752bb8bf4640cdc60363649f9036b75dbefd33defc4bc8"
+		},
+		{
+			"path": "input/facts.json",
+			"sha256": "0a9b9e61383ca81bd0e9166a1065050b77e6ae358ac78b9d068e2d75ed323565"
+		}
+	]
+}

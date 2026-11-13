@@ -12,13 +12,15 @@
 			><nav slot="pages" aria-label="Experiments">
 				<a href="index.html">Requirements and call-path experiments</a
 				><a href="requirements.html">Start from the user need</a
+				><a href="specification.html">Specification</a
+				><a href="program-design.html">Program Design</a><a href="verification.html">Verification</a
 				><a href="execution.html">From a call to the need it serves</a>
 			</nav></ex-nav
 		><ex-document id="content"
 			><h1>Program Design</h1>
 			<p>
-				Start with what the person needs to do. Group related needs by capability; selecting a need
-				keeps its specification rule, program-design owner and verification observation together.
+				Start with what the person needs to do. Read the authored needs here, then follow the
+				specification, design and verification pages for their supporting details.
 			</p>
 			<ex-callout title="Illustrative design and results" tone="note" icon="file"
 				><p>
@@ -26,8 +28,249 @@
 					They are not assertions about the current picker or another shipped product.
 				</p></ex-callout
 			>
-			<ex-requirements id="requirements-reader" data-width="canvas"></ex-requirements
-		></ex-document>
+
+			<h2>C1 · Input scope routing</h2>
+			<section id="body-C1">
+				<p id="summary-C1">InputOwner routes the event; DialogScope resolves the target.</p>
+
+				<figure data-ex-part="sketch">
+					<figcaption>Key path described by C1</figcaption>
+					<ex-mermaid id="c1-key-path" label="C1 key routing">
+						<script type="text/plain">
+							flowchart LR
+							Entry["Key entry<br/>handleKey"] --> Owner["InputOwner<br/>Choose scope"]
+							Owner --> Scope["DialogScope<br/>Resolve binding"]
+						</script>
+					</ex-mermaid>
+				</figure>
+				<p>
+					Opening a dialog pushes its scope. A key enters handleKey; InputOwner.route reads the top
+					scope and forwards to DialogScope.resolve. Closing removes that scope before later input
+					is routed.
+				</p>
+				<details>
+					<summary>Component responsibilities</summary>
+					<div class="ex-table-scroll">
+						<table>
+							<thead>
+								<tr>
+									<th>Component</th>
+									<th>Responsibility</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr>
+									<td>InputOwner</td>
+									<td>Owns the scope stack and chooses its top entry.</td>
+								</tr>
+								<tr>
+									<td>DialogScope</td>
+									<td>Resolves only the chosen dialog’s local bindings.</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+				</details>
+				<h5>Refusal and recovery</h5>
+				<p>
+					If the top scope has no matching binding, the event remains blocked from lower scopes.
+				</p>
+				<ex-callout data-ex-part="gaps" title="C1 does not yet explain S2" tone="risk"
+					><p>
+						Pointer entry, menu ownership and the enforcing component are not described. An
+						observable action effect and completion signal are also missing.
+					</p>
+					<details>
+						<summary>Missing paths and proof seams</summary>
+						<ul>
+							<li>
+								S2's pointer case needs an entry path and an explanation of how lower-scope session
+								actions stay inactive while the menu is modal.
+							</li>
+							<li>S2's menu input ownership is not described; C1 only explains dialog scopes.</li>
+							<li>The component enforcing the stated no-fallback outcome is not named.</li>
+							<li>
+								Proving S2 needs an observable background-action effect and a completion signal for
+								the attempted input.
+							</li>
+						</ul>
+					</details></ex-callout
+				>
+			</section>
+			<h2>C2 · Action registration</h2>
+			<section id="body-C2">
+				<p id="summary-C2">ActionRegistry owns the action and its shortcut.</p>
+
+				<figure data-ex-part="sketch">
+					<figcaption>Shared registration described by C2</figcaption>
+					<ex-mermaid id="c2-design-flow" label="Shared registration described by C2"
+						><script type="text/plain">
+							flowchart LR
+							Registry["ActionRegistry entry<br/>Label · key · callable"] --> Help["HelpPanel<br/>Read label and key"]
+							Registry --> Invoke["Shortcut dispatch<br/>Invoke the same action ID"]
+						</script></ex-mermaid
+					>
+				</figure>
+				<p>
+					Shortcut lookup resolves an action ID. Invocation uses that same entry; Help reads its
+					label and key without a second shortcut map.
+				</p>
+				<details>
+					<summary>Component responsibilities</summary>
+					<div class="ex-table-scroll">
+						<table>
+							<thead>
+								<tr>
+									<th>Component</th>
+									<th>Responsibility</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr>
+									<td>ActionRegistry</td>
+									<td>Keeps the action label, shortcut and callable together.</td>
+								</tr>
+								<tr>
+									<td>HelpPanel</td>
+									<td>Reads the registered entry when showing help.</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+				</details>
+				<h5>Refusal and recovery</h5>
+				<p>
+					An unregistered key has no callable action. Help must not advertise an invented binding.
+				</p>
+			</section>
+			<h2>C3 · Local selection</h2>
+			<section id="body-C3">
+				<p id="summary-C3">SelectList owns local navigation and commit.</p>
+
+				<figure data-ex-part="sketch">
+					<figcaption>Navigation and commit described by C3</figcaption>
+					<ex-mermaid id="c3-design-flow" label="Navigation and commit described by C3"
+						><script type="text/plain">
+							flowchart LR
+							Arrow["Arrow key<br/>Move index"] --> Active["SelectList<br/>Active index"]
+							Active -->|"Enter"| Chooser["Machine chooser<br/>Committed option"]
+						</script></ex-mermaid
+					>
+				</figure>
+				<p>
+					Arrow keys update the active index within the available options. Enter reads that index
+					and returns the selected machine; movement alone does not commit.
+				</p>
+				<details>
+					<summary>Component responsibilities</summary>
+					<div class="ex-table-scroll">
+						<table>
+							<thead>
+								<tr>
+									<th>Component</th>
+									<th>Responsibility</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr>
+									<td>SelectList</td>
+									<td>Retains the active option index.</td>
+								</tr>
+								<tr>
+									<td>Machine chooser</td>
+									<td>Receives only the option committed by Enter.</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+				</details>
+				<h5>Refusal and recovery</h5>
+				<p>With no available option, Enter has nothing to commit.</p>
+			</section>
+			<h2>C4 · Overlay composition</h2>
+			<section id="body-C4">
+				<p id="summary-C4">OverlayHost owns layering and the opaque frame.</p>
+				<h5>Responsibilities and components</h5>
+				<div class="ex-table-scroll">
+					<table>
+						<thead>
+							<tr>
+								<th>Component</th>
+								<th>Responsibility</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr>
+								<td>OverlayHost</td>
+								<td>Allocates the overlay bounds above the background.</td>
+							</tr>
+							<tr>
+								<td>Dialog frame</td>
+								<td>Paints the full opaque area, including its left edge.</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+				<h5>State, flow and boundary</h5>
+				<p>
+					Opening mounts the dialog into the overlay layer. Bounds and inset reserve the entire
+					frame before text is painted, so a wide background glyph cannot cross its edge.
+				</p>
+				<h5>Refusal and recovery</h5>
+				<p>
+					If the available width cannot fit the content, keep it within the overlay bounds rather
+					than exposing the background.
+				</p>
+			</section>
+			<h2>C5 · Session start result</h2>
+			<section id="body-C5">
+				<p id="summary-C5">StartSession owns its result; the dialog retains the draft.</p>
+				<h5>Responsibilities and components</h5>
+				<div class="ex-table-scroll">
+					<table>
+						<thead>
+							<tr>
+								<th>Component</th>
+								<th>Responsibility</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr>
+								<td>StartSession</td>
+								<td>Returns either a started session or a refusal reason.</td>
+							</tr>
+							<tr>
+								<td>Session dialog</td>
+								<td>Keeps the draft until a started result is received.</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+				<h5>State, flow and boundary</h5>
+				<figure data-ex-part="sketch">
+					<figcaption>Start and refusal described by C5</figcaption>
+					<ex-mermaid id="c5-design-flow" label="Start and refusal described by C5"
+						><script type="text/plain">
+							flowchart LR
+							Draft["Dialog<br/>Submit draft values"] --> Start["StartSession.run"]
+							Start --> Close["Started:<br/>Close dialog"]
+							Start --> Retain["Refused:<br/>Show reason · retain draft"]
+							Retain --> Retry["Retry retained values"]
+							Retry --> Start
+						</script></ex-mermaid
+					>
+				</figure>
+				<p>
+					Submit reads the existing draft and calls StartSession.run. A started result closes the
+					dialog. A refused result displays the reason beside the unchanged draft.
+				</p>
+				<h5>Refusal and recovery</h5>
+				<p>
+					A refusal leaves the entered machine and title available for retry. Retrying submits the
+					retained draft.
+				</p>
+			</section>
+		</ex-document>
 		<script type="application/json" data-ex-records>
 			[
 				{
@@ -72,239 +315,5 @@
 				}
 			]
 		</script>
-		<template id="body-C1"
-			><p id="summary-C1">InputOwner routes the event; DialogScope resolves the target.</p>
-
-			<figure data-ex-part="sketch">
-				<figcaption>Key path described by C1</figcaption>
-				<ex-mermaid id="c1-key-path" label="C1 key routing">
-					<script type="text/plain">
-						flowchart LR
-						Entry["Key entry<br/>handleKey"] --> Owner["InputOwner<br/>Choose scope"]
-						Owner --> Scope["DialogScope<br/>Resolve binding"]
-					</script>
-				</ex-mermaid>
-			</figure>
-			<p>
-				Opening a dialog pushes its scope. A key enters handleKey; InputOwner.route reads the top
-				scope and forwards to DialogScope.resolve. Closing removes that scope before later input is
-				routed.
-			</p>
-			<details>
-				<summary>Component responsibilities</summary>
-				<div class="ex-table-scroll">
-					<table>
-						<thead>
-							<tr>
-								<th>Component</th>
-								<th>Responsibility</th>
-							</tr>
-						</thead>
-						<tbody>
-							<tr>
-								<td>InputOwner</td>
-								<td>Owns the scope stack and chooses its top entry.</td>
-							</tr>
-							<tr>
-								<td>DialogScope</td>
-								<td>Resolves only the chosen dialog’s local bindings.</td>
-							</tr>
-						</tbody>
-					</table>
-				</div>
-			</details>
-			<h5>Refusal and recovery</h5>
-			<p>If the top scope has no matching binding, the event remains blocked from lower scopes.</p>
-			<ex-callout data-ex-part="gaps" title="C1 does not yet explain S2" tone="risk"
-				><p>
-					Pointer entry, menu ownership and the enforcing component are not described. An observable
-					action effect and completion signal are also missing.
-				</p>
-				<details>
-					<summary>Missing paths and proof seams</summary>
-					<ul>
-						<li>
-							S2's pointer case needs an entry path and an explanation of how lower-scope session
-							actions stay inactive while the menu is modal.
-						</li>
-						<li>S2's menu input ownership is not described; C1 only explains dialog scopes.</li>
-						<li>The component enforcing the stated no-fallback outcome is not named.</li>
-						<li>
-							Proving S2 needs an observable background-action effect and a completion signal for
-							the attempted input.
-						</li>
-					</ul>
-				</details></ex-callout
-			></template
-		>
-		<template id="body-C2"
-			><p id="summary-C2">ActionRegistry owns the action and its shortcut.</p>
-
-			<figure data-ex-part="sketch">
-				<figcaption>Shared registration described by C2</figcaption>
-				<ex-mermaid id="c2-design-flow" label="Shared registration described by C2"
-					><script type="text/plain">
-						flowchart LR
-						Registry["ActionRegistry entry<br/>Label · key · callable"] --> Help["HelpPanel<br/>Read label and key"]
-						Registry --> Invoke["Shortcut dispatch<br/>Invoke the same action ID"]
-					</script></ex-mermaid
-				>
-			</figure>
-			<p>
-				Shortcut lookup resolves an action ID. Invocation uses that same entry; Help reads its label
-				and key without a second shortcut map.
-			</p>
-			<details>
-				<summary>Component responsibilities</summary>
-				<div class="ex-table-scroll">
-					<table>
-						<thead>
-							<tr>
-								<th>Component</th>
-								<th>Responsibility</th>
-							</tr>
-						</thead>
-						<tbody>
-							<tr>
-								<td>ActionRegistry</td>
-								<td>Keeps the action label, shortcut and callable together.</td>
-							</tr>
-							<tr>
-								<td>HelpPanel</td>
-								<td>Reads the registered entry when showing help.</td>
-							</tr>
-						</tbody>
-					</table>
-				</div>
-			</details>
-			<h5>Refusal and recovery</h5>
-			<p>
-				An unregistered key has no callable action. Help must not advertise an invented binding.
-			</p></template
-		>
-		<template id="body-C3"
-			><p id="summary-C3">SelectList owns local navigation and commit.</p>
-
-			<figure data-ex-part="sketch">
-				<figcaption>Navigation and commit described by C3</figcaption>
-				<ex-mermaid id="c3-design-flow" label="Navigation and commit described by C3"
-					><script type="text/plain">
-						flowchart LR
-						Arrow["Arrow key<br/>Move index"] --> Active["SelectList<br/>Active index"]
-						Active -->|"Enter"| Chooser["Machine chooser<br/>Committed option"]
-					</script></ex-mermaid
-				>
-			</figure>
-			<p>
-				Arrow keys update the active index within the available options. Enter reads that index and
-				returns the selected machine; movement alone does not commit.
-			</p>
-			<details>
-				<summary>Component responsibilities</summary>
-				<div class="ex-table-scroll">
-					<table>
-						<thead>
-							<tr>
-								<th>Component</th>
-								<th>Responsibility</th>
-							</tr>
-						</thead>
-						<tbody>
-							<tr>
-								<td>SelectList</td>
-								<td>Retains the active option index.</td>
-							</tr>
-							<tr>
-								<td>Machine chooser</td>
-								<td>Receives only the option committed by Enter.</td>
-							</tr>
-						</tbody>
-					</table>
-				</div>
-			</details>
-			<h5>Refusal and recovery</h5>
-			<p>With no available option, Enter has nothing to commit.</p></template
-		>
-		<template id="body-C4"
-			><p id="summary-C4">OverlayHost owns layering and the opaque frame.</p>
-			<h5>Responsibilities and components</h5>
-			<div class="ex-table-scroll">
-				<table>
-					<thead>
-						<tr>
-							<th>Component</th>
-							<th>Responsibility</th>
-						</tr>
-					</thead>
-					<tbody>
-						<tr>
-							<td>OverlayHost</td>
-							<td>Allocates the overlay bounds above the background.</td>
-						</tr>
-						<tr>
-							<td>Dialog frame</td>
-							<td>Paints the full opaque area, including its left edge.</td>
-						</tr>
-					</tbody>
-				</table>
-			</div>
-			<h5>State, flow and boundary</h5>
-			<p>
-				Opening mounts the dialog into the overlay layer. Bounds and inset reserve the entire frame
-				before text is painted, so a wide background glyph cannot cross its edge.
-			</p>
-			<h5>Refusal and recovery</h5>
-			<p>
-				If the available width cannot fit the content, keep it within the overlay bounds rather than
-				exposing the background.
-			</p></template
-		>
-		<template id="body-C5"
-			><p id="summary-C5">StartSession owns its result; the dialog retains the draft.</p>
-			<h5>Responsibilities and components</h5>
-			<div class="ex-table-scroll">
-				<table>
-					<thead>
-						<tr>
-							<th>Component</th>
-							<th>Responsibility</th>
-						</tr>
-					</thead>
-					<tbody>
-						<tr>
-							<td>StartSession</td>
-							<td>Returns either a started session or a refusal reason.</td>
-						</tr>
-						<tr>
-							<td>Session dialog</td>
-							<td>Keeps the draft until a started result is received.</td>
-						</tr>
-					</tbody>
-				</table>
-			</div>
-			<h5>State, flow and boundary</h5>
-			<figure data-ex-part="sketch">
-				<figcaption>Start and refusal described by C5</figcaption>
-				<ex-mermaid id="c5-design-flow" label="Start and refusal described by C5"
-					><script type="text/plain">
-						flowchart LR
-						Draft["Dialog<br/>Submit draft values"] --> Start["StartSession.run"]
-						Start --> Close["Started:<br/>Close dialog"]
-						Start --> Retain["Refused:<br/>Show reason · retain draft"]
-						Retain --> Retry["Retry retained values"]
-						Retry --> Start
-					</script></ex-mermaid
-				>
-			</figure>
-			<p>
-				Submit reads the existing draft and calls StartSession.run. A started result closes the
-				dialog. A refused result displays the reason beside the unchanged draft.
-			</p>
-			<h5>Refusal and recovery</h5>
-			<p>
-				A refusal leaves the entered machine and title available for retry. Retrying submits the
-				retained draft.
-			</p></template
-		>
 	</body>
 </html>

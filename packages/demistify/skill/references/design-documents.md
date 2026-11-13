@@ -1,6 +1,6 @@
-# Prepared document browsers
+# Prepared call stacks
 
-Keep the supplied facts in owner HTML and inline metadata. The public readers derive coordinated views from that source: `ex-requirements` offers a need list, Overview, Specification, Program Design, Verification and related documents; `ex-call-stack` offers supplied call paths. Ordinary explanation, page layout and links remain HTML.
+Use `ex-call-stack` to read a supplied source-derived call path beside its explanation. Keep the need text and other design facts in visible owner HTML; inline metadata connects the supplied need, frames and stack. Ordinary explanation, page layout and navigation remain HTML.
 
 Use the library binding selected in the main guide. This source guide documents the matching candidate API; an older published binding may not include it. A source preview uses its complete matching local distribution and CLI. Publication of a matching guide/runtime is a separate release step.
 
@@ -18,14 +18,13 @@ The collection is one directory of sibling HTML files. Its minimum is `requireme
 | `verification.html` | `scenario`, `observation` |
 | `execution.html` | `frame`, `stack` |
 
-An extra `index.html`, plan or explanatory page can contain ordinary content and either public reader, but no `data-ex-records` block. Preparation includes all sibling `.html` files. Use native page links to connect them; a browser is a view within a page, not the collection's only navigation.
+An extra `index.html`, plan or explanatory page can contain ordinary content and the call-stack reader, but no `data-ex-records` block. Preparation includes all sibling `.html` files. Use native page links to connect them; the call stack is a view within a page, alongside ordinary navigation.
 
 ```html
-<ex-requirements id="route-needs" label="Trail planning needs"></ex-requirements>
 <ex-call-stack id="route-calls" label="Supplied route calls"></ex-call-stack>
 ```
 
-Each reader needs a stable, unique `id`; `label` optionally names its control group. Defaults are “Requirements browser” and “Call stack browser”. At most one of each reader is supported in one HTML document. They take their facts from preparation output, with no `src`, inline configuration object, application script or private app stylesheet.
+The reader needs a stable, unique `id`; `label` optionally names its control group and defaults to “Call stack browser”. At most one call-stack reader is supported in one HTML document. It takes its facts from preparation output, with no `src`, inline configuration object, application script or private app stylesheet. A linked need opens its prepared owner page at `bodyRef`; keep that exact body ID on visible HTML, even when the need record ID differs.
 
 ### Records and forward relationships
 
@@ -45,13 +44,13 @@ All records require `kind` and `id`. Record IDs are unique across the whole coll
 
 Frame `category` is exactly `Input`, `Resolution`, `Action` or `Plumbing`. Frames and stacks have no body/summary references. `source` and `statement` describe the supplied source path; they are not a measured execution trace. A frame's optional `requirement` points to a need, not to a specification. Backlinks and need-to-design/scenario associations are derived from these forward relationships; write the relationship once.
 
-For the other five kinds, `bodyRef` identifies a same-page HTML container, often a `template`. Its **contents** become the record body. `summaryRef` identifies a nonempty text-bearing element inside that container (the container itself is also allowed). The summary is compact text for lists; full reading retains the body HTML. One container has one record owner. Every authored HTML ID is unique within its page, including IDs inside templates; keep supplied IDs on their original elements.
+For the other five kinds, `bodyRef` identifies a same-page HTML container. Its **contents** become the prepared record body. A need reached from the call stack uses a visible section or other visible container, so its link opens the actual passage. `summaryRef` identifies a nonempty text-bearing element inside that container (the container itself is also allowed). The summary supplies compact text in the prepared model; the owner HTML retains the complete explanation. One container has one record owner. Every authored HTML ID is unique within its page, including IDs inside templates; keep supplied IDs on their original elements.
 
 Metadata carries identities and edges; prose, tables, diagrams and evidence stay in the HTML bodies. Serialize metadata as JSON and escape any literal `<` in that JSON as `\u003c` before putting it in the script carrier. Preparation derives the cross-page snapshot from those owners.
 
-### Mark only the supplied parts
+### Existing record parts
 
-`data-ex-part` names selected fragments for the related-document view. It belongs inside an owned record body, occurs at most once per part in that body, and takes only the values allowed for its kind:
+The prepared record contract also accepts optional `data-ex-part` labels. It belongs inside an owned record body, occurs at most once per part in that body, and takes only the values allowed for its kind:
 
 | Kind | Allowed parts | Meaning |
 | --- | --- | --- |
@@ -60,11 +59,11 @@ Metadata carries identities and edges; prose, tables, diagrams and evidence stay
 | `scenario` | `procedure` | Proposed steps, kept separate from supplied observations |
 | `need`, `observation`, `frame`, `stack` | None | No part markers |
 
-Parts are optional: a missing part contributes no selected fragment, while the full record remains available through Source details. Omit unwritten material rather than labeling unrelated notes as a rule or fabricating a sketch. Unknown, forbidden, duplicate or unowned markers are preparation/check errors. Declared missing or wrong-kind record links are preparation errors; an absent later stage is valid.
+Parts are optional. Keep supplied labels with their owning body. Omit unwritten material rather than labeling unrelated notes as a rule or fabricating a sketch. Unknown, forbidden, duplicate or unowned markers are preparation/check errors. Declared missing or wrong-kind record links are preparation errors; an absent later stage is valid.
 
 ## Complete invented collection
 
-This example describes a fictional trail-planning design. The observation is an explicitly illustrative supplied result, and the two source calls are a description, not execution evidence. Each HTML block below is the complete named file. Put them and `route-notes.md` in `trail-guide/`, alongside a complete matching distribution in `trail-guide/demistify/`. For another supplied binding, replace each stylesheet/runtime URL and use its matching CLI.
+This example describes a fictional trail-planning design. The observation is an explicitly illustrative supplied result, and the two source calls are a description, not execution evidence. Each HTML block below is the complete named file. This example’s visible Program Design loads `route-notes.md`; deliver the collection over HTTP, or apply the main guide’s Markdown embedding route for file delivery. Put them and `route-notes.md` in `trail-guide/`, alongside a complete matching distribution in `trail-guide/demistify/`. For another supplied binding, replace each stylesheet/runtime URL and use its matching CLI.
 
 ### `requirements.html`
 
@@ -91,18 +90,17 @@ This example describes a fictional trail-planning design. The observation is an 
   <ex-document id="needs">
     <h1>Plan an available route</h1>
     <p>The seasonal register supplies closure notices.</p>
-    <ex-requirements id="trail-needs" label="Trail planning needs"></ex-requirements>
-  </ex-document>
-  <script type="application/json" data-ex-records>
-  [{"kind":"need","id":"NeedClosure","title":"See a closure before choosing","capability":"Route planning","bodyRef":"need-body","summaryRef":"need-summary"}]
-  </script>
-  <template id="need-body">
+    <section id="need-body">
     <p id="need-summary">Show the <a href="#seasonal-notice">seasonal notice</a> before I choose a route.</p>
     <details open>
       <summary>Notice wording</summary>
       <p id="seasonal-notice">The north footbridge is closed through May.</p>
     </details>
-  </template>
+  </section>
+  </ex-document>
+  <script type="application/json" data-ex-records>
+  [{"kind":"need","id":"NeedClosure","title":"See a closure before choosing","capability":"Route planning","bodyRef":"need-body","summaryRef":"need-summary"}]
+  </script>
 </body>
 </html>
 ```
@@ -132,11 +130,7 @@ This example describes a fictional trail-planning design. The observation is an 
   <ex-document id="rule-page">
     <h1>Closure rule</h1>
     <p><a href="requirements.html">Read by need</a></p>
-  </ex-document>
-  <script type="application/json" data-ex-records>
-  [{"kind":"specification","id":"RuleClosure","title":"Show current notices","needs":["NeedClosure"],"bodyRef":"rule-body","summaryRef":"rule-summary"}]
-  </script>
-  <template id="rule-body">
+    <section id="rule-body">
     <p id="rule-summary" data-ex-part="rule">A route containing a closed segment displays its notice before selection.</p>
     <div class="ex-table-scroll" data-ex-part="cases">
       <table>
@@ -145,7 +139,11 @@ This example describes a fictional trail-planning design. The observation is an 
       </table>
     </div>
     <details><summary>Register boundary</summary><p>The register owns the closure wording.</p></details>
-  </template>
+  </section>
+  </ex-document>
+  <script type="application/json" data-ex-records>
+  [{"kind":"specification","id":"RuleClosure","title":"Show current notices","needs":["NeedClosure"],"bodyRef":"rule-body","summaryRef":"rule-summary"}]
+  </script>
 </body>
 </html>
 ```
@@ -175,11 +173,7 @@ This example describes a fictional trail-planning design. The observation is an 
   <ex-document id="design-page">
     <h1>Notice ownership</h1>
     <p><a href="requirements.html">Read by need</a></p>
-  </ex-document>
-  <script type="application/json" data-ex-records>
-  [{"kind":"program-design","id":"DesignRoute","title":"Read notices at the route boundary","specifications":["RuleClosure"],"bodyRef":"design-body","summaryRef":"design-summary"}]
-  </script>
-  <template id="design-body">
+    <section id="design-body">
     <p id="design-summary">The route view reads closure wording from the seasonal register.</p>
     <div data-ex-part="sketch">
       <ex-mermaid id="notice-flow" label="Notice ownership"><script type="text/plain">
@@ -190,7 +184,11 @@ flowchart LR
     <div data-ex-part="gaps">
       <ex-markdown id="route-notes" label="Design limits" src="route-notes.md"></ex-markdown>
     </div>
-  </template>
+  </section>
+  </ex-document>
+  <script type="application/json" data-ex-records>
+  [{"kind":"program-design","id":"DesignRoute","title":"Read notices at the route boundary","specifications":["RuleClosure"],"bodyRef":"design-body","summaryRef":"design-summary"}]
+  </script>
 </body>
 </html>
 ```
@@ -229,18 +227,18 @@ The diagram describes ownership, not an observed request.
   <ex-document id="verification-page">
     <h1>Notice check</h1>
     <p><a href="requirements.html">Read by need</a></p>
+    <section id="check-body">
+    <p id="check-summary">Read the north route's closure notice before selecting it.</p>
+    <details data-ex-part="procedure"><summary>Proposed check</summary><ol><li>Open the north route.</li><li>Read its notice before selecting it.</li></ol></details>
+  </section>
+    <section id="observation-body">
+    <p id="observation-summary">Illustrative supplied result: notice text was present; selection order was not observed.</p>
+    <p>This invented example supplies no target-build or real-path product proof.</p>
+  </section>
   </ex-document>
   <script type="application/json" data-ex-records>
   [{"kind":"scenario","id":"CheckClosure","title":"Inspect the closed segment","specifications":["RuleClosure"],"bodyRef":"check-body","summaryRef":"check-summary"},{"kind":"observation","id":"ObservedClosure","scenario":"CheckClosure","outcome":"Partial","bodyRef":"observation-body","summaryRef":"observation-summary"}]
   </script>
-  <template id="check-body">
-    <p id="check-summary">Read the north route's closure notice before selecting it.</p>
-    <details data-ex-part="procedure"><summary>Proposed check</summary><ol><li>Open the north route.</li><li>Read its notice before selecting it.</li></ol></details>
-  </template>
-  <template id="observation-body">
-    <p id="observation-summary">Illustrative supplied result: notice text was present; selection order was not observed.</p>
-    <p>This invented example supplies no target-build or real-path product proof.</p>
-  </template>
 </body>
 </html>
 ```
@@ -279,7 +277,7 @@ The diagram describes ownership, not an observed request.
 </html>
 ```
 
-The example maps each metadata body/summary pair to exactly one template, uses all seven record kinds and supplies every forward target. `RuleClosure` owns the table/rule, `DesignRoute` owns the diagram/Markdown limits, and `CheckClosure` owns proposed procedure. The observation remains separate from that proposal.
+The example maps each metadata body/summary pair to exactly one visible body container, uses all seven record kinds and supplies every forward target. `RuleClosure` owns the table/rule, `DesignRoute` owns the diagram/Markdown limits, and `CheckClosure` owns proposed procedure. The observation remains separate from that proposal.
 
 ## Prepare, then check the changed HTML
 
@@ -298,16 +296,16 @@ For a hosted binding, use the exact CLI URL printed by that binding's current ma
 
 Each output gets a generated collection meta marker and `data-ex-design-collection` JSON carrier outside `ex-document`. Keep editing the original inline `data-ex-records` and body containers, not the derived carrier. Local Markdown is embedded in a derivation copy for the prepared body; the authored `ex-markdown src` and `.md` source remain intact. Preparing again with unchanged inputs is idempotent. After any source HTML/metadata or referenced Markdown edit, prepare the directory again before the final check. Shared collection revision changes follow the prepared facts, including record bodies outside the document element.
 
-`prepare` accepts local Markdown sources only; a missing file or remote Markdown URL is an error. The prepared body can be read without sibling Markdown fetches. Ordinary page/image links still need their accompanying files; the runtime, fonts, worker and lazy chunks still need the chosen complete binding. Preparation does not inline the library. Use the opening method and private-runtime choice already selected through the main guide.
+`prepare` accepts local Markdown sources only; a missing file or remote Markdown URL is an error. Preparation embeds local Markdown into its derived record snapshot; it leaves the visible owner’s authored `src` unchanged. That visible Markdown still needs HTTP or the main guide’s author-time embedding route. Ordinary page/image links still need their accompanying files; the runtime, fonts, worker and lazy chunks still need the chosen complete binding. Preparation does not inline the library. Use the opening method and private-runtime choice already selected through the main guide.
 
 The checker validates individual pages and their prepared carrier/markup; directory preparation establishes cross-page referential integrity. A source check cannot certify rendered layout, link interaction or supplied call execution. Report the commands you actually ran and keep routine authoring at that boundary.
 
 ## Partial work and truthful results
 
-A needs-only collection is the complete `requirements.html` above, with only its `requirements.html` Home link in the native page list, in its own directory with the same complete library binding. There is no `execution.html`, no invented stack and no later metadata to add. Missing stages show “Not yet written”; call views have no authored path to select. For a specification-only continuation, add `specification.html` and keep the two native page lists limited to `requirements.html` first (Home), then `specification.html`; still omit unwritten design, verification and execution pages and their links. If a canonical owner file exists but has no records, its one metadata array is `[]`.
+A needs-only collection uses the visible `requirements.html` above, with only its own Home link in the native page list and the same complete library binding. Keep unwritten documents out of the page list. Add `execution.html` and its reader when a supplied call path is available; an authored zero-stack collection can instead show the call reader’s empty state. For a specification-only continuation, add `specification.html` and keep the two native page lists limited to `requirements.html` first (Home), then `specification.html`; still omit unwritten design, verification and execution pages and their links. If a canonical owner file exists but has no records, its one metadata array is `[]`.
 
 A scenario without an observation is “Not run”; do not author an observation with `outcome: "Not run"`. A supplied observation uses `Pass`, `Fail` or `Partial`. Several supplied observations can point to one scenario: give each its own ID/body/summary and retain every supplied outcome. A later Fail does not overwrite an earlier Pass or become one green overall badge. Preserve actual target/setup/limits in observation HTML; the library does not classify every result as illustrative.
 
-Keep tables, links, inline code, Markdown, diagrams and native disclosure states in their source bodies. The readers localize IDs and local href/label/ARIA targets for projected copies; supply links to real targets and retain external/cross-page URLs. Source details exposes the full supplied body where the related view selects parts. Use the existing stage/related/call controls and automatically provided Comments; a parallel picker, custom feedback store or per-page renderer would duplicate those owners.
+Keep tables, links, inline code, Markdown, diagrams and native disclosure states in their visible source bodies. Supply real fragment targets and retain external/cross-page URLs. Use the call reader’s stack picker, frame selection and hidden-calls controls, with automatically provided Comments and inspection. The need links return to the visible owner passage; a frame’s source caption remains the supplied text, not a generated source-file link.
 
 IF authoring Markdown carriers or changing disclosure/table composition beyond this example, load `content.md` and return the source carriers, retained forms/states and delivery method. IF changing Mermaid source beyond this example, load `diagrams.md` and return the supported family, safe source and resolving targets. These references retain their existing APIs and the main guide's validation policy.

@@ -50,7 +50,7 @@ const need = {
 function page(
 	records: readonly unknown[],
 	body: string,
-	reader = '<ex-requirements id="reader"></ex-requirements>',
+	reader = '<ex-call-stack id="reader"></ex-call-stack>',
 ): string {
 	return `<!doctype html><html><head><title>Draft</title><link rel="stylesheet" href="theme.css"><script type="module" src="runtime.js"></script></head><body><ex-document id="content"><h1>Draft</h1>${reader}</ex-document><script type="application/json" data-ex-records>${JSON.stringify(records)}</script>${body}</body></html>`;
 }

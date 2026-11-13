@@ -37,15 +37,15 @@ test.each([
 	).toBe(true);
 });
 
-test.each([
-	'<ex-requirements id="needs"></ex-requirements>',
-	'<ex-call-stack id="calls"></ex-call-stack>',
-])('the checker diagnoses unprepared public reader input: %s', async (reader): Promise<void> => {
-	const findings = await checkHtml(reader, { diagrams: false });
-	expect(
-		findings.some(
-			(finding) =>
-				finding.rule === 'design-collection' && finding.message.includes('demistify prepare'),
-		),
-	).toBe(true);
-});
+test.each(['<ex-call-stack id="calls"></ex-call-stack>'])(
+	'the checker diagnoses unprepared public reader input: %s',
+	async (reader): Promise<void> => {
+		const findings = await checkHtml(reader, { diagrams: false });
+		expect(
+			findings.some(
+				(finding) =>
+					finding.rule === 'design-collection' && finding.message.includes('demistify prepare'),
+			),
+		).toBe(true);
+	},
+);
