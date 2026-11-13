@@ -1,6 +1,6 @@
 # Structured cut fields in selection state
 
-Use `scripts/verify/sunstack-rule/selection-cuts/selection-cuts.ts` for the 0.16.0 selection-state wire contract. The adopted source is the selection-cut-fields commission and Correction 1. The route uses the real headed P3 inputs from 0.15.1 and checks the complete saved report against released 0.15.1. Its `--help` describes both phases. Candidate coverage remains open until a declared signed target runs it.
+Use `scripts/verify/sunstack-rule/selection-cuts/selection-cuts.ts` for the 0.16.0 selection-state wire contract. The adopted source is the selection-cut-fields commission and Correction 1. The route uses the real headed P3 inputs from 0.15.1 and checks the complete saved report against released 0.15.1. Its `--help` describes both phases. Baseline and candidate phases have exercised the route through the signed CLI. Repeat it for each declared target; an earlier pass does not establish a later target.
 
 ## Contract and expected differences
 
