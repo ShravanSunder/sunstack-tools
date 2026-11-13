@@ -1,5 +1,15 @@
 # @sunstack/demistify
 
+## 1.23.0
+
+### Minor Changes
+
+- c62583f: Remove the experimental requirements, stage and related-document browser UI. Preserve the call-stack reader and prepared collection validation; call-to-need links now resolve to visible authored owner-page anchors.
+
+### Patch Changes
+
+- 144aa4c: Keep Option shortcut hints beside reader icons, order the shared toolbar as Pages then Search before the other controls, use Compass for Walkthroughs, and return keyboard-opened search to the reader's prior focus when cancelled.
+
 ## 1.22.0
 
 ### Minor Changes
