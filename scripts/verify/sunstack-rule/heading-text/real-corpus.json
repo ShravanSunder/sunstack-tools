@@ -1,0 +1,255 @@
+{
+	"groups": [
+		{
+			"name": "html",
+			"config": "p3.config.json",
+			"expected_baseline_requests": 79,
+			"files": [
+				{
+					"file": "evidence/rules/opening.yml",
+					"sha256": "b982184310dffabe38471a4bf6c7c7af15fb75ba6dacdfa2d5f4dee9f5d5c746"
+				},
+				{
+					"file": "evidence/sgconfig.yml",
+					"sha256": "a016c8bda6a2c9f78fde925703ca14d7bef435b645ffba5fd30c64dea1d2d914"
+				},
+				{
+					"file": "p3.config.json",
+					"sha256": "3c20387664628f971b4ae4663d207c5877efdb483b657d9853252a6e9c609cdb"
+				},
+				{
+					"file": "pages/page-01.html",
+					"sha256": "6ee9ec4076b71461ca2058aae9a384c52800b10996f7a0952b1ace9b1e842414"
+				},
+				{
+					"file": "pages/page-02.html",
+					"sha256": "4eeaefc2c8ccaf2020cac90fe806193f99cd7090d58fa51a9d9258bdd5b5995e"
+				},
+				{
+					"file": "pages/page-03.html",
+					"sha256": "1296d32988079004b2695b6213ec49423a24888e7aa5799b272ae9c34297a002"
+				},
+				{
+					"file": "pages/page-04.html",
+					"sha256": "92e10102e681216c24958dd19a80ac7b917c529976643714eb6840074621cf9f"
+				},
+				{
+					"file": "pages/page-05.html",
+					"sha256": "ca3c1ca6d8cb4d47aca8a62aaa0a8b4c119d75923058451719d100094d6abea8"
+				},
+				{
+					"file": "pages/page-06.html",
+					"sha256": "9b83dd5c042bcaa28573796135338e8f1c308f8bed0cec21b51d86846aa75da4"
+				},
+				{
+					"file": "pages/page-07.html",
+					"sha256": "58e1c69b659fe1fa44ccb4e06002c8b8b873ab06a1e043e09a567a33a58e3cbc"
+				},
+				{
+					"file": "pages/page-08.html",
+					"sha256": "b09aefbfb56b52280807dfbff55df336c415020060a02dbb246f7acf15404c76"
+				},
+				{
+					"file": "pages/page-09.html",
+					"sha256": "3333e8d92caa428189f5ce7d4c6b744f97cf9e953e8b0447b1b6fe2f8df9d364"
+				},
+				{
+					"file": "pages/page-10.html",
+					"sha256": "830db7eb640a25ce38cf51c13138a1db451b42a0d276ec88554711c5c08e9c54"
+				},
+				{
+					"file": "pages/page-11.html",
+					"sha256": "9530a9085f41b7c708ca6008c4e9c1cf55a3d63a22cf3b9c39a56625c856bd95"
+				},
+				{
+					"file": "pages/page-12.html",
+					"sha256": "ea15f4335650fdf59bbf24c920a714ed72f6569b90e85141f8d2fd24cfd6a3a4"
+				},
+				{
+					"file": "pages/page-13.html",
+					"sha256": "af26efa1ce441db8aca29f1889e851c8b8092d0386fa1b4ff17c1d10edd16f99"
+				},
+				{
+					"file": "std.md",
+					"sha256": "e525ba1889173a80bf3008ab15100d706993a759fe0f301f590488074aa7e62d"
+				},
+				{
+					"file": "std.rules.json",
+					"sha256": "12870aac5539a2a487cfbdd74202603b80e443273155baa0bddf590479e9f19e"
+				}
+			],
+			"config_sha256": "3c20387664628f971b4ae4663d207c5877efdb483b657d9853252a6e9c609cdb"
+		},
+		{
+			"name": "markdown",
+			"config": "p3.config.json",
+			"expected_baseline_requests": 49,
+			"files": [
+				{
+					"file": "evidence/rules/opening.yml",
+					"sha256": "b982184310dffabe38471a4bf6c7c7af15fb75ba6dacdfa2d5f4dee9f5d5c746"
+				},
+				{
+					"file": "evidence/sgconfig.yml",
+					"sha256": "a016c8bda6a2c9f78fde925703ca14d7bef435b645ffba5fd30c64dea1d2d914"
+				},
+				{
+					"file": "p3.config.json",
+					"sha256": "3c20387664628f971b4ae4663d207c5877efdb483b657d9853252a6e9c609cdb"
+				},
+				{
+					"file": "pages/doc-01.md",
+					"sha256": "09d9dd68d4c874989934951814a9b05e579544feb9ab99d1b4cbbaf594ea3048"
+				},
+				{
+					"file": "pages/doc-02.md",
+					"sha256": "076ed373a0caf25fe32d88e1f2cc797159004dc627d72ccc50d676f651b22a80"
+				},
+				{
+					"file": "pages/doc-03.md",
+					"sha256": "bce0a8f40b419f124aac9b784105f3135408fbaeaa576251fff0d328b8377c98"
+				},
+				{
+					"file": "pages/doc-04.md",
+					"sha256": "b7b6bc05a200e49ece6228f942cdf26d8496e1c70e36ed261c60ca8af68a669e"
+				},
+				{
+					"file": "pages/doc-05.md",
+					"sha256": "e39616b08d3fbdb3b85d96d02c3dad6ae7230515ad23c016e7f6c10d9047ebe7"
+				},
+				{
+					"file": "pages/doc-06.md",
+					"sha256": "94c9bfcdc8bdb8b7ab79a6a6d418c6eb70e44d145f26649e4b2391f3927fb6e3"
+				},
+				{
+					"file": "pages/doc-07.md",
+					"sha256": "4e773a2f94f68c5b77e7beebf714eb6454bbc64f0b57d0c56cdb861385033fbe"
+				},
+				{
+					"file": "pages/doc-08.md",
+					"sha256": "00408e8e162e19198e321ffb6da972496321dc22632f991fc3b91ca3eb83220b"
+				},
+				{
+					"file": "pages/doc-09.md",
+					"sha256": "0c6e4949e33612b7550f11f602392ac936457e73f5f459796d74ae295cf2a24d"
+				},
+				{
+					"file": "pages/doc-10.md",
+					"sha256": "5fa9cfaa1e949e960b2e822842cd63dd8d8847da0fdd956da8c80a39fa86cb3a"
+				},
+				{
+					"file": "std.md",
+					"sha256": "e525ba1889173a80bf3008ab15100d706993a759fe0f301f590488074aa7e62d"
+				},
+				{
+					"file": "std.rules.json",
+					"sha256": "12870aac5539a2a487cfbdd74202603b80e443273155baa0bddf590479e9f19e"
+				}
+			],
+			"config_sha256": "3c20387664628f971b4ae4663d207c5877efdb483b657d9853252a6e9c609cdb"
+		},
+		{
+			"name": "j1",
+			"config": "plugins/sunstack-workflow-v2/skills/design-review/rules/design-documents.judged.config.json",
+			"expected_baseline_requests": 177,
+			"files": [
+				{
+					"file": "pages/page-01.html",
+					"sha256": "6ee9ec4076b71461ca2058aae9a384c52800b10996f7a0952b1ace9b1e842414"
+				},
+				{
+					"file": "pages/page-02.html",
+					"sha256": "4eeaefc2c8ccaf2020cac90fe806193f99cd7090d58fa51a9d9258bdd5b5995e"
+				},
+				{
+					"file": "pages/page-03.html",
+					"sha256": "1296d32988079004b2695b6213ec49423a24888e7aa5799b272ae9c34297a002"
+				},
+				{
+					"file": "pages/page-04.html",
+					"sha256": "92e10102e681216c24958dd19a80ac7b917c529976643714eb6840074621cf9f"
+				},
+				{
+					"file": "pages/page-05.html",
+					"sha256": "ca3c1ca6d8cb4d47aca8a62aaa0a8b4c119d75923058451719d100094d6abea8"
+				},
+				{
+					"file": "pages/page-06.html",
+					"sha256": "9b83dd5c042bcaa28573796135338e8f1c308f8bed0cec21b51d86846aa75da4"
+				},
+				{
+					"file": "pages/page-07.html",
+					"sha256": "58e1c69b659fe1fa44ccb4e06002c8b8b873ab06a1e043e09a567a33a58e3cbc"
+				},
+				{
+					"file": "pages/page-08.html",
+					"sha256": "b09aefbfb56b52280807dfbff55df336c415020060a02dbb246f7acf15404c76"
+				},
+				{
+					"file": "pages/page-09.html",
+					"sha256": "3333e8d92caa428189f5ce7d4c6b744f97cf9e953e8b0447b1b6fe2f8df9d364"
+				},
+				{
+					"file": "pages/page-10.html",
+					"sha256": "830db7eb640a25ce38cf51c13138a1db451b42a0d276ec88554711c5c08e9c54"
+				},
+				{
+					"file": "pages/page-11.html",
+					"sha256": "9530a9085f41b7c708ca6008c4e9c1cf55a3d63a22cf3b9c39a56625c856bd95"
+				},
+				{
+					"file": "pages/page-12.html",
+					"sha256": "ea15f4335650fdf59bbf24c920a714ed72f6569b90e85141f8d2fd24cfd6a3a4"
+				},
+				{
+					"file": "pages/page-13.html",
+					"sha256": "af26efa1ce441db8aca29f1889e851c8b8092d0386fa1b4ff17c1d10edd16f99"
+				},
+				{
+					"file": "plugins/sunstack-workflow-v2/skills/design-review/rules/design-documents.judged.config.json",
+					"sha256": "ba4de0191a22f03dd58f75b263d7982ed1b0f90dbdf2d70d23afc9c1165fbfd2"
+				},
+				{
+					"file": "plugins/sunstack-workflow-v2/skills/design-review/rules/evidence/rules/design-pages.yml",
+					"sha256": "30486022f203becee40d38bfe6f54d0e318a9d76d22ac096d66b8faafc3f4d30"
+				},
+				{
+					"file": "plugins/sunstack-workflow-v2/skills/design-review/rules/evidence/sgconfig.yml",
+					"sha256": "a016c8bda6a2c9f78fde925703ca14d7bef435b645ffba5fd30c64dea1d2d914"
+				},
+				{
+					"file": "plugins/sunstack-workflow-v2/skills/design-specification/SKILL.md",
+					"sha256": "abdd286a1276ca8b4edf82640ba567252b20c71543a5fd0d634a4c07b8687a67"
+				},
+				{
+					"file": "plugins/sunstack-workflow-v2/skills/design-specification/rules/design-specification.judged.rules.json",
+					"sha256": "dd83972d05845fcacc3a8b8d57b3e9124543f8edc0293276e3cf0872c892b722"
+				},
+				{
+					"file": "source-manifest.json",
+					"sha256": "42123e3ebcd89e4250685ccc765cc421ed180394df19ac6a2f682019f8c0cf40"
+				}
+			],
+			"config_sha256": "ba4de0191a22f03dd58f75b263d7982ed1b0f90dbdf2d70d23afc9c1165fbfd2"
+		},
+		{
+			"name": "ai-tools",
+			"config": "plugins/skill-authoring/skills/domain-skill-crafting/rules/skill-rules.config.json",
+			"expected_baseline_requests": 499,
+			"files": [],
+			"config_sha256": "495591e4e713487ced0e40a8b083494049f2083fd1604b00951417628ef266ed"
+		}
+	],
+	"html_candidates": 354,
+	"html_path_entries": 820,
+	"markdown_candidates": 236,
+	"markdown_path_entries": 570,
+	"affected_html_scalars": 190,
+	"affected_pages": [
+		"pages/page-06.html",
+		"pages/page-07.html",
+		"pages/page-11.html",
+		"pages/page-12.html"
+	],
+	"ai_tools_git": "cde8d5cf5b9141a08264cc5d57e3e3a58f0f2aac"
+}

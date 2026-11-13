@@ -1,5 +1,109 @@
 use super::*;
 
+#[tokio::test]
+async fn heading_selection_requests_keep_derived_text_once_and_enclosing_order() {
+    let root = tempfile::tempdir().unwrap();
+    let (mut config, _) = outline_fixture(root.path());
+    config["evidence"]["kinds"]["outline"] = json!({
+        "html_units":{"mode":"unit","units":["section"]},"fields":{}
+    });
+    config["evidence"]["kinds"]["skill"]["fields"] = json!({
+        "heading":{"from":"section","text":"heading"},
+        "heading_path":{"from":"enclosing","kind":"outline","text":"heading"}
+    });
+    config["evidence"]["kinds"]["skill"]["select"] = json!({
+        "question":{"type":"noul","instructions":{
+            "check":"heading","context":["heading_path"],"task":"Keep this heading?"
+        }},"yes_at_or_above":0.7,"no_at_or_below":0.3,"shared":[]
+    });
+    fixture::config_file(root.path(), &config);
+    fixture::entry_file(
+        root.path(),
+        &json!({"K001":{
+            "name":"section_picture","evidence":"skill","severity":"warn",
+            "decision":{"start":"raw","steps":{"raw":{
+                "mechanical_check":{"tool":"contains","field":"heading","text":"Root"},
+                "yes":"pass","no":{"finding":"Check this heading."}
+            }}}
+        }}),
+    );
+    std::fs::write(
+        root.path().join("docs/page.html"),
+        "<h2>Root &lt;T&gt; &amp;lt;</h2><h3>Child <em>inline</em></h3><p>Body</p>",
+    )
+    .unwrap();
+
+    invoke(root.path(), &["--check"], 0).await;
+    let saved = root.path().join("heading-selection.json");
+    invoke(
+        root.path(),
+        &["--all", "--prepare", saved.to_str().unwrap()],
+        6,
+    )
+    .await;
+
+    let report: Value = serde_json::from_slice(&std::fs::read(saved).unwrap()).unwrap();
+    let request = report["requests"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|r| r["owner"]["kind"] == "selection")
+        .unwrap();
+    let candidates = &request["request"]["state"]["candidates"];
+    assert_eq!(candidates["c1"]["heading"], "Root <T> &lt;");
+    assert_eq!(candidates["c1"]["heading_path"], json!(["Root <T> &lt;"]));
+    assert_eq!(candidates["c2"]["heading"], "Child inline");
+    assert_eq!(
+        candidates["c2"]["heading_path"],
+        json!(["Root <T> &lt;", "Child inline"])
+    );
+    assert_eq!(report["usage"]["model_requests"], 0);
+}
+
+#[tokio::test]
+async fn heading_invalid_context_and_nested_target_are_named_at_check() {
+    for nested in [false, true] {
+        let root = tempfile::tempdir().unwrap();
+        let (mut config, _) = outline_fixture(root.path());
+        let (owning_field, expected) = if nested {
+            config["evidence"]["kinds"]["skill"]["fields"]["heading"] =
+                json!({"from":"section","text":"heading"});
+            config["evidence"]["kinds"]["ast_heading"]["fields"]["links"] = json!({"from":"target","regex":"href=\"([^\"]+)\"","resolve":"path","as_kind":"skill"});
+            ("links", ["as_kind", "heading-free"])
+        } else {
+            config["evidence"]["kinds"]["skill"]["fields"]["heading_path"] =
+                json!({"from":"same_file","kind":"ast_heading","text":"heading"});
+            ("heading_path", ["same_file", "heading"])
+        };
+        fixture::config_file(root.path(), &config);
+        let source = std::fs::read_to_string(root.path().join("sunstack.lint.json")).unwrap();
+        let (line_index, owning_line) = source
+            .lines()
+            .enumerate()
+            .find(|(_, line)| {
+                line.trim_start()
+                    .starts_with(&format!("\"{owning_field}\":"))
+            })
+            .unwrap();
+        let column = owning_line.find('"').unwrap() + 1;
+
+        let output = invoke(root.path(), &["--check"], 2).await;
+
+        let diagnostic = format!(
+            "{}{}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
+        for expected in expected {
+            assert!(diagnostic.contains(expected), "{diagnostic}");
+        }
+        assert!(
+            diagnostic.contains(&format!("sunstack.lint.json:{}:{column}:", line_index + 1)),
+            "{diagnostic}"
+        );
+    }
+}
+
 fn outline_fixture(root: &Path) -> (Value, String) {
     let mut config = fixture::write(root);
     config["check"]["files"] = json!(["docs/*.html"]);

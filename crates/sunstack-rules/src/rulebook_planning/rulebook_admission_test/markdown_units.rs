@@ -181,3 +181,51 @@ fn native_markdown_kind_references_use_markdown_language() {
         }
     }
 }
+
+#[test]
+fn native_markdown_sections_admit_own_and_enclosing_heading_fields() {
+    let kinds = serde_json::from_value(json!({
+        "outline":{"markdown_units":{"mode":"unit","units":["section"]},"fields":{}},
+        "candidate":{
+            "markdown_units":{"mode":"unit","units":["section"]},
+            "fields":{
+                "heading":{"from":"section","text":"heading"},
+                "heading_path":{"from":"enclosing","kind":"outline","text":"heading"}
+            }
+        }
+    }))
+    .unwrap();
+    let errors = admit_evidence_kinds(&kinds, &fixture::project(), 6000);
+    assert!(errors.is_empty(), "{errors:?}");
+}
+
+#[test]
+fn enclosing_heading_refuses_non_section_markdown_kinds_at_the_field() {
+    for selection in [
+        json!({"mode":"unit","units":["paragraph"]}),
+        json!({"mode":"unit","units":["section","paragraph"]}),
+        json!({"mode":"call_site","units":["section"],"pattern":"Use"}),
+    ] {
+        let call_site = selection["mode"] == "call_site";
+        let kinds = serde_json::from_value(json!({
+            "outline":{"markdown_units":selection,"fields":{}},
+            "candidate":{
+                "markdown_units":{"mode":"unit","units":["section"]},
+                "fields":{"heading_path":{"from":"enclosing","kind":"outline","text":"heading"}}
+            }
+        }))
+        .unwrap();
+        let errors = admit_evidence_kinds(&kinds, &fixture::project(), 6000);
+        assert_eq!(errors.len(), if call_site { 2 } else { 1 }, "{errors:?}");
+        let heading_error = errors
+            .iter()
+            .find(|error| {
+                error.field_path.to_string() == "evidence.kinds.candidate.fields.heading_path"
+            })
+            .unwrap();
+        assert_eq!(
+            heading_error.message,
+            "kind candidate field heading_path: enclosing heading requires a native section kind (html_units or markdown_units with unit mode and units exactly [section])"
+        );
+    }
+}

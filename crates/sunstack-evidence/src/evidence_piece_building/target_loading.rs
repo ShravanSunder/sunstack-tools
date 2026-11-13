@@ -287,7 +287,15 @@ impl EvidenceBuild {
                 {
                     continue;
                 }
-                let fields = local_fields(kind, definition, &file, range, position, &pieces);
+                let fields = local_fields(
+                    kind,
+                    definition,
+                    &file,
+                    range,
+                    position,
+                    &pieces,
+                    &self.project.document_settings.html,
+                );
                 if kind == as_kind {
                     return Ok(Some(fields));
                 }

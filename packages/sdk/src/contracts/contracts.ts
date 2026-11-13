@@ -173,7 +173,7 @@ export type Configuration = {
 
 export type ContainingKinds = EvidenceKindName[];
 
-export type ContextText = 'first_line' | 'full';
+export type ContextText = 'first_line' | 'full' | 'heading';
 
 /**  The native contract this addon implements. */
 export type ContractInfo = {
@@ -1247,7 +1247,7 @@ export type SdkSkippedRule = {
 	diagnostics: Diagnostic[];
 };
 
-export type SectionText = 'full' | 'own' | 'enclosing_own';
+export type SectionText = 'full' | 'own' | 'enclosing_own' | 'heading';
 
 export type SelectionCandidate = {
 	id: CandidateId;

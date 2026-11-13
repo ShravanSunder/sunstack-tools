@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.15.1
+
+Release date: 2026-11-13.
+
+- Native section fields support `text: "heading"` for their own heading and
+  for enclosing native section kinds, preserving the existing context order
+  and equal-range containment. HTML heading text is projected once; Markdown
+  heading markers are removed while inline source stays literal. Stored fields
+  and asking views share the derived text, with original heading spans and
+  normal text budgets. Unbounded recovered HTML headings are unavailable.
+- Admission refuses heading context on non-section kinds, `same_file`, and
+  kinds nested through a target's `as_kind`. Existing field modes retain
+  their behavior. Public Rust enums add `SectionText::Heading` and
+  `ContextText::Heading`; exhaustive consumers must handle the new variants.
+
 ## 0.15.0
 
 Release date: 2026-11-12.

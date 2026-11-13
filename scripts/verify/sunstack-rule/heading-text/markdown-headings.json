@@ -1,0 +1,832 @@
+{
+	"basis": "Exact10source files1500127d; inline text derived by heading-marker-only regex before candidate. Element ranges from released0.15.0 generic ATX/setext AST listing (118ATX), source-byte checked. New heading field implementation not used.",
+	"source_revision": "1500127d185ffdee461e6fb860842e2d0f1af1f0",
+	"headings": [
+		{
+			"file": "pages/doc-01.md",
+			"source_sha256": "09d9dd68d4c874989934951814a9b05e579544feb9ab99d1b4cbbaf594ea3048",
+			"byte_start": 253,
+			"byte_end": 270,
+			"text": "Code standards"
+		},
+		{
+			"file": "pages/doc-01.md",
+			"source_sha256": "09d9dd68d4c874989934951814a9b05e579544feb9ab99d1b4cbbaf594ea3048",
+			"byte_start": 614,
+			"byte_end": 639,
+			"text": "Whose standards apply"
+		},
+		{
+			"file": "pages/doc-01.md",
+			"source_sha256": "09d9dd68d4c874989934951814a9b05e579544feb9ab99d1b4cbbaf594ea3048",
+			"byte_start": 2216,
+			"byte_end": 2241,
+			"text": "The owner's standards"
+		},
+		{
+			"file": "pages/doc-01.md",
+			"source_sha256": "09d9dd68d4c874989934951814a9b05e579544feb9ab99d1b4cbbaf594ea3048",
+			"byte_start": 2310,
+			"byte_end": 2320,
+			"text": "Tests"
+		},
+		{
+			"file": "pages/doc-01.md",
+			"source_sha256": "09d9dd68d4c874989934951814a9b05e579544feb9ab99d1b4cbbaf594ea3048",
+			"byte_start": 3515,
+			"byte_end": 3537,
+			"text": "Files and modules"
+		},
+		{
+			"file": "pages/doc-01.md",
+			"source_sha256": "09d9dd68d4c874989934951814a9b05e579544feb9ab99d1b4cbbaf594ea3048",
+			"byte_start": 4067,
+			"byte_end": 4081,
+			"text": "Monorepos"
+		},
+		{
+			"file": "pages/doc-01.md",
+			"source_sha256": "09d9dd68d4c874989934951814a9b05e579544feb9ab99d1b4cbbaf594ea3048",
+			"byte_start": 4878,
+			"byte_end": 4896,
+			"text": "Documentation"
+		},
+		{
+			"file": "pages/doc-01.md",
+			"source_sha256": "09d9dd68d4c874989934951814a9b05e579544feb9ab99d1b4cbbaf594ea3048",
+			"byte_start": 5045,
+			"byte_end": 5069,
+			"text": "Signs you skipped it"
+		},
+		{
+			"file": "pages/doc-01.md",
+			"source_sha256": "09d9dd68d4c874989934951814a9b05e579544feb9ab99d1b4cbbaf594ea3048",
+			"byte_start": 5427,
+			"byte_end": 5440,
+			"text": "Done when"
+		},
+		{
+			"file": "pages/doc-02.md",
+			"source_sha256": "076ed373a0caf25fe32d88e1f2cc797159004dc627d72ccc50d676f651b22a80",
+			"byte_start": 0,
+			"byte_end": 18,
+			"text": "Decision Matrix"
+		},
+		{
+			"file": "pages/doc-02.md",
+			"source_sha256": "076ed373a0caf25fe32d88e1f2cc797159004dc627d72ccc50d676f651b22a80",
+			"byte_start": 615,
+			"byte_end": 639,
+			"text": "Decide in this order"
+		},
+		{
+			"file": "pages/doc-02.md",
+			"source_sha256": "076ed373a0caf25fe32d88e1f2cc797159004dc627d72ccc50d676f651b22a80",
+			"byte_start": 4379,
+			"byte_end": 4398,
+			"text": "Worked examples"
+		},
+		{
+			"file": "pages/doc-02.md",
+			"source_sha256": "076ed373a0caf25fe32d88e1f2cc797159004dc627d72ccc50d676f651b22a80",
+			"byte_start": 4541,
+			"byte_end": 4592,
+			"text": "The description opener: deterministic, no gate"
+		},
+		{
+			"file": "pages/doc-02.md",
+			"source_sha256": "076ed373a0caf25fe32d88e1f2cc797159004dc627d72ccc50d676f651b22a80",
+			"byte_start": 6442,
+			"byte_end": 6513,
+			"text": "Call completeness: model-judged, and the `return` check is a proxy"
+		},
+		{
+			"file": "pages/doc-02.md",
+			"source_sha256": "076ed373a0caf25fe32d88e1f2cc797159004dc627d72ccc50d676f651b22a80",
+			"byte_start": 7734,
+			"byte_end": 7816,
+			"text": "A rule that generalizes: model-judged on section chunks, with a question gate"
+		},
+		{
+			"file": "pages/doc-02.md",
+			"source_sha256": "076ed373a0caf25fe32d88e1f2cc797159004dc627d72ccc50d676f651b22a80",
+			"byte_start": 9517,
+			"byte_end": 9563,
+			"text": "Placement: worth checking, on #187's line"
+		},
+		{
+			"file": "pages/doc-02.md",
+			"source_sha256": "076ed373a0caf25fe32d88e1f2cc797159004dc627d72ccc50d676f651b22a80",
+			"byte_start": 12155,
+			"byte_end": 12234,
+			"text": "\"Review always runs in agents that did not write the change.\": review-only"
+		},
+		{
+			"file": "pages/doc-02.md",
+			"source_sha256": "076ed373a0caf25fe32d88e1f2cc797159004dc627d72ccc50d676f651b22a80",
+			"byte_start": 12791,
+			"byte_end": 12822,
+			"text": "The review-skip rule: eval"
+		},
+		{
+			"file": "pages/doc-02.md",
+			"source_sha256": "076ed373a0caf25fe32d88e1f2cc797159004dc627d72ccc50d676f651b22a80",
+			"byte_start": 13605,
+			"byte_end": 13670,
+			"text": "\"A skill makes an agent follow a predictable process\": prose"
+		},
+		{
+			"file": "pages/doc-02.md",
+			"source_sha256": "076ed373a0caf25fe32d88e1f2cc797159004dc627d72ccc50d676f651b22a80",
+			"byte_start": 14336,
+			"byte_end": 14347,
+			"text": "Signals"
+		},
+		{
+			"file": "pages/doc-03.md",
+			"source_sha256": "bce0a8f40b419f124aac9b784105f3135408fbaeaa576251fff0d328b8377c98",
+			"byte_start": 228,
+			"byte_end": 249,
+			"text": "Skill Orchestrator"
+		},
+		{
+			"file": "pages/doc-03.md",
+			"source_sha256": "bce0a8f40b419f124aac9b784105f3135408fbaeaa576251fff0d328b8377c98",
+			"byte_start": 790,
+			"byte_end": 822,
+			"text": "Practices This Skill Carries"
+		},
+		{
+			"file": "pages/doc-03.md",
+			"source_sha256": "bce0a8f40b419f124aac9b784105f3135408fbaeaa576251fff0d328b8377c98",
+			"byte_start": 1493,
+			"byte_end": 1513,
+			"text": "Classify The Run"
+		},
+		{
+			"file": "pages/doc-03.md",
+			"source_sha256": "bce0a8f40b419f124aac9b784105f3135408fbaeaa576251fff0d328b8377c98",
+			"byte_start": 3084,
+			"byte_end": 3096,
+			"text": "Workflow"
+		},
+		{
+			"file": "pages/doc-03.md",
+			"source_sha256": "bce0a8f40b419f124aac9b784105f3135408fbaeaa576251fff0d328b8377c98",
+			"byte_start": 3097,
+			"byte_end": 3129,
+			"text": "1. Read and name the target"
+		},
+		{
+			"file": "pages/doc-03.md",
+			"source_sha256": "bce0a8f40b419f124aac9b784105f3135408fbaeaa576251fff0d328b8377c98",
+			"byte_start": 3340,
+			"byte_end": 3354,
+			"text": "2. Design"
+		},
+		{
+			"file": "pages/doc-03.md",
+			"source_sha256": "bce0a8f40b419f124aac9b784105f3135408fbaeaa576251fff0d328b8377c98",
+			"byte_start": 3680,
+			"byte_end": 3693,
+			"text": "3. Write"
+		},
+		{
+			"file": "pages/doc-03.md",
+			"source_sha256": "bce0a8f40b419f124aac9b784105f3135408fbaeaa576251fff0d328b8377c98",
+			"byte_start": 3974,
+			"byte_end": 3987,
+			"text": "4. Prove"
+		},
+		{
+			"file": "pages/doc-03.md",
+			"source_sha256": "bce0a8f40b419f124aac9b784105f3135408fbaeaa576251fff0d328b8377c98",
+			"byte_start": 5398,
+			"byte_end": 5412,
+			"text": "5. Assess"
+		},
+		{
+			"file": "pages/doc-03.md",
+			"source_sha256": "bce0a8f40b419f124aac9b784105f3135408fbaeaa576251fff0d328b8377c98",
+			"byte_start": 7596,
+			"byte_end": 7629,
+			"text": "6. Review the implementation"
+		},
+		{
+			"file": "pages/doc-03.md",
+			"source_sha256": "bce0a8f40b419f124aac9b784105f3135408fbaeaa576251fff0d328b8377c98",
+			"byte_start": 8880,
+			"byte_end": 8892,
+			"text": "7. Ship"
+		},
+		{
+			"file": "pages/doc-03.md",
+			"source_sha256": "bce0a8f40b419f124aac9b784105f3135408fbaeaa576251fff0d328b8377c98",
+			"byte_start": 10312,
+			"byte_end": 10327,
+			"text": "Run Summary"
+		},
+		{
+			"file": "pages/doc-03.md",
+			"source_sha256": "bce0a8f40b419f124aac9b784105f3135408fbaeaa576251fff0d328b8377c98",
+			"byte_start": 11407,
+			"byte_end": 11430,
+			"text": "Completion Blockers"
+		},
+		{
+			"file": "pages/doc-04.md",
+			"source_sha256": "b7b6bc05a200e49ece6228f942cdf26d8496e1c70e36ed261c60ca8af68a669e",
+			"byte_start": 272,
+			"byte_end": 294,
+			"text": "Verification Design"
+		},
+		{
+			"file": "pages/doc-04.md",
+			"source_sha256": "b7b6bc05a200e49ece6228f942cdf26d8496e1c70e36ed261c60ca8af68a669e",
+			"byte_start": 2468,
+			"byte_end": 2479,
+			"text": "The row"
+		},
+		{
+			"file": "pages/doc-04.md",
+			"source_sha256": "b7b6bc05a200e49ece6228f942cdf26d8496e1c70e36ed261c60ca8af68a669e",
+			"byte_start": 4204,
+			"byte_end": 4216,
+			"text": "Workflow"
+		},
+		{
+			"file": "pages/doc-04.md",
+			"source_sha256": "b7b6bc05a200e49ece6228f942cdf26d8496e1c70e36ed261c60ca8af68a669e",
+			"byte_start": 4217,
+			"byte_end": 4256,
+			"text": "1. Take in the design being proven"
+		},
+		{
+			"file": "pages/doc-04.md",
+			"source_sha256": "b7b6bc05a200e49ece6228f942cdf26d8496e1c70e36ed261c60ca8af68a669e",
+			"byte_start": 5902,
+			"byte_end": 5944,
+			"text": "2. Read what already observes the app"
+		},
+		{
+			"file": "pages/doc-04.md",
+			"source_sha256": "b7b6bc05a200e49ece6228f942cdf26d8496e1c70e36ed261c60ca8af68a669e",
+			"byte_start": 6836,
+			"byte_end": 6867,
+			"text": "3. Choose each observation"
+		},
+		{
+			"file": "pages/doc-04.md",
+			"source_sha256": "b7b6bc05a200e49ece6228f942cdf26d8496e1c70e36ed261c60ca8af68a669e",
+			"byte_start": 8635,
+			"byte_end": 8686,
+			"text": "4. Write each passing condition and its limits"
+		},
+		{
+			"file": "pages/doc-04.md",
+			"source_sha256": "b7b6bc05a200e49ece6228f942cdf26d8496e1c70e36ed261c60ca8af68a669e",
+			"byte_start": 9734,
+			"byte_end": 9774,
+			"text": "5. Write the document and its views"
+		},
+		{
+			"file": "pages/doc-04.md",
+			"source_sha256": "b7b6bc05a200e49ece6228f942cdf26d8496e1c70e36ed261c60ca8af68a669e",
+			"byte_start": 12991,
+			"byte_end": 13031,
+			"text": "6. Re-read it as the Verifier would"
+		},
+		{
+			"file": "pages/doc-04.md",
+			"source_sha256": "b7b6bc05a200e49ece6228f942cdf26d8496e1c70e36ed261c60ca8af68a669e",
+			"byte_start": 13421,
+			"byte_end": 13431,
+			"text": "Return"
+		},
+		{
+			"file": "pages/doc-04.md",
+			"source_sha256": "b7b6bc05a200e49ece6228f942cdf26d8496e1c70e36ed261c60ca8af68a669e",
+			"byte_start": 15272,
+			"byte_end": 15291,
+			"text": "Not ready while"
+		},
+		{
+			"file": "pages/doc-05.md",
+			"source_sha256": "e39616b08d3fbdb3b85d96d02c3dad6ae7230515ad23c016e7f6c10d9047ebe7",
+			"byte_start": 0,
+			"byte_end": 44,
+			"text": "Specification: the lint report as a nudge"
+		},
+		{
+			"file": "pages/doc-05.md",
+			"source_sha256": "e39616b08d3fbdb3b85d96d02c3dad6ae7230515ad23c016e7f6c10d9047ebe7",
+			"byte_start": 355,
+			"byte_end": 386,
+			"text": "The system and who reads it"
+		},
+		{
+			"file": "pages/doc-05.md",
+			"source_sha256": "e39616b08d3fbdb3b85d96d02c3dad6ae7230515ad23c016e7f6c10d9047ebe7",
+			"byte_start": 1004,
+			"byte_end": 1016,
+			"text": "Entities"
+		},
+		{
+			"file": "pages/doc-05.md",
+			"source_sha256": "e39616b08d3fbdb3b85d96d02c3dad6ae7230515ad23c016e7f6c10d9047ebe7",
+			"byte_start": 4151,
+			"byte_end": 4163,
+			"text": "Outcomes"
+		},
+		{
+			"file": "pages/doc-05.md",
+			"source_sha256": "e39616b08d3fbdb3b85d96d02c3dad6ae7230515ad23c016e7f6c10d9047ebe7",
+			"byte_start": 4785,
+			"byte_end": 4822,
+			"text": "Requirements, contracts and proof"
+		},
+		{
+			"file": "pages/doc-05.md",
+			"source_sha256": "e39616b08d3fbdb3b85d96d02c3dad6ae7230515ad23c016e7f6c10d9047ebe7",
+			"byte_start": 5059,
+			"byte_end": 5108,
+			"text": "R1. Related places on a finding (U1; E2, E4)"
+		},
+		{
+			"file": "pages/doc-05.md",
+			"source_sha256": "e39616b08d3fbdb3b85d96d02c3dad6ae7230515ad23c016e7f6c10d9047ebe7",
+			"byte_start": 6590,
+			"byte_end": 6639,
+			"text": "R2. An anchor line inside the piece (U2; E3)"
+		},
+		{
+			"file": "pages/doc-05.md",
+			"source_sha256": "e39616b08d3fbdb3b85d96d02c3dad6ae7230515ad23c016e7f6c10d9047ebe7",
+			"byte_start": 9416,
+			"byte_end": 9464,
+			"text": "R3. Answers on every judged result (U3; E1)"
+		},
+		{
+			"file": "pages/doc-05.md",
+			"source_sha256": "e39616b08d3fbdb3b85d96d02c3dad6ae7230515ad23c016e7f6c10d9047ebe7",
+			"byte_start": 10801,
+			"byte_end": 10850,
+			"text": "R4. Basis on every completed result (U4; E5)"
+		},
+		{
+			"file": "pages/doc-05.md",
+			"source_sha256": "e39616b08d3fbdb3b85d96d02c3dad6ae7230515ad23c016e7f6c10d9047ebe7",
+			"byte_start": 11330,
+			"byte_end": 11364,
+			"text": "R5. Cuts are visible (U5; E6)"
+		},
+		{
+			"file": "pages/doc-05.md",
+			"source_sha256": "e39616b08d3fbdb3b85d96d02c3dad6ae7230515ad23c016e7f6c10d9047ebe7",
+			"byte_start": 12501,
+			"byte_end": 12540,
+			"text": "R6. A section's own loads (U6; E7)"
+		},
+		{
+			"file": "pages/doc-05.md",
+			"source_sha256": "e39616b08d3fbdb3b85d96d02c3dad6ae7230515ad23c016e7f6c10d9047ebe7",
+			"byte_start": 13664,
+			"byte_end": 13703,
+			"text": "R7. Fuller context fields (U7; E6)"
+		},
+		{
+			"file": "pages/doc-05.md",
+			"source_sha256": "e39616b08d3fbdb3b85d96d02c3dad6ae7230515ad23c016e7f6c10d9047ebe7",
+			"byte_start": 14271,
+			"byte_end": 14311,
+			"text": "R8. Lint checks JSON files (U8; E8)"
+		},
+		{
+			"file": "pages/doc-05.md",
+			"source_sha256": "e39616b08d3fbdb3b85d96d02c3dad6ae7230515ad23c016e7f6c10d9047ebe7",
+			"byte_start": 16051,
+			"byte_end": 16101,
+			"text": "R9. Severity, status and exits unchanged (U9)"
+		},
+		{
+			"file": "pages/doc-05.md",
+			"source_sha256": "e39616b08d3fbdb3b85d96d02c3dad6ae7230515ad23c016e7f6c10d9047ebe7",
+			"byte_start": 16692,
+			"byte_end": 16731,
+			"text": "R10. Generic, and compatible (U10)"
+		},
+		{
+			"file": "pages/doc-05.md",
+			"source_sha256": "e39616b08d3fbdb3b85d96d02c3dad6ae7230515ad23c016e7f6c10d9047ebe7",
+			"byte_start": 17794,
+			"byte_end": 17811,
+			"text": "Sample report"
+		},
+		{
+			"file": "pages/doc-05.md",
+			"source_sha256": "e39616b08d3fbdb3b85d96d02c3dad6ae7230515ad23c016e7f6c10d9047ebe7",
+			"byte_start": 23190,
+			"byte_end": 23222,
+			"text": "Non-goals and negative space"
+		},
+		{
+			"file": "pages/doc-05.md",
+			"source_sha256": "e39616b08d3fbdb3b85d96d02c3dad6ae7230515ad23c016e7f6c10d9047ebe7",
+			"byte_start": 24159,
+			"byte_end": 24171,
+			"text": "Coverage"
+		},
+		{
+			"file": "pages/doc-06.md",
+			"source_sha256": "94c9bfcdc8bdb8b7ab79a6a6d418c6eb70e44d145f26649e4b2391f3927fb6e3",
+			"byte_start": 228,
+			"byte_end": 245,
+			"text": "Skill Creation"
+		},
+		{
+			"file": "pages/doc-06.md",
+			"source_sha256": "94c9bfcdc8bdb8b7ab79a6a6d418c6eb70e44d145f26649e4b2391f3927fb6e3",
+			"byte_start": 864,
+			"byte_end": 874,
+			"text": "Stance"
+		},
+		{
+			"file": "pages/doc-06.md",
+			"source_sha256": "94c9bfcdc8bdb8b7ab79a6a6d418c6eb70e44d145f26649e4b2391f3927fb6e3",
+			"byte_start": 1189,
+			"byte_end": 1201,
+			"text": "Workflow"
+		},
+		{
+			"file": "pages/doc-06.md",
+			"source_sha256": "94c9bfcdc8bdb8b7ab79a6a6d418c6eb70e44d145f26649e4b2391f3927fb6e3",
+			"byte_start": 1442,
+			"byte_end": 1479,
+			"text": "1. Admit the change by its class"
+		},
+		{
+			"file": "pages/doc-06.md",
+			"source_sha256": "94c9bfcdc8bdb8b7ab79a6a6d418c6eb70e44d145f26649e4b2391f3927fb6e3",
+			"byte_start": 2989,
+			"byte_end": 3035,
+			"text": "2. Gate sensitive surfaces before writing"
+		},
+		{
+			"file": "pages/doc-06.md",
+			"source_sha256": "94c9bfcdc8bdb8b7ab79a6a6d418c6eb70e44d145f26649e4b2391f3927fb6e3",
+			"byte_start": 3879,
+			"byte_end": 3892,
+			"text": "3. Write"
+		},
+		{
+			"file": "pages/doc-06.md",
+			"source_sha256": "94c9bfcdc8bdb8b7ab79a6a6d418c6eb70e44d145f26649e4b2391f3927fb6e3",
+			"byte_start": 4830,
+			"byte_end": 4848,
+			"text": "4. Self-check"
+		},
+		{
+			"file": "pages/doc-06.md",
+			"source_sha256": "94c9bfcdc8bdb8b7ab79a6a6d418c6eb70e44d145f26649e4b2391f3927fb6e3",
+			"byte_start": 6882,
+			"byte_end": 6918,
+			"text": "5. Compare and return, by class"
+		},
+		{
+			"file": "pages/doc-06.md",
+			"source_sha256": "94c9bfcdc8bdb8b7ab79a6a6d418c6eb70e44d145f26649e4b2391f3927fb6e3",
+			"byte_start": 7859,
+			"byte_end": 7882,
+			"text": "Completion Blockers"
+		},
+		{
+			"file": "pages/doc-07.md",
+			"source_sha256": "4e773a2f94f68c5b77e7beebf714eb6454bbc64f0b57d0c56cdb861385033fbe",
+			"byte_start": 0,
+			"byte_end": 27,
+			"text": "Choosing the Observation"
+		},
+		{
+			"file": "pages/doc-07.md",
+			"source_sha256": "4e773a2f94f68c5b77e7beebf714eb6454bbc64f0b57d0c56cdb861385033fbe",
+			"byte_start": 790,
+			"byte_end": 810,
+			"text": "Evidence classes"
+		},
+		{
+			"file": "pages/doc-07.md",
+			"source_sha256": "4e773a2f94f68c5b77e7beebf714eb6454bbc64f0b57d0c56cdb861385033fbe",
+			"byte_start": 1106,
+			"byte_end": 1143,
+			"text": "Find the boundary, then the class"
+		},
+		{
+			"file": "pages/doc-07.md",
+			"source_sha256": "4e773a2f94f68c5b77e7beebf714eb6454bbc64f0b57d0c56cdb861385033fbe",
+			"byte_start": 3115,
+			"byte_end": 3137,
+			"text": "The ordinary entry"
+		},
+		{
+			"file": "pages/doc-07.md",
+			"source_sha256": "4e773a2f94f68c5b77e7beebf714eb6454bbc64f0b57d0c56cdb861385033fbe",
+			"byte_start": 3723,
+			"byte_end": 3760,
+			"text": "Journey: existing, needed or none"
+		},
+		{
+			"file": "pages/doc-07.md",
+			"source_sha256": "4e773a2f94f68c5b77e7beebf714eb6454bbc64f0b57d0c56cdb861385033fbe",
+			"byte_start": 4222,
+			"byte_end": 4256,
+			"text": "Lifetime: lasting or temporary"
+		},
+		{
+			"file": "pages/doc-07.md",
+			"source_sha256": "4e773a2f94f68c5b77e7beebf714eb6454bbc64f0b57d0c56cdb861385033fbe",
+			"byte_start": 5234,
+			"byte_end": 5249,
+			"text": "Worked rows"
+		},
+		{
+			"file": "pages/doc-07.md",
+			"source_sha256": "4e773a2f94f68c5b77e7beebf714eb6454bbc64f0b57d0c56cdb861385033fbe",
+			"byte_start": 5309,
+			"byte_end": 5341,
+			"text": "Durability across a restart"
+		},
+		{
+			"file": "pages/doc-07.md",
+			"source_sha256": "4e773a2f94f68c5b77e7beebf714eb6454bbc64f0b57d0c56cdb861385033fbe",
+			"byte_start": 6636,
+			"byte_end": 6667,
+			"text": "Routing, with honest reuse"
+		},
+		{
+			"file": "pages/doc-07.md",
+			"source_sha256": "4e773a2f94f68c5b77e7beebf714eb6454bbc64f0b57d0c56cdb861385033fbe",
+			"byte_start": 7833,
+			"byte_end": 7849,
+			"text": "A pure rule"
+		},
+		{
+			"file": "pages/doc-07.md",
+			"source_sha256": "4e773a2f94f68c5b77e7beebf714eb6454bbc64f0b57d0c56cdb861385033fbe",
+			"byte_start": 8480,
+			"byte_end": 8510,
+			"text": "One observation, two rows"
+		},
+		{
+			"file": "pages/doc-07.md",
+			"source_sha256": "4e773a2f94f68c5b77e7beebf714eb6454bbc64f0b57d0c56cdb861385033fbe",
+			"byte_start": 9083,
+			"byte_end": 9114,
+			"text": "When a row can't be written"
+		},
+		{
+			"file": "pages/doc-08.md",
+			"source_sha256": "00408e8e162e19198e321ffb6da972496321dc22632f991fc3b91ca3eb83220b",
+			"byte_start": 0,
+			"byte_end": 28,
+			"text": "Evidence selection design"
+		},
+		{
+			"file": "pages/doc-08.md",
+			"source_sha256": "00408e8e162e19198e321ffb6da972496321dc22632f991fc3b91ca3eb83220b",
+			"byte_start": 471,
+			"byte_end": 531,
+			"text": "Reading path: a workflow under any heading becomes steps"
+		},
+		{
+			"file": "pages/doc-08.md",
+			"source_sha256": "00408e8e162e19198e321ffb6da972496321dc22632f991fc3b91ca3eb83220b",
+			"byte_start": 1187,
+			"byte_end": 1232,
+			"text": "Reading path: nothing disappears silently"
+		},
+		{
+			"file": "pages/doc-08.md",
+			"source_sha256": "00408e8e162e19198e321ffb6da972496321dc22632f991fc3b91ca3eb83220b",
+			"byte_start": 1665,
+			"byte_end": 1711,
+			"text": "Reading path: today's configs keep working"
+		},
+		{
+			"file": "pages/doc-09.md",
+			"source_sha256": "0c6e4949e33612b7550f11f602392ac936457e73f5f459796d74ae295cf2a24d",
+			"byte_start": 258,
+			"byte_end": 300,
+			"text": "Operations Linear Tracking Organization"
+		},
+		{
+			"file": "pages/doc-09.md",
+			"source_sha256": "0c6e4949e33612b7550f11f602392ac936457e73f5f459796d74ae295cf2a24d",
+			"byte_start": 757,
+			"byte_end": 773,
+			"text": "The Paradigm"
+		},
+		{
+			"file": "pages/doc-09.md",
+			"source_sha256": "0c6e4949e33612b7550f11f602392ac936457e73f5f459796d74ae295cf2a24d",
+			"byte_start": 1452,
+			"byte_end": 1470,
+			"text": "Ticket Anatomy"
+		},
+		{
+			"file": "pages/doc-09.md",
+			"source_sha256": "0c6e4949e33612b7550f11f602392ac936457e73f5f459796d74ae295cf2a24d",
+			"byte_start": 2221,
+			"byte_end": 2246,
+			"text": "Structural Principles"
+		},
+		{
+			"file": "pages/doc-09.md",
+			"source_sha256": "0c6e4949e33612b7550f11f602392ac936457e73f5f459796d74ae295cf2a24d",
+			"byte_start": 3120,
+			"byte_end": 3148,
+			"text": "Tool Routing: MCP vs CLI"
+		},
+		{
+			"file": "pages/doc-09.md",
+			"source_sha256": "0c6e4949e33612b7550f11f602392ac936457e73f5f459796d74ae295cf2a24d",
+			"byte_start": 3239,
+			"byte_end": 3277,
+			"text": "MCP (primary, ~90% of operations)"
+		},
+		{
+			"file": "pages/doc-09.md",
+			"source_sha256": "0c6e4949e33612b7550f11f602392ac936457e73f5f459796d74ae295cf2a24d",
+			"byte_start": 4039,
+			"byte_end": 4064,
+			"text": "CLI (gap operations)"
+		},
+		{
+			"file": "pages/doc-09.md",
+			"source_sha256": "0c6e4949e33612b7550f11f602392ac936457e73f5f459796d74ae295cf2a24d",
+			"byte_start": 4660,
+			"byte_end": 4686,
+			"text": "Dependency Management"
+		},
+		{
+			"file": "pages/doc-09.md",
+			"source_sha256": "0c6e4949e33612b7550f11f602392ac936457e73f5f459796d74ae295cf2a24d",
+			"byte_start": 5632,
+			"byte_end": 5652,
+			"text": "Common Workflows"
+		},
+		{
+			"file": "pages/doc-09.md",
+			"source_sha256": "0c6e4949e33612b7550f11f602392ac936457e73f5f459796d74ae295cf2a24d",
+			"byte_start": 5653,
+			"byte_end": 5678,
+			"text": "Set up a new project"
+		},
+		{
+			"file": "pages/doc-09.md",
+			"source_sha256": "0c6e4949e33612b7550f11f602392ac936457e73f5f459796d74ae295cf2a24d",
+			"byte_start": 5924,
+			"byte_end": 5967,
+			"text": "Create issues from an architecture doc"
+		},
+		{
+			"file": "pages/doc-09.md",
+			"source_sha256": "0c6e4949e33612b7550f11f602392ac936457e73f5f459796d74ae295cf2a24d",
+			"byte_start": 7013,
+			"byte_end": 7039,
+			"text": "Find what's unblocked"
+		},
+		{
+			"file": "pages/doc-09.md",
+			"source_sha256": "0c6e4949e33612b7550f11f602392ac936457e73f5f459796d74ae295cf2a24d",
+			"byte_start": 7701,
+			"byte_end": 7740,
+			"text": "Update ticket after implementation"
+		},
+		{
+			"file": "pages/doc-09.md",
+			"source_sha256": "0c6e4949e33612b7550f11f602392ac936457e73f5f459796d74ae295cf2a24d",
+			"byte_start": 8542,
+			"byte_end": 8578,
+			"text": "Reference Files (read on demand)"
+		},
+		{
+			"file": "pages/doc-10.md",
+			"source_sha256": "5fa9cfaa1e949e960b2e822842cd63dd8d8847da0fdd956da8c80a39fa86cb3a",
+			"byte_start": 238,
+			"byte_end": 265,
+			"text": "Practices: Manage Agents"
+		},
+		{
+			"file": "pages/doc-10.md",
+			"source_sha256": "5fa9cfaa1e949e960b2e822842cd63dd8d8847da0fdd956da8c80a39fa86cb3a",
+			"byte_start": 1291,
+			"byte_end": 1315,
+			"text": "Bound the assignment"
+		},
+		{
+			"file": "pages/doc-10.md",
+			"source_sha256": "5fa9cfaa1e949e960b2e822842cd63dd8d8847da0fdd956da8c80a39fa86cb3a",
+			"byte_start": 1316,
+			"byte_end": 1344,
+			"text": "Work levels and horizon"
+		},
+		{
+			"file": "pages/doc-10.md",
+			"source_sha256": "5fa9cfaa1e949e960b2e822842cd63dd8d8847da0fdd956da8c80a39fa86cb3a",
+			"byte_start": 2012,
+			"byte_end": 2030,
+			"text": "Task guidance"
+		},
+		{
+			"file": "pages/doc-10.md",
+			"source_sha256": "5fa9cfaa1e949e960b2e822842cd63dd8d8847da0fdd956da8c80a39fa86cb3a",
+			"byte_start": 3044,
+			"byte_end": 3053,
+			"text": "Span"
+		},
+		{
+			"file": "pages/doc-10.md",
+			"source_sha256": "5fa9cfaa1e949e960b2e822842cd63dd8d8847da0fdd956da8c80a39fa86cb3a",
+			"byte_start": 3731,
+			"byte_end": 3750,
+			"text": "Roles and forms"
+		},
+		{
+			"file": "pages/doc-10.md",
+			"source_sha256": "5fa9cfaa1e949e960b2e822842cd63dd8d8847da0fdd956da8c80a39fa86cb3a",
+			"byte_start": 6375,
+			"byte_end": 6392,
+			"text": "Model catalog"
+		},
+		{
+			"file": "pages/doc-10.md",
+			"source_sha256": "5fa9cfaa1e949e960b2e822842cd63dd8d8847da0fdd956da8c80a39fa86cb3a",
+			"byte_start": 7297,
+			"byte_end": 7315,
+			"text": "🔧 Operator"
+		},
+		{
+			"file": "pages/doc-10.md",
+			"source_sha256": "5fa9cfaa1e949e960b2e822842cd63dd8d8847da0fdd956da8c80a39fa86cb3a",
+			"byte_start": 7462,
+			"byte_end": 7486,
+			"text": "🐒 Implementation"
+		},
+		{
+			"file": "pages/doc-10.md",
+			"source_sha256": "5fa9cfaa1e949e960b2e822842cd63dd8d8847da0fdd956da8c80a39fa86cb3a",
+			"byte_start": 8047,
+			"byte_end": 8069,
+			"text": "🔬 Verification"
+		},
+		{
+			"file": "pages/doc-10.md",
+			"source_sha256": "5fa9cfaa1e949e960b2e822842cd63dd8d8847da0fdd956da8c80a39fa86cb3a",
+			"byte_start": 8861,
+			"byte_end": 8889,
+			"text": "🔎 Independent review"
+		},
+		{
+			"file": "pages/doc-10.md",
+			"source_sha256": "5fa9cfaa1e949e960b2e822842cd63dd8d8847da0fdd956da8c80a39fa86cb3a",
+			"byte_start": 9310,
+			"byte_end": 9333,
+			"text": "Launch and hand off"
+		},
+		{
+			"file": "pages/doc-10.md",
+			"source_sha256": "5fa9cfaa1e949e960b2e822842cd63dd8d8847da0fdd956da8c80a39fa86cb3a",
+			"byte_start": 9624,
+			"byte_end": 9652,
+			"text": "Formal role commissions"
+		},
+		{
+			"file": "pages/doc-10.md",
+			"source_sha256": "5fa9cfaa1e949e960b2e822842cd63dd8d8847da0fdd956da8c80a39fa86cb3a",
+			"byte_start": 10962,
+			"byte_end": 10992,
+			"text": "Parent-owned native tasks"
+		},
+		{
+			"file": "pages/doc-10.md",
+			"source_sha256": "5fa9cfaa1e949e960b2e822842cd63dd8d8847da0fdd956da8c80a39fa86cb3a",
+			"byte_start": 11949,
+			"byte_end": 11969,
+			"text": "Check the result"
+		},
+		{
+			"file": "pages/doc-10.md",
+			"source_sha256": "5fa9cfaa1e949e960b2e822842cd63dd8d8847da0fdd956da8c80a39fa86cb3a",
+			"byte_start": 12653,
+			"byte_end": 12667,
+			"text": "Completion"
+		},
+		{
+			"file": "pages/doc-10.md",
+			"source_sha256": "5fa9cfaa1e949e960b2e822842cd63dd8d8847da0fdd956da8c80a39fa86cb3a",
+			"byte_start": 13153,
+			"byte_end": 13181,
+			"text": "Source integration limit"
+		}
+	]
+}

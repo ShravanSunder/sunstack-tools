@@ -73,7 +73,7 @@ fn html_units_kind_refuses_invalid_and_empty_matching_patterns() {
 fn html_section_fields_round_trip_closed_text_modes() {
     let schema = schemars::schema_for!(FieldSource);
     let validator = jsonschema::validator_for(schema.as_value()).unwrap();
-    for text in ["full", "own", "enclosing_own"] {
+    for text in ["full", "own", "enclosing_own", "heading"] {
         let wire = json!({"from":"section","text":text});
         let parsed: FieldSource = serde_json::from_value(wire.clone()).unwrap();
         assert_eq!(parsed.shape(), FieldShape::Text);
@@ -116,5 +116,18 @@ fn matcher_ast_rule_identity_is_absent_for_native_html_units() {
                 .map(EvidenceRuleId::as_str),
             expected
         );
+    }
+}
+
+#[test]
+fn heading_context_fields_round_trip_with_their_schema() {
+    let schema = schemars::schema_for!(FieldSource);
+    let validator = jsonschema::validator_for(schema.as_value()).unwrap();
+    for from in ["enclosing", "same_file"] {
+        let wire = json!({"from":from,"kind":"outline","text":"heading"});
+        let parsed: FieldSource = serde_json::from_value(wire.clone()).unwrap();
+        assert_eq!(parsed.shape(), FieldShape::Texts);
+        assert_eq!(serde_json::to_value(parsed).unwrap(), wire);
+        assert!(validator.is_valid(&wire), "{wire}");
     }
 }

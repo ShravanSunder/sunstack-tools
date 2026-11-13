@@ -1,5 +1,8 @@
 use super::*;
-use sunstack_evidence::{EvidenceLanguage, KindMatcher, MarkdownUnitKind, MarkdownUnitSelection};
+use sunstack_evidence::{
+    ContextText, EvidenceLanguage, KindMatcher, MarkdownUnitKind, MarkdownUnitSelection,
+    SectionText,
+};
 
 pub fn admit_evidence_kinds(
     kinds: &BTreeMap<EvidenceKindName, EvidenceKindDefinition>,
@@ -70,25 +73,53 @@ pub fn admit_evidence_kinds(
                     "evidence field name is a reserved state key",
                 ));
             }
-            if matches!(source, FieldSource::Section { .. }) {
-                let section_kind = match &kind.matcher {
-                    KindMatcher::HtmlUnits(_) => true,
-                    KindMatcher::MarkdownUnits(MarkdownUnitSelection::Unit { units, .. }) => {
-                        units.as_slice() == [MarkdownUnitKind::Section]
-                    }
-                    KindMatcher::MarkdownUnits(MarkdownUnitSelection::CallSite { .. })
-                    | KindMatcher::Named(_)
-                    | KindMatcher::Inline { .. } => false,
+            if matches!(source, FieldSource::Section { .. })
+                && !is_native_section_matcher(&kind.matcher)
+            {
+                errors.push(refusal(
+                    &path,
+                    format!(
+                        "kind {} field {}: section source requires an html_units matcher or markdown_units with unit mode and units exactly [section]; AST-backed kinds do not have outline sections",
+                        name.as_str(), field.as_str()
+                    ),
+                ));
+            }
+            if let FieldSource::Enclosing {
+                of,
+                text: ContextText::Heading,
+            } = source
+            {
+                let section_kind = match of {
+                    MatchSource::Kind { kind } => kinds
+                        .get(kind)
+                        .is_some_and(|kind| is_native_section_matcher(&kind.matcher)),
+                    MatchSource::Rule { .. } => false,
                 };
                 if !section_kind {
                     errors.push(refusal(
                         &path,
                         format!(
-                            "kind {} field {}: section source requires an html_units matcher or markdown_units with unit mode and units exactly [section]; AST-backed kinds do not have outline sections",
+                            "kind {} field {}: enclosing heading requires a native section kind (html_units or markdown_units with unit mode and units exactly [section])",
                             name.as_str(), field.as_str()
                         ),
                     ));
                 }
+            }
+            if matches!(
+                source,
+                FieldSource::SameFile {
+                    text: ContextText::Heading,
+                    ..
+                }
+            ) {
+                errors.push(refusal(
+                    &path,
+                    format!(
+                        "kind {} field {}: same_file does not support heading text",
+                        name.as_str(),
+                        field.as_str()
+                    ),
+                ));
             }
             let native_matcher = match &kind.matcher {
                 KindMatcher::HtmlUnits(_) => Some("html_units"),
@@ -230,6 +261,24 @@ pub fn admit_evidence_kinds(
                                 errors
                                     .push(refusal(&path, "as_kind must name a document-free kind"))
                             }
+                            Some(target)
+                                if target.fields.values().any(|source| {
+                                    matches!(
+                                        source,
+                                        FieldSource::Section {
+                                            text: SectionText::Heading
+                                        } | FieldSource::Enclosing {
+                                            text: ContextText::Heading,
+                                            ..
+                                        } | FieldSource::SameFile {
+                                            text: ContextText::Heading,
+                                            ..
+                                        }
+                                    )
+                                }) =>
+                            {
+                                errors.push(refusal(&path, "as_kind must name a heading-free kind"))
+                            }
                             Some(_) => {}
                         }
                     }
@@ -267,4 +316,16 @@ pub fn admit_evidence_kinds(
     }
 
     errors
+}
+
+fn is_native_section_matcher(matcher: &KindMatcher) -> bool {
+    match matcher {
+        KindMatcher::HtmlUnits(_) => true,
+        KindMatcher::MarkdownUnits(MarkdownUnitSelection::Unit { units, .. }) => {
+            units.as_slice() == [MarkdownUnitKind::Section]
+        }
+        KindMatcher::MarkdownUnits(MarkdownUnitSelection::CallSite { .. })
+        | KindMatcher::Named(_)
+        | KindMatcher::Inline { .. } => false,
+    }
 }

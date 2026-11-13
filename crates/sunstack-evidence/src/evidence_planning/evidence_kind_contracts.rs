@@ -275,6 +275,7 @@ pub enum ContextText {
     #[default]
     FirstLine,
     Full,
+    Heading,
 }
 impl ContextText {
     fn is_first_line(&self) -> bool {
@@ -288,6 +289,7 @@ pub enum SectionText {
     Full,
     Own,
     EnclosingOwn,
+    Heading,
 }
 pub(super) fn default_opening_chars() -> usize {
     3000
