@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.14.1
+
+Release date: 2026-11-12.
+
+- HTML asking text keeps plain-text parser-error spans. Error spans containing
+  ambiguous markup and unfinished tags mark their field incomplete instead of
+  silently losing words. Structural tag-only slice errors retain spacing;
+  raw evidence, selectors, mechanical inputs and section outlines stay unchanged.
+
 ## 0.14.0
 
 Release date: 2026-11-12.

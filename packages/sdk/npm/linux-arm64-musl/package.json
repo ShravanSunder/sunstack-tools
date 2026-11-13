@@ -1,6 +1,6 @@
 {
 	"name": "@sunstack/sdk-linux-arm64-musl",
-	"version": "0.14.0",
+	"version": "0.14.1",
 	"description": "Sunstack SDK native addon for aarch64-unknown-linux-musl",
 	"license": "MIT",
 	"repository": {

@@ -2730,7 +2730,7 @@ checksum = "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292"
 
 [[package]]
 name = "sunstack"
-version = "0.14.0"
+version = "0.14.1"
 dependencies = [
  "apple-native-keyring-store",
  "ast-grep-config",
@@ -2758,7 +2758,7 @@ dependencies = [
 
 [[package]]
 name = "sunstack-decisions"
-version = "0.14.0"
+version = "0.14.1"
 dependencies = [
  "proptest",
  "reqwest",
@@ -2775,7 +2775,7 @@ dependencies = [
 
 [[package]]
 name = "sunstack-evidence"
-version = "0.14.0"
+version = "0.14.1"
 dependencies = [
  "ast-grep-config",
  "ast-grep-core",
@@ -2805,7 +2805,7 @@ dependencies = [
 
 [[package]]
 name = "sunstack-lint"
-version = "0.14.0"
+version = "0.14.1"
 dependencies = [
  "chrono",
  "git2",
@@ -2829,7 +2829,7 @@ dependencies = [
 
 [[package]]
 name = "sunstack-rules"
-version = "0.14.0"
+version = "0.14.1"
 dependencies = [
  "ast-grep-config",
  "ast-grep-core",
@@ -2855,7 +2855,7 @@ dependencies = [
 
 [[package]]
 name = "sunstack-sdk-native"
-version = "0.14.0"
+version = "0.14.1"
 dependencies = [
  "napi",
  "napi-build",
