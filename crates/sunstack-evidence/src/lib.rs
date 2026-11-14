@@ -41,6 +41,7 @@ pub use evidence_planning::evidence_kind_contracts::*;
 pub use evidence_planning::evidence_kind_plan::*;
 pub use evidence_planning::evidence_plan_decoding::decode_evidence_plan_input;
 pub use evidence_planning::evidence_project_loading::*;
+pub use evidence_planning::section_scope::SectionScope;
 pub use repository_evidence::change_comparison_contracts::*;
 pub use repository_evidence::change_contracts::*;
 pub use repository_evidence::change_reporting::*;

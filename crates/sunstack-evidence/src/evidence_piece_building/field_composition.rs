@@ -35,6 +35,9 @@ pub(super) fn local_fields(
             FieldSource::SectionPrefix { kind } => {
                 super::section_prefix_fields::section_prefix_field(file, kind, range, pieces)
             }
+            FieldSource::ScopedInside { kind, scope } => {
+                super::section_scoped_fields::scoped_inside_field(file, kind, scope, range, pieces)
+            }
             FieldSource::FirstLine {} => {
                 let first = first_line_range(file, range);
                 taken.push(first.clone());

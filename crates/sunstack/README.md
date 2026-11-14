@@ -321,6 +321,14 @@ and cuts. The full section can coexist in an `enclosing` field. See
 [section prefixes](../sunstack-evidence/docs/html-evidence.md#section-prefixes)
 for empty/unavailable behavior and AST composition limits.
 
+To collect pieces from that section rather than its raw text, use
+`{"from":"inside","kind":"picture","scope":{"section_prefix":"outline"}}`.
+Use `scope: {"section":"outline"}` for the whole containing section. Both names
+are configured kinds; matching uses original spans and can cross from HTML to
+Markdown islands. The field is a source-ordered list of full piece texts and
+spans. A mechanical `regex` check with `pattern: "(?s).*"` tests whether it is
+nonempty. See [section-scoped containment](../sunstack-evidence/docs/html-evidence.md#section-scoped-containment).
+
 HTML outline exclusions and extra text attributes are project settings under
 `evidence.html`. They default to empty; standard `alt`, `aria-label` and
 `<template>` outline handling remain built in. Markdown heading fragments require

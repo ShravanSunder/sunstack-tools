@@ -157,6 +157,7 @@ pub fn admit_evidence_kinds(
                     ));
                 }
                 let referenced = match source {
+                    FieldSource::ScopedInside { .. } => None,
                     FieldSource::SectionPrefix { kind } => kinds.get(kind).and_then(|definition| {
                         sunstack_evidence::evidence_kind_language(project, kind, definition)
                     }),
@@ -205,6 +206,17 @@ pub fn admit_evidence_kinds(
                 }
             }
             match source {
+                FieldSource::ScopedInside { kind, scope } => {
+                    if !kinds.contains_key(kind) {
+                        errors.push(refusal(path.with_key("kind"), "undefined evidence kind"));
+                    }
+                    if !kinds.contains_key(scope.kind()) {
+                        errors.push(refusal(
+                            path.with_key("scope"),
+                            "undefined section scope kind",
+                        ));
+                    }
+                }
                 FieldSource::SectionPrefix { kind } => {
                     if !kinds.contains_key(kind) {
                         errors.push(refusal(&path, "undefined evidence kind"));

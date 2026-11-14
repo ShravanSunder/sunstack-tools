@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.19.0
+
+Release date: 2026-11-13.
+
+- Add scoped `inside` fields collecting final pieces of a configured kind from
+  the subject's nearest containing section or its prefix. Matching crosses
+  evidence languages through original spans; fields retain full raw piece texts
+  and provenance in source order. Empty results, unavailable context and pending
+  selections remain distinct. Existing unscoped fields are unchanged.
+- Rust `FieldSource` adds `ScopedInside { kind, scope }`, serialized as
+  `from: "inside"` with a required `scope`. Exhaustive consumers must handle it;
+  the public `SectionScope` enum selects `section` or `section_prefix`.
+
 ## 0.18.0
 
 Release date: 2026-11-13.
