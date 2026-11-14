@@ -14,6 +14,7 @@ on:
       - 'pnpm-lock.yaml'
       - 'pnpm-workspace.yaml'
       - '.github/workflows/sdk.yml'
+      - '.github/workflows/release.yml'
   push:
     branches: [main]
     paths:
@@ -26,7 +27,9 @@ on:
       - 'pnpm-lock.yaml'
       - 'pnpm-workspace.yaml'
       - '.github/workflows/sdk.yml'
+      - '.github/workflows/release.yml'
   workflow_dispatch:
+  workflow_call:
 
 permissions:
   contents: read
@@ -192,6 +195,12 @@ jobs:
             --cell linux-arm64-gnu --cell linux-x64-musl --cell linux-arm64-musl > manifest.json
           mv manifest.json candidate/manifest.json
           cat candidate/manifest.json
+      - name: Dry-run all seven public packages and validate their contents
+        id: publish-dry-run
+        background: true
+        run: node packages/sdk/scripts/check-packages.ts --tarballs "$PWD/candidate" > candidate/package-checks.json
+      - name: Wait for package checks
+        wait-all:
       - uses: actions/upload-artifact@v4
         with:
           name: sdk-candidate

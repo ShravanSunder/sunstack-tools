@@ -88,6 +88,14 @@ jobs:
           name: artifacts-plan-dist-manifest
           path: plan-dist-manifest.json
 
+  # Heavy native SDK builds reuse the six-cell PR pipeline at this same tag.
+  sdk:
+    needs: [plan]
+    if: ${{ needs.plan.outputs.publishing == 'true' && !fromJson(needs.plan.outputs.val).announcement_is_prerelease }}
+    permissions:
+      contents: read
+    uses: ./.github/workflows/sdk.yml
+
   # Build and packages all the platform-specific things
   build-local-artifacts:
     name: build-local-artifacts (${{ join(matrix.targets, ', ') }})
@@ -438,6 +446,7 @@ jobs:
     needs:
       - plan
       - host
+      - sdk
     runs-on: 'ubuntu-22.04'
     permissions:
       contents: read
@@ -447,6 +456,14 @@ jobs:
     # npm waits until the owner configures trusted publishing and enables this variable.
     if: ${{ vars.NPM_TRUSTED_PUBLISHING == 'true' && needs.plan.outputs.publishing == 'true' && !fromJson(needs.plan.outputs.val).announcement_is_prerelease }}
     steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Fetch the tested SDK candidate
+        uses: actions/download-artifact@v8
+        with:
+          name: sdk-candidate
+          path: candidate/
       - name: Fetch npm packages
         uses: actions/download-artifact@v8
         with:
@@ -455,18 +472,36 @@ jobs:
           merge-multiple: true
       - uses: actions/setup-node@v6
         with:
-          node-version: '24'
+          node-version: '26'
           registry-url: 'https://registry.npmjs.org'
           package-manager-cache: false
       - name: Install npm with trusted publishing support
         run: npm install --global npm@11.17.0
+      - name: Verify SDK packages match the CLI tag before any publication
+        run: node packages/sdk/scripts/check-packages.ts --tarballs "$PWD/candidate" --tag '${{ needs.plan.outputs.tag }}' > "$RUNNER_TEMP/sdk-package-checks.json"
+      - name: Publish SDK addons, then SDK, with GitHub OIDC
+        id: publish-sdk
+        background: true
+        if: ${{ vars.SDK_NPM_TRUSTED_PUBLISHING == 'true' }}
+        # Owner bootstrap and all seven trusted publishers must exist first.
+        # Each command must succeed before the SDK can become installable.
+        run: |
+          for cell in darwin-arm64 darwin-x64 linux-arm64-gnu linux-arm64-musl linux-x64-gnu linux-x64-musl; do
+            npm publish --access public "candidate/sunstack-sdk-$cell-${GITHUB_REF_NAME#v}.tgz"
+          done
+          npm publish --access public "candidate/sunstack-sdk-${GITHUB_REF_NAME#v}.tgz"
       - name: Publish assembled packages with GitHub OIDC
+        id: publish-cli
+        background: true
         # npm generates provenance automatically for GitHub trusted publishing.
         run: |
           for release in $(echo "$PLAN" | jq --compact-output '.releases[] | select([.artifacts[] | endswith("-npm-package.tar.gz")] | any)'); do
             pkg=$(echo "$release" | jq '.artifacts[] | select(endswith("-npm-package.tar.gz"))' --raw-output)
             npm publish --access public "./npm/${pkg}"
           done
+
+      - name: Wait for npm publications
+        wait-all:
 
   announce:
     needs:
@@ -488,8 +523,8 @@ jobs:
           submodules: recursive
 
   fresh-install-smoke:
-    needs: [plan, host]
-    if: ${{ needs.host.result == 'success' && needs.plan.outputs.publishing == 'true' }}
+    needs: [plan, host, publish-npm]
+    if: ${{ always() && needs.host.result == 'success' && needs.plan.outputs.publishing == 'true' && (needs.publish-npm.result == 'success' || needs.publish-npm.result == 'skipped') }}
     permissions:
       contents: read
     strategy:
@@ -512,3 +547,20 @@ jobs:
           npm install --global pnpm@12.11.2
           pnpm install --frozen-lockfile --ignore-scripts
           node scripts/release/fresh-install-smoke.ts --tag '${{ needs.plan.outputs.tag }}' --repository "$GITHUB_REPOSITORY"
+      - name: Fresh SDK registry install loads the addon and runs mechanical checks
+        if: ${{ vars.SDK_NPM_TRUSTED_PUBLISHING == 'true' && needs.publish-npm.result == 'success' }}
+        run: |
+          node packages/sdk/scripts/installed-consumer-check.ts --version "${GITHUB_REF_NAME#v}" --evidence "$RUNNER_TEMP/sdk-consumer"
+          case "$RUNNER_OS" in
+            macOS) cell=darwin-arm64 ;;
+            Linux) cell=linux-x64-gnu ;;
+            *) exit 1 ;;
+          esac
+          node packages/sdk/scripts/installed-consumer-check.ts --print-contract --evidence "$RUNNER_TEMP/sdk-consumer" --expect-cell "$cell"
+      - name: Preserve SDK registry install logs
+        if: ${{ always() && vars.SDK_NPM_TRUSTED_PUBLISHING == 'true' }}
+        uses: actions/upload-artifact@v8
+        with:
+          name: sdk-registry-consumer-${{ matrix.runner }}
+          path: ${{ runner.temp }}/sdk-consumer/*.log
+          if-no-files-found: warn
