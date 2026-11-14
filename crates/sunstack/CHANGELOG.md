@@ -14,6 +14,9 @@ Release date: 2026-11-14.
 - Rust unit-selection `Unit` variants add optional `levels: HeadingLevels`;
   manually constructed unfiltered selections use `levels: None`. The SDK and six
   platform packages align to 0.22.1 / contract revision 17 with regenerated declarations.
+- Fix release fresh-install-smoke setup by using the existing
+  `actions/upload-artifact@v7` reference for SDK registry logs; the prior `@v8`
+  reference was unavailable. All remaining workflow action refs were verified upstream.
 
 ## 0.22.0
 
