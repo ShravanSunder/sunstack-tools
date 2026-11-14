@@ -7,6 +7,10 @@ rust-version.workspace = true
 publish.workspace = true
 autobins = false
 
+[package.metadata.dist]
+# Addons are built and packaged by the independent SDK workflow.
+dist = false
+
 [lib]
 crate-type = ["cdylib"]
 
