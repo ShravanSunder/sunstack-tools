@@ -7,6 +7,7 @@ import { isDeepStrictEqual } from 'node:util';
 import { z } from 'zod';
 
 import { boundedSdkWait, type SdkControlledBackend } from './sdk-controlled-backend.ts';
+import { observeSdkEmbeddedMarkdown } from './sdk-embedded-markdown.ts';
 import { observeSdkInspectionCli } from './sdk-inspection-cli.ts';
 import type { JourneyResult } from './sdk-journeys.ts';
 import { observeSdkSectionPrefix } from './sdk-section-prefix.ts';
@@ -283,8 +284,16 @@ export async function observeSdkInspection(options: {
 		'Static inspection dispatched a model request',
 	);
 	const prefix = await observeSdkSectionPrefix({ sdk, evidence, backend });
+	const islands =
+		target.contractRevision >= 12
+			? await observeSdkEmbeddedMarkdown({ sdk, target, evidence, backend })
+			: {
+					observed: [],
+					gaps: ['Configured Markdown islands require a 0.18 / revision 12 or newer target'],
+				};
 	return {
 		observed: [
+			...islands.observed,
 			...prefix.observed,
 			...(cliObservations?.observed ?? []),
 			...(cliObservations
@@ -302,6 +311,7 @@ export async function observeSdkInspection(options: {
 			'zero controlled model requests',
 		],
 		gaps: [
+			...islands.gaps,
 			...prefix.gaps,
 			...(!target.cli
 				? ['CLI evidence parity, legacy admission and rule-violation witness: no CLI supplied']
