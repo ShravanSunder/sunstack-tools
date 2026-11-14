@@ -2,6 +2,7 @@
 // type-check the package examples there, and run real load/check/run.
 //
 //   node scripts/installed-consumer-check.ts --tarballs <absolute-directory> [--evidence <absolute-directory>]
+//   node scripts/installed-consumer-check.ts --version <release> [--evidence <absolute-directory>]
 //   node scripts/installed-consumer-check.ts --print-contract --evidence <consumer> --expect-cell <key>
 //
 // The consumer gets only the tarballs plus TypeScript and Node types from the
@@ -46,6 +47,7 @@ function sdkVersion(): string {
 const { values } = parseArgs({
 	options: {
 		tarballs: { type: 'string' },
+		version: { type: 'string' },
 		evidence: { type: 'string' },
 		'print-contract': { type: 'boolean' },
 		'expect-cell': { type: 'string' },
@@ -90,24 +92,36 @@ if (values['print-contract'] === true) {
 	process.exit(0);
 }
 const tarballDirectory = values.tarballs;
-if (tarballDirectory === undefined || !isAbsolute(tarballDirectory))
-	throw new Error('Pass --tarballs <absolute-directory>.');
-
+const registryVersion = values.version;
+assert.ok(
+	(tarballDirectory === undefined) !== (registryVersion === undefined),
+	'Pass exactly one of --tarballs <absolute-directory> or --version <release>.',
+);
+if (tarballDirectory !== undefined) assert.ok(isAbsolute(tarballDirectory));
+if (registryVersion !== undefined) assert.equal(registryVersion, sdkVersion());
 const consumer = values.evidence ?? mkdtempSync(join(tmpdir(), 'sunstack-sdk-consumer-'));
 mkdirSync(consumer, { recursive: true });
-const tarballs = readdirSync(tarballDirectory).filter((name) => name.endsWith('.tgz'));
+const tarballs =
+	tarballDirectory === undefined
+		? []
+		: readdirSync(tarballDirectory).filter((name) => name.endsWith('.tgz'));
 const sdkTarball = tarballs.find((name) => /^sunstack-sdk-\d/u.test(name));
-assert.ok(sdkTarball !== undefined, 'the @sunstack/sdk tarball is present');
-// Each platform package resolves to its candidate tarball, so npm itself selects
-// the cell exactly as it would from a registry; non-matching cells are skipped.
+if (tarballDirectory !== undefined)
+	assert.ok(sdkTarball !== undefined, 'the @sunstack/sdk tarball is present');
+// Candidate mode resolves optional packages from tarballs. Registry mode has no
+// overrides: npm must fetch the SDK and the selected addon by published name.
 const platformOverrides = Object.fromEntries(
 	platformCells.flatMap((cell) => {
 		const tarball = tarballs.find((name) => name.startsWith(`sunstack-sdk-${cell.key}-`));
-		return tarball === undefined
+		return tarball === undefined || tarballDirectory === undefined
 			? []
 			: [[`@sunstack/sdk-${cell.key}`, `file:${join(tarballDirectory, tarball)}`]];
 	}),
 );
+const sdkSpecifier =
+	tarballDirectory !== undefined && sdkTarball !== undefined
+		? join(tarballDirectory, sdkTarball)
+		: `@sunstack/sdk@${registryVersion ?? ''}`;
 
 // Examples run keyless: no provider request can be made from this check.
 const keyless: NodeJS.ProcessEnv = { ...process.env, SUNSTACK_CREDENTIAL_STORE: 'off' };
@@ -155,7 +169,8 @@ step({
 		'--no-audit',
 		'--no-fund',
 		'--save-exact',
-		join(tarballDirectory, sdkTarball),
+		sdkSpecifier,
+		'--registry=https://registry.npmjs.org',
 		'typescript@7.0.2',
 		'@types/node@26.6.5',
 	],

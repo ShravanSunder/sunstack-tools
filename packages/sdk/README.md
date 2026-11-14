@@ -379,3 +379,38 @@ pnpm --filter @sunstack/sdk lint
 pnpm --filter @sunstack/sdk test
 pnpm --filter @sunstack/sdk pack:candidate  # pack the SDK and this host's platform package
 ```
+
+## Publishing
+
+The CLI and all seven SDK packages share a version. A stable CLI tag runs the
+six-platform SDK build and candidate install checks through `sdk.yml`, then
+`release.yml` publishes the addons before the SDK. Every package gets npm
+provenance through GitHub OIDC. The release smoke installs that exact SDK version
+from npm on Linux and macOS and exercises the native engine.
+
+Before enabling `SDK_NPM_TRUSTED_PUBLISHING=true` in the repository variables,
+the owner must bootstrap each package name and configure its npm trusted
+publisher. The existing `NPM_TRUSTED_PUBLISHING=true` variable also remains
+required. On each package's npm Settings page, select GitHub Actions, enter
+organization/user `ShravanSunder`, repository `sunstack-tools`, workflow filename
+`release.yml`, leave environment blank, and enable the `npm publish` action.
+Configure all seven packages: `@sunstack/sdk`, `@sunstack/sdk-darwin-arm64`,
+`@sunstack/sdk-darwin-x64`, `@sunstack/sdk-linux-arm64-gnu`,
+`@sunstack/sdk-linux-arm64-musl`, `@sunstack/sdk-linux-x64-gnu`, and
+`@sunstack/sdk-linux-x64-musl`.
+
+[npm requires the package to exist before configuring trust](https://docs.npmjs.com/cli/v11/commands/npm-trust#prerequisites).
+The first publication therefore uses the owner's interactive npm login and 2FA,
+or a one-time granular token managed by the owner. Reserve an unused bootstrap
+version under a `bootstrap` dist-tag so the tagged release version remains
+available. This workflow accepts no npm token. After bootstrap, configure
+[publishing trust](https://docs.npmjs.com/trusted-publishers) and run the first
+OIDC release within npm's two-day configuration validation window.
+
+PR CI runs `npm publish --dry-run` on all seven candidate tarballs, verifies the
+exact file lists, native library headers, platform metadata and same-version
+optional dependencies, and saves `package-checks.json` in the `sdk-candidate`
+artifact. A failed addon build or candidate install blocks publication. npm
+publishes packages individually: a publication failure can leave some addons
+published. The SDK publication waits until all six addon publications succeed;
+recovery from a partial publication requires maintainer action.
