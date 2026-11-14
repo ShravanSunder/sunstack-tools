@@ -321,6 +321,21 @@ pub(crate) fn walk_decision_with_omissions(
             answers_read,
         ),
         DecisionRoute::Finding(finding) => {
+            let message = match super::field_measurement::render_measured_finding(
+                &finding.finding,
+                piece,
+                &rule.decision.html_settings,
+            ) {
+                Ok(message) => message,
+                Err(field) => {
+                    return incomplete(
+                        RulebookIncompleteReason::EvidenceUnavailable,
+                        field,
+                        path,
+                        answers_read,
+                    );
+                }
+            };
             let mut line = finding
                 .at
                 .as_ref()
@@ -371,7 +386,7 @@ pub(crate) fn walk_decision_with_omissions(
                     .and_then(|locator| omissions.get(&locator.name))
                     .cloned(),
                 severity: finding.severity.unwrap_or(rule.severity),
-                message: finding.finding.clone(),
+                message,
                 line,
                 field: finding.at.clone(),
                 path_taken: path,
@@ -436,6 +451,7 @@ pub(super) fn mechanical_check(
     tool: &DecisionMechanicalTool,
     piece: &EvidencePiece,
     index: &FileMatchIndex,
+    settings: &sunstack_evidence::HtmlEvidenceSettings,
 ) -> Result<bool, FieldName> {
     let field = match tool {
         DecisionMechanicalTool::AstGrep { rule } => {
@@ -456,6 +472,16 @@ pub(super) fn mechanical_check(
         | DecisionMechanicalTool::AnchorExists { field }
         | DecisionMechanicalTool::ContainsField { field, .. }
         | DecisionMechanicalTool::Complete { field } => field,
+        DecisionMechanicalTool::WordCount { field, bound } => {
+            return super::field_measurement::FieldMeasure::Words
+                .read_fields(piece, field, settings)
+                .map(|count| bound.matches(count));
+        }
+        DecisionMechanicalTool::PieceCount { field, bound } => {
+            return super::field_measurement::FieldMeasure::Pieces
+                .read_fields(piece, field, settings)
+                .map(|count| bound.matches(count));
+        }
     };
     if matches!(tool, DecisionMechanicalTool::Complete { .. })
         && matches!(piece.model_view, ModelView::SelectionPending)
@@ -488,6 +514,9 @@ pub(super) fn mechanical_check(
         _ => vec![],
     };
     Ok(match tool {
+        DecisionMechanicalTool::WordCount { .. } | DecisionMechanicalTool::PieceCount { .. } => {
+            false
+        }
         DecisionMechanicalTool::Regex { pattern, .. } => regex::Regex::new(pattern)
             .is_ok_and(|regex| texts.iter().any(|text| regex.is_match(text))),
         DecisionMechanicalTool::Contains { text, .. } => {

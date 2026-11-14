@@ -117,3 +117,34 @@ fn scoped_inside_distinguishes_empty_from_missing_ambiguous_and_scan_limited() {
         unavailable
     );
 }
+
+#[test]
+fn own_section_stops_at_the_next_heading_across_configured_kinds() {
+    let file = file();
+    let pieces = vec![
+        piece(&file, "html_outline", 0, 100),
+        piece(&file, "markdown_outline", 20, 80),
+        piece(&file, "picture", 5, 10),
+        piece(&file, "picture", 30, 35),
+    ];
+    let scope = crate::SectionScope::Own {
+        section_own: crate::ContainingKinds::new(vec![
+            EvidenceKindName::new("html_outline").unwrap(),
+            EvidenceKindName::new("markdown_outline").unwrap(),
+        ])
+        .unwrap(),
+    };
+    let value = scoped_inside_field(
+        &file,
+        &EvidenceKindName::new("picture").unwrap(),
+        &scope,
+        &MatchRange { start: 0, end: 100 },
+        &pieces,
+    );
+    assert!(
+        matches!(value,FieldValue::Texts {spans,..} if spans.iter().map(|span|span.byte_start).collect::<Vec<_>>()==[5])
+    );
+    assert!(
+        matches!(scoped_inside_field(&file,&EvidenceKindName::new("picture").unwrap(),&scope,&MatchRange {start:20,end:80},&pieces),FieldValue::Texts {spans,..} if spans.iter().map(|span|span.byte_start).collect::<Vec<_>>()==[30])
+    );
+}

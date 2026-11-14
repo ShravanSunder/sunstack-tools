@@ -221,6 +221,24 @@ whole-document fallback. A mechanical `regex` check with `pattern: "(?s).*"` is 
 for an empty list and true when any piece is present, including empty text; unavailable inputs remain
 incomplete. `complete` checks availability/cuts, not nonemptiness.
 
+For a section's own content, ending at the next configured heading of any level,
+use `scope: {"section_own":["html_outline","markdown_outline"]}`. The nonempty
+list names distinct configured outline kinds; both languages can contribute
+boundaries in an HTML file. The nearest containing section in their union supplies
+the start and maximum end; the next section start clips that end. A parent's own
+content therefore cannot borrow a picture under a child heading. Only configured
+kinds supply boundaries, and all participate in dependency, selection and match
+budget checks. Missing, crossing or limited context remains unavailable; unresolved
+boundaries remain selection-pending. Existing `section` and `section_prefix`
+retain their whole-section and before-subject meanings.
+
+`word_count` measures complete captured text content, including configured inline
+HTML attributes, and `piece_count` counts captured text-list entries. Asking-view
+cuts or pending sibling fields do not block an available field's count. Both
+support integer bounds and field sums; findings
+can interpolate their numbers. See the runnable
+[section-picture example](../../sunstack/README.md#mechanical-example-substantial-sections-need-pictures).
+
 ## Language and model views
 
 Evidence supports every language in ast-grep 0.51's `SupportLang`. Serialized evidence language tags use snake_case; existing `markdown` and `json` tags remain readable. JSON, YAML, and HCL parse errors mark the language failed and skip its rules. HTML, Markdown, and the other supported languages retain matches despite parse errors. The `yaml` front-matter field source is admitted only for Markdown kinds.

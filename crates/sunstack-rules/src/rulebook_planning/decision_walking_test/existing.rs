@@ -277,7 +277,10 @@ fn mechanical_regex_and_contains_read_uncut_middle_and_length_reads_whole_field(
             text: "MIDDLE_TOKEN".into(),
         },
     ] {
-        assert_eq!(mechanical_check(&tool, &piece, &fixture::index()), Ok(true));
+        assert_eq!(
+            mechanical_check(&tool, &piece, &fixture::index(), &Default::default()),
+            Ok(true)
+        );
     }
     assert_eq!(
         mechanical_check(
@@ -286,7 +289,8 @@ fn mechanical_regex_and_contains_read_uncut_middle_and_length_reads_whole_field(
                 max: 6000
             },
             &piece,
-            &fixture::index()
+            &fixture::index(),
+            &Default::default()
         ),
         Ok(false)
     );

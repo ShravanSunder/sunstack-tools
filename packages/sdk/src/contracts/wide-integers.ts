@@ -348,6 +348,28 @@ export const wideIntegerDefinitions = {
 			},
 		},
 	},
+	CountBound: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						at_least: 'bigint',
+					},
+				},
+				{
+					object: {
+						at_most: 'bigint',
+					},
+				},
+				{
+					object: {
+						greater_than: 'bigint',
+					},
+				},
+			],
+		},
+	},
 	DecisionDiagnostic: {
 		generics: [],
 		shape: {
@@ -471,6 +493,30 @@ export const wideIntegerDefinitions = {
 						field: {
 							arguments: {},
 							ref: 'FieldName',
+						},
+					},
+				},
+				{
+					object: {
+						bound: {
+							arguments: {},
+							ref: 'CountBound',
+						},
+						field: {
+							arguments: {},
+							ref: 'MeasureFields',
+						},
+					},
+				},
+				{
+					object: {
+						bound: {
+							arguments: {},
+							ref: 'CountBound',
+						},
+						field: {
+							arguments: {},
+							ref: 'MeasureFields',
 						},
 					},
 				},
@@ -2018,6 +2064,23 @@ export const wideIntegerDefinitions = {
 			],
 		},
 	},
+	MeasureFields: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					arguments: {},
+					ref: 'FieldName',
+				},
+				{
+					list: {
+						arguments: {},
+						ref: 'FieldName',
+					},
+				},
+			],
+		},
+	},
 	MechanicalStepWire: {
 		generics: [],
 		shape: {
@@ -3149,6 +3212,14 @@ export const wideIntegerDefinitions = {
 						section_prefix: {
 							arguments: {},
 							ref: 'EvidenceKindName',
+						},
+					},
+				},
+				{
+					object: {
+						section_own: {
+							arguments: {},
+							ref: 'ContainingKinds',
 						},
 					},
 				},

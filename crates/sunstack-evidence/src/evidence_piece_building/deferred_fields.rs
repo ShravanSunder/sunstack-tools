@@ -75,17 +75,23 @@ impl EvidenceBuild {
         let mut pending_inside = false;
         for (name, source) in &definition.fields {
             if let FieldSource::ScopedInside { kind, scope } = source {
-                let outline_pending = self
-                    .unresolved_ranges(scope.kind(), file)
-                    .iter()
-                    .any(|unknown| match_within(range, unknown));
-                let piece_pending = super::section_scoped_fields::scoped_range(
+                let scope_range = super::section_scoped_fields::scoped_range(
                     file,
                     scope,
                     range,
                     &self.catalog.pieces,
-                )
-                .is_ok_and(|scope_range| {
+                );
+                let outline_pending = scope.kinds().iter().any(|kind| {
+                    self.unresolved_ranges(kind, file).iter().any(|unknown| {
+                        match_within(range, unknown)
+                            || (matches!(scope, crate::SectionScope::Own { .. })
+                                && scope_range.as_ref().is_ok_and(|scope_range| {
+                                    unknown.start > scope_range.start
+                                        && unknown.start < scope_range.end
+                                }))
+                    })
+                });
+                let piece_pending = scope_range.is_ok_and(|scope_range| {
                     self.unresolved_ranges(kind, file)
                         .iter()
                         .any(|unknown| match_within(unknown, &scope_range))

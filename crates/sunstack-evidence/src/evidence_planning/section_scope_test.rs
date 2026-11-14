@@ -9,6 +9,7 @@ fn scoped_inside_schema_and_decoder_agree_on_exclusive_kind_scope() {
     for scope in [
         json!({"section":"outline"}),
         json!({"section_prefix":"outline"}),
+        json!({"section_own":["outline","markdown_outline"]}),
     ] {
         let wire = json!({"from":"inside","kind":"picture","scope":scope});
         let source = serde_json::from_value::<FieldSource>(wire.clone()).unwrap();
@@ -22,6 +23,9 @@ fn scoped_inside_schema_and_decoder_agree_on_exclusive_kind_scope() {
         json!({"from":"inside","kind":"picture","scope":{}}),
         json!({"from":"inside","kind":"picture","scope":{"section":"outline","section_prefix":"outline"}}),
         json!({"from":"inside","kind":"picture","scope":{"section":"outline","typo":true}}),
+        json!({"from":"inside","kind":"picture","scope":{"section_own":[]}}),
+        json!({"from":"inside","kind":"picture","scope":{"section_own":["outline","outline"]}}),
+        json!({"from":"inside","kind":"picture","scope":{"section_own":["outline"],"section":"outline"}}),
     ] {
         assert!(
             serde_json::from_value::<FieldSource>(wire.clone()).is_err(),

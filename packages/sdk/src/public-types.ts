@@ -35,6 +35,9 @@ export type DefinitionSnapshot = DeepReadonly<Contracts.DefinitionSnapshot>;
 export type RulebookDefinition = DeepReadonly<Contracts.RulebookDefinition>;
 export type EvidenceDefinitions = DeepReadonly<Contracts.EvidenceDefinitions>;
 export type RuleEntry = DeepReadonly<Contracts.RuleEntryWire>;
+export type DecisionMechanicalTool = DeepReadonly<Contracts.DecisionMechanicalTool>;
+export type CountBound = DeepReadonly<Contracts.CountBound>;
+export type MeasureFields = DeepReadonly<Contracts.MeasureFields>;
 export type EvidenceKindDefinition = DeepReadonly<Contracts.EvidenceKindWire>;
 export type FilterDefinition = DeepReadonly<Contracts.FilterWire>;
 /** Where an evidence field's text comes from; section and context text modes include `heading`. */

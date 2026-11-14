@@ -85,7 +85,12 @@ pub(crate) fn walk_tree(request: TreeWalkRequest<'_>) -> TreeWalkOutcome {
         }
         let route = match step {
             DecisionStep::Mechanical { tool, yes, no } => {
-                match mechanical_check(tool, request.piece, request.index) {
+                match mechanical_check(
+                    tool,
+                    request.piece,
+                    request.index,
+                    &request.decision.html_settings,
+                ) {
                     Ok(true) => yes,
                     Ok(false) => no,
                     Err(field) => {

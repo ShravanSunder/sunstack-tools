@@ -184,6 +184,11 @@ export type ContractInfo = {
 	target: string;
 };
 
+export type CountBound =
+	| { at_least: bigint; at_most?: never; greater_than?: never }
+	| { at_most: bigint; at_least?: never; greater_than?: never }
+	| { greater_than: bigint; at_least?: never; at_most?: never };
+
 export type DecisionDiagnostic = {
 	origin: DecisionDiagnosticOrigin;
 	code: DecisionDiagnosticCode;
@@ -244,7 +249,9 @@ export type DecisionMechanicalTool =
 	| { tool: 'file_exists'; field: FieldName }
 	| { tool: 'anchor_exists'; field: FieldName }
 	| { tool: 'contains_field'; field: FieldName; needle: FieldName }
-	| { tool: 'complete'; field: FieldName };
+	| { tool: 'complete'; field: FieldName }
+	| { tool: 'word_count'; field: MeasureFields; bound: CountBound }
+	| { tool: 'piece_count'; field: MeasureFields; bound: CountBound };
 
 export type DecisionModelSettings = {
 	model: ModelName;
@@ -1029,6 +1036,8 @@ export type MatchSource =
 	| ({ rule: EvidenceRuleId } & { kind?: never })
 	| ({ kind: EvidenceKindName } & { rule?: never });
 
+export type MeasureFields = FieldName | FieldName[];
+
 export type MechanicalStepWire = {
 	mechanical_check: DecisionMechanicalTool;
 	yes: RouteWire;
@@ -1399,8 +1408,9 @@ export type SdkSkippedRule = {
 };
 
 export type SectionScope =
-	| ({ section: EvidenceKindName } & { section_prefix?: never })
-	| ({ section_prefix: EvidenceKindName } & { section?: never });
+	| { section: EvidenceKindName; section_prefix?: never; section_own?: never }
+	| { section_prefix: EvidenceKindName; section?: never; section_own?: never }
+	| { section_own: ContainingKinds; section?: never; section_prefix?: never };
 
 export type SectionText = 'full' | 'own' | 'enclosing_own' | 'heading';
 

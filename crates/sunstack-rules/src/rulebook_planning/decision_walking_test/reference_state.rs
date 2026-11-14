@@ -209,7 +209,8 @@ fn completeness_checks_loaded_openings_and_bounded_projection() {
         );
         evidence.model_view = project_model_view(&evidence.fields, 6000);
         assert_eq!(
-            super::super::mechanical_check(&tool, &evidence, &index()).unwrap(),
+            super::super::mechanical_check(&tool, &evidence, &index(), &Default::default())
+                .unwrap(),
             expected,
             "{case}"
         );
@@ -222,5 +223,7 @@ fn completeness_checks_loaded_openings_and_bounded_projection() {
         },
     );
     evidence.model_view = project_model_view(&evidence.fields, 1);
-    assert!(!super::super::mechanical_check(&tool, &evidence, &index()).unwrap());
+    assert!(
+        !super::super::mechanical_check(&tool, &evidence, &index(), &Default::default()).unwrap()
+    );
 }

@@ -38,6 +38,27 @@ pub(crate) fn admit_graph(
                     (DecisionRoute::Uncertain, None) if matches!(wire_route, crate::RouteWire::Named(name) if name == "unsure") => errors.push(refusal(&path, "rule unsure ending must be written uncertain")),
                     _ => {},
                 }
+                if let DecisionRoute::Finding(finding) = &route {
+                    for (_, measure, name) in
+                        crate::rulebook_planning::field_measurement::finding_measurements(
+                            &finding.finding,
+                        )
+                    {
+                        let names = name.split(',').collect::<Vec<_>>();
+                        if names.iter().collect::<BTreeSet<_>>().len() != names.len()
+                            || names.iter().any(|name| {
+                                !kind.fields.iter().any(|(field, source)| {
+                                    field.as_str() == *name && measure.supports(source.shape())
+                                })
+                            })
+                        {
+                            errors.push(refusal(
+                                &path,
+                                "finding measurement names an undefined or incompatible field",
+                            ));
+                        }
+                    }
+                }
                 if let DecisionRoute::Finding(finding) = &route
                     && finding
                         .at
@@ -232,6 +253,7 @@ pub(crate) fn admit_graph(
         }
     }
     let graph = DecisionGraph {
+        html_settings: project.document_settings.html.clone(),
         start: wire.start.clone(),
         steps,
     };
@@ -330,6 +352,30 @@ fn validate_tool(
             (field, &[FieldShape::Text, FieldShape::Texts])
         }
         DecisionMechanicalTool::MaxChars { field, .. } => (field, &[FieldShape::Text]),
+        DecisionMechanicalTool::WordCount { field, .. }
+        | DecisionMechanicalTool::PieceCount { field, .. } => {
+            let measure = if matches!(tool, DecisionMechanicalTool::WordCount { .. }) {
+                crate::rulebook_planning::field_measurement::FieldMeasure::Words
+            } else {
+                crate::rulebook_planning::field_measurement::FieldMeasure::Pieces
+            };
+            let fields = field.as_slice();
+            if fields.is_empty()
+                || fields.iter().collect::<BTreeSet<_>>().len() != fields.len()
+                || fields.iter().any(|field| {
+                    !kind
+                        .fields
+                        .get(field)
+                        .is_some_and(|source| measure.supports(source.shape()))
+                })
+            {
+                errors.push(refusal(
+                    path,
+                    "measurement requires distinct defined fields of a compatible shape",
+                ));
+            }
+            return;
+        }
         DecisionMechanicalTool::FileExists { field }
         | DecisionMechanicalTool::AnchorExists { field } => (field, &[FieldShape::Targets]),
         DecisionMechanicalTool::Complete { field } => (
