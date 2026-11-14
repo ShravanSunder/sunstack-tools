@@ -203,7 +203,7 @@ pub(super) fn piece_state_for_questions(
             .filter(|(name, _)| {
                 !matches!(
                     piece.fields.get(*name),
-                    Some(FieldValue::Unavailable { .. })
+                    Some(FieldValue::Unavailable { .. } | FieldValue::MissingDocument { .. })
                 )
             })
             .map(|(name, value)| (name.clone(), value.clone()))
@@ -457,6 +457,13 @@ pub(super) fn mechanical_check(
         return Err(field.clone());
     }
     let value = piece.fields.get(field);
+    if matches!(value, Some(FieldValue::MissingDocument { .. })) {
+        return if matches!(tool, DecisionMechanicalTool::Complete { .. }) {
+            Ok(false)
+        } else {
+            Err(field.clone())
+        };
+    }
     if matches!(value, Some(FieldValue::Unavailable { .. })) {
         return Err(field.clone());
     }
@@ -469,7 +476,9 @@ pub(super) fn mechanical_check(
     }
     let texts = match value {
         Some(FieldValue::Text { value, .. }) => vec![value.as_str()],
-        Some(FieldValue::Texts { values, .. }) => values.iter().map(String::as_str).collect(),
+        Some(FieldValue::Texts { values, .. } | FieldValue::Document { values, .. }) => {
+            values.iter().map(String::as_str).collect()
+        }
         _ => vec![],
     };
     Ok(match tool {
@@ -525,9 +534,13 @@ pub(super) fn mechanical_check(
                             && !target.opening_cut
                     }),
                     Some(
-                        FieldValue::Text { .. } | FieldValue::Texts { .. } | FieldValue::Absent,
+                        FieldValue::Text { .. }
+                        | FieldValue::Texts { .. }
+                        | FieldValue::Document { .. }
+                        | FieldValue::Absent,
                     ) => true,
-                    Some(FieldValue::Unavailable { .. }) | None => false,
+                    Some(FieldValue::Unavailable { .. } | FieldValue::MissingDocument { .. })
+                    | None => false,
                 }
         }
         DecisionMechanicalTool::AstGrep { .. } => false,
@@ -563,7 +576,12 @@ pub fn unavailable_question_field(
 ) -> Option<FieldName> {
     crate::rulebook_planning::rulebook_admission::question_field_references(questions)
         .into_iter()
-        .find(|field| matches!(fields.get(field), Some(FieldValue::Unavailable { .. })))
+        .find(|field| {
+            matches!(
+                fields.get(field),
+                Some(FieldValue::Unavailable { .. } | FieldValue::MissingDocument { .. })
+            )
+        })
 }
 
 #[cfg(test)]

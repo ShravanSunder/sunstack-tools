@@ -78,7 +78,7 @@ pub struct LintArguments {
     /// List rules as JSON; optionally name one file.
     #[arg(long, num_args = 0..=1, value_name = "FILE", conflicts_with_all = ["init", "prepare"])]
     pub rules: Option<Option<PathBuf>>,
-    /// Create a config skeleton in the current directory.
+    /// Create a runnable mechanical starter, preserving existing files.
     #[arg(long, conflicts_with = "prepare")]
     pub init: bool,
 }

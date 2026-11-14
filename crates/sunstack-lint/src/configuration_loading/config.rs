@@ -1,6 +1,6 @@
 use crate::*;
 use std::{
-    io::{ErrorKind, Write},
+    io::ErrorKind,
     path::{Path, PathBuf},
 };
 
@@ -81,42 +81,7 @@ pub fn config_schema() -> schemars::Schema {
     schemars::schema_for!(RulesConfig)
 }
 pub fn init_config(directory: &Path) -> Result<ConfigLocation, LintInvalid> {
-    let path = directory.join("sunstack.lint.json");
-    let skeleton = serde_json::json!({
-        "$schema":format!("https://github.com/ShravanSunder/sunstack-tools/releases/download/v{}/sunstack.lint.schema.json",env!("CARGO_PKG_VERSION")),
-        "rulebook":[{"markdown":"rulebook.md","rules":"rulebook.rules.json"}],
-        "marker_prefix":"K",
-        "check":{"files":["**/*.md"]},
-        "evidence":{"ast_grep":"evidence/sgconfig.yml","kinds":{"piece":{"rule":"your-rule-id","fields":{"body":{"from":"remainder"}}}}},
-        "decision_model":{"model":"jev-latest"}
-    });
-    let bytes = serde_json::to_vec_pretty(&skeleton).map_err(|_| {
-        LintInvalid::at(
-            &path,
-            LintInvalidCode::Syntax,
-            "Cannot encode the config skeleton.",
-        )
-    })?;
-    let mut file = std::fs::OpenOptions::new()
-        .write(true)
-        .create_new(true)
-        .open(&path)
-        .map_err(|_| {
-            LintInvalid::at(
-                &path,
-                LintInvalidCode::Syntax,
-                "Cannot create sunstack.lint.json; an existing file is never overwritten.",
-            )
-        })?;
-    file.write_all(&bytes)
-        .and_then(|_| file.write_all(b"\n"))
-        .map_err(|_| {
-            LintInvalid::at(
-                &path,
-                LintInvalidCode::Syntax,
-                "Cannot write the config skeleton.",
-            )
-        })?;
+    let path = super::config_starter::create_starter(directory)?;
     locate(path)
 }
 

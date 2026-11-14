@@ -1,4 +1,5 @@
 pub mod configuration_paths;
+pub mod document_candidates;
 pub mod document_settings;
 pub(crate) mod evidence_admission;
 pub mod evidence_contracts;

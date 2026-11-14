@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.20.0
+
+Release date: 2026-11-13.
+
+- `lint --init` writes a complete mechanical starter: config, rulebook, rule
+  entry, ast-grep project and sample. Existing config or starter paths are
+  refused without overwriting files. The sample runs locally with no model
+  requests; the README includes executable picture and requirement-ID examples.
+- Missing `decision_model` diagnostics explain its purpose and that a configured
+  model name sends no requests for mechanical-only rules. The field remains
+  required; asking and selection behavior is unchanged.
+- Successful human runs with warnings explain exit 0 and whether an explicit
+  `--max-warnings` limit was set. JSON status, report shape and exit policies are
+  unchanged. Rust callers can use `render_with_warning_limit` to pass their limit.
+- Document fields accept ordered candidate paths, choosing the first existing
+  file and recording its path. Missing documents have a `missing_document` state
+  with candidate paths; `complete` returns no so a rule can skip or nudge.
+  Read, containment and budget failures remain incomplete. Scalar successful
+  document fields retain their existing text-list output. Rust `FieldSource`
+  uses `DocumentCandidates`; `FieldValue` adds `Document` and `MissingDocument`.
+
 ## 0.19.0
 
 Release date: 2026-11-13.

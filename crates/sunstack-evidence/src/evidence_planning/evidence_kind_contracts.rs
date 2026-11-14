@@ -243,7 +243,7 @@ pub enum FieldSource {
         exclude: Option<MatchSource>,
     },
     Document {
-        path: PathBuf,
+        path: crate::DocumentCandidates,
         rule: EvidenceRuleId,
     },
     Target {
@@ -331,6 +331,14 @@ pub enum FieldValue {
         values: Vec<String>,
         spans: Vec<SourceSpan>,
     },
+    Document {
+        path: PathBuf,
+        values: Vec<String>,
+        spans: Vec<SourceSpan>,
+    },
+    MissingDocument {
+        candidates: Vec<PathBuf>,
+    },
     Targets {
         values: Vec<LoadTarget>,
     },
@@ -360,8 +368,13 @@ impl FieldValue {
     }
     pub fn spans(&self) -> &[SourceSpan] {
         match self {
-            Self::Text { spans, .. } | Self::Texts { spans, .. } => spans,
-            Self::Targets { .. } | Self::Absent | Self::Unavailable { .. } => &[],
+            Self::Text { spans, .. } | Self::Texts { spans, .. } | Self::Document { spans, .. } => {
+                spans
+            }
+            Self::Targets { .. }
+            | Self::Absent
+            | Self::Unavailable { .. }
+            | Self::MissingDocument { .. } => &[],
         }
     }
 }

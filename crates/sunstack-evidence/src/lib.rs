@@ -33,6 +33,7 @@ pub use evidence_pieces::evidence_model_view::*;
 pub use evidence_pieces::evidence_piece_picking::*;
 pub use evidence_pieces::kind_model_view::*;
 pub use evidence_planning::configuration_paths::*;
+pub use evidence_planning::document_candidates::DocumentCandidates;
 pub use evidence_planning::document_settings::*;
 pub use evidence_planning::evidence_admission::admit_evidence_declaration;
 pub use evidence_planning::evidence_contracts::*;

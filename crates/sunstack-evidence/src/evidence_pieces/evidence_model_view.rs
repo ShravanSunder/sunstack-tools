@@ -4,10 +4,10 @@ use std::collections::{BTreeMap, BTreeSet};
 fn model_field(field: &FieldValue) -> ModelFieldValue {
     match field {
         FieldValue::Text { value, .. } => ModelFieldValue::Text(value.clone()),
-        FieldValue::Texts { values, .. } => {
+        FieldValue::Texts { values, .. } | FieldValue::Document { values, .. } => {
             ModelFieldValue::List(values.iter().cloned().map(ModelFieldValue::Text).collect())
         }
-        FieldValue::Absent => ModelFieldValue::Absent,
+        FieldValue::Absent | FieldValue::MissingDocument { .. } => ModelFieldValue::Absent,
         FieldValue::Unavailable { .. } => ModelFieldValue::Object(BTreeMap::from([(
             "unavailable".into(),
             ModelFieldValue::Boolean(true),

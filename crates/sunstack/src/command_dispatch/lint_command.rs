@@ -177,7 +177,7 @@ async fn execute(arguments: LintArguments, cancellation: CancellationToken) -> E
         {
             Ok(Ok(location)) => output(
                 &format!(
-                    "Created {}. Add the rulebook, rule entries and evidence project before running lint.",
+                    "Created {} and sunstack-starter/ with a runnable mechanical check. Run sunstack lint --root . --check, then sunstack lint --root . --all.",
                     location.file.display()
                 ),
                 0,
@@ -254,7 +254,11 @@ async fn execute(arguments: LintArguments, cancellation: CancellationToken) -> E
     }
     let rendered = match &arguments.prepare {
         Some(path) => sunstack_lint::render_prepared(&report, arguments.format, path),
-        None => sunstack_lint::render(&report, arguments.format),
+        None => sunstack_lint::render_with_warning_limit(
+            &report,
+            arguments.format,
+            arguments.max_warnings,
+        ),
     };
     output(rendered.trim_end_matches('\n'), report.status.exit_code())
 }

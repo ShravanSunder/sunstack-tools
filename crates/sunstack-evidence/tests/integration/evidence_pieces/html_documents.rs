@@ -107,9 +107,7 @@ fn document_fields_read_matching_sibling_pieces_and_share_acquisition_budget() {
     );
     assert!(matches!(
         field(&missing.pieces[0], "coverage"),
-        FieldValue::Unavailable {
-            reason: FieldUnavailable::Unreadable
-        }
+        FieldValue::MissingDocument { candidates } if candidates == &[PathBuf::from("pages/other.html")]
     ));
 }
 

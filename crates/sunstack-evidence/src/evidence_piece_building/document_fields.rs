@@ -4,23 +4,37 @@ impl EvidenceBuild {
     pub(super) fn document_field(
         &mut self,
         owner: &Path,
-        relative: &Path,
+        relative: &crate::DocumentCandidates,
         rule: &crate::EvidenceRuleId,
         source: &mut dyn CheckedFileSource,
     ) -> FieldValue {
-        let path = owner.parent().unwrap_or(Path::new("")).join(relative);
         let read = || FieldValue::Unavailable {
             reason: FieldUnavailable::Unreadable,
         };
-        let resolved = match source.resolve_file(&path) {
-            Ok(resolved) => resolved,
-            Err(CheckedReadError::NotContained) => {
-                return FieldValue::Unavailable {
-                    reason: FieldUnavailable::OutsideRoot,
-                };
-            }
-            Err(_) => return read(),
+        let mut candidates = Vec::new();
+        let mut selected = None;
+        for candidate in relative.paths() {
+            let path = owner.parent().unwrap_or(Path::new("")).join(candidate);
+            let resolved = match source.resolve_file(&path) {
+                Ok(resolved) => resolved,
+                Err(CheckedReadError::NotContained) => {
+                    return FieldValue::Unavailable {
+                        reason: FieldUnavailable::OutsideRoot,
+                    };
+                }
+                Err(CheckedReadError::Missing { path }) => {
+                    candidates.push(path);
+                    continue;
+                }
+                Err(_) => return read(),
+            };
+            selected = Some(resolved);
+            break;
+        }
+        let Some(resolved) = selected else {
+            return FieldValue::MissingDocument { candidates };
         };
+        let chosen_path = resolved.clone();
         let Ok(text) = read_cached_content(
             source,
             &mut self.contents,
@@ -56,15 +70,22 @@ impl EvidenceBuild {
             native_units: BTreeMap::new(),
         };
         let ranges = file.index.by_rule.get(rule).cloned().unwrap_or_default();
-        FieldValue::Texts {
-            values: ranges
-                .iter()
-                .map(|range| file.text[range.start..range.end].to_owned())
-                .collect(),
-            spans: ranges
-                .iter()
-                .map(|range| source_span(&file, range))
-                .collect(),
+        let values = ranges
+            .iter()
+            .map(|range| file.text[range.start..range.end].to_owned())
+            .collect();
+        let spans = ranges
+            .iter()
+            .map(|range| source_span(&file, range))
+            .collect();
+        if relative.records_resolution() {
+            FieldValue::Document {
+                path: chosen_path,
+                values,
+                spans,
+            }
+        } else {
+            FieldValue::Texts { values, spans }
         }
     }
 }
