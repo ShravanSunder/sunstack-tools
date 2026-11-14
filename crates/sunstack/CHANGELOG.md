@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.21.1
+
+Release date: 2026-11-14.
+
+- Bind every exact marker in a trailing same-line run to the same existing
+  Markdown host and comment-free standard text. Spaces and tabs may separate
+  markers; heading adjacency is checked before the first marker. Each marker
+  retains its own original source coordinates. Escapes, code exclusions, prefix
+  selection and duplicate-ID refusals still apply. Existing single-marker
+  bindings and public contract shapes remain unchanged.
+- Align the SDK and six platform packages to 0.21.1; contract revision 15 stays.
+
 ## 0.21.0
 
 Release date: 2026-11-14.

@@ -4,5 +4,7 @@ mod markdown_bindings;
 mod markdown_line_endings;
 #[path = "markdown_document_test/markdown_list_headings.rs"]
 mod markdown_list_headings;
+#[path = "markdown_document_test/markdown_marker_runs.rs"]
+mod markdown_marker_runs;
 #[path = "markdown_document_test/markdown_projection_regressions.rs"]
 mod markdown_projection_regressions;

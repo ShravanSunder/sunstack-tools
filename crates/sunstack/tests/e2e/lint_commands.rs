@@ -23,6 +23,8 @@ mod filter_runtime;
 mod html_evidence;
 #[path = "lint_commands/html_sections.rs"]
 mod html_sections;
+#[path = "lint_commands/marker_runs.rs"]
+mod marker_runs;
 #[path = "lint_commands/section_measures.rs"]
 mod section_measures;
 #[path = "lint_commands/section_prefix.rs"]
