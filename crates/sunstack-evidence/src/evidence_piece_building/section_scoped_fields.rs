@@ -105,6 +105,7 @@ pub(super) fn scoped_inside_field(
         .collect::<Vec<_>>();
     selected.sort_by_key(|piece| (piece.location.span.byte_start, piece.location.span.byte_end));
     FieldValue::Texts {
+        cut: false,
         values: selected.iter().map(|piece| piece.text.clone()).collect(),
         spans: selected
             .iter()

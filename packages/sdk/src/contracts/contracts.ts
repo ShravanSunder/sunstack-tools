@@ -501,11 +501,13 @@ export type FieldName = string;
 export type FieldSource =
 	| ({ from: 'first_line' } & {
 			as_kind?: never;
+			attach?: never;
 			containing?: never;
 			count?: never;
 			exclude?: never;
 			key?: never;
 			kind?: never;
+			of?: never;
 			opening_chars?: never;
 			path?: never;
 			regex?: never;
@@ -516,11 +518,13 @@ export type FieldSource =
 	  })
 	| ({ from: 'section'; text: SectionText } & {
 			as_kind?: never;
+			attach?: never;
 			containing?: never;
 			count?: never;
 			exclude?: never;
 			key?: never;
 			kind?: never;
+			of?: never;
 			opening_chars?: never;
 			path?: never;
 			regex?: never;
@@ -530,10 +534,12 @@ export type FieldSource =
 	  })
 	| ({ from: 'section_prefix'; kind: EvidenceKindName } & {
 			as_kind?: never;
+			attach?: never;
 			containing?: never;
 			count?: never;
 			exclude?: never;
 			key?: never;
+			of?: never;
 			opening_chars?: never;
 			path?: never;
 			regex?: never;
@@ -544,6 +550,23 @@ export type FieldSource =
 	  })
 	| ({ from: 'capture'; regex: string } & {
 			as_kind?: never;
+			attach?: never;
+			containing?: never;
+			count?: never;
+			exclude?: never;
+			key?: never;
+			kind?: never;
+			of?: never;
+			opening_chars?: never;
+			path?: never;
+			resolve?: never;
+			rule?: never;
+			scope?: never;
+			text?: never;
+	  })
+	| ({ from: 'captures'; regex: string; of?: FieldName } & {
+			as_kind?: never;
+			attach?: never;
 			containing?: never;
 			count?: never;
 			exclude?: never;
@@ -563,10 +586,12 @@ export type FieldSource =
 	  } & MatchSource)
 	| ({ from: 'inside'; kind: EvidenceKindName; scope: SectionScope } & {
 			as_kind?: never;
+			attach?: never;
 			containing?: never;
 			count?: never;
 			exclude?: never;
 			key?: never;
+			of?: never;
 			opening_chars?: never;
 			path?: never;
 			regex?: never;
@@ -584,13 +609,16 @@ export type FieldSource =
 	  } & {
 			text?: ContextText;
 			containing?: FieldName;
+			attach?: SiblingAttachment;
 	  } & MatchSource)
 	| ({ from: 'next'; rule: EvidenceRuleId; count?: NeighbourCount } & {
 			as_kind?: never;
+			attach?: never;
 			containing?: never;
 			exclude?: never;
 			key?: never;
 			kind?: never;
+			of?: never;
 			opening_chars?: never;
 			path?: never;
 			regex?: never;
@@ -600,10 +628,12 @@ export type FieldSource =
 	  })
 	| ({ from: 'previous'; rule: EvidenceRuleId; count?: NeighbourCount } & {
 			as_kind?: never;
+			attach?: never;
 			containing?: never;
 			exclude?: never;
 			key?: never;
 			kind?: never;
+			of?: never;
 			opening_chars?: never;
 			path?: never;
 			regex?: never;
@@ -613,10 +643,12 @@ export type FieldSource =
 	  })
 	| ({ from: 'yaml'; key: string } & {
 			as_kind?: never;
+			attach?: never;
 			containing?: never;
 			count?: never;
 			exclude?: never;
 			kind?: never;
+			of?: never;
 			opening_chars?: never;
 			path?: never;
 			regex?: never;
@@ -627,10 +659,12 @@ export type FieldSource =
 	  })
 	| ({ from: 'remainder'; exclude?: MatchSource | null } & {
 			as_kind?: never;
+			attach?: never;
 			containing?: never;
 			count?: never;
 			key?: never;
 			kind?: never;
+			of?: never;
 			opening_chars?: never;
 			path?: never;
 			regex?: never;
@@ -644,12 +678,14 @@ export type FieldSource =
 			path: DocumentCandidates;
 			rule: EvidenceRuleId;
 			containing?: FieldName;
+			attach?: SiblingAttachment;
 	  } & {
 			as_kind?: never;
 			count?: never;
 			exclude?: never;
 			key?: never;
 			kind?: never;
+			of?: never;
 			opening_chars?: never;
 			regex?: never;
 			resolve?: never;
@@ -664,10 +700,12 @@ export type FieldSource =
 			as_kind?: EvidenceKindName | null;
 			exclude?: TargetExclude | null;
 	  } & {
+			attach?: never;
 			containing?: never;
 			count?: never;
 			key?: never;
 			kind?: never;
+			of?: never;
 			path?: never;
 			rule?: never;
 			scope?: never;
@@ -682,12 +720,14 @@ export type FieldUnavailable =
 	| 'not_a_string'
 	| 'unreadable'
 	| 'target_kind_missing'
-	| 'containing_field_unavailable';
+	| 'containing_field_unavailable'
+	| 'capture_source_unavailable'
+	| 'attachment_unavailable';
 
 export type FieldValue =
 	| { state: 'text'; value: string; spans: SourceSpan[] }
-	| { state: 'texts'; values: string[]; spans: SourceSpan[] }
-	| { state: 'document'; path: string; values: string[]; spans: SourceSpan[] }
+	| { state: 'texts'; cut?: boolean; values: string[]; spans: SourceSpan[] }
+	| { state: 'document'; cut?: boolean; path: string; values: string[]; spans: SourceSpan[] }
 	| { state: 'missing_document'; candidates: string[] }
 	| { state: 'targets'; values: LoadTarget[] }
 	| { state: 'absent' }
@@ -1525,6 +1565,11 @@ export type SharedView = {
 	kind: EvidenceKindName;
 	fields: { [key in FieldName]: FieldValue };
 	view: ModelView;
+};
+
+export type SiblingAttachment = {
+	until: EvidenceRuleId;
+	max_siblings: number;
 };
 
 /**  How the call obtained the snapshot content. */

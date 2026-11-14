@@ -182,3 +182,16 @@ await test('generated declarations use literal unions, never TypeScript enums or
 		assert.doesNotMatch(source, /:\s*any\b|<any>|\bany\[\]/u, `${file} uses any`);
 	}
 });
+
+await test('capture lists, named inputs and sibling attachment compile from Rust contracts', () => {
+	assert.deepEqual(compile('valid-captures-attachment.ts'), { kind: 'compiled' });
+});
+
+await test('capture and attachment wrong shapes fail at their declared properties', () => {
+	const expected = expectedDiagnostics('invalid-captures-attachment.ts');
+	assert.equal(expected.length, 4);
+	const result = compile('invalid-captures-attachment.ts');
+	assert.equal(result.kind, 'diagnostics', result.kind === 'process_failure' ? result.detail : '');
+	if (result.kind === 'diagnostics')
+		assert.deepEqual(sortDiagnostics(result.diagnostics), sortDiagnostics(expected));
+});

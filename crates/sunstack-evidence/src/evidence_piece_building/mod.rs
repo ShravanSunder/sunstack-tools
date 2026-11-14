@@ -448,8 +448,10 @@ mod section_prefix_fields;
 mod section_scoped_fields;
 use field_composition::{local_fields, source_span};
 
-mod containing_fields;
+mod derived_fields;
 mod document_fields;
+mod regex_capture_fields;
+mod sibling_attachment_fields;
 mod target_loading;
 mod target_reference;
 use crate::document_evidence::html_content::is_html_path;

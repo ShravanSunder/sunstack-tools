@@ -11,6 +11,8 @@ use sunstack_rules::test_support::controlled_http as controlled;
 use tokio::process::Command;
 #[path = "lint_commands/anchored_fields.rs"]
 mod anchored_fields;
+#[path = "lint_commands/captures_attached_blocks.rs"]
+mod captures_attached_blocks;
 #[path = "lint_commands/checked_root.rs"]
 mod checked_root;
 #[path = "lint_commands/config_onboarding.rs"]

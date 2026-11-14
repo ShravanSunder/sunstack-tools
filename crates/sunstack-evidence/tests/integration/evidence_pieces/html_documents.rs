@@ -77,7 +77,7 @@ fn document_fields_read_matching_sibling_pieces_and_share_acquisition_budget() {
     let definition = json!({"rule":"row","fields":{"coverage":{"from":"document","path":"other.html","rule":"row"},"again":{"from":"document","path":"./other.html","rule":"row"}}});
     let catalog = build(root.path(), &["pages/source.html"], definition.clone(), 2);
     assert!(catalog.failures.is_empty(), "{:?}", catalog.failures);
-    let FieldValue::Texts { values, spans } = field(&catalog.pieces[0], "coverage") else {
+    let FieldValue::Texts { values, spans, .. } = field(&catalog.pieces[0], "coverage") else {
         panic!()
     };
     assert_eq!(values, &["<p>R1 covered</p>", "<p>R10 covered</p>"]);

@@ -19,13 +19,14 @@ fn first_line_range(file: &MatchedFile, range: &MatchRange) -> MatchRange {
 
 pub(super) fn local_fields(
     kind: &EvidenceKindName,
-    definition: &EvidenceKindDefinition,
+    kinds: &BTreeMap<EvidenceKindName, EvidenceKindDefinition>,
     file: &MatchedFile,
     range: &MatchRange,
     match_position: usize,
     pieces: &[EvidencePiece],
     html_settings: &crate::HtmlEvidenceSettings,
 ) -> BTreeMap<FieldName, FieldValue> {
+    let definition = &kinds[kind];
     let text = &file.text[range.start..range.end];
     let mut taken = Vec::new();
     let mut fields = BTreeMap::new();
@@ -139,6 +140,7 @@ pub(super) fn local_fields(
                     })
                     .collect::<Vec<_>>();
                 FieldValue::Texts {
+                    cut: false,
                     values: spans
                         .iter()
                         .map(|span| {
@@ -167,7 +169,8 @@ pub(super) fn local_fields(
                     )
                 }),
             FieldSource::Yaml { key } => yaml_field(file, range, key),
-            FieldSource::Remainder { .. }
+            FieldSource::Captures { .. }
+            | FieldSource::Remainder { .. }
             | FieldSource::Target { .. }
             | FieldSource::Document { .. } => continue,
         };
@@ -190,7 +193,20 @@ pub(super) fn local_fields(
         }
         fields.insert(name.clone(), remainder_field(file, range, field_taken));
     }
-    super::containing_fields::apply_containing_fields(definition, &mut fields, false, file, pieces);
+    super::derived_fields::apply_derived_fields(
+        definition,
+        &mut fields,
+        false,
+        super::derived_fields::DerivedFieldsContext {
+            kinds,
+            file,
+            pieces,
+            own_range: range,
+            contents: None,
+            project: None,
+            max_matches: usize::MAX,
+        },
+    );
     fields
 }
 
@@ -219,7 +235,11 @@ fn enclosing_heading_field(
             }
         }
     }
-    FieldValue::Texts { values, spans }
+    FieldValue::Texts {
+        cut: false,
+        values,
+        spans,
+    }
 }
 
 fn remainder_field(
@@ -348,6 +368,7 @@ fn neighbour_field(
     }
     selected.sort_by_key(|range| (range.start, range.end));
     FieldValue::Texts {
+        cut: false,
         values: selected
             .iter()
             .map(|range| file.text[range.start..range.end].into())

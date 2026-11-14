@@ -216,6 +216,17 @@ pub enum FieldSource {
     Capture {
         regex: String,
     },
+    Captures {
+        regex: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[schemars(
+            with = "String",
+            regex(pattern = "^[a-z]+(_[a-z]+)*$"),
+            length(min = 1)
+        )]
+        #[cfg_attr(feature = "typescript", specta(type = FieldName, optional))]
+        of: Option<FieldName>,
+    },
     Inside {
         #[serde(flatten)]
         of: MatchSource,
@@ -240,6 +251,10 @@ pub enum FieldSource {
         #[schemars(with = "FieldName")]
         #[cfg_attr(feature = "typescript", specta(type = FieldName, optional))]
         containing: Option<FieldName>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[schemars(with = "SiblingAttachment")]
+        #[cfg_attr(feature = "typescript", specta(type = SiblingAttachment, optional))]
+        attach: Option<SiblingAttachment>,
     },
     Next {
         rule: EvidenceRuleId,
@@ -265,6 +280,10 @@ pub enum FieldSource {
         #[schemars(with = "FieldName")]
         #[cfg_attr(feature = "typescript", specta(type = FieldName, optional))]
         containing: Option<FieldName>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[schemars(with = "SiblingAttachment")]
+        #[cfg_attr(feature = "typescript", specta(type = SiblingAttachment, optional))]
+        attach: Option<SiblingAttachment>,
     },
     Target {
         regex: String,
@@ -277,6 +296,14 @@ pub enum FieldSource {
         exclude: Option<TargetExclude>,
     },
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct SiblingAttachment {
+    pub until: EvidenceRuleId,
+    pub max_siblings: NonZeroU32,
+}
+
 #[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -333,7 +360,8 @@ impl FieldSource {
             | Self::Capture { .. }
             | Self::Yaml { .. }
             | Self::Remainder { .. } => FieldShape::Text,
-            Self::Document { .. }
+            Self::Captures { .. }
+            | Self::Document { .. }
             | Self::Inside { .. }
             | Self::ScopedInside { .. }
             | Self::Enclosing { .. }
@@ -353,10 +381,16 @@ pub enum FieldValue {
         spans: Vec<SourceSpan>,
     },
     Texts {
+        #[serde(default, skip_serializing_if = "is_false")]
+        #[cfg_attr(feature = "typescript", specta(optional))]
+        cut: bool,
         values: Vec<String>,
         spans: Vec<SourceSpan>,
     },
     Document {
+        #[serde(default, skip_serializing_if = "is_false")]
+        #[cfg_attr(feature = "typescript", specta(optional))]
+        cut: bool,
         path: PathBuf,
         values: Vec<String>,
         spans: Vec<SourceSpan>,
@@ -384,8 +418,26 @@ pub enum FieldUnavailable {
     Unreadable,
     TargetKindMissing,
     ContainingFieldUnavailable,
+    CaptureSourceUnavailable,
+    AttachmentUnavailable,
+}
+fn is_false(value: &bool) -> bool {
+    !value
 }
 impl FieldValue {
+    pub fn is_cut(&self) -> bool {
+        match self {
+            Self::Texts { cut, .. } | Self::Document { cut, .. } => *cut,
+            Self::Targets { values } => values.iter().any(|target| {
+                target
+                    .fields
+                    .as_ref()
+                    .is_some_and(|fields| fields.values().any(Self::is_cut))
+            }),
+            _ => false,
+        }
+    }
+
     pub fn is_selection_pending(&self) -> bool {
         matches!(
             self,

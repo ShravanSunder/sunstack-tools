@@ -16,6 +16,11 @@ enum FieldSourceWire {
     Capture {
         regex: String,
     },
+    Captures {
+        regex: String,
+        #[serde(default, deserialize_with = "present_match_source")]
+        of: Option<FieldName>,
+    },
     Inside {
         #[serde(default, deserialize_with = "present_match_source")]
         scope: Option<crate::SectionScope>,
@@ -41,6 +46,8 @@ enum FieldSourceWire {
         text: ContextText,
         #[serde(default, deserialize_with = "present_match_source")]
         containing: Option<FieldName>,
+        #[serde(default, deserialize_with = "present_match_source")]
+        attach: Option<SiblingAttachment>,
     },
     Next {
         rule: EvidenceRuleId,
@@ -63,6 +70,8 @@ enum FieldSourceWire {
         rule: EvidenceRuleId,
         #[serde(default, deserialize_with = "present_match_source")]
         containing: Option<FieldName>,
+        #[serde(default, deserialize_with = "present_match_source")]
+        attach: Option<SiblingAttachment>,
     },
     Target {
         regex: String,
@@ -103,6 +112,7 @@ impl<'de> Deserialize<'de> for FieldSource {
             FieldSourceWire::Section { text } => Self::Section { text },
             FieldSourceWire::SectionPrefix { kind } => Self::SectionPrefix { kind },
             FieldSourceWire::Capture { regex } => Self::Capture { regex },
+            FieldSourceWire::Captures { regex, of } => Self::Captures { regex, of },
             FieldSourceWire::Inside { rule, kind, scope } => match scope {
                 Some(scope) => match (rule, kind) {
                     (None, Some(kind)) => Self::ScopedInside { kind, scope },
@@ -125,10 +135,12 @@ impl<'de> Deserialize<'de> for FieldSource {
                 kind,
                 text,
                 containing,
+                attach,
             } => Self::SameFile {
                 of: source(rule, kind)?,
                 text,
                 containing,
+                attach,
             },
             FieldSourceWire::Next { rule, count } => Self::Next { rule, count },
             FieldSourceWire::Previous { rule, count } => Self::Previous { rule, count },
@@ -138,10 +150,12 @@ impl<'de> Deserialize<'de> for FieldSource {
                 path,
                 rule,
                 containing,
+                attach,
             } => Self::Document {
                 path,
                 rule,
                 containing,
+                attach,
             },
             FieldSourceWire::Target {
                 regex,

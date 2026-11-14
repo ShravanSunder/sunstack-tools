@@ -132,6 +132,7 @@ fn referenced_document_languages_and_target_paths_own_their_projection() {
             fields: Some(BTreeMap::from([(
                 field_name("nested"),
                 FieldValue::Texts {
+                    cut: false,
                     values: vec![r#"<img alt="Nested">"#.into()],
                     spans: vec![],
                 },
@@ -256,6 +257,7 @@ fn asking_cuts_nested_target_and_list_fields_without_mutating_raw_evidence() {
         (
             field_name("list"),
             FieldValue::Texts {
+                cut: false,
                 values: vec!["<p>Whole</p>".into(), raw.into()],
                 spans: vec![],
             },

@@ -272,9 +272,9 @@ fn pinned_step_fields_and_path_and_skill_loads_keep_their_sources() {
         matches!(field(step,"heading"), FieldValue::Text { value, .. } if value == "3. Choose each observation")
     );
     assert!(
-        matches!(field(step,"completion"), FieldValue::Texts { values, spans } if values.len() == 1 && spans[0].start_line == 59)
+        matches!(field(step,"completion"), FieldValue::Texts { values, spans, .. } if values.len() == 1 && spans[0].start_line == 59)
     );
-    if let FieldValue::Texts { values, spans } = field(step, "completion") {
+    if let FieldValue::Texts { values, spans, .. } = field(step, "completion") {
         let source_text = std::fs::read_to_string(root.join(&files[0])).unwrap();
         assert_eq!(
             values[0],

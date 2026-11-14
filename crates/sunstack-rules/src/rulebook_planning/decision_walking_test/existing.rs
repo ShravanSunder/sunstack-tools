@@ -241,6 +241,7 @@ fn spanless_at_keeps_field_name_and_falls_back_to_piece_line() {
         (FieldValue::Absent, 49),
         (
             FieldValue::Texts {
+                cut: false,
                 values: vec![],
                 spans: vec![],
             },
@@ -541,6 +542,7 @@ fn contains_field_walks_whole_tokens_and_reports_unavailable_inputs() {
         piece.fields.insert(
             body.clone(),
             FieldValue::Texts {
+                cut: false,
                 values: vec![text.into()],
                 spans: vec![],
             },

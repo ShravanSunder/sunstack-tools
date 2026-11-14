@@ -194,6 +194,7 @@ pub fn admit_evidence_kinds(
                     | FieldSource::FirstLine { .. }
                     | FieldSource::Section { .. }
                     | FieldSource::Capture { .. }
+                    | FieldSource::Captures { .. }
                     | FieldSource::Yaml { .. }
                     | FieldSource::Remainder { exclude: None }
                     | FieldSource::Target { exclude: None, .. } => None,
@@ -209,6 +210,48 @@ pub fn admit_evidence_kinds(
                     errors.push(refusal(
                         &path,
                         format!("{context}: referenced rule or kind has another evidence language"),
+                    ));
+                }
+            }
+            if let FieldSource::SameFile {
+                attach: Some(attach),
+                ..
+            }
+            | FieldSource::Document {
+                attach: Some(attach),
+                ..
+            } = source
+            {
+                let attachment_path = path.with_key("attach").with_key("until");
+                let source_language = match source {
+                    FieldSource::Document { rule, .. } => project.language_for_rule(rule),
+                    _ => language,
+                };
+                if !project.rule_ids.contains(&attach.until) {
+                    errors.push(refusal(
+                        &attachment_path,
+                        "unknown attachment boundary rule",
+                    ));
+                } else if project.language_for_rule(&attach.until) != source_language {
+                    errors.push(refusal(
+                        &attachment_path,
+                        "attachment boundary has another evidence language",
+                    ));
+                }
+                if let FieldSource::SameFile {
+                    of: MatchSource::Kind { kind },
+                    ..
+                } = source
+                    && kinds.get(kind).is_some_and(|definition| {
+                        matches!(
+                            definition.matcher,
+                            KindMatcher::HtmlUnits(_) | KindMatcher::MarkdownUnits(_)
+                        )
+                    })
+                {
+                    errors.push(refusal(
+                        &path,
+                        "attach requires an AST-backed source matcher",
                     ));
                 }
             }
@@ -246,7 +289,9 @@ pub fn admit_evidence_kinds(
                         errors.push(refusal(&path, "unknown evidence rule"));
                     }
                 }
-                FieldSource::Capture { regex } | FieldSource::Target { regex, .. } => {
+                FieldSource::Capture { regex }
+                | FieldSource::Captures { regex, .. }
+                | FieldSource::Target { regex, .. } => {
                     if let FieldSource::Target {
                         exclude: Some(exclude),
                         ..
@@ -260,7 +305,10 @@ pub fn admit_evidence_kinds(
                     }
                     match regex::Regex::new(regex) {
                         Err(_) => errors.push(refusal(&path, "invalid field regex")),
-                        Ok(pattern) if pattern.captures_len() < 2 => {
+                        Ok(pattern)
+                            if pattern.captures_len() < 2
+                                && !matches!(source, FieldSource::Captures { .. }) =>
+                        {
                             errors.push(refusal(&path, "field regex needs a capture group"))
                         }
                         Ok(_) => {}

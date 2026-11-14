@@ -76,7 +76,11 @@ pub fn project_model_view(raw: &BTreeMap<FieldName, FieldValue>, max_chars: usiz
         .iter()
         .map(|(name, value)| (name.clone(), model_field(value)))
         .collect::<BTreeMap<_, _>>();
-    let mut cut = BTreeSet::new();
+    let mut cut = raw
+        .iter()
+        .filter(|(_, value)| value.is_cut())
+        .map(|(name, _)| name.clone())
+        .collect::<BTreeSet<_>>();
     loop {
         let chars: usize = fields.values().map(model_value_chars).sum();
         if chars <= max_chars {

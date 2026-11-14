@@ -149,7 +149,7 @@ impl EvidenceBuild {
                 }
                 let mut fields = local_fields(
                     kind,
-                    definition,
+                    &self.kinds,
                     file,
                     range,
                     match_position,
@@ -157,12 +157,19 @@ impl EvidenceBuild {
                     &self.project.document_settings.html,
                 );
                 self.defer_fields(definition, file, range, &mut fields);
-                super::containing_fields::apply_containing_fields(
+                super::derived_fields::apply_derived_fields(
                     definition,
                     &mut fields,
                     false,
-                    file,
-                    &self.catalog.pieces,
+                    super::derived_fields::DerivedFieldsContext {
+                        kinds: &self.kinds,
+                        file,
+                        pieces: &self.catalog.pieces,
+                        own_range: range,
+                        contents: Some(&self.contents),
+                        project: Some(&self.project),
+                        max_matches: self.limits.max_matches,
+                    },
                 );
                 let span = source_span(file, range);
                 let location = PieceLocation {

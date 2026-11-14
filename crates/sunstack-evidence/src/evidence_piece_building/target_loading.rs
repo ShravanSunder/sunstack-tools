@@ -227,12 +227,22 @@ impl EvidenceBuild {
                 );
             }
             if let Some(file) = self.matched.get(&piece.location.file) {
-                super::containing_fields::apply_containing_fields(
+                super::derived_fields::apply_derived_fields(
                     &definition,
                     &mut piece.fields,
                     true,
-                    file,
-                    &self.catalog.pieces,
+                    super::derived_fields::DerivedFieldsContext {
+                        kinds: &self.kinds,
+                        file,
+                        pieces: &self.catalog.pieces,
+                        own_range: &MatchRange {
+                            start: piece.location.span.byte_start,
+                            end: piece.location.span.byte_end,
+                        },
+                        contents: Some(&self.contents),
+                        project: Some(&self.project),
+                        max_matches: self.limits.max_matches,
+                    },
                 );
             }
             piece.model_view = self.project_fields(kind, &definition, &piece.fields);
@@ -341,7 +351,7 @@ impl EvidenceBuild {
                 }
                 let fields = local_fields(
                     kind,
-                    definition,
+                    &self.kinds,
                     &file,
                     range,
                     position,

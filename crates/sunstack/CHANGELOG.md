@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.22.2
+
+- Collect ordered, deduplicated regex matches from a piece or a named text field with `captures`; compose captured IDs with document filters.
+- Attach following AST siblings to document and same-file matches with explicit boundaries and caps; propagate cap cuts through derived fields and pass guards.
+- Regenerate the SDK contract at revision 18. Complete wire values omit the new default-false `cut` flag; Rust list constructors now supply `cut: false`, and manual document/same-file source constructors supply `attach: None`.
+
 ## 0.22.1
 
 Release date: 2026-11-14.
