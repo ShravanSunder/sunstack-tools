@@ -1,6 +1,6 @@
 {
 	"name": "@sunstack/sdk",
-	"version": "0.21.1",
+	"version": "0.21.2",
 	"description": "Typed TypeScript access to the Sunstack engine: load, check and run configurations",
 	"license": "MIT",
 	"repository": {

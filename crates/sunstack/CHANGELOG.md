@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.21.2
+
+Release date: 2026-11-14.
+
+- Publish the TypeScript SDK and its six native addon packages from the CLI's
+  release tag using npm trusted publishing, after all addon builds and candidate
+  installs pass. PR CI dry-runs all seven packages and checks their contents and
+  platform metadata. Release smoke installs the SDK by version from npm on
+  Linux and macOS. First publication requires owner bootstrap and per-package
+  trusted-publisher setup before enabling the SDK publishing variable.
+- Align the CLI, SDK and six addon packages to 0.21.2; contract revision 15 stays.
+
 ## 0.21.1
 
 Release date: 2026-11-14.
