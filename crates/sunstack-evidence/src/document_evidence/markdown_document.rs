@@ -6,6 +6,12 @@ use std::{collections::BTreeMap, ops::Range};
 
 type BlockNode<'tree> = Node<'tree, StrDoc<SupportLang>>;
 
+struct TrailingMarker {
+    id: MarkerId,
+    range: Range<usize>,
+    run_start: usize,
+}
+
 mod heading_anchors;
 pub(crate) mod section_outline;
 mod unit_selection;
@@ -55,20 +61,20 @@ impl MarkdownDocument {
         let text = self.tree.source();
         let markers = self.marker_ranges(prefix);
         let mut counts = BTreeMap::new();
-        for (id, _) in &markers {
-            *counts.entry(id).or_insert(0usize) += 1;
+        for marker in &markers {
+            *counts.entry(&marker.id).or_insert(0usize) += 1;
         }
         markers
             .iter()
-            .map(|(id, range)| {
+            .map(|located| {
                 let marker = MarkdownMarker {
-                    id: id.clone(),
-                    span: MarkdownTextSpan::from_range(text, range.clone()),
+                    id: located.id.clone(),
+                    span: MarkdownTextSpan::from_range(text, located.range.clone()),
                 };
-                let result = if counts.get(id).copied().unwrap_or_default() > 1 {
+                let result = if counts.get(&located.id).copied().unwrap_or_default() > 1 {
                     Err(MarkdownBindingRefusal::DuplicateId)
                 } else {
-                    self.bind_marker(marker.clone(), max_question_words)
+                    self.bind_marker(marker.clone(), located.run_start, max_question_words)
                 };
                 match result {
                     Ok(binding) => MarkdownMarkerBinding::Bound { binding },
@@ -78,29 +84,46 @@ impl MarkdownDocument {
             .collect()
     }
 
-    fn marker_ranges(&self, prefix: &MarkerPrefix) -> Vec<(MarkerId, Range<usize>)> {
+    fn marker_ranges(&self, prefix: &MarkerPrefix) -> Vec<TrailingMarker> {
         let text = self.tree.source();
         let mut offset = 0;
         let mut markers = Vec::new();
         for line in text.split_inclusive('\n') {
             let line_end = line.trim_end().len();
-            if let Some(start) = line[..line_end].rfind("<!-- ") {
-                let candidate = &line[start..line_end];
-                if candidate.len() == 13
-                    && candidate.ends_with(" -->")
-                    && line[..start]
+            let mut end = line_end;
+            let mut run = Vec::new();
+            while let Some(start) = end.checked_sub(13) {
+                let Some(candidate) = line.get(start..end) else {
+                    break;
+                };
+                if !candidate.starts_with("<!-- ") || !candidate.ends_with(" -->") {
+                    break;
+                }
+                let Ok(id) = MarkerId::new(&candidate[5..9]) else {
+                    break;
+                };
+                run.push((id, offset + start..offset + end));
+                end = line[..start].trim_end_matches([' ', '\t']).len();
+            }
+            if let Some((_, first)) = run.last() {
+                let run_start = first.start;
+                for (id, range) in run.into_iter().rev() {
+                    let start = range.start - offset;
+                    if line[..start]
                         .bytes()
                         .rev()
                         .take_while(|byte| *byte == b'\\')
                         .count()
                         % 2
                         == 0
-                    && let Ok(id) = MarkerId::new(&candidate[5..9])
-                    && id.as_str().starts_with(prefix.as_str())
-                {
-                    let range = offset + start..offset + line_end;
-                    if !self.marker_in_code(&range) {
-                        markers.push((id, range));
+                        && id.as_str().starts_with(prefix.as_str())
+                        && !self.marker_in_code(&range)
+                    {
+                        markers.push(TrailingMarker {
+                            id,
+                            range,
+                            run_start,
+                        });
                     }
                 }
             }
@@ -134,6 +157,7 @@ impl MarkdownDocument {
     fn bind_marker(
         &self,
         marker: MarkdownMarker,
+        run_start: usize,
         max_question_words: usize,
     ) -> Result<BoundMarkdownText, MarkdownBindingRefusal> {
         let text = self.tree.source();
@@ -170,7 +194,7 @@ impl MarkdownDocument {
             .or_else(|| path.iter().rev().find(|node| node.kind() == "paragraph"))
             .ok_or(MarkdownBindingRefusal::ForbiddenHost)?;
         if heading_level(host).is_some()
-            && text[..range.start]
+            && text[..run_start]
                 .chars()
                 .next_back()
                 .is_some_and(char::is_whitespace)

@@ -50,6 +50,16 @@ A configuration has the following parts:
 
 Replace `your-rule-id` with a rule in your ast-grep project. An end-of-line marker
 such as `<!-- K001 -->` binds a Markdown standard to its `K001` JSON entry.
+Several entries can check the same standard by putting their markers in one
+trailing run, for example `One visual per point.<!-- K001 --><!-- K002 -->`.
+Spaces and tabs may separate markers; only whitespace may follow the last one.
+Each marker keeps the exact syntax shown and its own source coordinates. All
+markers in the run bind the same full paragraph, list item or heading section,
+with comments omitted from the standard text. Heading adjacency is checked
+before the first marker; the whole run must touch the heading text directly.
+Escaped markers and markers inside code remain literal; each configured-prefix
+ID must be unique in the source, including within one run. A malformed comment
+or ordinary text interrupts a run. Existing single-marker bindings are unchanged.
 Each entry names an evidence kind and a decision graph. Steps can check fields
 mechanically, ask authored questions, combine answers and route to pass or a
 finding. Questions reach the model as authored, with one piece's bounded field
