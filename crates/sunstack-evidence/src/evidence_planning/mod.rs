@@ -10,3 +10,4 @@ pub(crate) mod evidence_plan_decoding;
 pub mod evidence_project_loading;
 mod field_source_decoding;
 mod kind_matcher_decoding;
+pub mod section_scope;

@@ -145,15 +145,62 @@ The prefix and full/status fields can appear separately in the same saved
 prepare report. Field names do not isolate questions within a shared request or
 guarantee relevance. Mechanical text checks read the raw prefix. Existing AST
 checks still scope matches to their original selected subject, and cannot name
-this field as an AST target. Its source span is retained for consumers to compare
-against configured AST match spans; there is no config-level AST-selector-to-field
-join yet. A regex over raw tags is not parsed-element evidence.
+this field as an AST target. Use section-scoped containment to collect parsed
+pieces from the prefix. A regex over raw tags is not parsed-element evidence.
+
+## Section-scoped containment
+
+An `inside` field can collect final pieces of a configured kind from the subject's
+nearest configured containing section, including pieces in another language:
+
+```json
+{
+  "pictures_before": {
+    "from": "inside",
+    "kind": "picture",
+    "scope": {"section_prefix": "outline"}
+  },
+  "pictures_in_section": {
+    "from": "inside",
+    "kind": "picture",
+    "scope": {"section": "outline"}
+  }
+}
+```
+
+This fragment belongs in a kind's `fields`. `picture` and `outline` name caller
+kinds. Native sections or AST-backed kinds can supply the containing ranges, as
+with `section_prefix`. Both kinds are dependencies; undefined kinds and cycles
+are refused. A scope has exactly one of `section` or `section_prefix`; scoped
+`inside` requires `kind` and refuses `rule`. Omitting `scope` keeps ordinary
+subject-span containment unchanged.
+
+For section `[S0,S1)` and subject `[E0,E1)`, the scope is `[S0,S1)` for `section`
+or `[S0,E0)` for `section_prefix`. Only complete piece spans contained in that
+range are returned. The nearest containing section wins; pieces under an earlier
+heading outside it are excluded. Matching uses the original file and content
+identity, so HTML subjects can collect Markdown fences inside configured islands
+without an HTML/Markdown syntax-tree join.
+
+The field is a text list of full raw piece texts and their original spans, ordered
+by starting and ending byte. Raw syntax is retained in asking views too, including
+HTML tags, so cross-language pieces are not reinterpreted as the subject's
+language. Normal text budgets and cuts still apply. Scoped context does not
+subtract from the subject's `remainder`.
+
+An available section with no matching pieces yields an empty list. Missing,
+crossing, stale or scan-limited section evidence, or scan-limited collected-kind
+evidence, yields `unavailable` (`unreadable`). Unanswered section or contained-kind
+selection yields `selection_pending` when it can affect the result. There is no
+whole-document fallback. A mechanical `regex` check with `pattern: "(?s).*"` is false
+for an empty list and true when any piece is present, including empty text; unavailable inputs remain
+incomplete. `complete` checks availability/cuts, not nonemptiness.
 
 ## Language and model views
 
 Evidence supports every language in ast-grep 0.51's `SupportLang`. Serialized evidence language tags use snake_case; existing `markdown` and `json` tags remain readable. JSON, YAML, and HCL parse errors mark the language failed and skip its rules. HTML, Markdown, and the other supported languages retain matches despite parse errors. The `yaml` front-matter field source is admitted only for Markdown kinds.
 
-For asking rules, HTML fields are projected as text content: tags and comments are omitted, entities are decoded as above, and whitespace is collapsed. Text inside `script` and `style` remains, as with DOM `textContent`. Other languages' fields remain raw. Mechanical checks use the stored field values: heading fields contain derived text as described above, while ordinary source fields remain raw. Locations retain raw byte ranges.
+For asking rules, HTML fields other than scoped containment lists are projected as text content: tags and comments are omitted, entities are decoded as above, and whitespace is collapsed. Text inside `script` and `style` remains, as with DOM `textContent`. Other languages' fields remain raw. Mechanical checks use the stored field values: heading fields contain derived text as described above, while ordinary source fields remain raw. Locations retain raw byte ranges.
 
 `alt` and `aria-label` attributes contribute text on every element. Project-specific attributes and outline exclusions belong in the project's evidence config:
 

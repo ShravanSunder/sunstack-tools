@@ -220,6 +220,11 @@ pub enum FieldSource {
         #[serde(flatten)]
         of: MatchSource,
     },
+    #[serde(rename = "inside")]
+    ScopedInside {
+        kind: EvidenceKindName,
+        scope: crate::SectionScope,
+    },
     Enclosing {
         #[serde(flatten)]
         of: MatchSource,
@@ -322,6 +327,7 @@ impl FieldSource {
             | Self::Remainder { .. } => FieldShape::Text,
             Self::Document { .. }
             | Self::Inside { .. }
+            | Self::ScopedInside { .. }
             | Self::Enclosing { .. }
             | Self::SameFile { .. }
             | Self::Next { .. }

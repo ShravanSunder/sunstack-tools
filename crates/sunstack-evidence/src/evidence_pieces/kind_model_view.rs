@@ -49,6 +49,7 @@ pub fn project_kind_model_view(
                     project.language_for_rule(rule) == Some(EvidenceLanguage::Html)
                 }
                 Some(FieldSource::Target { .. }) => true,
+                Some(FieldSource::ScopedInside { .. }) => false,
                 _ => html,
             };
             let mut incomplete = false;

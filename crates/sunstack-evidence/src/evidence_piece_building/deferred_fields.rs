@@ -74,6 +74,32 @@ impl EvidenceBuild {
         }
         let mut pending_inside = false;
         for (name, source) in &definition.fields {
+            if let FieldSource::ScopedInside { kind, scope } = source {
+                let outline_pending = self
+                    .unresolved_ranges(scope.kind(), file)
+                    .iter()
+                    .any(|unknown| match_within(range, unknown));
+                let piece_pending = super::section_scoped_fields::scoped_range(
+                    file,
+                    scope,
+                    range,
+                    &self.catalog.pieces,
+                )
+                .is_ok_and(|scope_range| {
+                    self.unresolved_ranges(kind, file)
+                        .iter()
+                        .any(|unknown| match_within(unknown, &scope_range))
+                });
+                if outline_pending || piece_pending {
+                    fields.insert(
+                        name.clone(),
+                        FieldValue::Unavailable {
+                            reason: FieldUnavailable::SelectionPending,
+                        },
+                    );
+                }
+                continue;
+            }
             let kind = match source {
                 FieldSource::SectionPrefix { kind } => kind,
                 FieldSource::SameFile { of, .. }
