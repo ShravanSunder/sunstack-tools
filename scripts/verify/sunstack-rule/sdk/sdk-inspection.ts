@@ -10,6 +10,7 @@ import { boundedSdkWait, type SdkControlledBackend } from './sdk-controlled-back
 import { observeSdkEmbeddedMarkdown } from './sdk-embedded-markdown.ts';
 import { observeSdkInspectionCli } from './sdk-inspection-cli.ts';
 import type { JourneyResult } from './sdk-journeys.ts';
+import { observeSdkScopedInside } from './sdk-scoped-inside.ts';
 import { observeSdkSectionPrefix } from './sdk-section-prefix.ts';
 import { requireSdk, saveSdkEvidence, type SdkExports, type SdkTarget } from './sdk-target.ts';
 
@@ -291,8 +292,16 @@ export async function observeSdkInspection(options: {
 					observed: [],
 					gaps: ['Configured Markdown islands require a 0.18 / revision 12 or newer target'],
 				};
+	const scoped =
+		target.contractRevision >= 13
+			? await observeSdkScopedInside({ sdk, target, evidence, backend })
+			: {
+					observed: [],
+					gaps: ['Section-scoped containment requires a 0.19 / revision 13 or newer target'],
+				};
 	return {
 		observed: [
+			...scoped.observed,
 			...islands.observed,
 			...prefix.observed,
 			...(cliObservations?.observed ?? []),
@@ -311,6 +320,7 @@ export async function observeSdkInspection(options: {
 			'zero controlled model requests',
 		],
 		gaps: [
+			...scoped.gaps,
 			...islands.gaps,
 			...prefix.gaps,
 			...(!target.cli
