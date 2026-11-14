@@ -190,6 +190,7 @@ pub(super) fn local_fields(
         }
         fields.insert(name.clone(), remainder_field(file, range, field_taken));
     }
+    super::containing_fields::apply_containing_fields(definition, &mut fields, false, file, pieces);
     fields
 }
 

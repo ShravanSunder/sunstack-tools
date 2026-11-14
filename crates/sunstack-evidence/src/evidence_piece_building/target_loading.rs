@@ -10,7 +10,7 @@ impl EvidenceBuild {
         let definition = self.kinds[kind].clone();
         for piece in &mut pieces {
             for (field, field_source) in &definition.fields {
-                if let FieldSource::Document { path, rule } = field_source {
+                if let FieldSource::Document { path, rule, .. } = field_source {
                     let value = self.document_field(&piece.location.file, path, rule, source);
                     piece.fields.insert(field.clone(), value);
                     continue;
@@ -172,8 +172,34 @@ impl EvidenceBuild {
                         target.opening = Some(opening);
                         if use_path {
                             if let Some(as_kind) = as_kind {
-                                target.fields =
-                                    self.path_target_fields(&resolved, &text, as_kind)?;
+                                let anchor = match &target.anchor {
+                                    Some(crate::TargetAnchor::Found { fragment }) => {
+                                        if is_html_path(&resolved) {
+                                            crate::document_evidence::html_content::html_id_range(
+                                                &text, fragment,
+                                            )
+                                        } else {
+                                            crate::MarkdownDocument::parse(&text).anchor_range(
+                                                fragment,
+                                                self.project
+                                                    .document_settings
+                                                    .markdown
+                                                    .heading_anchors,
+                                            )
+                                        }
+                                    }
+                                    None => None,
+                                    Some(_) => return Err(FieldUnavailable::TargetKindMissing),
+                                };
+                                target.fields = self.path_target_fields(
+                                    &resolved,
+                                    &text,
+                                    as_kind,
+                                    anchor.as_ref(),
+                                )?;
+                                if target.anchor.is_some() && target.fields.is_none() {
+                                    return Err(FieldUnavailable::TargetKindMissing);
+                                }
                             }
                         } else {
                             target.exists = true;
@@ -200,6 +226,15 @@ impl EvidenceBuild {
                     },
                 );
             }
+            if let Some(file) = self.matched.get(&piece.location.file) {
+                super::containing_fields::apply_containing_fields(
+                    &definition,
+                    &mut piece.fields,
+                    true,
+                    file,
+                    &self.catalog.pieces,
+                );
+            }
             piece.model_view = self.project_fields(kind, &definition, &piece.fields);
         }
         for count in &mut self.catalog.file_counts {
@@ -223,12 +258,26 @@ impl EvidenceBuild {
         path: &Path,
         text: &str,
         as_kind: &EvidenceKindName,
+        anchor: Option<&std::ops::Range<usize>>,
     ) -> Result<Option<BTreeMap<FieldName, FieldValue>>, FieldUnavailable> {
         if let Some(piece) = self
             .catalog
             .pieces
             .iter()
-            .find(|piece| piece.kind == *as_kind && piece.location.file == path)
+            .filter(|piece| piece.kind == *as_kind && piece.location.file == path)
+            .filter(|piece| {
+                anchor.is_none_or(|anchor| {
+                    piece.location.span.byte_start <= anchor.start
+                        && anchor.end <= piece.location.span.byte_end
+                })
+            })
+            .min_by_key(|piece| {
+                if anchor.is_some() {
+                    piece.location.span.byte_end - piece.location.span.byte_start
+                } else {
+                    piece.location.span.byte_start
+                }
+            })
         {
             return Ok(Some(piece.fields.clone()));
         }
@@ -247,6 +296,9 @@ impl EvidenceBuild {
         let index =
             self.project
                 .match_file_as_language(path, text, self.limits.max_matches, language);
+        if index.limited || index.failed_languages.contains(&language) {
+            return Err(FieldUnavailable::Unreadable);
+        }
         let mut remaining_matches = self
             .limits
             .max_matches
@@ -296,7 +348,7 @@ impl EvidenceBuild {
                     &pieces,
                     &self.project.document_settings.html,
                 );
-                if kind == as_kind {
+                if kind == as_kind && anchor.is_none() {
                     return Ok(Some(fields));
                 }
                 let span = source_span(&file, range);
@@ -314,7 +366,17 @@ impl EvidenceBuild {
                 });
             }
         }
-        Ok(None)
+        Ok(pieces
+            .iter()
+            .filter(|piece| piece.kind == *as_kind)
+            .filter(|piece| {
+                anchor.is_some_and(|anchor| {
+                    piece.location.span.byte_start <= anchor.start
+                        && anchor.end <= piece.location.span.byte_end
+                })
+            })
+            .min_by_key(|piece| piece.location.span.byte_end - piece.location.span.byte_start)
+            .map(|piece| piece.fields.clone()))
     }
 }
 

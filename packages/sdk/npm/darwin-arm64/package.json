@@ -1,6 +1,6 @@
 {
 	"name": "@sunstack/sdk-darwin-arm64",
-	"version": "0.21.1",
+	"version": "0.22.0",
 	"description": "Sunstack SDK native addon for aarch64-apple-darwin",
 	"license": "MIT",
 	"repository": {

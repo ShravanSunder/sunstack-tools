@@ -6,7 +6,8 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use sunstack_decisions::{JudgmentAnswer, NamedAnswerMap, NamedQuestionMap};
 use sunstack_evidence::{
-    EvidencePiece, FieldName, FieldValue, FileMatchIndex, MatchRange, ModelView, match_within,
+    EvidencePiece, FieldName, FieldValue, FileMatchIndex, MatchRange, ModelView,
+    contains_whole_token, match_within,
 };
 
 #[cfg_attr(feature = "typescript", derive(specta::Type))]
@@ -580,28 +581,6 @@ pub(super) fn mechanical_check(
         }
         DecisionMechanicalTool::AstGrep { .. } => false,
     })
-}
-
-fn contains_whole_token(text: &str, needle: &str) -> bool {
-    let is_token_character = |character: char| character.is_alphanumeric() || character == '_';
-    let mut search_start = 0;
-    while let Some(relative_start) = text[search_start..].find(needle) {
-        let start = search_start + relative_start;
-        let end = start + needle.len();
-        if !text[..start]
-            .chars()
-            .next_back()
-            .is_some_and(is_token_character)
-            && !text[end..].chars().next().is_some_and(is_token_character)
-        {
-            return true;
-        }
-        let Some(next_character) = text[start..].chars().next() else {
-            break;
-        };
-        search_start = start + next_character.len_utf8();
-    }
-    false
 }
 
 /// The shared referenced-field guard for rule and evidence-selection questions.

@@ -1005,6 +1005,10 @@ export const wideIntegerDefinitions = {
 					all: [
 						{
 							object: {
+								containing: {
+									arguments: {},
+									ref: 'FieldName',
+								},
 								text: {
 									arguments: {},
 									ref: 'ContextText',
@@ -1051,6 +1055,10 @@ export const wideIntegerDefinitions = {
 				},
 				{
 					object: {
+						containing: {
+							arguments: {},
+							ref: 'FieldName',
+						},
 						path: {
 							arguments: {},
 							ref: 'DocumentCandidates',

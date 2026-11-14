@@ -37,10 +37,16 @@ pub fn admit_selections(
             &mut errors,
         );
         for field in &wire.shared {
-            if !matches!(kind.fields.get(field), Some(FieldSource::SameFile { .. })) {
+            if !matches!(
+                kind.fields.get(field),
+                Some(FieldSource::SameFile {
+                    containing: None,
+                    ..
+                })
+            ) {
                 errors.push(refusal(
                     path.with_key("shared"),
-                    "shared must name a defined same_file field",
+                    "shared must name a defined same_file field without a subject-dependent containing filter",
                 ));
             }
         }
@@ -100,6 +106,10 @@ pub fn admit_selections(
                 Some(FieldSource::Document { .. }) => Some("document"),
                 _ => None,
             };
+            let unavailable_source = unavailable_source.or_else(|| {
+                kind.field_needs_document(&field)
+                    .then_some("document-dependent")
+            });
             if let Some(source) = unavailable_source {
                 errors.push(refusal(
                     path.with_key("question"),

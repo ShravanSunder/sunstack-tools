@@ -89,3 +89,7 @@ impl EvidenceBuild {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "document_fields_test.rs"]
+mod tests;

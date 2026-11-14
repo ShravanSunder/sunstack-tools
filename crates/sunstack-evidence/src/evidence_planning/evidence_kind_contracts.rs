@@ -236,6 +236,8 @@ pub enum FieldSource {
         of: MatchSource,
         #[serde(default, skip_serializing_if = "ContextText::is_first_line")]
         text: ContextText,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        containing: Option<FieldName>,
     },
     Next {
         rule: EvidenceRuleId,
@@ -257,6 +259,8 @@ pub enum FieldSource {
     Document {
         path: crate::DocumentCandidates,
         rule: EvidenceRuleId,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        containing: Option<FieldName>,
     },
     Target {
         regex: String,
@@ -374,6 +378,8 @@ pub enum FieldUnavailable {
     FrontmatterMalformed,
     NotAString,
     Unreadable,
+    TargetKindMissing,
+    ContainingFieldUnavailable,
 }
 impl FieldValue {
     pub fn is_selection_pending(&self) -> bool {

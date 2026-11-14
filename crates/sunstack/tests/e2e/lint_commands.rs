@@ -9,6 +9,8 @@ use sunstack_decisions::CancellationToken;
 use sunstack_lint::test_support::lint_fixture as fixture;
 use sunstack_rules::test_support::controlled_http as controlled;
 use tokio::process::Command;
+#[path = "lint_commands/anchored_fields.rs"]
+mod anchored_fields;
 #[path = "lint_commands/checked_root.rs"]
 mod checked_root;
 #[path = "lint_commands/config_onboarding.rs"]

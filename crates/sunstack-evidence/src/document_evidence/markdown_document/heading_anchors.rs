@@ -13,20 +13,30 @@ impl MarkdownDocument {
         fragment: String,
         scheme: Option<HeadingAnchorScheme>,
     ) -> TargetAnchor {
-        let normalized = NormalizedMarkdown::new(self.tree.source());
-        let projection = OffsetProjection::new(&normalized);
-        if has_explicit_anchor(&projection, &fragment) {
-            return TargetAnchor::Found { fragment };
-        }
-        let Some(scheme) = scheme else {
-            return TargetAnchor::Unsupported {
+        if self.anchor_range(&fragment, scheme).is_some() {
+            TargetAnchor::Found { fragment }
+        } else if scheme.is_none() {
+            TargetAnchor::Unsupported {
                 fragment,
                 reason: TargetAnchorUnsupportedReason::HeadingSchemeNotConfigured,
-            };
-        };
-        let mut slugger = scheme.slugger();
-        let has_heading = self
-            .tree
+            }
+        } else {
+            TargetAnchor::Missing { fragment }
+        }
+    }
+
+    pub(crate) fn anchor_range(
+        &self,
+        fragment: &str,
+        scheme: Option<HeadingAnchorScheme>,
+    ) -> Option<std::ops::Range<usize>> {
+        let normalized = NormalizedMarkdown::new(self.tree.source());
+        let projection = OffsetProjection::new(&normalized);
+        if let Some(range) = explicit_anchor_range(&projection, fragment) {
+            return Some(normalized.original_range(range));
+        }
+        let mut slugger = scheme?.slugger();
+        self.tree
             .root()
             .dfs()
             .filter(|node| {
@@ -42,37 +52,41 @@ impl MarkdownDocument {
                         )
                     })
             })
-            .any(|heading| slugger.slug(&projection.heading_text(heading.range())) == fragment);
-        if has_heading {
-            TargetAnchor::Found { fragment }
-        } else {
-            TargetAnchor::Missing { fragment }
-        }
+            .find(|heading| slugger.slug(&projection.heading_text(heading.range())) == fragment)
+            .map(|heading| heading.range())
     }
 }
 
-fn has_explicit_anchor(projection: &OffsetProjection<'_>, fragment: &str) -> bool {
+fn explicit_anchor_range(
+    projection: &OffsetProjection<'_>,
+    fragment: &str,
+) -> Option<std::ops::Range<usize>> {
     let mut combined = String::new();
     let mut previous_end = None;
+    let mut combined_start = 0;
     for (html, range) in projection.html_fragments() {
         if previous_end.is_some_and(|end| end != range.start) {
-            if html_fragment_has_anchor(&combined, fragment) {
-                return true;
+            if let Some(range) = html_fragment_anchor_range(&combined, fragment) {
+                return Some(combined_start + range.start..combined_start + range.end);
             }
             combined.clear();
+        }
+        if combined.is_empty() {
+            combined_start = range.start;
         }
         combined.push_str(html);
         previous_end = Some(range.end);
     }
-    html_fragment_has_anchor(&combined, fragment)
+    html_fragment_anchor_range(&combined, fragment)
+        .map(|range| combined_start + range.start..combined_start + range.end)
 }
 
-fn html_fragment_has_anchor(html: &str, fragment: &str) -> bool {
+fn html_fragment_anchor_range(html: &str, fragment: &str) -> Option<std::ops::Range<usize>> {
     let tree = SupportLang::Html.ast_grep(html);
     tree.root()
         .dfs()
         .filter(|node| matches!(node.kind().as_ref(), "start_tag" | "self_closing_tag"))
-        .any(|tag| {
+        .find(|tag| {
             let is_anchor = tag
                 .children()
                 .any(|child| child.kind() == "tag_name" && child.text().eq_ignore_ascii_case("a"));
@@ -91,6 +105,7 @@ fn html_fragment_has_anchor(html: &str, fragment: &str) -> bool {
                             .is_some_and(|value| decode_entities(&value.text()) == fragment)
                 })
         })
+        .map(|tag| tag.range())
 }
 
 #[cfg(test)]

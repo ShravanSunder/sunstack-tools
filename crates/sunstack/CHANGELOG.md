@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.22.0
+
+Release date: 2026-11-14.
+
+- Resolve a path target's `as_kind` at its fragment, including cached target files
+  and containing pieces. Missing anchored kinds are unavailable with
+  `target_kind_missing`; file openings and no-fragment behavior stay unchanged.
+- Add `containing` to `document` and `same_file` fields. A scalar or list-valued
+  subject field filters raw matches by the shared whole-token rule. Empty lists
+  remain available facts, and unavailable needles propagate. Candidate-path
+  resolution, raw spans and old configurations retain their behavior.
+- Markdown-island pieces can read enclosing HTML rule/kind context and native
+  heading paths, plus HTML section prefixes, using original source containment.
+  Other ordinary cross-language directions remain refused.
+- Align the SDK and six platform packages to 0.22.0 / contract revision 16,
+  regenerating declarations from the Rust field and unavailable-reason contracts.
+
 ## 0.21.1
 
 Release date: 2026-11-14.

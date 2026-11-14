@@ -773,6 +773,42 @@ The ordered path list chooses the first existing name, recorded with the field's
 `path`, values and spans. A present but unreadable or scan-limited file stays
 incomplete; it does not silently fall back to another name.
 
+### Collect rows linked to the subject
+
+Use `containing` on `document` or `same_file` to keep only matches that mention
+a subject field's value. For example, add these fields to a kind that already
+captures `identifier` as `U4` and collects `requirement_ids` as a list of plain
+IDs such as `["U4", "U7"]`:
+
+<!-- example: containing-fields -->
+```json
+{
+  "obligations": {"from": "document", "path": ["specification.html", "Specification.html"], "rule": "obligation-row", "containing": "identifier"},
+  "verification": {"from": "document", "path": "verification.html", "rule": "verification-row", "containing": "requirement_ids"},
+  "trace": {"from": "same_file", "rule": "trace-row", "text": "full", "containing": "identifier"}
+}
+```
+
+The named rules select rows, rather than whole pages. `obligations` and `trace`
+keep only rows mentioning `U4`. `verification` keeps a row when **any** listed ID
+matches, so `U4 (R1–R3, R5, R7)` qualifies; `U40` alone does not. The rule names
+and ID-producing fields belong to the caller. A list of link markup is not a
+list of plain IDs.
+
+Matching uses the full raw match text before `same_file`'s `first_line` or `full`
+projection. It shares `contains_field`'s literal, case-sensitive token rule:
+neither adjacent character may be a Unicode letter, digit or `_`. Every matching
+row appears once in source order with its original span. HTML, Markdown and
+configured Markdown islands use the same rule. An empty ID list or no matching
+rows returns an available empty list. An absent, empty scalar, unavailable or
+missing-document subject field makes the filtered field unavailable. `containing`
+must name a defined text or text-list field; dependency cycles are refused.
+Document candidate selection and missing-document routing are unchanged.
+
+Document fields and fields depending on them are unavailable to selection
+questions. Subject-dependent `same_file` fields cannot be shared across
+selection candidates. Without `containing`, existing collection is unchanged.
+
 ## HTML evidence
 
 For the `requirement-row` and `whole-document` HTML ast-grep rules in the
@@ -864,6 +900,24 @@ with spans pointing into the original HTML file. The element names and exact
 attribute values belong to the caller's configuration. See
 [embedded Markdown](../sunstack-evidence/docs/html-evidence.md#embedded-markdown)
 for selection, ordering and source-byte semantics.
+
+An island piece can also read its surrounding HTML with `enclosing`, naming an
+HTML rule or kind and using `first_line` or `full`, or a native HTML section kind
+with `text: "heading"`. `section_prefix` can name that HTML outline kind too.
+For example, `{"from":"enclosing","rule":"closed-details","text":"first_line"}`
+can expose the opening `<details>` around an island table, when `closed-details`
+selects that element. HTML context remains raw in a Markdown piece's asking view;
+heading fields retain their existing derived heading text. Containment uses the
+original HTML spans, without joining the two syntax trees. This cross-language
+direction requires configured embedded Markdown; JSON and other ordinary
+cross-language references remain refused.
+
+For a path target with `as_kind` and a resolved fragment, the loaded fields come
+from the narrowest piece of that kind containing the anchored element or
+Markdown heading. If none exists, or the fragment cannot resolve, the target
+field is unavailable with reason `target_kind_missing`. A target without a
+fragment still uses the first piece. `opening` remains the **file's opening**,
+bounded by `opening_chars`; it is independent of anchor-relative `as_kind` fields.
 
 ## Selected and contained evidence
 
