@@ -296,7 +296,7 @@ impl EvidenceBuild {
         let index =
             self.project
                 .match_file_as_language(path, text, self.limits.max_matches, language);
-        if index.limited || index.failed_languages.contains(&language) {
+        if anchor.is_some() && (index.limited || index.failed_languages.contains(&language)) {
             return Err(FieldUnavailable::Unreadable);
         }
         let mut remaining_matches = self

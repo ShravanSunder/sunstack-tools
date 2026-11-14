@@ -3,6 +3,59 @@ use super::*;
 use serde_json::json;
 
 #[test]
+fn unanchored_target_keeps_first_piece_when_later_matches_hit_the_limit() {
+    let root = tempfile::tempdir().unwrap();
+    std::fs::create_dir(root.path().join("rules")).unwrap();
+    std::fs::write(root.path().join("sgconfig.yml"), "ruleDirs: [rules]\n").unwrap();
+    std::fs::write(
+        root.path().join("rules/rows.yml"),
+        "id: rows\nlanguage: Html\nrule: {kind: element, regex: '^<p'}\n",
+    )
+    .unwrap();
+    let project = crate::load_evidence_project(
+        &root.path().join("sgconfig.yml"),
+        &[],
+        None,
+        &Default::default(),
+    )
+    .unwrap();
+    let kinds = serde_json::from_value(
+        json!({"requirement":{"rule":"rows","fields":{"body":{"from":"remainder"}}}}),
+    )
+    .unwrap();
+    let mut source = crate::FilesystemCheckedSource::new(root.path()).unwrap();
+    let build = crate::EvidenceBuild::start(
+        &project,
+        &kinds,
+        &[],
+        &mut source,
+        PieceBuildLimits {
+            max_files: 10,
+            max_file_bytes: 10000,
+            max_total_bytes: 100000,
+            max_matches: 1,
+            evidence_max_chars: 6000,
+        },
+    )
+    .unwrap();
+    let text = "<p id='U1'>First</p><p id='U2'>Second</p>";
+    let kind = EvidenceKindName::new("requirement").unwrap();
+
+    let unanchored = build.path_target_fields(Path::new("target.html"), text, &kind, None);
+
+    let fields = unanchored.unwrap().unwrap();
+    assert!(
+        matches!(&fields[&FieldName::new("body").unwrap()], FieldValue::Text {value,..} if value=="<p id='U1'>First</p>")
+    );
+    let second = text.find("<p id='U2'>").unwrap()..text.len();
+    let anchored = build.path_target_fields(Path::new("target.html"), text, &kind, Some(&second));
+    assert!(
+        matches!(anchored, Err(FieldUnavailable::Unreadable)),
+        "an incomplete match set must not guess at an anchored piece"
+    );
+}
+
+#[test]
 fn anchored_targets_collect_the_matching_kind_instead_of_the_first_piece() {
     let root = tempfile::tempdir().unwrap();
     std::fs::create_dir(root.path().join("rules")).unwrap();
