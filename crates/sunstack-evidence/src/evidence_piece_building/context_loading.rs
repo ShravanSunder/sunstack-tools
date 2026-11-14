@@ -185,18 +185,39 @@ impl EvidenceBuild {
         catalog
             .file_counts
             .sort_by(|left, right| left.file.cmp(&right.file));
-        catalog.pieces.sort_by(|left, right| {
-            (
-                &left.kind,
-                &left.location.file,
-                left.location.span.byte_start,
-            )
-                .cmp(&(
-                    &right.kind,
-                    &right.location.file,
-                    right.location.span.byte_start,
-                ))
-        });
+        if !self
+            .project
+            .document_settings
+            .html
+            .embedded_markdown
+            .is_empty()
+        {
+            catalog.pieces.sort_by(|left, right| {
+                (
+                    &left.location.file,
+                    left.location.span.byte_start,
+                    &left.kind,
+                )
+                    .cmp(&(
+                        &right.location.file,
+                        right.location.span.byte_start,
+                        &right.kind,
+                    ))
+            });
+        } else {
+            catalog.pieces.sort_by(|left, right| {
+                (
+                    &left.kind,
+                    &left.location.file,
+                    left.location.span.byte_start,
+                )
+                    .cmp(&(
+                        &right.kind,
+                        &right.location.file,
+                        right.location.span.byte_start,
+                    ))
+            });
+        }
         for piece in &catalog.pieces {
             if let Some(file) = self.matched.get(&piece.location.file) {
                 let text = file

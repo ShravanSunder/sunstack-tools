@@ -118,6 +118,18 @@ pub(crate) fn select_document_bounded(
     max_matches: usize,
 ) -> EvidenceResult<(SelectionContent, bool)> {
     let text = document.text.as_ref();
+    let islands = match &document.source {
+        SourceRef::Document { path, .. }
+            if super::html_content::is_html_path(path)
+                && !settings.html.embedded_markdown.is_empty() =>
+        {
+            Some(super::embedded_markdown::island_ranges(
+                text,
+                &settings.html,
+            ))
+        }
+        _ => None,
+    };
     let make_match = |range: std::ops::Range<usize>, captures| EvidenceMatch {
         span: source_span(&document.source, text, range.clone()),
         text: text[range].into(),
@@ -131,11 +143,21 @@ pub(crate) fn select_document_bounded(
             .map(|content| (content, false));
         }
         EvidenceSelection::MarkdownUnits(selection) => {
-            let (units, limited) = MarkdownDocument::parse(text).select_units(
-                &document.source,
-                selection,
-                max_matches,
-            )?;
+            let (units, limited) = if let Some(ranges) = &islands {
+                super::embedded_markdown::select_island_units(
+                    text,
+                    &document.source,
+                    ranges,
+                    selection,
+                    max_matches,
+                )?
+            } else {
+                MarkdownDocument::parse(text).select_units(
+                    &document.source,
+                    selection,
+                    max_matches,
+                )?
+            };
             return Ok((SelectionContent::MarkdownUnits { units }, limited));
         }
         EvidenceSelection::HtmlUnits(selection) => {
@@ -208,11 +230,21 @@ pub(crate) fn select_document_bounded(
                 .map_err(|_| EvidenceCode::UnsupportedLanguage)?;
             let matcher =
                 Pattern::try_new(pattern, language).map_err(|_| EvidenceCode::InvalidSelector)?;
-            let tree = language.ast_grep(text);
-            tree.root()
-                .find_all(matcher)
-                .take(max_matches.saturating_add(1))
-                .map(|found| {
+            let ranges = match (language, &islands) {
+                (SupportLang::Markdown, Some(ranges)) => ranges.clone(),
+                _ => std::iter::once(0..text.len()).collect(),
+            };
+            let mut selected = Vec::new();
+            for range in ranges {
+                let tree = language.ast_grep(&text[range.clone()]);
+                for found in tree
+                    .root()
+                    .find_all(&matcher)
+                    .take(max_matches.saturating_add(1).saturating_sub(selected.len()))
+                {
+                    let translate = |local: std::ops::Range<usize>| {
+                        range.start + local.start..range.start + local.end
+                    };
                     let environment = found.get_env();
                     let mut captures = BTreeMap::new();
                     for variable in environment.get_matched_variables() {
@@ -221,7 +253,11 @@ pub(crate) fn select_document_bounded(
                                 if let Some(node) = environment.get_match(&name) {
                                     captures.insert(
                                         name,
-                                        source_span(&document.source, text, node.range()),
+                                        source_span(
+                                            &document.source,
+                                            text,
+                                            translate(node.range()),
+                                        ),
                                     );
                                 }
                             }
@@ -233,7 +269,7 @@ pub(crate) fn select_document_bounded(
                                         source_span(
                                             &document.source,
                                             text,
-                                            first.range().start..last.range().end,
+                                            translate(first.range().start..last.range().end),
                                         ),
                                     );
                                 }
@@ -241,9 +277,10 @@ pub(crate) fn select_document_bounded(
                             _ => {}
                         }
                     }
-                    make_match(found.range(), captures)
-                })
-                .collect()
+                    selected.push(make_match(translate(found.range()), captures));
+                }
+            }
+            selected
         }
         _ => return Err(EvidenceCode::InvalidSelector.into()),
     };

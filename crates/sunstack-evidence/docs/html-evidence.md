@@ -170,3 +170,54 @@ For asking rules, HTML fields are projected as text content: tags and comments a
 Add these members to the existing `evidence` object alongside `ast_grep` and `kinds`. Both HTML collections default to empty. `skip_tags` suppresses outline headings inside the named tags; standard `<template>` contents are always excluded from the outline. It does not suppress asking text. Listed attributes contribute `[caption: value]` tokens in source order, with decoded values. Tag and attribute matching is case-insensitive; configuring a standard attribute does not duplicate it. Empty names, invalid shapes and unknown heading schemes are config refusals.
 
 The low-level evidence API uses the same `DocumentEvidenceSettings` through `load_evidence_project` and `select_document`. The `sunstack exec` evidence plan does not carry these settings and uses standard defaults.
+
+## Embedded Markdown
+
+Configure the HTML elements whose inner source is Markdown:
+
+```json
+{
+  "html": {
+    "embedded_markdown": [
+      {"tag": "script", "attributes": {"type": "text/markdown"}},
+      {"tag": "custom-markdown", "attributes": {"data-format": "markdown"}}
+    ]
+  }
+}
+```
+
+This fragment belongs in `evidence`, alongside `ast_grep` and `kinds`.
+Each selector requires `tag`; `attributes` defaults to empty and requires every
+listed attribute to have its exact decoded value. Tag and attribute names are
+case-insensitive; values are case-sensitive. Unknown selector fields and empty
+names are refused. No element or MIME type is selected implicitly.
+
+For `<custom-wrapper><script type="text/markdown">…</script></custom-wrapper>`,
+select the `script` element. Its inner source is parsed with the existing
+Markdown grammar. Markdown ast-grep kinds such as `paragraph`, `list`,
+`pipe_table` and `fenced_code_block`, and the existing `markdown_units` section,
+paragraph and list-item selectors, become available in the HTML file. A fenced
+`mermaid` diagram is a Markdown `fenced_code_block`; an HTML `<pre class="mermaid">`
+remains selectable by an HTML ast-grep rule.
+
+Each island is parsed independently. Inner bytes are neither entity-decoded nor
+dedented; delimiters and surrounding HTML are excluded from the Markdown parse.
+Raw fields, captures and spans retain original HTML bytes, file identity, digest
+and line/column coordinates, including CRLF and Unicode. Markdown section and
+sibling fields stay within their island. Ordinary match budgets cover both HTML
+and Markdown results. The direct `select_document` API applies the same setting
+to Markdown units and Markdown AST patterns in an HTML document.
+
+Only elements with bounded opening and closing tags yield islands. Comments,
+self-closing and unclosed elements do not. Repeated selectors produce one parse;
+when selected elements nest, the outermost selected element owns that source.
+HTML rules still match their original tree, including selected wrappers, so
+callers choose which overlapping kinds to request. There is no mixed-language
+parent or sibling syntax tree.
+
+With `embedded_markdown` configured, the catalog's pieces are ordered by file,
+original starting byte and kind (for equal starts), interleaving surrounding HTML
+with Markdown. Without the setting, existing selection, serialization and
+kind-first catalog ordering remain unchanged. Markdown rule file globs continue
+to apply to the original HTML path, so a rule restricted to `*.md` must include
+the intended HTML paths to match an island.

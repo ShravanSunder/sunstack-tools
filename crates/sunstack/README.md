@@ -443,6 +443,23 @@ unresolved heading fragments are `unsupported` with reason
 See the guide's [language and model views](../sunstack-evidence/docs/html-evidence.md#language-and-model-views)
 for the config shape and low-level API boundary.
 
+To select Markdown blocks embedded in HTML, declare the elements whose inner
+source contains Markdown under `evidence.html.embedded_markdown`:
+
+```json
+{
+  "embedded_markdown": [
+    {"tag": "script", "attributes": {"type": "text/markdown"}}
+  ]
+}
+```
+
+Markdown ast-grep rules and `markdown_units` then match inside those elements,
+with spans pointing into the original HTML file. The element names and exact
+attribute values belong to the caller's configuration. See
+[embedded Markdown](../sunstack-evidence/docs/html-evidence.md#embedded-markdown)
+for selection, ordering and source-byte semantics.
+
 ## Selected and contained evidence
 
 Add `select` to an evidence kind to ask one noul question about each mechanical

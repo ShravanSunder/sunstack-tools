@@ -6,6 +6,8 @@ use std::{
 use sunstack_evidence::*;
 #[path = "evidence_pieces/demanded_context.rs"]
 mod demanded_context;
+#[path = "evidence_pieces/embedded_markdown.rs"]
+mod embedded_markdown;
 #[path = "evidence_pieces/html_documents.rs"]
 mod html_documents;
 #[path = "evidence_pieces/nudge_context.rs"]
