@@ -25,6 +25,7 @@ pub use document_evidence::html_selection_contracts::*;
 pub use document_evidence::markdown_contracts::*;
 pub use document_evidence::markdown_document::*;
 pub use document_evidence::markdown_selection_contracts::*;
+pub use document_evidence::text_token_matching::contains_whole_token;
 pub use evidence_execution::evidence_preparation::*;
 pub use evidence_execution::evidence_session::*;
 pub use evidence_execution::preparation_contracts::*;

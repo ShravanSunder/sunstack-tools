@@ -448,6 +448,7 @@ mod section_prefix_fields;
 mod section_scoped_fields;
 use field_composition::{local_fields, source_span};
 
+mod containing_fields;
 mod document_fields;
 mod target_loading;
 mod target_reference;

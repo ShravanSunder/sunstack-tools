@@ -198,7 +198,14 @@ pub fn admit_evidence_kinds(
                     | FieldSource::Remainder { exclude: None }
                     | FieldSource::Target { exclude: None, .. } => None,
                 };
-                if referenced.is_some_and(|referenced| referenced != language) {
+                let island_context = language == EvidenceLanguage::Markdown
+                    && referenced == Some(EvidenceLanguage::Html)
+                    && !project.document_settings.html.embedded_markdown.is_empty()
+                    && matches!(
+                        source,
+                        FieldSource::Enclosing { .. } | FieldSource::SectionPrefix { .. }
+                    );
+                if referenced.is_some_and(|referenced| referenced != language) && !island_context {
                     errors.push(refusal(
                         &path,
                         format!("{context}: referenced rule or kind has another evidence language"),
@@ -306,6 +313,7 @@ pub fn admit_evidence_kinds(
                 FieldSource::Document {
                     path: document_path,
                     rule,
+                    ..
                 } => {
                     if document_path.paths().is_empty()
                         || document_path

@@ -55,6 +55,13 @@ For an HTML `href`, the captured value is decoded for semicolon-terminated named
 
 HTML target classification follows ast-grep's supported file types, including `.html`, `.htm`, and `.xhtml`.
 
+With `as_kind`, a resolved fragment selects the narrowest requested-kind piece
+containing the anchored element or heading, including when that file is already
+in the catalog. No piece at the anchor, or an unresolved fragment, makes the
+target field unavailable with `target_kind_missing`; it never borrows the first
+piece. Without a fragment, first-piece behavior is unchanged. `opening` remains
+the acquired file's opening, independently of the anchor-relative loaded fields.
+
 ## Reverse coverage
 
 Use this decision step to check the identifier against the acquired document:
@@ -95,6 +102,14 @@ Document fields are acquired after evidence selection. A selection question cann
 `contains_field` accepts a text or text-list `field` and a single text `needle`. The needle must be nonempty and available, or the result is incomplete. It matches the needle as a whole token: the characters on either side must be absent or neither a Unicode letter, digit, nor `_`. Thus `R1` matches `(R1)` and `R1 / U1`, but not `R10`, `XR1`, or `R1_extra`.
 
 Every occurrence is checked, including overlaps: `A-A` matches the final occurrence in `XA-A-A` even though the earlier occurrence touches `X`.
+
+Add `containing: "subject_field"` to `document` or `same_file` to retain only
+raw matches mentioning that field's scalar value or any of its text-list values
+under the same token rule. Filtering precedes a same-file first-line projection.
+An empty list yields an available empty result; missing/empty scalar or unavailable
+needles yield unavailable fields. Original spans, ordering and document candidate
+resolution are preserved. Undefined/non-text references and cycles are refused.
+See the CLI's [linked-row example](../../sunstack/README.md#collect-rows-linked-to-the-subject).
 
 ## Native heading fields
 
@@ -304,6 +319,12 @@ when selected elements nest, the outermost selected element owns that source.
 HTML rules still match their original tree, including selected wrappers, so
 callers choose which overlapping kinds to request. There is no mixed-language
 parent or sibling syntax tree.
+
+Markdown island pieces can read enclosing HTML rules or kinds with `enclosing`
+(`first_line`, `full`, or `heading` for a native section kind), and an HTML outline
+kind with `section_prefix`. These operations use original-source containment;
+raw HTML context stays raw in the Markdown asking view. They require configured
+islands and do not admit other ordinary cross-language directions or JSON joins.
 
 With `embedded_markdown` configured, the catalog's pieces are ordered by file,
 original starting byte and kind (for equal starts), interleaving surrounding HTML

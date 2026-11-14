@@ -157,6 +157,13 @@ impl EvidenceBuild {
                     &self.project.document_settings.html,
                 );
                 self.defer_fields(definition, file, range, &mut fields);
+                super::containing_fields::apply_containing_fields(
+                    definition,
+                    &mut fields,
+                    false,
+                    file,
+                    &self.catalog.pieces,
+                );
                 let span = source_span(file, range);
                 let location = PieceLocation {
                     file: path.clone(),

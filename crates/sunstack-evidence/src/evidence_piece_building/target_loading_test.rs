@@ -3,6 +3,206 @@ use super::*;
 use serde_json::json;
 
 #[test]
+fn unanchored_target_keeps_first_piece_when_later_matches_hit_the_limit() {
+    let root = tempfile::tempdir().unwrap();
+    std::fs::create_dir(root.path().join("rules")).unwrap();
+    std::fs::write(root.path().join("sgconfig.yml"), "ruleDirs: [rules]\n").unwrap();
+    std::fs::write(
+        root.path().join("rules/rows.yml"),
+        "id: rows\nlanguage: Html\nrule: {kind: element, regex: '^<p'}\n",
+    )
+    .unwrap();
+    let project = crate::load_evidence_project(
+        &root.path().join("sgconfig.yml"),
+        &[],
+        None,
+        &Default::default(),
+    )
+    .unwrap();
+    let kinds = serde_json::from_value(
+        json!({"requirement":{"rule":"rows","fields":{"body":{"from":"remainder"}}}}),
+    )
+    .unwrap();
+    let mut source = crate::FilesystemCheckedSource::new(root.path()).unwrap();
+    let build = crate::EvidenceBuild::start(
+        &project,
+        &kinds,
+        &[],
+        &mut source,
+        PieceBuildLimits {
+            max_files: 10,
+            max_file_bytes: 10000,
+            max_total_bytes: 100000,
+            max_matches: 1,
+            evidence_max_chars: 6000,
+        },
+    )
+    .unwrap();
+    let text = "<p id='U1'>First</p><p id='U2'>Second</p>";
+    let kind = EvidenceKindName::new("requirement").unwrap();
+
+    let unanchored = build.path_target_fields(Path::new("target.html"), text, &kind, None);
+
+    let fields = unanchored.unwrap().unwrap();
+    assert!(
+        matches!(&fields[&FieldName::new("body").unwrap()], FieldValue::Text {value,..} if value=="<p id='U1'>First</p>")
+    );
+    let second = text.find("<p id='U2'>").unwrap()..text.len();
+    let anchored = build.path_target_fields(Path::new("target.html"), text, &kind, Some(&second));
+    assert!(
+        matches!(anchored, Err(FieldUnavailable::Unreadable)),
+        "an incomplete match set must not guess at an anchored piece"
+    );
+}
+
+#[test]
+fn anchored_targets_collect_the_matching_kind_instead_of_the_first_piece() {
+    let root = tempfile::tempdir().unwrap();
+    std::fs::create_dir(root.path().join("rules")).unwrap();
+    std::fs::write(root.path().join("sgconfig.yml"), "ruleDirs: [rules]\n").unwrap();
+    std::fs::write(root.path().join("rules/rows.yml"), "id: rows\nlanguage: Html\nrule: {kind: element, regex: '^<p'}\n---\nid: links\nlanguage: Html\nrule: {kind: element, regex: '^<a'}\n").unwrap();
+    let target = "<p id='U1'>First requirement</p>\n<p><span id='U2'>Second requirement</span></p>\n<div id='U3'>No requirement here</div>";
+    std::fs::write(root.path().join("requirements.html"), target).unwrap();
+    std::fs::write(
+        root.path().join("owner.html"),
+        "<a href='requirements.html#U2'>R2</a>",
+    )
+    .unwrap();
+    let project = crate::load_evidence_project(
+        &root.path().join("sgconfig.yml"),
+        &[],
+        None,
+        &Default::default(),
+    )
+    .unwrap();
+    let kinds = serde_json::from_value(json!({
+        "requirement":{"rule":"rows","fields":{"body":{"from":"remainder"}}},
+        "obligation":{"rule":"links","fields":{"needs":{"from":"target","regex":"href='([^']+)'","resolve":"path","as_kind":"requirement"}}}
+    })).unwrap();
+    for files in [
+        vec!["owner.html".into()],
+        vec!["owner.html".into(), "requirements.html".into()],
+    ] {
+        let mut source = crate::FilesystemCheckedSource::new(root.path()).unwrap();
+        let catalog = crate::build_pieces(
+            &project,
+            &kinds,
+            &files,
+            &mut source,
+            PieceBuildLimits {
+                max_files: 10,
+                max_file_bytes: 10000,
+                max_total_bytes: 100000,
+                max_matches: 100,
+                evidence_max_chars: 6000,
+            },
+        );
+        assert!(catalog.failures.is_empty(), "{:?}", catalog.failures);
+        let owner = catalog
+            .pieces
+            .iter()
+            .find(|piece| piece.kind.as_str() == "obligation")
+            .unwrap();
+        let FieldValue::Targets { values } = &owner.fields[&FieldName::new("needs").unwrap()]
+        else {
+            panic!("expected target")
+        };
+        let body = &values[0].fields.as_ref().unwrap()[&FieldName::new("body").unwrap()];
+        assert!(
+            matches!(body, FieldValue::Text {value,..} if value=="<p><span id='U2'>Second requirement</span></p>"),
+            "{body:?}"
+        );
+    }
+    for fragment in ["U3", "missing"] {
+        std::fs::write(
+            root.path().join("owner.html"),
+            format!("<a href='requirements.html#{fragment}'>R3</a>"),
+        )
+        .unwrap();
+        let mut source = crate::FilesystemCheckedSource::new(root.path()).unwrap();
+        let catalog = crate::build_pieces(
+            &project,
+            &kinds,
+            &["owner.html".into()],
+            &mut source,
+            PieceBuildLimits {
+                max_files: 10,
+                max_file_bytes: 10000,
+                max_total_bytes: 100000,
+                max_matches: 100,
+                evidence_max_chars: 6000,
+            },
+        );
+        let owner = catalog
+            .pieces
+            .iter()
+            .find(|piece| piece.kind.as_str() == "obligation")
+            .unwrap();
+        assert!(matches!(
+            owner.fields[&FieldName::new("needs").unwrap()],
+            FieldValue::Unavailable {
+                reason: FieldUnavailable::TargetKindMissing
+            }
+        ));
+    }
+}
+
+#[test]
+fn markdown_target_kinds_follow_heading_anchors_and_preserve_file_openings() {
+    let root = tempfile::tempdir().unwrap();
+    std::fs::create_dir(root.path().join("rules")).unwrap();
+    std::fs::write(root.path().join("sgconfig.yml"), "ruleDirs: [rules]\n").unwrap();
+    std::fs::write(
+        root.path().join("rules/links.yml"),
+        "id: links\nlanguage: Markdown\nrule: {kind: inline, regex: '^\\[read\\]'}\n",
+    )
+    .unwrap();
+    std::fs::write(root.path().join("owner.md"), "[read](target.md#second)\n").unwrap();
+    std::fs::write(
+        root.path().join("target.md"),
+        "# First\n\nFirst body\n\n# Second\n\nSecond body\n",
+    )
+    .unwrap();
+    let project = crate::load_evidence_project(
+        &root.path().join("sgconfig.yml"),
+        &[],
+        None,
+        &serde_json::from_value(json!({"markdown":{"heading_anchors":"github"}})).unwrap(),
+    )
+    .unwrap();
+    let kinds = serde_json::from_value(json!({
+        "sections":{"markdown_units":{"mode":"unit","units":["section"]},"fields":{"body":{"from":"section","text":"full"}}},
+        "links":{"rule":"links","fields":{"targets":{"from":"target","regex":"\\]\\(([^)]+)\\)","resolve":"path","as_kind":"sections"}}}
+    })).unwrap();
+    let mut source = crate::FilesystemCheckedSource::new(root.path()).unwrap();
+    let catalog = crate::build_pieces(
+        &project,
+        &kinds,
+        &["owner.md".into()],
+        &mut source,
+        PieceBuildLimits {
+            max_files: 10,
+            max_file_bytes: 10000,
+            max_total_bytes: 100000,
+            max_matches: 100,
+            evidence_max_chars: 6000,
+        },
+    );
+    let owner = catalog
+        .pieces
+        .iter()
+        .find(|piece| piece.kind.as_str() == "links")
+        .unwrap();
+    let FieldValue::Targets { values } = &owner.fields[&FieldName::new("targets").unwrap()] else {
+        panic!("expected target")
+    };
+    assert!(values[0].opening.as_ref().unwrap().starts_with("# First"));
+    assert!(
+        matches!(&values[0].fields.as_ref().unwrap()[&FieldName::new("body").unwrap()],FieldValue::Text{value,..} if value=="# Second\n\nSecond body\n")
+    );
+}
+
+#[test]
 fn markdown_targets_resolve_heading_fragments_and_percent_encoded_files() {
     let root = tempfile::tempdir().unwrap();
     std::fs::create_dir(root.path().join("rules")).unwrap();
@@ -192,6 +392,7 @@ fn target_outline_and_ast_matches_share_the_local_match_allowance() {
             Path::new("target.html"),
             html,
             &EvidenceKindName::new("outline").unwrap(),
+            None,
         );
 
         assert_eq!(

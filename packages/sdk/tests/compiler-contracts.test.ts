@@ -122,7 +122,7 @@ await test('section measurement callers reject mixed bounds, numbers and missing
 
 await test('document variants reject incorrect paths and missing payloads', () => {
 	const expected = expectedDiagnostics('invalid-document-fields.ts');
-	assert.equal(expected.length, 6);
+	assert.equal(expected.length, 8);
 	const result = compile('invalid-document-fields.ts');
 	assert.equal(result.kind, 'diagnostics', result.kind === 'process_failure' ? result.detail : '');
 	if (result.kind === 'diagnostics')

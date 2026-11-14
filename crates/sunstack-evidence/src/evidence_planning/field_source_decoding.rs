@@ -39,6 +39,8 @@ enum FieldSourceWire {
         kind: Option<EvidenceKindName>,
         #[serde(default)]
         text: ContextText,
+        #[serde(default, deserialize_with = "present_match_source")]
+        containing: Option<FieldName>,
     },
     Next {
         rule: EvidenceRuleId,
@@ -59,6 +61,8 @@ enum FieldSourceWire {
     Document {
         path: crate::DocumentCandidates,
         rule: EvidenceRuleId,
+        #[serde(default, deserialize_with = "present_match_source")]
+        containing: Option<FieldName>,
     },
     Target {
         regex: String,
@@ -116,15 +120,29 @@ impl<'de> Deserialize<'de> for FieldSource {
                 of: source(rule, kind)?,
                 text,
             },
-            FieldSourceWire::SameFile { rule, kind, text } => Self::SameFile {
+            FieldSourceWire::SameFile {
+                rule,
+                kind,
+                text,
+                containing,
+            } => Self::SameFile {
                 of: source(rule, kind)?,
                 text,
+                containing,
             },
             FieldSourceWire::Next { rule, count } => Self::Next { rule, count },
             FieldSourceWire::Previous { rule, count } => Self::Previous { rule, count },
             FieldSourceWire::Yaml { key } => Self::Yaml { key },
             FieldSourceWire::Remainder { exclude } => Self::Remainder { exclude },
-            FieldSourceWire::Document { path, rule } => Self::Document { path, rule },
+            FieldSourceWire::Document {
+                path,
+                rule,
+                containing,
+            } => Self::Document {
+                path,
+                rule,
+                containing,
+            },
             FieldSourceWire::Target {
                 regex,
                 resolve,

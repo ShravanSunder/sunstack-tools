@@ -146,34 +146,41 @@ fn cst_closing_tag_range(parts: &[HtmlNode<'_>], raw: &str) -> Option<std::ops::
 }
 
 pub(crate) fn html_has_id(raw: &str, id: &str) -> bool {
+    html_id_range(raw, id).is_some()
+}
+
+pub(crate) fn html_id_range(raw: &str, id: &str) -> Option<std::ops::Range<usize>> {
     let tree = SupportLang::Html.ast_grep(raw);
-    tree.root().dfs().any(|element| {
-        if !matches!(
-            element.kind().as_ref(),
-            "element" | "script_element" | "style_element"
-        ) {
-            return false;
-        }
-        element
-            .children()
-            .find(|child| matches!(child.kind().as_ref(), "start_tag" | "self_closing_tag"))
-            .and_then(|tag| {
-                tag.children().find(|child| {
-                    child.kind() == "attribute"
-                        && child.children().any(|part| {
-                            part.kind() == "attribute_name"
-                                && part.text().eq_ignore_ascii_case("id")
-                        })
+    tree.root()
+        .dfs()
+        .find(|element| {
+            if !matches!(
+                element.kind().as_ref(),
+                "element" | "script_element" | "style_element"
+            ) {
+                return false;
+            }
+            element
+                .children()
+                .find(|child| matches!(child.kind().as_ref(), "start_tag" | "self_closing_tag"))
+                .and_then(|tag| {
+                    tag.children().find(|child| {
+                        child.kind() == "attribute"
+                            && child.children().any(|part| {
+                                part.kind() == "attribute_name"
+                                    && part.text().eq_ignore_ascii_case("id")
+                            })
+                    })
                 })
-            })
-            .is_some_and(|attribute| {
-                let value = attribute
-                    .dfs()
-                    .find(|part| part.kind() == "attribute_value")
-                    .map_or_else(String::new, |part| decode_entities(&part.text()));
-                value == id
-            })
-    })
+                .is_some_and(|attribute| {
+                    let value = attribute
+                        .dfs()
+                        .find(|part| part.kind() == "attribute_value")
+                        .map_or_else(String::new, |part| decode_entities(&part.text()));
+                    value == id
+                })
+        })
+        .map(|element| element.range())
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]

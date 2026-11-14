@@ -501,6 +501,7 @@ export type FieldName = string;
 export type FieldSource =
 	| ({ from: 'first_line' } & {
 			as_kind?: never;
+			containing?: never;
 			count?: never;
 			exclude?: never;
 			key?: never;
@@ -515,6 +516,7 @@ export type FieldSource =
 	  })
 	| ({ from: 'section'; text: SectionText } & {
 			as_kind?: never;
+			containing?: never;
 			count?: never;
 			exclude?: never;
 			key?: never;
@@ -528,6 +530,7 @@ export type FieldSource =
 	  })
 	| ({ from: 'section_prefix'; kind: EvidenceKindName } & {
 			as_kind?: never;
+			containing?: never;
 			count?: never;
 			exclude?: never;
 			key?: never;
@@ -541,6 +544,7 @@ export type FieldSource =
 	  })
 	| ({ from: 'capture'; regex: string } & {
 			as_kind?: never;
+			containing?: never;
 			count?: never;
 			exclude?: never;
 			key?: never;
@@ -559,6 +563,7 @@ export type FieldSource =
 	  } & MatchSource)
 	| ({ from: 'inside'; kind: EvidenceKindName; scope: SectionScope } & {
 			as_kind?: never;
+			containing?: never;
 			count?: never;
 			exclude?: never;
 			key?: never;
@@ -578,9 +583,11 @@ export type FieldSource =
 			from: 'same_file';
 	  } & {
 			text?: ContextText;
+			containing?: FieldName;
 	  } & MatchSource)
 	| ({ from: 'next'; rule: EvidenceRuleId; count?: NeighbourCount } & {
 			as_kind?: never;
+			containing?: never;
 			exclude?: never;
 			key?: never;
 			kind?: never;
@@ -593,6 +600,7 @@ export type FieldSource =
 	  })
 	| ({ from: 'previous'; rule: EvidenceRuleId; count?: NeighbourCount } & {
 			as_kind?: never;
+			containing?: never;
 			exclude?: never;
 			key?: never;
 			kind?: never;
@@ -605,6 +613,7 @@ export type FieldSource =
 	  })
 	| ({ from: 'yaml'; key: string } & {
 			as_kind?: never;
+			containing?: never;
 			count?: never;
 			exclude?: never;
 			kind?: never;
@@ -618,6 +627,7 @@ export type FieldSource =
 	  })
 	| ({ from: 'remainder'; exclude?: MatchSource | null } & {
 			as_kind?: never;
+			containing?: never;
 			count?: never;
 			key?: never;
 			kind?: never;
@@ -629,7 +639,12 @@ export type FieldSource =
 			scope?: never;
 			text?: never;
 	  })
-	| ({ from: 'document'; path: DocumentCandidates; rule: EvidenceRuleId } & {
+	| ({
+			from: 'document';
+			path: DocumentCandidates;
+			rule: EvidenceRuleId;
+			containing?: FieldName;
+	  } & {
 			as_kind?: never;
 			count?: never;
 			exclude?: never;
@@ -649,6 +664,7 @@ export type FieldSource =
 			as_kind?: EvidenceKindName | null;
 			exclude?: TargetExclude | null;
 	  } & {
+			containing?: never;
 			count?: never;
 			key?: never;
 			kind?: never;
@@ -664,7 +680,9 @@ export type FieldUnavailable =
 	| 'outside_root'
 	| 'frontmatter_malformed'
 	| 'not_a_string'
-	| 'unreadable';
+	| 'unreadable'
+	| 'target_kind_missing'
+	| 'containing_field_unavailable';
 
 export type FieldValue =
 	| { state: 'text'; value: string; spans: SourceSpan[] }

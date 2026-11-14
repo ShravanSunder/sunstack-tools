@@ -6,6 +6,18 @@ export const candidates: FieldSource = {
 	path: ['verification.md', 'verification-design.md'],
 	rule: 'document',
 };
+export const scopedDocument: FieldSource = {
+	from: 'document',
+	path: ['verification.html', 'verification.md'],
+	rule: 'row',
+	containing: 'identifier',
+};
+export const scopedSameFile: FieldSource = {
+	from: 'same_file',
+	rule: 'row',
+	text: 'full',
+	containing: 'requirement_ids',
+};
 export const selected: FieldValue = {
 	state: 'document',
 	path: 'verification-design.md',

@@ -1,4 +1,4 @@
-use super::super::contains_whole_token;
+use super::contains_whole_token;
 
 #[test]
 fn overlapping_whole_tokens_are_checked_after_a_rejected_occurrence() {

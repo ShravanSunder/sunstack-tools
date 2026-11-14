@@ -14,3 +14,4 @@ pub(crate) mod markdown_projection;
 pub mod markdown_selection_contracts;
 pub mod standard_markdown_utils;
 pub mod text_content_measures;
+pub mod text_token_matching;
