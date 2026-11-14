@@ -89,7 +89,7 @@ pub(crate) fn walk_tree(request: TreeWalkRequest<'_>) -> TreeWalkOutcome {
                     tool,
                     request.piece,
                     request.index,
-                    &request.decision.html_settings,
+                    &request.decision.measurements,
                 ) {
                     Ok(true) => yes,
                     Ok(false) => no,

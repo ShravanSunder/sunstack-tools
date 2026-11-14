@@ -1,5 +1,80 @@
-use sunstack_evidence::document_evidence::text_content_measures::count_text_content_words;
+use sunstack_evidence::document_evidence::text_content_measures::{
+    count_html_content_words, count_text_content_words,
+};
 use sunstack_evidence::{EvidencePiece, FieldName, FieldShape, FieldValue};
+
+impl crate::FieldMeasurementSettings {
+    pub(crate) fn for_kind(
+        name: &sunstack_evidence::EvidenceKindName,
+        definition: &sunstack_evidence::EvidenceKindDefinition,
+        kinds: &std::collections::BTreeMap<
+            sunstack_evidence::EvidenceKindName,
+            sunstack_evidence::EvidenceKindDefinition,
+        >,
+        project: &sunstack_evidence::EvidenceProject,
+    ) -> Self {
+        use sunstack_evidence::{FieldSource, MatchSource, evidence_kind_language};
+        let kind_language = |name| {
+            kinds
+                .get(name)
+                .and_then(|kind| evidence_kind_language(project, name, kind))
+        };
+        let own_language = evidence_kind_language(project, name, definition);
+        let field_formats = definition
+            .fields
+            .iter()
+            .filter_map(|(field, source)| {
+                let language = match source {
+                    FieldSource::Document { rule, .. }
+                    | FieldSource::Next { rule, .. }
+                    | FieldSource::Previous { rule, .. } => project.language_for_rule(rule),
+                    FieldSource::Inside { of }
+                    | FieldSource::SameFile { of, .. }
+                    | FieldSource::Enclosing { of, .. } => match of {
+                        MatchSource::Rule { rule } => project.language_for_rule(rule),
+                        MatchSource::Kind { kind } => kind_language(kind),
+                    },
+                    FieldSource::ScopedInside { kind, .. }
+                    | FieldSource::SectionPrefix { kind } => kind_language(kind),
+                    FieldSource::FirstLine {}
+                    | FieldSource::Section { .. }
+                    | FieldSource::Capture { .. }
+                    | FieldSource::Remainder { .. } => own_language,
+                    // These are already plain strings, not source markup; preserve existing measurement.
+                    FieldSource::Captures { .. }
+                    | FieldSource::Yaml { .. }
+                    | FieldSource::Target { .. } => None,
+                };
+                language.map(|language| {
+                    let format = match language {
+                        sunstack_evidence::EvidenceLanguage::Html
+                            if matches!(
+                                source,
+                                FieldSource::Section {
+                                    text: sunstack_evidence::SectionText::Heading
+                                } | FieldSource::Enclosing {
+                                    text: sunstack_evidence::ContextText::Heading,
+                                    ..
+                                }
+                            ) =>
+                        {
+                            crate::MeasuredTextFormat::PlainText
+                        }
+                        sunstack_evidence::EvidenceLanguage::Html => {
+                            crate::MeasuredTextFormat::Html
+                        }
+                        _ => crate::MeasuredTextFormat::Markdown,
+                    };
+                    (field.clone(), format)
+                })
+            })
+            .collect();
+        Self {
+            html_settings: project.document_settings.html.clone(),
+            field_formats,
+        }
+    }
+}
 
 #[derive(Debug, Clone, Copy)]
 pub(super) enum FieldMeasure {
@@ -12,7 +87,7 @@ impl FieldMeasure {
         self,
         piece: &EvidencePiece,
         fields: &crate::MeasureFields,
-        settings: &sunstack_evidence::HtmlEvidenceSettings,
+        settings: &crate::FieldMeasurementSettings,
     ) -> Result<usize, FieldName> {
         fields.as_slice().iter().try_fold(0usize, |total, field| {
             total
@@ -31,7 +106,7 @@ impl FieldMeasure {
         self,
         piece: &EvidencePiece,
         field: &FieldName,
-        settings: &sunstack_evidence::HtmlEvidenceSettings,
+        settings: &crate::FieldMeasurementSettings,
     ) -> Result<usize, FieldName> {
         let value = piece.fields.get(field).ok_or_else(|| field.clone())?;
         if matches!(
@@ -50,7 +125,18 @@ impl FieldMeasure {
             },
             Self::Words => {
                 let count = |text: &str| {
-                    count_text_content_words(text, settings).map_err(|_| field.clone())
+                    match settings.field_formats.get(field) {
+                        Some(crate::MeasuredTextFormat::Html) => {
+                            count_html_content_words(text, &settings.html_settings)
+                        }
+                        Some(crate::MeasuredTextFormat::PlainText) => {
+                            Ok(text.split_whitespace().count())
+                        }
+                        Some(crate::MeasuredTextFormat::Markdown) | None => {
+                            count_text_content_words(text, &settings.html_settings)
+                        }
+                    }
+                    .map_err(|_| field.clone())
                 };
                 match value {
                     FieldValue::Text { value, .. } => count(value),
@@ -88,7 +174,7 @@ pub(super) fn finding_measurements(
 pub(super) fn render_measured_finding(
     template: &str,
     piece: &EvidencePiece,
-    settings: &sunstack_evidence::HtmlEvidenceSettings,
+    settings: &crate::FieldMeasurementSettings,
 ) -> Result<String, Option<FieldName>> {
     let mut rendered = String::new();
     let mut remaining = template;

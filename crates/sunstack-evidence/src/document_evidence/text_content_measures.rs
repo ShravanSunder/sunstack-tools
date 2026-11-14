@@ -1,7 +1,19 @@
 use crate::FieldUnavailable;
 use pulldown_cmark::{Event, Options, Parser, Tag, TagEnd};
 
-/// Count readable content, keeping links' labels and code text, without their markup.
+/// Measure an entire HTML value before Markdown can split its block at blank lines.
+pub fn count_html_content_words(
+    raw: &str,
+    settings: &crate::HtmlEvidenceSettings,
+) -> Result<usize, FieldUnavailable> {
+    use super::html_content::{HtmlAskingText, html_asking_text};
+    match html_asking_text(raw, settings) {
+        HtmlAskingText::Complete(text) => Ok(text.split_whitespace().count()),
+        HtmlAskingText::Incomplete { .. } => Err(FieldUnavailable::Unreadable),
+    }
+}
+
+/// Count readable Markdown content, keeping links' labels and code text, without markup.
 pub fn count_text_content_words(
     raw: &str,
     settings: &crate::HtmlEvidenceSettings,

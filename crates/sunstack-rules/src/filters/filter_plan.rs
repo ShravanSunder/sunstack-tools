@@ -265,7 +265,7 @@ pub fn admit_filters(
             }
         }
         let graph_errors_start = errors.len();
-        let graph = admit_graph(
+        let mut graph = admit_graph(
             &wire.decision,
             &wire.questions,
             &declared,
@@ -274,6 +274,8 @@ pub fn admit_filters(
             &mut errors,
             Some(&labels),
         );
+        graph.measurements =
+            crate::FieldMeasurementSettings::for_kind(&wire.reads.kind, &declared, kinds, project);
         for error in &mut errors[graph_errors_start..] {
             error.field_path = ConfigPath::new(
                 path.segments()

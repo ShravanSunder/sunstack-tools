@@ -281,3 +281,119 @@ async fn piece_counts_measure_table_rows_and_columns_and_admit_only_compatible_f
     fixture::entry_file(root.path(), &invalid);
     invoke(root.path(), &["--check"], 2).await;
 }
+
+#[tokio::test]
+async fn html_measurements_keep_blank_line_blocks_whole_and_use_the_field_language() {
+    // Arrange: the same HTML field is collected by HTML and Markdown subjects.
+    for subject_language in ["Html", "Markdown"] {
+        let root = tempfile::tempdir().unwrap();
+        let mut config = fixture::write(root.path());
+        let html = subject_language == "Html";
+        let owner = if html {
+            "docs/owner.html"
+        } else {
+            "docs/owner.md"
+        };
+        config["check"]["files"] = json!([owner]);
+        config["evidence"]["html"]["text_attributes"] = json!({"diagram":["caption"]});
+        std::fs::write(root.path().join("evidence/rules/measure.yml"),format!("id: subject\nlanguage: {subject_language}\nrule: {{kind: {}}}\n---\nid: block\nlanguage: Html\nrule: {{kind: element, regex: '^<details'}}\n",if html {"document"} else {"paragraph"})).unwrap();
+        let block = "<details><summary>One two</summary>\n<pre><code>three four\n\nfive six</code></pre>\n<diagram caption='Seven eight'></diagram>\n</details>";
+        std::fs::write(
+            root.path().join(owner),
+            if html { block } else { "Markdown subject." },
+        )
+        .unwrap();
+        std::fs::write(root.path().join("docs/blocks.html"), block).unwrap();
+        config["evidence"]["kinds"] = json!({"subject":{"rule":"subject","fields":{
+            "body":{"from":"remainder"},
+            "blocks":{"from":"document","path":["blocks.html"],"rule":"block"}
+        }}});
+        fixture::config_file(root.path(), &config);
+        fixture::entry_file(
+            root.path(),
+            &json!({"K001":{"name":"blank_lines","evidence":"subject","severity":"warn","decision":{"start":"words","steps":{
+                "words":{"mechanical_check":{"tool":"word_count","field":"blocks","bound":{"at_least":9}},"yes":"own","no":"pass"},
+                "own":{"mechanical_check":{"tool":"word_count","field":"body","bound":{"at_least":if html {9} else {2}}},"yes":"pieces","no":"uncertain"},
+                "pieces":{"mechanical_check":{"tool":"piece_count","field":"blocks","bound":{"at_least":1}},"yes":{"finding":"{{word_count:blocks}} words in {{piece_count:blocks}} blocks; {{word_count:body}} own words."},"no":"uncertain"}
+            }}}}),
+        );
+        // Act: both gates and finding placeholders use the ordinary CLI path.
+        let observed = report(root.path(), &["--all"], 0).await;
+        // Assert: caption marker plus eight words, with raw spans unchanged.
+        assert_eq!(
+            observed["incomplete"],
+            json!([]),
+            "{subject_language}: {observed}"
+        );
+        assert_eq!(
+            observed["findings"][0]["message"],
+            format!(
+                "9 words in 1 blocks; {} own words.",
+                if html { 9 } else { 2 }
+            ),
+            "{observed}"
+        );
+        let piece = &observed["piece_evidence"]
+            .as_object()
+            .unwrap()
+            .values()
+            .next()
+            .unwrap()["piece"];
+        assert_eq!(piece["fields"]["blocks"]["values"], json!([block]));
+        assert_eq!(
+            piece["fields"]["blocks"]["spans"][0]["byte_end"],
+            block.len()
+        );
+    }
+}
+
+#[tokio::test]
+async fn projected_html_headings_are_counted_as_plain_text_for_scalar_and_enclosing_fields() {
+    for (encoded, plain, count) in [
+        ("Queue &lt;T&gt; words", "Queue <T> words", 3),
+        ("Visible &lt;broken", "Visible <broken", 2),
+    ] {
+        let root = tempfile::tempdir().unwrap();
+        let mut config = fixture::write(root.path());
+        config["check"]["files"] = json!(["docs/page.html"]);
+        config["evidence"]["kinds"] = json!({
+            "outline":{"html_units":{"mode":"unit","units":["section"]},"fields":{}},
+            "section":{"html_units":{"mode":"unit","units":["section"]},"fields":{"heading":{"from":"section","text":"heading"}}},
+            "paragraph":{"rule":"paragraph","fields":{"heading":{"from":"enclosing","kind":"outline","text":"heading"}}}
+        });
+        std::fs::write(
+            root.path().join("evidence/rules/heading.yml"),
+            "id: paragraph\nlanguage: Html\nrule: {kind: element, regex: '^<p'}\n",
+        )
+        .unwrap();
+        std::fs::write(
+            root.path().join("docs/page.html"),
+            format!("<h2>{encoded}</h2><p>Body.</p>"),
+        )
+        .unwrap();
+        fixture::config_file(root.path(), &config);
+        let entry = |kind| json!({"name":kind,"evidence":kind,"severity":"warn","decision":{"start":"words","steps":{"words":{"mechanical_check":{"tool":"word_count","field":"heading","bound":{"at_least":count}},"yes":{"finding":"{{word_count:heading}} words."},"no":"pass"}}}});
+        fixture::entry_file(
+            root.path(),
+            &json!({"K001":entry("section"),"K002":entry("paragraph")}),
+        );
+        std::fs::write(
+            root.path().join("rulebook.md"),
+            "Count section headings.<!-- K001 -->\nCount enclosing headings.<!-- K002 -->\n",
+        )
+        .unwrap();
+        let report = report(root.path(), &["--all"], 0).await;
+        assert!(
+            report["incomplete"].as_array().unwrap().is_empty(),
+            "{report}"
+        );
+        assert_eq!(
+            report["findings"].as_array().unwrap().len(),
+            2,
+            "{plain}: {report}"
+        );
+        for finding in report["findings"].as_array().unwrap() {
+            assert_eq!(finding["message"], format!("{count} words."));
+        }
+    }
+}
