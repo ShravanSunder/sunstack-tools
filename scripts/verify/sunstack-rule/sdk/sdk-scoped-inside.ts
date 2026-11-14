@@ -76,9 +76,9 @@ export function requireScopedInsidePieces(value: unknown, client: 'sdk' | 'cli' 
 	const own = selected('choice', ownChoice);
 	const empty = selected('choice', emptyChoice);
 	for (const [name, values] of Object.entries({
-		html_before: ["<img src='before'>"],
+		html_before: ["<img src='before'>\n"],
 		markdown_before: [fence],
-		html_section: ["<img src='before'>", "<img src='inner'>", "<img src='after'>"],
+		html_section: ["<img src='before'>\n", "<img src='inner'>Choose", "<img src='after'>\n"],
 		markdown_section: [fence],
 	})) {
 		expectField(own, name, values);
@@ -96,7 +96,7 @@ export function requireScopedInsidePieces(value: unknown, client: 'sdk' | 'cli' 
 		'Scoped Markdown model view changed raw syntax',
 	);
 	const legacy = selected('legacy', ownChoice);
-	for (const name of ['by_kind', 'by_rule']) expectField(legacy, name, ["<img src='inner'>"]);
+	for (const name of ['by_kind', 'by_rule']) expectField(legacy, name, ["<img src='inner'>Choose"]);
 	const legacyEmpty = selected('legacy', emptyChoice);
 	for (const name of ['by_kind', 'by_rule']) expectField(legacyEmpty, name, []);
 }

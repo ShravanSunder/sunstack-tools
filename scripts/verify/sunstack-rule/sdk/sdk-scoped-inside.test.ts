@@ -3,9 +3,9 @@ import { describe, expect, test } from 'vitest';
 import { requireScopedInsidePieces } from './sdk-scoped-inside.ts';
 
 const identity = 'e93e99b0b0646be607bc6407a910f58ad563c639bd64d01257c547879a823f2b';
-const before = "<img src='before'>";
-const inside = "<img src='inner'>";
-const after = "<img src='after'>";
+const before = "<img src='before'>\n";
+const inside = "<img src='inner'>Choose";
+const after = "<img src='after'>\n";
 const fence = '```mermaid\ngraph LR\n A --> B\n```\n';
 const own = "<ex-choice id='own'><img src='inner'>Choose</ex-choice>";
 const empty = "<ex-choice id='empty'>Choose</ex-choice>";
@@ -28,10 +28,10 @@ function span(
 		end_column: endColumn,
 	};
 }
-const beforeSpan = span(47n, 65n, 2n, 13n, 2n, 31n);
+const beforeSpan = span(47n, 66n, 2n, 13n, 3n, 1n);
 const fenceSpan = span(96n, 129n, 4n, 1n, 8n, 1n);
-const insideSpan = span(159n, 176n, 9n, 21n, 9n, 38n);
-const afterSpan = span(194n, 211n, 9n, 56n, 9n, 73n);
+const insideSpan = span(159n, 182n, 9n, 21n, 9n, 44n);
+const afterSpan = span(194n, 212n, 9n, 56n, 10n, 1n);
 function texts(values: readonly string[], spans: readonly object[]): object {
 	return { state: 'texts', values, spans };
 }
@@ -88,5 +88,13 @@ describe('scoped containment observation oracle', () => {
 			fields: { by_kind: texts([], []), by_rule: texts([inside], [insideSpan]) },
 		};
 		expect(() => requireScopedInsidePieces(wrongLegacy)).toThrow('by_kind values');
+	});
+	test('rejects the original start-tag-only truncation and shortened span', () => {
+		const truncated = fixture();
+		truncated[0] = {
+			...truncated[0],
+			fields: { html_before: texts(["<img src='before'>"], [span(47n, 65n, 2n, 13n, 2n, 31n)]) },
+		};
+		expect(() => requireScopedInsidePieces(truncated)).toThrow('html_before values');
 	});
 });
