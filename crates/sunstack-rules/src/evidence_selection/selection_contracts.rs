@@ -87,6 +87,7 @@ pub struct AdmittedSelection {
     pub no_at_or_below: f64,
     pub shared: Vec<sunstack_evidence::FieldName>,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum RequestLimit {
@@ -95,6 +96,7 @@ pub enum RequestLimit {
     RequestBytes,
     InputTokens,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, thiserror::Error)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum SelectionIncompleteReason {
@@ -119,6 +121,7 @@ pub enum SelectionIncompleteReason {
     #[error("selection was cancelled")]
     Cancelled,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum SelectionOutcome {

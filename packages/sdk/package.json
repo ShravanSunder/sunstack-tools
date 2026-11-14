@@ -1,0 +1,54 @@
+{
+	"name": "@sunstack/sdk",
+	"version": "0.19.0",
+	"description": "Typed TypeScript access to the Sunstack engine: load, check and run configurations",
+	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/ShravanSunder/sunstack-tools",
+		"directory": "packages/sdk"
+	},
+	"files": [
+		"dist",
+		"examples",
+		"README.md"
+	],
+	"type": "module",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"default": "./dist/index.js"
+		},
+		"./package.json": "./package.json"
+	},
+	"scripts": {
+		"generate": "node scripts/generate-contracts.ts",
+		"build:native": "node scripts/build-native.ts",
+		"build:typescript": "tsc -p tsconfig.build.json",
+		"build": "pnpm run generate && pnpm run build:native && pnpm run build:typescript",
+		"typecheck": "tsc -p tsconfig.json",
+		"lint": "oxlint --config .oxlintrc.json --type-aware --type-check --tsconfig tsconfig.json --max-warnings 0 src scripts tests examples",
+		"format": "oxfmt src scripts tests examples package.json tsconfig.json tsconfig.build.json .oxlintrc.json README.md npm",
+		"format:check": "oxfmt --check src scripts tests examples package.json tsconfig.json tsconfig.build.json .oxlintrc.json README.md npm",
+		"test": "node --test --test-concurrency=4 \"tests/**/*.test.ts\"",
+		"pack:candidate": "node scripts/pack-candidate.ts"
+	},
+	"devDependencies": {
+		"@types/node": "26.6.5",
+		"oxfmt": "0.73.0",
+		"oxlint": "1.88.0",
+		"oxlint-tsgolint": "7.0.2004",
+		"typescript": "7.0.2"
+	},
+	"optionalDependencies": {
+		"@sunstack/sdk-darwin-arm64": "workspace:*",
+		"@sunstack/sdk-darwin-x64": "workspace:*",
+		"@sunstack/sdk-linux-arm64-gnu": "workspace:*",
+		"@sunstack/sdk-linux-arm64-musl": "workspace:*",
+		"@sunstack/sdk-linux-x64-gnu": "workspace:*",
+		"@sunstack/sdk-linux-x64-musl": "workspace:*"
+	},
+	"engines": {
+		"node": ">=26.0.0"
+	}
+}

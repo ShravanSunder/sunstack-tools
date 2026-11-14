@@ -5,6 +5,7 @@ members = [
     "crates/sunstack-rules",
     "crates/sunstack",
     "crates/sunstack-lint",
+    "packages/sdk/native",
 ]
 resolver = "3"
 

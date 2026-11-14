@@ -310,3 +310,165 @@ async fn sdk_invalid_request_reaches_the_existing_lint_formatter_boundary() {
     );
     assert!(!render(&report, OutputFormat::Default).contains("provider failure"));
 }
+
+/// Signals a notifier whenever the run it is polling for is woken.
+struct NotifyOnWake(tokio::sync::Notify);
+impl std::task::Wake for NotifyOnWake {
+    fn wake(self: std::sync::Arc<Self>) {
+        self.0.notify_one();
+    }
+}
+fn poll_with<F: std::future::Future + ?Sized>(
+    run: &mut std::pin::Pin<Box<F>>,
+    wake: &std::sync::Arc<NotifyOnWake>,
+) -> std::task::Poll<F::Output> {
+    let waker = std::task::Waker::from(wake.clone());
+    run.as_mut()
+        .poll(&mut std::task::Context::from_waker(&waker))
+}
+
+/// A run whose evidence stage cannot join after a real selection answer settled: the
+/// CLI keeps its old incomplete report, while the partial report keeps the settled
+/// selection request and its usage.
+#[test]
+fn a_stage_stopped_after_a_settled_selection_keeps_its_request_and_usage() {
+    use std::sync::Arc;
+    use sunstack_lint::configuration_loading::definition_bundle::acquire_file_definitions;
+    let root = tempfile::tempdir().unwrap();
+    // The answering server lives on its own runtime, so it outlasts the run's runtime.
+    let server_runtime = tokio::runtime::Runtime::new().unwrap();
+    let server = server_runtime.block_on(controlled::ControlledServer::start());
+    let request = selection_fixture(root.path(), &server.endpoint);
+    let location = discover_config(root.path(), request.config_path.as_deref()).unwrap();
+    let bundle = acquire_file_definitions(&load_config(&location).unwrap(), &location);
+    let (arrived, first_request) = tokio::sync::oneshot::channel();
+    let receiving = server_runtime.spawn(async move {
+        let mut server = server;
+        let _ = arrived.send(server.next().await);
+        server
+    });
+
+    // The run's runtime: dispatched requests and blocking stages run only while it is driven.
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+    let pool = runtime.handle().clone();
+    let mut run = Box::pin(run_definitions(
+        bundle,
+        root.path().to_path_buf(),
+        vec![],
+        ScopeChoice::All,
+        CancellationToken::new(),
+        Some("SYNTHETIC_SELECTION_KEY".into()),
+    ));
+    #[allow(
+        clippy::async_yields_async,
+        reason = "the paused run is handed to another runtime, not awaited here"
+    )]
+    let run = runtime.block_on(async move {
+        // Drive the run until its first selection request reaches the server.
+        let woken = Arc::new(NotifyOnWake(tokio::sync::Notify::new()));
+        let mut first_request = first_request;
+        let pending = loop {
+            assert!(poll_with(&mut run, &woken).is_pending());
+            tokio::select! {
+                biased;
+                pending = &mut first_request => break pending.unwrap(),
+                () = woken.0.notified() => {}
+            }
+        };
+        // Register a fresh waker, answer, and wait only until the answer settles: the run
+        // is woken by its finished request but not polled past it.
+        let settled = Arc::new(NotifyOnWake(tokio::sync::Notify::new()));
+        assert!(poll_with(&mut run, &settled).is_pending());
+        pending.noul(0.9);
+        settled.0.notified().await;
+        run
+    });
+    // Shut the pool down: the next blocking stage the run spawns is cancelled.
+    runtime.shutdown_background();
+    let resumed = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+    let outcome = resumed.block_on(async {
+        let _original_pool = pool.enter();
+        run.await
+    });
+    let server = server_runtime.block_on(receiving).unwrap();
+    assert_eq!(server_runtime.block_on(server.finish()), 1);
+
+    let Err(stopped) = outcome else {
+        panic!("the stage after selection cannot join");
+    };
+    assert_eq!(stopped.stage(), RunStage::EvidenceStage);
+    let partial = stopped.clone().into_partial_report();
+    let cli = stopped.into_cli_report();
+    for report in [&partial, &cli] {
+        assert_eq!(report.status, LintStatus::Incomplete);
+        assert!(matches!(
+            report.incomplete.as_slice(),
+            [IncompletePart {
+                reason: IncompleteReason::PreparationFailed,
+                ..
+            }]
+        ));
+        assert_eq!(report.selections.len(), cli.selections.len());
+        assert!(
+            !report.selections.is_empty(),
+            "the settled selection was recorded"
+        );
+        assert_eq!(
+            report
+                .diagnostics
+                .last()
+                .map(|diagnostic| diagnostic.message.as_str()),
+            Some("evidence stage failed")
+        );
+    }
+    // The settled request, its receipt and its reported usage stay in the partial report.
+    assert_eq!(partial.usage.model_requests, 1);
+    assert_eq!(partial.usage.input_tokens, Some(20));
+    assert_eq!(partial.usage.output_tokens, Some(5));
+    assert_eq!(partial.usage.cost_reported_requests, 1);
+    assert!(partial.usage.checked_files_acquired >= 1);
+    assert_settled_selection_request(&partial.requests);
+    // The CLI's report is exactly the report as it stood: the partial report without the
+    // settled requests and usage the run had not yet recorded.
+    let mut as_it_stood = serde_json::to_value(&partial).unwrap();
+    as_it_stood["requests"] = json!([]);
+    as_it_stood["usage"] = serde_json::to_value(UsageSummary::default()).unwrap();
+    assert_eq!(serde_json::to_value(&cli).unwrap(), as_it_stood);
+}
+
+/// Exactly one saved selection request, linked to its owner, candidates, models, input
+/// digest and completed receipt.
+fn assert_settled_selection_request(requests: &[SavedRequest]) {
+    let [request] = requests else {
+        panic!("one settled selection request: {requests:?}");
+    };
+    let RequestOwner::Selection {
+        selection_kind,
+        file,
+    } = &request.owner
+    else {
+        panic!("a selection owner: {:?}", request.owner);
+    };
+    assert_eq!(selection_kind.as_str(), "workflow_section");
+    assert_eq!(file, Path::new("skills/practices-research/SKILL.md"));
+    assert_eq!(request.requested_model.as_str(), "jev-latest");
+    assert_eq!(
+        request.resolved_model.as_ref().map(|model| model.as_str()),
+        Some("typesafe/controlled")
+    );
+    assert!(request.input_sha256.is_some());
+    let evidence = request.selection_evidence.as_ref().unwrap();
+    assert!(!evidence.candidates.is_empty());
+    assert!(matches!(
+        &request.outcome,
+        SavedRequestOutcome::Run {
+            outcome: sunstack_decisions::DecisionRunOutcome::Completed { .. }
+        }
+    ));
+}

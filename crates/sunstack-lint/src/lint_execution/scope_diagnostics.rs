@@ -6,6 +6,8 @@ use sunstack_evidence::{DiscoveryCoverage, DiscoveryLimit, DiscoveryLimits, Evid
 
 fn scope_diagnostic(root: &Path, path: Option<&Path>, message: String) -> LintDiagnostic {
     LintDiagnostic {
+        definition: None,
+        json_path: vec![],
         file: None,
         path: path.map(|path| root.join(path)),
         line: None,

@@ -4,6 +4,7 @@ use sunstack_decisions::{DecisionRunOutcome, ModelName, StructuredJudgmentReques
 use sunstack_evidence::PieceLocation;
 use sunstack_rules::{FilterName, RuleId};
 
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct IdentifiedResult<T> {
     pub id: usize,
@@ -18,6 +19,7 @@ impl<T> std::ops::Deref for IdentifiedResult<T> {
     }
 }
 
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum RequestOwner {
@@ -34,6 +36,7 @@ pub enum RequestOwner {
         folder: PathBuf,
     },
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum RequestNotSentReason {
@@ -44,6 +47,7 @@ pub enum RequestNotSentReason {
         reason: sunstack_rules::FilterIncomplete,
     },
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(tag = "state", rename_all = "snake_case")]
 pub enum SavedRequestOutcome {
@@ -66,16 +70,19 @@ pub enum SavedRequestOutcome {
         gate: Option<PreparedGate>,
     },
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum PreparedRequestStatus {
     Prepared,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct PreparedGate {
     pub filter: FilterName,
     pub labels: std::collections::BTreeSet<sunstack_decisions::ChoiceLabel>,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct SavedRequest {
     pub id: usize,
@@ -90,6 +97,7 @@ pub struct SavedRequest {
     #[serde(flatten)]
     pub outcome: SavedRequestOutcome,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct SelectionRequestEvidence {
     pub candidates: Vec<sunstack_evidence::SelectionCandidate>,
@@ -102,6 +110,7 @@ pub struct RulebookFile {
     pub content: String,
 }
 
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct SavedPieceEvidence {
     pub piece: sunstack_evidence::EvidencePiece,
@@ -111,6 +120,7 @@ pub struct SavedPieceEvidence {
     >,
 }
 
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum RecordedRequestStatus {

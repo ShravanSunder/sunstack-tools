@@ -265,7 +265,7 @@ async fn runtime_filter_choice_boundary_preserves_typed_count_limit_through_repo
             name: RuleId::new("peer").unwrap(),
             sentence: RulebookSentence {
                 marker: MarkerId::new("K001").unwrap(),
-                rulebook: "rulebook.md".into(),
+                rulebook: sunstack_evidence::DefinitionOrigin::file("rulebook.md"),
                 line: 1,
                 standard: "Check purpose".into(),
             },

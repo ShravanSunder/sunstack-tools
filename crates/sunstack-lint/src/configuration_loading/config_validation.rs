@@ -1,12 +1,20 @@
 use crate::{
-    configuration_loading::config_decoding::{config_error, validate_config_shape},
+    configuration_loading::{
+        config_decoding::{
+            AdmissionPurpose, validate_config_shape, validate_limit_shape, validate_settings_shape,
+        },
+        definition_bundle::{
+            DefinitionBundle, EvidenceAcquisition, RootDefinition, acquire_file_definitions,
+        },
+    },
     *,
 };
 use std::path::{Path, PathBuf};
 use sunstack_evidence::{
-    ConfigPath, EvidenceProject, InlineRule, KindMatcher, load_evidence_project,
+    ConfigPath, DefinitionOrigin, EvidenceProject, InlineRule, KindMatcher, ProjectReadFailure,
+    ProjectRefusal,
 };
-use sunstack_rules::{RulebookAssembly, RulebookPair, admit_evidence_kinds, assemble_rulebook};
+use sunstack_rules::{RulebookAssembly, admit_evidence_kinds, assemble_rulebook_sources};
 use tokio_util::sync::CancellationToken;
 
 pub(crate) struct CheckedRulebook {
@@ -16,20 +24,74 @@ pub(crate) struct CheckedRulebook {
     pub inputs: Vec<PathBuf>,
     pub selections: Vec<sunstack_rules::AdmittedSelection>,
 }
-pub(crate) fn config_directory(config: &RulesConfig) -> PathBuf {
+/// The file location of a decoded config, or the CLI's fallback for detached values.
+pub(crate) fn config_location(config: &RulesConfig) -> ConfigLocation {
     config
         .source
         .as_ref()
-        .map(|source| source.location.directory.clone())
-        .unwrap_or_else(|| PathBuf::from("."))
+        .map(|source| source.location.clone())
+        .unwrap_or_else(|| ConfigLocation {
+            file: PathBuf::from("sunstack.lint.json"),
+            directory: PathBuf::from("."),
+        })
 }
 pub(crate) fn load_checked_rulebook(
     config: &RulesConfig,
 ) -> Result<CheckedRulebook, Vec<LintDiagnostic>> {
     validate_config_shape(config).map_err(|error| vec![error.into()])?;
-    let base = config_directory(config);
-    let inline_rules = config
-        .evidence
+    let bundle = acquire_file_definitions(config, &config_location(config));
+    admit_definitions(&bundle)
+}
+
+fn project_refusal(root: &RootDefinition, error: ProjectRefusal) -> Vec<LintDiagnostic> {
+    if let Some(origin) = &error.origin {
+        return vec![
+            root.field_error(
+                origin,
+                LintInvalidCode::Syntax,
+                format!("{origin}: {}", error.message),
+            )
+            .into(),
+        ];
+    }
+    let mut diagnostic = LintInvalid::at(error.path, LintInvalidCode::Syntax, error.message)
+        .in_definition(&error.definition);
+    diagnostic.line = u32::try_from(error.line).ok();
+    diagnostic.column = error.column.and_then(|column| u32::try_from(column).ok());
+    vec![diagnostic.into()]
+}
+
+/// Admit captured definitions with the one shared semantic policy.
+pub(crate) fn admit_definitions(
+    bundle: &DefinitionBundle,
+) -> Result<CheckedRulebook, Vec<LintDiagnostic>> {
+    admit_definitions_for(bundle, AdmissionPurpose::RuleEvaluation)
+}
+
+pub(crate) fn admit_definitions_for(
+    bundle: &DefinitionBundle,
+    purpose: AdmissionPurpose,
+) -> Result<CheckedRulebook, Vec<LintDiagnostic>> {
+    let root = &bundle.root;
+    let settings = &bundle.settings;
+    let field_error = |path: &ConfigPath, message: String| -> LintDiagnostic {
+        root.field_error(path, LintInvalidCode::Syntax, message)
+            .into()
+    };
+    // The shape checks every configuration shares. A CLI file already passed them when
+    // it was decoded; captured and inline configurations meet them here.
+    let shape_error =
+        |path: &ConfigPath, message: &str| root.field_error(path, LintInvalidCode::Syntax, message);
+    validate_settings_shape(
+        settings,
+        bundle.rulebooks.len(),
+        "rulebooks",
+        purpose,
+        shape_error,
+    )
+    .and_then(|()| validate_limit_shape(settings.limits.as_ref(), shape_error))
+    .map_err(|error| vec![LintDiagnostic::from(error)])?;
+    let inline_rules = settings
         .kinds
         .iter()
         .filter_map(|(kind, definition)| match &definition.matcher {
@@ -43,113 +105,90 @@ pub(crate) fn load_checked_rulebook(
             }),
         })
         .collect::<Vec<_>>();
-    let source_path = config
-        .source
-        .as_ref()
-        .map(|source| source.location.file.as_path())
-        .unwrap_or_else(|| Path::new("sunstack.lint.json"));
-    let project = load_evidence_project(
-        &base.join(&config.evidence.ast_grep),
-        &inline_rules,
-        Some(source_path),
-        &config.evidence.document_settings(),
-    )
-    .map_err(|error| {
-        if let Some(origin) = &error.origin {
-            return vec![
-                config_error(
-                    config,
-                    origin,
-                    LintInvalidCode::Syntax,
-                    format!("{origin}: {}", error.message),
-                )
-                .into(),
-            ];
+    let project = match &bundle.evidence {
+        EvidenceAcquisition::ProjectFiles(files) => match files.as_ref() {
+            Ok(files) => sunstack_evidence::compile_evidence_project_files(
+                files,
+                &inline_rules,
+                &bundle.inline_kind_origin,
+                &bundle.settings.document,
+            ),
+            Err(ProjectReadFailure::Unavailable(failure)) => Err(failure.refusal.clone()),
+            Err(ProjectReadFailure::Refused(refusal)) => Err(refusal.clone()),
+        },
+        EvidenceAcquisition::Definitions(definitions) => {
+            sunstack_evidence::compile_evidence_project(
+                definitions,
+                &inline_rules,
+                &bundle.inline_kind_origin,
+                &bundle.settings.document,
+            )
         }
-        let mut diagnostic = LintInvalid::at(error.path, LintInvalidCode::Syntax, error.message);
-        diagnostic.line = u32::try_from(error.line).ok();
-        diagnostic.column = error.column.and_then(|column| u32::try_from(column).ok());
-        vec![diagnostic.into()]
-    })?;
-    let limits = config
+    }
+    .map_err(|error| project_refusal(root, error))?;
+    let limits = settings
         .limits
         .as_ref()
         .map(EffectiveLimits::from)
         .unwrap_or_default();
-    let filters = sunstack_rules::admit_filters(&config.filters, &config.evidence.kinds, &project)
+    let filters = sunstack_rules::admit_filters(&settings.filters, &settings.kinds, &project)
         .map_err(|errors| {
             errors
                 .into_iter()
                 .map(|error| {
-                    config_error(
-                        config,
+                    field_error(
                         &error.field_path,
-                        LintInvalidCode::Syntax,
                         format!("{}: {}", error.field_path, error.message),
                     )
-                    .into()
                 })
                 .collect::<Vec<LintDiagnostic>>()
         })?;
     let errors = admit_evidence_kinds(
-        &config.evidence.kinds,
+        &settings.kinds,
         &project,
         limits.evidence_max_chars as usize,
     );
     if !errors.is_empty() {
         return Err(errors
             .into_iter()
-            .map(|error| {
-                config_error(
-                    config,
-                    &error.field_path,
-                    LintInvalidCode::Syntax,
-                    error.message,
-                )
-                .into()
-            })
+            .map(|error| field_error(&error.field_path, error.message))
             .collect());
     }
-    let pairs = config
-        .rulebook
+    let sources = bundle
+        .rulebooks
         .iter()
-        .map(|pair| RulebookPair {
-            markdown: base.join(&pair.markdown),
-            rules: base.join(&pair.rules),
-        })
+        .map(|source| source.clone().map_err(|failure| failure.diagnostics))
         .collect::<Vec<_>>();
-    let assembly = assemble_rulebook(
-        &pairs,
-        &config.marker_prefix,
-        config.max_question_words.get() as usize,
-        &config.evidence.kinds,
+    let assembly = assemble_rulebook_sources(
+        &sources,
+        &settings.marker_prefix,
+        settings.max_question_words.get() as usize,
+        &settings.kinds,
         &project,
         &filters,
     )
-    .map_err(|errors| native_diagnostics(config, errors))?;
+    .map_err(|errors| native_diagnostics(root, errors))?;
+    if purpose == AdmissionPurpose::EvidenceInspection && !assembly.skipped.is_empty() {
+        return Err(assembly
+            .skipped
+            .iter()
+            .flat_map(|skipped| native_diagnostics(root, skipped.diagnostics.clone()))
+            .collect());
+    }
     let mut inputs = project.inputs.clone();
-    for pair in &pairs {
-        inputs.push(pair.markdown.clone());
-        inputs.push(pair.rules.clone());
+    for source in sources.iter().filter_map(|source| source.as_ref().ok()) {
+        inputs.extend(source.markdown_origin.file_path().map(Path::to_path_buf));
+        inputs.extend(source.entries_origin.file_path().map(Path::to_path_buf));
     }
-    if let Some(source) = &config.source {
-        inputs.push(source.location.file.clone());
+    if let Some(path) = root.origin.file_path() {
+        inputs.push(path.to_path_buf());
     }
-    let selections =
-        sunstack_rules::admit_selections(&config.evidence.kinds).map_err(|errors| {
-            errors
-                .into_iter()
-                .map(|error| {
-                    config_error(
-                        config,
-                        &error.field_path,
-                        LintInvalidCode::Syntax,
-                        error.message,
-                    )
-                    .into()
-                })
-                .collect::<Vec<LintDiagnostic>>()
-        })?;
+    let selections = sunstack_rules::admit_selections(&settings.kinds).map_err(|errors| {
+        errors
+            .into_iter()
+            .map(|error| field_error(&error.field_path, error.message))
+            .collect::<Vec<LintDiagnostic>>()
+    })?;
     Ok(CheckedRulebook {
         filters,
         selections,
@@ -159,43 +198,16 @@ pub(crate) fn load_checked_rulebook(
     })
 }
 pub async fn check(config: &RulesConfig, cancellation: CancellationToken) -> CheckResult {
-    let config = config.clone();
     if cancellation.is_cancelled() {
         return CheckResult::Invalid {
             diagnostics: vec![],
         };
     }
+    let config = config.clone();
     let result = tokio::task::spawn_blocking(move || {
-        let checked = load_checked_rulebook(&config)?;
-        let mut diagnostics = Vec::new();
-        for skipped in &checked.assembly.skipped {
-            diagnostics.extend(native_diagnostics(&config, skipped.diagnostics.clone()));
-        }
-        if diagnostics.is_empty() {
-            let mut rows = checked
-                .assembly
-                .rules
-                .iter()
-                .map(|rule| CheckListing::Rule(listing(rule)))
-                .collect::<Vec<_>>();
-            rows.extend(
-                config
-                    .evidence
-                    .kinds
-                    .iter()
-                    .filter(|(_, kind)| kind.select.is_some() || kind.within.is_some())
-                    .map(|(name, kind)| {
-                        CheckListing::Kind(KindListing {
-                            kind: name.clone(),
-                            select: kind.select.clone(),
-                            within: kind.within.clone(),
-                        })
-                    }),
-            );
-            Ok(rows)
-        } else {
-            Err(diagnostics)
-        }
+        validate_config_shape(&config).map_err(|error| vec![error.into()])?;
+        let bundle = acquire_file_definitions(&config, &config_location(&config));
+        check_definitions(&bundle)
     })
     .await;
     match result {
@@ -213,12 +225,51 @@ pub async fn check(config: &RulesConfig, cancellation: CancellationToken) -> Che
         },
     }
 }
+
+/// Admit a bundle and list its rules, refusing any skipped rule. No checked input,
+/// credential or provider is touched.
+pub fn check_definitions(
+    bundle: &DefinitionBundle,
+) -> Result<Vec<CheckListing>, Vec<LintDiagnostic>> {
+    let checked = admit_definitions(bundle)?;
+    let mut diagnostics = Vec::new();
+    for skipped in &checked.assembly.skipped {
+        diagnostics.extend(native_diagnostics(
+            &bundle.root,
+            skipped.diagnostics.clone(),
+        ));
+    }
+    if !diagnostics.is_empty() {
+        return Err(diagnostics);
+    }
+    let mut rows = checked
+        .assembly
+        .rules
+        .iter()
+        .map(|rule| CheckListing::Rule(listing(rule)))
+        .collect::<Vec<_>>();
+    rows.extend(
+        bundle
+            .settings
+            .kinds
+            .iter()
+            .filter(|(_, kind)| kind.select.is_some() || kind.within.is_some())
+            .map(|(name, kind)| {
+                CheckListing::Kind(KindListing {
+                    kind: name.clone(),
+                    select: kind.select.clone(),
+                    within: kind.within.clone(),
+                })
+            }),
+    );
+    Ok(rows)
+}
 fn listing(rule: &sunstack_rules::RulebookRule) -> RuleListing {
     RuleListing {
         rule: rule.name.clone(),
         marker: rule.sentence.marker.clone(),
         source: SourceLocation {
-            file: rule.sentence.rulebook.clone(),
+            file: rule.sentence.rulebook.cli_path(),
             line: u32::try_from(rule.sentence.line).unwrap_or(u32::MAX),
         },
         evidence: rule.kind.clone(),
@@ -248,29 +299,34 @@ pub fn list_rules(
     }
 }
 pub(crate) fn native_diagnostics(
-    config: &RulesConfig,
+    root: &RootDefinition,
     diagnostics: sunstack_rules::DiagnosticList,
 ) -> Vec<LintDiagnostic> {
     diagnostics
         .items
         .into_iter()
         .map(|item| {
-            let (file, line, column, path, message) = match item {
+            let (located, line, column, path, message) = match item {
                 sunstack_rules::ReportDiagnostic::Rule(diagnostic) => {
-                    let (file, line, column) = match diagnostic.location {
+                    let (located, line, column) = match diagnostic.location {
                         sunstack_rules::RuleDiagnosticLocation::Definition {
                             file,
                             line,
                             column,
-                            ..
+                            field_path,
+                            definition,
                         } => (
-                            Some(file),
+                            Some((
+                                file.clone(),
+                                definition.unwrap_or_else(|| DefinitionOrigin::file(file)),
+                                field_path,
+                            )),
                             u32::try_from(line).ok(),
                             u32::try_from(column).ok(),
                         ),
                         _ => (None, None, None),
                     };
-                    (file, line, column, None, diagnostic.guidance)
+                    (located, line, column, None, diagnostic.guidance)
                 }
                 sunstack_rules::ReportDiagnostic::Evidence(diagnostic) => (
                     None,
@@ -287,6 +343,16 @@ pub(crate) fn native_diagnostics(
                     format!("Decision admission refused: {:?}.", diagnostic.code),
                 ),
             };
+            let (file, definition, json_path) = match located {
+                Some((file, definition, field_path)) => (Some(file), definition, field_path),
+                None => (
+                    root.text
+                        .as_ref()
+                        .and(root.origin.file_path().map(Path::to_path_buf)),
+                    root.origin.clone(),
+                    vec![],
+                ),
+            };
             let code =
                 if message.contains("old severity") || message.contains("old confidence-band") {
                     LintInvalidCode::OldSeverityWord
@@ -298,12 +364,9 @@ pub(crate) fn native_diagnostics(
                     LintInvalidCode::Syntax
                 };
             LintDiagnostic {
-                file: file.or_else(|| {
-                    config
-                        .source
-                        .as_ref()
-                        .map(|source| source.location.file.clone())
-                }),
+                file,
+                definition: Some(definition),
+                json_path,
                 path,
                 line: line.or(Some(1)),
                 column: column.or(Some(1)),

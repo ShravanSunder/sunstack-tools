@@ -76,6 +76,7 @@ pub(crate) fn locate_at(diagnostics: &mut DiagnosticList, file: &Path, line: usi
                         line,
                         column,
                         field_path: vec![],
+                        definition: None,
                     };
                 }
             }

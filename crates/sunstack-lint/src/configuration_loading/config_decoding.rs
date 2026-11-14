@@ -1,4 +1,4 @@
-use crate::*;
+use crate::{configuration_loading::definition_bundle::ConfigurationSettings, *};
 use serde::{
     Deserialize, Deserializer,
     de::{MapAccess, SeqAccess, Visitor},
@@ -116,6 +116,9 @@ pub fn decode_config(text: &str, location: &ConfigLocation) -> Result<RulesConfi
                 "Invalid sunstack.lint.json: {}{field_context}",
                 migration_message(&message)
             ),
+            definition: Some(Box::new(sunstack_evidence::DefinitionOrigin::file(
+                &location.file,
+            ))),
         }
     };
     let mut uniqueness = serde_json::Deserializer::from_str(text);
@@ -140,23 +143,16 @@ pub fn decode_config(text: &str, location: &ConfigLocation) -> Result<RulesConfi
     Ok(config)
 }
 pub(crate) fn validate_config_shape(config: &RulesConfig) -> Result<(), LintInvalid> {
-    let empty_collection = if config.rulebook.is_empty() {
-        Some(ConfigPath::keys(["rulebook"]))
-    } else if config.check.files.is_empty() {
-        Some(ConfigPath::keys(["check", "files"]))
-    } else if config.evidence.kinds.is_empty() {
-        Some(ConfigPath::keys(["evidence", "kinds"]))
-    } else {
-        None
+    let location = |path: &ConfigPath, message: &str| {
+        config_error(config, path, LintInvalidCode::Syntax, message)
     };
-    if let Some(path) = empty_collection {
-        return Err(config_error(
-            config,
-            &path,
-            LintInvalidCode::Syntax,
-            "rulebook, check.files and evidence.kinds must be nonempty",
-        ));
-    }
+    validate_settings_shape(
+        &ConfigurationSettings::from(config),
+        config.rulebook.len(),
+        "rulebook",
+        AdmissionPurpose::RuleEvaluation,
+        location,
+    )?;
     let empty_pair_path = config
         .rulebook
         .iter()
@@ -184,37 +180,70 @@ pub(crate) fn validate_config_shape(config: &RulesConfig) -> Result<(), LintInva
             .then(|| ConfigPath::keys(["evidence", "ast_grep"]))
     });
     if let Some(path) = empty_path {
-        return Err(config_error(
-            config,
+        return Err(location(&path, "configured paths must be nonempty"));
+    }
+    validate_limit_shape(config.limits.as_ref(), location)
+}
+
+/// The operation that owns admission; only inspection permits absent rulebooks.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum AdmissionPurpose {
+    RuleEvaluation,
+    EvidenceInspection,
+}
+
+/// Shape checks every configuration shares, whatever its acquisition format.
+pub(crate) fn validate_settings_shape(
+    settings: &ConfigurationSettings,
+    rulebook_count: usize,
+    rulebook_key: &str,
+    purpose: AdmissionPurpose,
+    location: impl Fn(&ConfigPath, &str) -> LintInvalid,
+) -> Result<(), LintInvalid> {
+    let empty_collection = if rulebook_count == 0 && purpose == AdmissionPurpose::RuleEvaluation {
+        Some(ConfigPath::keys([rulebook_key]))
+    } else if settings.check.files.is_empty() {
+        Some(ConfigPath::keys(["check", "files"]))
+    } else if settings.kinds.is_empty() {
+        Some(ConfigPath::keys(["evidence", "kinds"]))
+    } else {
+        None
+    };
+    if let Some(path) = empty_collection {
+        return Err(location(
             &path,
-            LintInvalidCode::Syntax,
-            "configured paths must be nonempty",
+            &match purpose {
+                AdmissionPurpose::RuleEvaluation => {
+                    format!("{rulebook_key}, check.files and evidence.kinds must be nonempty")
+                }
+                AdmissionPurpose::EvidenceInspection => {
+                    "check.files and evidence.kinds must be nonempty".into()
+                }
+            },
         ));
     }
-    if config
-        .limits
-        .as_ref()
+    Ok(())
+}
+
+pub(crate) fn validate_limit_shape(
+    limits: Option<&LintLimits>,
+    location: impl Fn(&ConfigPath, &str) -> LintInvalid,
+) -> Result<(), LintInvalid> {
+    if limits
         .and_then(|limits| limits.evidence_max_chars)
         .is_some_and(|value| value.get() < 1000)
     {
-        return Err(config_error(
-            config,
+        return Err(location(
             &ConfigPath::keys(["limits", "evidence_max_chars"]),
-            LintInvalidCode::Syntax,
             "evidence_max_chars must be at least 1000",
         ));
     }
-
-    if config
-        .limits
-        .as_ref()
+    if limits
         .and_then(|limits| limits.max_locate_lines)
         .is_some_and(|limit| limit.get() as usize > sunstack_decisions::MAX_CHOICE_OPTIONS)
     {
-        return Err(config_error(
-            config,
+        return Err(location(
             &ConfigPath::keys(["limits", "max_locate_lines"]),
-            LintInvalidCode::Syntax,
             "limits.max_locate_lines must be at most 255 (provider Choice option limit)",
         ));
     }
@@ -254,6 +283,7 @@ pub(crate) fn config_error(
         None => (std::path::PathBuf::from("sunstack.lint.json"), 1, 1),
     };
     LintInvalid {
+        definition: Some(Box::new(sunstack_evidence::DefinitionOrigin::file(&file))),
         file,
         line: Some(line),
         column: Some(column),
@@ -265,7 +295,7 @@ pub(crate) fn config_error(
 
 // Locate literal object keys and indexed array values without parsing their
 // displayed diagnostic spelling back into configuration structure.
-fn config_field_position(text: &str, path: &ConfigPath) -> Option<usize> {
+pub(crate) fn config_field_position(text: &str, path: &ConfigPath) -> Option<usize> {
     let bytes = text.as_bytes();
     let mut search_start = 0;
     let mut position = 0;

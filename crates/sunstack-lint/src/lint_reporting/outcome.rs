@@ -337,8 +337,9 @@ pub(crate) fn project_selections(
 fn related_places(rule: &RulebookRule, piece: &EvidencePiece) -> Vec<RelatedPlace> {
     use sunstack_evidence::{FieldValue, SourceRef};
     let mut places = vec![RelatedPlace {
+        definition: Some(rule.sentence.rulebook.clone()),
         label: "standard".into(),
-        file: rule.sentence.rulebook.clone(),
+        file: rule.sentence.rulebook.cli_path(),
         first_line: rule.sentence.line,
         last_line: rule.sentence.line,
     }];
@@ -349,6 +350,7 @@ fn related_places(rule: &RulebookRule, piece: &EvidencePiece) -> Vec<RelatedPlac
         if let FieldValue::Targets { values } = field {
             places.extend(values.iter().filter_map(|target| {
                 target.opening_last_line.map(|last_line| RelatedPlace {
+                    definition: None,
                     label: name.as_str().into(),
                     file: target.path.clone(),
                     first_line: 1,
@@ -364,6 +366,7 @@ fn related_places(rule: &RulebookRule, piece: &EvidencePiece) -> Vec<RelatedPlac
                     SourceRef::Payload { .. } => return None,
                 };
                 Some(RelatedPlace {
+                    definition: None,
                     label: name.as_str().into(),
                     file,
                     first_line: span.start_line,
@@ -456,6 +459,8 @@ pub(crate) fn project_evidence_failures(
 ) {
     for failure in &catalog.failures {
         report.diagnostics.push(LintDiagnostic {
+            definition: None,
+            json_path: vec![],
             file: Some(failure.file.clone()),
             path: None,
             line: None,

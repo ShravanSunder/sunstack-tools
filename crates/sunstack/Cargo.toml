@@ -19,6 +19,9 @@ dist = true
 npm-scope = "@sunstack"
 npm-package = "cli"
 
+[features]
+typescript = ["dep:specta", "sunstack-lint/typescript", "sunstack-rules/typescript", "sunstack-evidence/typescript", "sunstack-decisions/typescript", "dep:specta-typescript"]
+
 [lints]
 workspace = true
 
@@ -32,6 +35,13 @@ serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["raw_value"] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "io-std", "io-util", "signal", "time"] }
 keyring-core = "1.0.1"
+serde_path_to_error = "0.1"
+serde-value = "0.7"
+schemars = "1"
+ast-grep-config = "=0.51.0"
+ast-grep-language = "=0.51.0"
+specta = { version = "=2.0.0-rc.28", features = ["derive", "serde_json"], optional = true }
+specta-typescript = { version = "=0.0.15", optional = true }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 apple-native-keyring-store = { version = "1.0.2", features = ["keychain"] }
@@ -48,6 +58,10 @@ git2 = { version = "=0.21.0", default-features = false, features = ["vendored-li
 tempfile = "3"
 rustix = { version = "1", features = ["fs"] }
 tokio = { version = "1", features = ["process", "net", "sync"] }
+
+[lib]
+name = "sunstack"
+path = "src/lib.rs"
 
 [[bin]]
 name = "sunstack"
@@ -134,5 +148,25 @@ name = "rulebook_lint_process"
 path = "tests/e2e/rulebook_lint_process.rs"
 
 [[test]]
+name = "sdk_facade"
+path = "tests/integration/sdk_facade.rs"
+
+[[test]]
+name = "sdk_facade_effects"
+path = "tests/integration/sdk_facade_effects.rs"
+
+[[test]]
+name = "sdk_facade_admission"
+path = "tests/integration/sdk_facade_admission.rs"
+
+[[test]]
+name = "sdk_facade_error_paths"
+path = "tests/integration/sdk_facade_error_paths.rs"
+
+[[test]]
 name = "credential_isolation"
 path = "tests/integration/credential_isolation.rs"
+
+[[test]]
+name = "sdk_inspection"
+path = "tests/integration/sdk_inspection.rs"

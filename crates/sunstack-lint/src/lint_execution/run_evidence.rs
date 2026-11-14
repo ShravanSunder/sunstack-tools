@@ -1,10 +1,16 @@
 use super::backend_factory::backend_selection;
 use super::{
     filter_folders::FilterFolderPlan,
-    lint_run::{RunState, failed, invalid},
+    lint_run::{RunEnd, RunState, failed, invalid},
     run_scope::ScopeInputs,
+    stopped_stages::{RunStage, RunStageStopped},
 };
-use crate::{configuration_loading::config_validation::CheckedRulebook, *};
+use crate::{
+    configuration_loading::{
+        config_validation::CheckedRulebook, definition_bundle::DefinitionBundle,
+    },
+    *,
+};
 use std::{collections::BTreeSet, ops::ControlFlow, path::PathBuf, sync::Arc};
 use sunstack_decisions::DecisionBackend;
 use sunstack_evidence::*;
@@ -21,12 +27,12 @@ pub(super) type BuiltEvidence = (
 
 pub(super) async fn build_run_evidence(
     mut state: RunState,
-    config: &RulesConfig,
+    bundle: &DefinitionBundle,
     checked: &mut CheckedRulebook,
     scope: &mut ScopeInputs,
     source: Option<Box<dyn CheckedFileSource + Send>>,
     backend: Option<Arc<dyn DecisionBackend>>,
-) -> ControlFlow<LintReport, (RunState, BuiltEvidence, FrozenCheckedSource)> {
+) -> ControlFlow<RunEnd, (RunState, BuiltEvidence, FrozenCheckedSource)> {
     let request = &state.request;
     let cancellation = &state.cancellation;
     let preparing = state.preparing;
@@ -38,6 +44,8 @@ pub(super) async fn build_run_evidence(
     if files.len() > report.limits.max_files as usize {
         files.truncate(report.limits.max_files as usize);
         report.diagnostics.push(LintDiagnostic {
+            definition: None,
+            json_path: vec![],
             file: None,
             path: None,
             line: None,
@@ -56,7 +64,7 @@ pub(super) async fn build_run_evidence(
         Some(source) => source,
         None => match FilesystemCheckedSource::new(&selection.root) {
             Ok(source) => Box::new(source),
-            Err(_) => return ControlFlow::Break(failed(report, "checked source unavailable")),
+            Err(_) => return ControlFlow::Break(Ok(failed(report, "checked source unavailable"))),
         },
     };
     let mut source = FrozenCheckedSource::new(std::mem::take(frozen), fallback);
@@ -73,19 +81,19 @@ pub(super) async fn build_run_evidence(
     } else {
         super::filter_folders::FilterFolderPlan::default()
     };
-    let kinds = config.evidence.kinds.clone();
+    let kinds = bundle.settings.kinds.clone();
     let limits = PieceBuildLimits {
         max_files: report.limits.max_files as usize,
         max_file_bytes: match usize::try_from(report.limits.max_file_bytes) {
             Ok(value) => value,
             Err(_) => {
-                return ControlFlow::Break(failed(report, "file byte limit exceeds platform"));
+                return ControlFlow::Break(Ok(failed(report, "file byte limit exceeds platform")));
             }
         },
         max_total_bytes: match usize::try_from(report.limits.max_total_bytes) {
             Ok(value) => value,
             Err(_) => {
-                return ControlFlow::Break(failed(report, "total byte limit exceeds platform"));
+                return ControlFlow::Break(Ok(failed(report, "total byte limit exceeds platform")));
             }
         },
         max_matches: report.limits.max_matches as usize,
@@ -93,14 +101,14 @@ pub(super) async fn build_run_evidence(
     };
     let attempts = match report.limits.attempts() {
         Ok(attempts) => attempts,
-        Err(error) => return ControlFlow::Break(invalid(report, error)),
+        Err(error) => return ControlFlow::Break(Ok(invalid(report, error))),
     };
     let request_budget = match report.limits.request_budget() {
         Ok(budget) => budget,
-        Err(error) => return ControlFlow::Break(invalid(report, error)),
+        Err(error) => return ControlFlow::Break(Ok(invalid(report, error))),
     };
     let settings = RulebookRunSettings {
-        backend: backend_selection(config),
+        backend: backend_selection(&bundle.settings.decision_model),
         attempts,
         request_budget,
         request_max_chars: report.limits.request_max_chars as usize,
@@ -119,6 +127,7 @@ pub(super) async fn build_run_evidence(
     let definitions = std::mem::take(&mut checked.selections);
     let project = checked.project.clone();
     let scope_files = checked_files.iter().cloned().collect::<Vec<_>>();
+    let acquired_before_stage = source.checked_files_acquired();
     let started = tokio::task::spawn_blocking(move || {
         let build = EvidenceBuild::start(&project, &kinds, &files, &mut source, limits);
         (build, source)
@@ -126,12 +135,22 @@ pub(super) async fn build_run_evidence(
     .await;
     let (mut build, mut source) = match started {
         Ok((Ok(build), source)) => (build, source),
-        Ok((Err(_), _)) => return ControlFlow::Break(failed(report, "evidence kind plan failed")),
-        Err(_) => return ControlFlow::Break(failed(report, "evidence building failed")),
+        Ok((Err(_), _)) => {
+            return ControlFlow::Break(Ok(failed(report, "evidence kind plan failed")));
+        }
+        Err(_) => {
+            return ControlFlow::Break(Err(RunStageStopped::with_settled_requests(
+                RunStage::EvidenceBuilding,
+                report,
+                &dispatcher,
+                acquired_before_stage,
+            )));
+        }
     };
     let scope_changes = changes.clone();
     let repository_root = selection.root.clone();
     let dependencies = folder_plan.dependencies.clone();
+    let acquired_before_stage = source.checked_files_acquired();
     let prepared = tokio::task::spawn_blocking(move || {
         let mut targets = build.target_paths(&source, &repository_root);
         for (file, inputs) in dependencies {
@@ -147,10 +166,18 @@ pub(super) async fn build_run_evidence(
             source = next_source;
             files
         }
-        Err(_) => return ControlFlow::Break(failed(report, "selection scope failed")),
+        Err(_) => {
+            return ControlFlow::Break(Err(RunStageStopped::with_settled_requests(
+                RunStage::SelectionScope,
+                report,
+                &dispatcher,
+                acquired_before_stage,
+            )));
+        }
     };
     let mut chosen = ChosenCandidates::default();
     let mut catalog = loop {
+        let acquired_before_stage = source.checked_files_acquired();
         let advanced = tokio::task::spawn_blocking(move || {
             let step = build.advance(chosen, &mut source);
             (build, source, step)
@@ -162,7 +189,14 @@ pub(super) async fn build_run_evidence(
                 source = next_source;
                 step
             }
-            Err(_) => return ControlFlow::Break(failed(report, "evidence stage failed")),
+            Err(_) => {
+                return ControlFlow::Break(Err(RunStageStopped::with_settled_requests(
+                    RunStage::EvidenceStage,
+                    report,
+                    &dispatcher,
+                    acquired_before_stage,
+                )));
+            }
         };
         match step {
             BuildStep::Done(catalog) => break catalog,
@@ -176,7 +210,7 @@ pub(super) async fn build_run_evidence(
                     .find(|selection| selection.kind == kind)
                     .cloned()
                 else {
-                    return ControlFlow::Break(failed(report, "selection admission missing"));
+                    return ControlFlow::Break(Ok(failed(report, "selection admission missing")));
                 };
                 let input = SelectionInput {
                     selection,
@@ -263,6 +297,7 @@ pub(super) async fn build_run_evidence(
         &demanded,
     );
     if !context_files.is_empty() {
+        let acquired_before_stage = source.checked_files_acquired();
         let extended = tokio::task::spawn_blocking(move || {
             let catalog = build.add_context_files(&context_files, &mut source);
             (source, catalog)
@@ -274,7 +309,12 @@ pub(super) async fn build_run_evidence(
                 catalog = next_catalog;
             }
             Err(_) => {
-                return ControlFlow::Break(failed(report, "context evidence building failed"));
+                return ControlFlow::Break(Err(RunStageStopped::with_settled_requests(
+                    RunStage::ContextEvidence,
+                    report,
+                    &dispatcher,
+                    acquired_before_stage,
+                )));
             }
         }
     }

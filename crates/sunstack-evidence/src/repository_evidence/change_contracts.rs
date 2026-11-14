@@ -149,6 +149,7 @@ impl ChangeScope {
         }
     }
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(
     Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, JsonSchema,
 )]
@@ -174,6 +175,7 @@ pub struct FrozenRepositoryFile {
     pub text: String,
     pub side: SourceSide,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(
     Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, JsonSchema,
 )]

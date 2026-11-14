@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::{collections::BTreeMap, num::NonZeroU32};
 
 // The closed wire owns the exclusive matcher keys; the runtime has only valid variants.
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 #[schemars(extend("oneOf" = [{"required":["rule"]}, {"required":["inline_rule"]}, {"required":["html_units"]}, {"required":["markdown_units"]}]))]
@@ -14,6 +15,7 @@ pub(super) struct EvidenceKindWire {
         skip_serializing_if = "Option::is_none"
     )]
     #[schemars(with = "EvidenceRuleId")]
+    #[cfg_attr(feature = "typescript", specta(type = EvidenceRuleId, optional))]
     rule: Option<EvidenceRuleId>,
     #[serde(
         default,
@@ -21,6 +23,7 @@ pub(super) struct EvidenceKindWire {
         skip_serializing_if = "Option::is_none"
     )]
     #[schemars(with = "String")]
+    #[cfg_attr(feature = "typescript", specta(type = String, optional))]
     inline_rule: Option<String>,
     #[serde(
         default,
@@ -28,6 +31,7 @@ pub(super) struct EvidenceKindWire {
         skip_serializing_if = "Option::is_none"
     )]
     #[schemars(with = "crate::HtmlUnitSelection")]
+    #[cfg_attr(feature = "typescript", specta(type = crate::HtmlUnitSelection, optional))]
     html_units: Option<crate::HtmlUnitSelection>,
     #[serde(
         default,
@@ -38,6 +42,7 @@ pub(super) struct EvidenceKindWire {
         with = "crate::MarkdownUnitSelection",
         extend("allOf" = [{"properties":{"mode":{"const":"unit"}}}])
     )]
+    #[cfg_attr(feature = "typescript", specta(type = crate::MarkdownUnitsKindWire, optional))]
     markdown_units: Option<crate::MarkdownUnitSelection>,
     fields: BTreeMap<FieldName, FieldSource>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -50,6 +55,7 @@ pub(super) struct EvidenceKindWire {
         skip_serializing_if = "Option::is_none"
     )]
     #[schemars(with = "ContainingKinds")]
+    #[cfg_attr(feature = "typescript", specta(type = ContainingKinds, optional))]
     within: Option<ContainingKinds>,
 }
 

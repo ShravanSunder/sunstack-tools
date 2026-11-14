@@ -1,0 +1,404 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sunstack SDK · Write TypeScript, call Rust</title><link rel="stylesheet" href="https://demistify.getagentstudio.dev/v1/theme.css"><script type="module" src="https://demistify.getagentstudio.dev/v1/runtime.js"></script></head><body><ex-nav for="sdk-dx" src="../../specs/2026-11-11-typescript-sdk/navigation.json"></ex-nav><ex-document id="sdk-dx">
+<h1 id="heading-write-typescript-call-the-rust-engine">Write TypeScript. Call the Rust engine.</h1>
+<p><code>@sunstack/sdk</code> lets a developer or model author the whole configuration as normal typed values, call <code>check</code> or <code>run</code>, and consume concrete typed results. Existing CLI configs still work: load them, make a typed copy, and run the copy.</p>
+<p>The current integration targets SDK <code>0.16.0</code>, contract revision <code>9</code>. The examples describe that typed API; current installed-package proof is tracked separately in <a href="https://github.com/ShravanSunder/sunstack-tools/pull/159">PR 159</a>. The historical proof snapshots below keep their own versions and do not establish this candidate. The SDK is not published yet.</p>
+<h2 id="model">What types do, and what Rust does</h2>
+<ex-mermaid id="sdk-flow" label="Two authoring paths meet at the same Rust engine"><script type="text/plain">
+flowchart TD
+  Author["Author a complete TS config"] --> Types["Generated TS types · editor and compiler"]
+  Files["Existing CLI configs"] --> Load["load · captured typed values"]
+  Load --> Types
+  Types --> Check["check · Rust admission, no inference"]
+  Check --> Run["run · Rust execution against explicit root"]
+  Run --> Results["Typed outcomes, findings, sources and requests"]
+  Rust["Rust structs, enums and constructors"] -. "generate declarations" .-> Types
+</script></ex-mermaid>
+<p>The TS compiler catches keys, variants and result access. Rust still decides nonzero/range limits, globs, marker bindings, references, language and pattern validity. The SDK does not embed a TypeScript compiler in Rust or duplicate those decisions in TS. Run a separate typecheck before executing the TS program.</p>
+<h2 id="inline">Can the whole config live in TypeScript?</h2>
+<p>Yes. The package example below contains the Markdown standard, rule entry, matcher, evidence field, filter, questions, decision graph, model selection and limit. It imports only the SDK. No JSON/YAML definition project or copied fixture hides behind the example.</p>
+<ex-code id="call" title="Check, then run explicitly" lang="typescript"><script type="text/plain">
+const admission = await check(configuration);
+if (admission.kind === 'valid') {
+  const outcome = await run(configuration, {
+    root: '/absolute/checked/repository',
+    scope: { kind: 'all' },
+  });
+}
+</script></ex-code><details><summary>Complete package example: every definition authored in TS</summary><ex-code id="complete-inline" title="packages/sdk/examples/inline-configuration.ts" lang="typescript"><script type="text/plain">
+// Author a complete configuration as TypeScript values: no definition files.
+//
+//   node examples/inline-configuration.ts <absolute-checked-root> [endpoint]
+//
+// `check` needs no credential. `run` uses the ordinary credential route
+// (OPENROUTER_API_KEY or the OS store) and the configured decision endpoint.
+import { check, run } from '@sunstack/sdk';
+import type { Configuration, RunOutcome } from '@sunstack/sdk';
+
+const [root = process.cwd(), endpoint] = process.argv.slice(2);
+
+const configuration = {
+	id: 'instruction-standards',
+	base_directory: import.meta.dirname,
+	marker_prefix: 'K',
+	check: { files: ['skills/**/SKILL.md'] },
+	decision_model: { model: 'jev-latest', ...(endpoint === undefined ? {} : { endpoint }) },
+	limits: { max_file_bytes: 1_048_576n },
+	evidence: {
+		kind: 'inline',
+		utilities: {},
+		matchers: {
+			paragraph: { language: 'Markdown', rule: { kind: 'paragraph' } },
+		},
+		kinds: {
+			paragraph: { rule: 'paragraph', fields: { body: { from: 'remainder' } } },
+		},
+	},
+	filters: {
+		purpose: {
+			per: 'skills/{name}',
+			reads: { file: 'SKILL.md', kind: 'paragraph', fields: ['body'] },
+			labels: ['eligible', 'blocked'],
+			questions: {
+				purpose: {
+					type: 'choice',
+					instructions: { check: 'body', task: 'Classify whether this is reusable guidance.' },
+					criteria: { portable: 'Reusable guidance.', local: 'One repository procedure.' },
+				},
+			},
+			decision: {
+				start: 'purpose',
+				steps: {
+					purpose: {
+						ask: 'purpose',
+						min_probability: 0.7,
+						routes: { portable: { label: 'eligible' }, local: { label: 'blocked' } },
+						uncertain: 'unsure',
+					},
+				},
+			},
+		},
+	},
+	rulebooks: [
+		{
+			kind: 'inline',
+			id: 'ownership-standards',
+			markdown: '# Standards\n\nEach instruction names its responsible actor. <!-- K001 -->\n',
+			entries: {
+				K001: {
+					name: 'instruction_actor',
+					evidence: 'paragraph',
+					severity: 'warn',
+					only_when: { purpose: ['eligible'] },
+					questions: {
+						actor: {
+							type: 'noul',
+							instructions: { check: 'body', against: 'standard', task: 'Is the actor named?' },
+						},
+					},
+					decision: {
+						start: 'actor',
+						steps: {
+							actor: {
+								ask: 'actor',
+								yes_at_or_above: 0.8,
+								no_at_or_below: 0.2,
+								yes: 'pass',
+								no: { finding: 'Name the actor.', at: 'body' },
+								uncertain: 'uncertain',
+							},
+						},
+					},
+				},
+			},
+		},
+	],
+} satisfies Configuration;
+
+function summarize(outcome: RunOutcome): string {
+	switch (outcome.kind) {
+		case 'completed':
+			return `${outcome.report.status.kind}: ${outcome.report.findings.length} finding(s)`;
+		case 'invalid':
+		case 'unavailable':
+			return `${outcome.kind}: ${outcome.diagnostics.map((diagnostic) => diagnostic.code).join(', ')}`;
+		case 'incomplete':
+			return `incomplete: ${outcome.report.incomplete.length} gap(s)`;
+		case 'cancelled':
+			return 'cancelled';
+		case 'failed':
+			return `failed (${outcome.failure.reason}, effects ${outcome.failure.effects})`;
+		default:
+			return assertNever(outcome);
+	}
+}
+
+function assertNever(value: never): never {
+	throw new Error(`Unhandled outcome: ${JSON.stringify(value)}`);
+}
+
+const admission = await check(configuration); // no model request
+process.stdout.write(`check: ${admission.kind}\n`);
+if (admission.kind === 'valid') {
+	const outcome = await run(configuration, { root, scope: { kind: 'all' } });
+	process.stdout.write(`run: ${summarize(outcome)}\n`);
+}
+</script></ex-code></details><p>Functions, imports, loops and composition stay in the caller’s TS program. Pass the resulting data to Rust. The existing engine owns evidence evaluation and decisions; this package adds no AST traversal or codemod rewriting API.</p>
+<h2 id="html-sections">Can I define HTML sections as typed values?</h2>
+<p>Yes. Native section kinds use the same Rust compiler. A section starts at an h1–h6 heading; full includes its children, own excludes child sections, and enclosing own selects the direct parent’s own text. A top-level section has no enclosing section, so that field is absent. Body fields retain the original markup; asking views use projected visible text. An explicit heading field returns derived heading text with original source spans, as shown below.</p>
+<ex-code id="html-section-example" title="A native section kind" lang="typescript"><script type="text/plain">
+import type { EvidenceKindDefinition } from '@sunstack/sdk';
+
+const sectionKind: EvidenceKindDefinition = {
+	html_units: { mode: 'unit', units: ['section'] },
+	fields: {
+		complete: { from: 'section', text: 'full' },
+		own_body: { from: 'section', text: 'own' },
+		parent_body: { from: 'section', text: 'enclosing_own' },
+	},
+};
+</script></ex-code>
+<h3 id="markdown-kind">Markdown units use the same typed boundary</h3><p>Use <code>markdown_units</code> with unit mode and section, paragraph or list_item. Section fields require exactly the section unit. Markdown follows its parser ranges; the full config, filters and decision graph still live in ordinary TypeScript.</p><ex-code id="markdown-section-example" title="A Markdown section kind" lang="typescript"><script type="text/plain">
+const markdownSectionKind = {
+  markdown_units: { mode: 'unit', units: ['section'] },
+  fields: {
+    body: { from: 'section', text: 'own' },
+    parent: { from: 'section', text: 'enclosing_own' },
+  },
+} satisfies EvidenceKindDefinition;
+</script></ex-code><p>Document conventions are typed configuration values too. Put this <code>evidence</code> value into a complete <code>Configuration</code>; the same fields work on project and captured evidence. Leave them out for standard defaults. GitHub heading anchors and custom HTML conventions are explicit choices.</p><ex-code id="document-settings-example" title="Typed document conventions" lang="typescript"><script type="text/plain">
+import type { EvidenceDefinitions, TargetAnchor } from '@sunstack/sdk';
+
+const evidence = {
+  kind: 'inline',
+  matchers: {},
+  utilities: {},
+  kinds: {},
+  html: {
+    skip_tags: ['ex-markdown'],
+    text_attributes: { 'ex-mermaid': ['label'] },
+  },
+  markdown: { heading_anchors: 'github' },
+} as const satisfies EvidenceDefinitions;
+
+function describeAnchor(anchor: TargetAnchor): string {
+  switch (anchor.status) {
+    case 'found': return `Found ${anchor.fragment}`;
+    case 'missing': return `Missing ${anchor.fragment}`;
+    case 'unsupported': return `${anchor.reason}: ${anchor.fragment}`;
+    default: return assertNeverAnchor(anchor);
+  }
+}
+
+function assertNeverAnchor(anchor: never): never {
+  throw new Error(`Unhandled anchor: ${JSON.stringify(anchor)}`);
+}
+</script></ex-code><p>The compiler catches misspelled keys and unknown schemes. Rust rejects blank tag or attribute names. Without a heading scheme, inferred Markdown fragments return <code>heading_scheme_not_configured</code>; explicit HTML id/name anchors still work. Other unsupported document formats return <code>unsupported_document</code>. <code>skip_tags</code> changes which headings form sections; raw source remains available.</p><h3 id="heading-fields">Own heading and enclosing heading path</h3><p>These are ordinary typed evidence definitions. Use <code>headingEvidence</code> inside a complete config, then let Rust check its references. HTML titles are projected once; Markdown titles keep literal inline syntax without heading markers. Enclosing matches keep existing containment, including equal-range outline pieces.</p><ex-code id="heading-fields-example" title="Typed heading definitions and returned values" lang="typescript"><script type="text/plain">
+import type { EvidenceDefinitions, SdkReport } from '@sunstack/sdk';
+
+const headingEvidence = {
+  kind: 'inline',
+  matchers: {},
+  utilities: {},
+  kinds: {
+    outline: {
+      html_units: { mode: 'unit', units: ['section'] },
+      fields: { title: { from: 'section', text: 'heading' } },
+    },
+    section: {
+      html_units: { mode: 'unit', units: ['section'] },
+      fields: {
+        title: { from: 'section', text: 'heading' },
+        heading_path: { from: 'enclosing', kind: 'outline', text: 'heading' },
+      },
+    },
+  },
+} as const satisfies EvidenceDefinitions;
+
+function printHeadings(report: SdkReport): void {
+  for (const { piece } of Object.values(report.piece_evidence)) {
+    const title = piece.fields['title'];
+    if (title?.state === 'text') console.log(title.value);
+    const path = piece.fields['heading_path'];
+    if (path?.state === 'texts') console.log(path.values.join(' > '));
+  }
+}
+</script></ex-code><p>For Markdown, use <code>markdown_units: { mode: 'unit', units: ['section'] }</code> on the referenced outline and selected kind. The same field shapes apply. Unsupported same-file/context/nested-target combinations return Rust admission diagnostics; no cast or TypeScript enum is needed.</p><details><summary>Complete heading example: typed config, rulebook and returned spans</summary><p>This is the actual package example at <code>170a6cc</code>. It authors both HTML and Markdown definitions inline and calls the same check/run API.</p><ex-code id="complete-heading-example" title="packages/sdk/examples/heading-fields.ts" lang="typescript"><script type="text/plain">
+// Native section heading fields: each HTML and Markdown section's own heading, its enclosing
+// headings (outermost first) and the source bytes of its heading. A mechanical rule needs no
+// model, so no credential is used.
+//
+//   node examples/heading-fields.ts <absolute-checked-root>
+import { check, run } from '@sunstack/sdk';
+import type { Configuration, FieldSource, FieldValue } from '@sunstack/sdk';
+
+const [root = process.cwd()] = process.argv.slice(2);
+
+const sections = { mode: 'unit', units: ['section'] } as const;
+const headingFields = {
+	heading: { from: 'section', text: 'heading' },
+	heading_path: { from: 'enclosing', kind: 'outline', text: 'heading' },
+} as const satisfies Readonly<Record<string, FieldSource>>;
+
+const hasHeading = {
+	start: 'present',
+	steps: {
+		present: {
+			mechanical_check: { tool: 'complete', field: 'heading' },
+			yes: 'pass',
+			no: { finding: 'Give the section a heading.' },
+		},
+	},
+} as const;
+
+const configuration = {
+	id: 'heading-fields',
+	base_directory: import.meta.dirname,
+	marker_prefix: 'K',
+	check: { files: ['docs/*.md', 'docs/*.html'] },
+	decision_model: { model: 'jev-latest' },
+	evidence: {
+		kind: 'inline',
+		utilities: {},
+		matchers: {},
+		kinds: {
+			// The referenced kind for enclosing headings must itself be a native section kind.
+			outline: { markdown_units: sections, fields: {} },
+			section: { markdown_units: sections, fields: headingFields },
+			html_outline: { html_units: sections, fields: {} },
+			html_section: {
+				html_units: sections,
+				fields: {
+					...headingFields,
+					heading_path: { ...headingFields.heading_path, kind: 'html_outline' },
+				},
+			},
+		},
+	},
+	rulebooks: [
+		{
+			kind: 'inline',
+			id: 'heading-rules',
+			markdown:
+				'Every Markdown section has a heading. <!-- K001 -->\n\nEvery HTML section has a heading. <!-- K002 -->\n',
+			entries: {
+				K001: { name: 'has_heading', evidence: 'section', severity: 'warn', decision: hasHeading },
+				K002: {
+					name: 'has_html_heading',
+					evidence: 'html_section',
+					severity: 'warn',
+					decision: hasHeading,
+				},
+			},
+		},
+	],
+} satisfies Configuration;
+
+/** One heading, ordered enclosing headings, or nothing. */
+function texts(value: FieldValue | undefined): readonly string[] {
+	if (value?.state === 'text') return [value.value];
+	if (value?.state === 'texts') return value.values;
+	return [];
+}
+
+const admission = await check(configuration);
+process.stdout.write(`check: ${admission.kind}\n`);
+const outcome = await run(configuration, { root, scope: { kind: 'all' } });
+if (outcome.kind !== 'completed') {
+	process.stdout.write(`run: ${outcome.kind}\n`);
+	process.exit(1);
+}
+process.stdout.write(`run: ${outcome.report.status.kind}\n`);
+for (const { piece } of Object.values(outcome.report.piece_evidence)) {
+	if (piece.kind !== 'section' && piece.kind !== 'html_section') continue;
+	const heading = piece.fields['heading'];
+	const [text = ''] = texts(heading);
+	const path = texts(piece.fields['heading_path']).join(' > ');
+	// Spans are UTF-8 byte offsets of the original heading in the checked file.
+	const bytes =
+		heading?.state === 'text'
+			? heading.spans.map((span) => `${span.byte_start}-${span.byte_end}`).join(',')
+			: '';
+	process.stdout.write(`${piece.where.file}: ${text} | ${path} @ ${bytes}\n`);
+}
+
+</script></ex-code></details><h2 id="load">What happens when I load and change a config?</h2>
+<p><code>load</code> returns frozen captured values and their origins. Copy the value, change it, and pass that copy to <code>run</code>. Definitions already captured do not get reread from disk.</p>
+<ex-mermaid id="snapshot-dx" label="Held, edited and reloaded configurations execute different values"><script type="text/plain">
+flowchart LR
+  A["Load A"] --> Held["Run held value · A"]
+  A --> Edited["Copy and edit · edited A"]
+  Disk["Files changed to B"] --> Reload["Explicit reload · B"]
+</script></ex-mermaid>
+<ex-code id="edit-example" title="Run the changed value" lang="typescript"><script type="text/plain">
+// Load an existing CLI configuration, edit the loaded value, and run the edit.
+//
+//   node examples/load-and-edit.ts <absolute-config-directory> <absolute-checked-root>
+import { check, load, run } from '@sunstack/sdk';
+import type { Configuration, HtmlEvidenceSettings, MarkdownEvidenceSettings } from '@sunstack/sdk';
+
+const [directory = process.cwd(), root = process.cwd()] = process.argv.slice(2);
+
+const loaded = await load({ directory });
+if (loaded.kind !== 'loaded') {
+	process.stdout.write(`load: ${loaded.kind}\n`);
+	process.exit(1);
+}
+
+// Document conventions as a reusable preset: here, the 0.14.1 conventions.
+const restoredConventions = {
+	html: { skip_tags: ['ex-markdown'], text_attributes: { 'ex-mermaid': ['label'] } },
+	markdown: { heading_anchors: 'github' },
+} as const satisfies { html: HtmlEvidenceSettings; markdown: MarkdownEvidenceSettings };
+
+// The loaded value is frozen; a changed copy is a new configuration.
+const { configuration } = loaded.value;
+const changed = {
+	...configuration,
+	limits: { ...configuration.limits, max_files: 100 },
+	evidence: { ...configuration.evidence, ...restoredConventions },
+} satisfies Configuration;
+
+const admission = await check(changed);
+process.stdout.write(`check: ${admission.kind}\n`);
+const outcome = await run(changed, { root, scope: { kind: 'all' } });
+process.stdout.write(`run: ${outcome.kind}\n`);
+if (outcome.kind === 'completed') {
+	for (const finding of outcome.report.findings) {
+		process.stdout.write(`${finding.file}:${finding.line} ${finding.rule} ${finding.message}\n`);
+	}
+	// Sources name exactly what executed: unchanged files, or edited values.
+	for (const source of outcome.report.sources) {
+		process.stdout.write(`source ${source.origin.kind} ${source.sha256.slice(0, 12)}\n`);
+	}
+}
+</script></ex-code><p><code>base_directory</code> resolves definition files. <code>root</code> is the explicit checked directory and can be elsewhere. The captured evidence also contains its document settings: editing only a tag, attribute mapping or heading scheme changes the configuration and its root provenance. A later disk edit changes nothing until reload. Result sources distinguish unchanged files, authored inline values and edited values; content and digests describe what actually ran.</p>
+<h2 id="results">What comes back?</h2>
+<p>A closed outcome union. <code>completed</code> means the call completed; its tagged report status still distinguishes findings, clean, uncertainty and nothing selected. Invalid input, unavailable definitions, partial execution, cancellation and detectable adapter failure stay distinct.</p>
+<ex-code id="result-example" title="Narrow before reading findings" lang="typescript"><script type="text/plain">
+if (outcome.kind === 'completed' && outcome.report.status.kind === 'findings') {
+  for (const finding of outcome.report.findings) {
+    console.log(finding.file, finding.line, finding.message);
+  }
+}
+// Full-width Rust values are bigint, including u64 limits and usize locations.
+// Rust's range and constructor checks still run after transport.
+</script></ex-code><p>Cancellation uses one <code>AbortSignal</code> per call. It must not cancel a sibling call. An already-aborted signal starts no work. After-dispatch adapter failures say effects are unknown; the SDK does not replay the whole run.</p>
+<p>When selection evidence is clipped, Rust includes its actual <code>cut-fields</code> names in the candidate/shared request state and accounts for the added bytes. The existing typed request data preserves those lists and the resulting hash. Author fields normally; the engine derives this metadata and checks limits and saved-answer eligibility.</p><h2 id="zod">Why isn’t Zod required?</h2>
+<p>The generated types give compile-time authoring constraints, and Rust performs runtime validation at the engine boundary. Zod would be an optional additional validator. The base package neither imports nor requires it; no Zod exporter is shipped.</p>
+<p>Sunstack-owned declarations come from Rust derives. Upstream ast-grep structures use the pinned Rust schema with an upstream-backed typed wrapper. Matcher language names and rule keys are concrete types. AST kind names and pattern strings remain strings in this SDK: it does not export grammar-specific kind maps. Rust compiles the matcher and rejects unsupported values.</p>
+<h2 id="try">Try the local candidate</h2>
+<p>From the repository root, these package commands generate/build the native and TS artifacts, then exercise a freshly installed consumer. The installed consumer lives outside the source checkout. Registry publication is a separate delivery step.</p>
+<ex-code id="candidate-commands" title="Build and exercise packed artifacts" lang="sh"><script type="text/plain">
+pnpm --filter @sunstack/sdk build
+pnpm --filter @sunstack/sdk typecheck
+pnpm --filter @sunstack/sdk test
+node packages/sdk/scripts/pack-candidate.ts --out /absolute/task/candidate
+node packages/sdk/scripts/installed-consumer-check.ts --tarballs /absolute/task/candidate
+</script></ex-code><h2 id="evidence">Proof snapshots</h2><p>Each row names the source that was observed. Later artifacts require their own applicable proof; a passing historical result is not silently relabelled.</p><div class="ex-table-scroll" data-width="canvas"><table><thead><tr><th>Boundary</th><th>Observed snapshot</th><th>Limit</th></tr></thead><tbody>
+<tr><td>Rust engine and CLI</td><td>At f7e7ac3: 974 local workspace tests pass, with 7 skips; all 34 CLI cases match main d194ce2 (0.14.0) byte-for-byte</td><td>Mac arm64, command-local debug=0. The cancelled-run regression first failed with Invalid/PathNotFound, then passed after the admission token check</td></tr>
+<tr><td>TypeScript package and real addon</td><td>At f7e7ac3: 44 product tests pass, including all 29 authored languages, native HTML/Markdown kinds, structured numbers, null/default shape checks, selection questions and full-width positions</td><td>These are local real-addon cases. Corrected-source review and independent artifact proof keep their own records; Rust still validates runtime predicates</td></tr>
+<tr><td>Independent installed 0.13.0, revision 3</td><td>At bcaec6e: snapshot/edit/reload, complete inline filter/utility/rule execution, exact CLI request parity and cancellation after admission reached their assertions</td><td>All four driver results retain partial coverage. That target left run-admission cancellation open; 63e0c76 repairs that window, and fbe9114 corrects the later declaration-fidelity findings. Detailed reports retain each boundary</td></tr>
+<tr><td>Six Mac/Linux addon/install cells</td><td>At 0e2eefa, SDK CI 43283689940 freshly installed and executed 0.13.0/revision 3 in two Mac and four Linux architecture/libc cells</td><td>Darwin/GNU use their native runners; musl uses same-architecture Alpine containers. These CI binaries have their own identities, distinct from the local addon</td></tr>
+<tr><td>Ordinary model provider</td><td>At d89812c (0.12.1): two genuine requests completed through the Rust host/provider with answers and usage. A separate offline correction validated bigint receipt IDs</td><td>The typed rule verdict was uncertain. Later reuse covers only the inspected unchanged provider subpath; no new 0.13 live-provider call or inference-quality claim is implied</td></tr>
+</tbody></table></div><p>The exact candidate and latest delivery state are recorded in <a href="https://github.com/ShravanSunder/sunstack-tools/pull/159">PR 159</a>. See <a href="../../specs/2026-11-11-typescript-sdk/verification.html">Verification Design</a> for the proof obligations and <a href="../../../packages/sdk/README.md">the package README</a> for the public API.</p>
+<details><summary>Source snapshot and delivery boundary</summary><p>The complete inline and load/edit examples are copied from actual package sources at <code>70a133c</code>; the smaller excerpts explain individual API shapes. This local page explains the API; it is not the governing contract, delivery acceptance or a release receipt. Proof snapshots keep their own source and artifact identities. Hosted Demistify v1 theme/runtime need network access; no page upload or package publication was performed.</p></details></ex-document><script type="application/json" data-ex-search-index="">[{"kind":"page","title":"Sunstack TypeScript SDK · Full design","pageTitle":"Sunstack TypeScript SDK · Full design","ancestors":[],"href":"../../specs/2026-11-11-typescript-sdk/index.html#heading-sunstack-typescript-sdk-full-design"},{"kind":"heading","title":"Read the design","pageTitle":"Sunstack TypeScript SDK · Full design","ancestors":[],"href":"../../specs/2026-11-11-typescript-sdk/index.html#documents"},{"kind":"heading","title":"The design’s main choices","pageTitle":"Sunstack TypeScript SDK · Full design","ancestors":[],"href":"../../specs/2026-11-11-typescript-sdk/index.html#decisions"},{"kind":"heading","title":"Review and delivery boundary","pageTitle":"Sunstack TypeScript SDK · Full design","ancestors":[],"href":"../../specs/2026-11-11-typescript-sdk/index.html#review-state"},{"kind":"heading","title":"Prior artifacts and source basis","pageTitle":"Sunstack TypeScript SDK · Full design","ancestors":[],"href":"../../specs/2026-11-11-typescript-sdk/index.html#prior"},{"kind":"page","title":"Requirements · Typed Sunstack use from TypeScript","pageTitle":"Requirements · Typed Sunstack use from TypeScript","ancestors":[],"href":"../../specs/2026-11-11-typescript-sdk/requirements.html#heading-requirements-typed-sunstack-use-from-typescript"},{"kind":"heading","title":"Two authoring paths, one job","pageTitle":"Requirements · Typed Sunstack use from TypeScript","ancestors":[],"href":"../../specs/2026-11-11-typescript-sdk/requirements.html#capabilities"},{"kind":"heading","title":"Load existing configs","pageTitle":"Requirements · Typed Sunstack use from TypeScript","ancestors":[],"href":"../../specs/2026-11-11-typescript-sdk/requirements.html#load-needs"},{"kind":"heading","title":"U1 · Load existing configs","pageTitle":"Requirements · Typed Sunstack use from TypeScript","ancestors":["Load existing configs"],"href":"../../specs/2026-11-11-typescript-sdk/requirements.html#heading-u1-load-existing-configs"},{"kind":"heading","title":"U2 · Use stable loaded values","pageTitle":"Requirements · Typed Sunstack use from TypeScript","ancestors":["Load existing configs"],"href":"../../specs/2026-11-11-typescript-sdk/requirements.html#heading-u2-use-stable-loaded-values"},{"kind":"heading","title":"U6 · Keep using the CLI","pageTitle":"Requirements · Typed Sunstack use from TypeScript","ancestors":["Load existing configs"],"href":"../../specs/2026-11-11-typescript-sdk/requirements.html#heading-u6-keep-using-the-cli"},{"kind":"heading","title":"Express configs as TypeScript","pageTitle":"Requirements · Typed Sunstack use from TypeScript","ancestors":[],"href":"../../specs/2026-11-11-typescript-sdk/requirements.html#author-needs"},{"kind":"heading","title":"U3 · Author the entire definition in TypeScript","pageTitle":"Requirements · Typed Sunstack use from TypeScript","ancestors":["Express configs as TypeScript"],"href":"../../specs/2026-11-11-typescript-sdk/requirements.html#heading-u3-author-the-entire-definition-in-typescript"},{"kind":"heading","title":"U4 · Get concrete types in both directions","pageTitle":"Requirements · Typed Sunstack use from TypeScript","ancestors":["Express configs as TypeScript"],"href":"../../specs/2026-11-11-typescript-sdk/requirements.html#heading-u4-get-concrete-types-in-both-directions"},{"kind":"heading","title":"U5 · Keep Rust guarantees","pageTitle":"Requirements · Typed Sunstack use from TypeScript","ancestors":["Express configs as TypeScript"],"href":"../../specs/2026-11-11-typescript-sdk/requirements.html#heading-u5-keep-rust-guarantees"},{"kind":"heading","title":"U8 · Use ast-grep typing where it applies","pageTitle":"Requirements · Typed Sunstack use from TypeScript","ancestors":["Express configs as TypeScript"],"href":"../../specs/2026-11-11-typescript-sdk/requirements.html#heading-u8-use-ast-grep-typing-where-it-applies"},{"kind":"heading","title":"Use either path in a TypeScript program","pageTitle":"Requirements · Typed Sunstack use from TypeScript","ancestors":[],"href":"../../specs/2026-11-11-typescript-sdk/requirements.html#shared-needs"},{"kind":"heading","title":"U7 · Call the engine from code mode","pageTitle":"Requirements · Typed Sunstack use from TypeScript","ancestors":["Use either path in a TypeScript program"],"href":"../../specs/2026-11-11-typescript-sdk/requirements.html#heading-u7-call-the-engine-from-code-mode"},{"kind":"heading","title":"U9 · Install through npm on Mac and Linux","pageTitle":"Requirements · Typed Sunstack use from TypeScript","ancestors":["Use either path in a TypeScript program"],"href":"../../specs/2026-11-11-typescript-sdk/requirements.html#heading-u9-install-through-npm-on-mac-and-linux"},{"kind":"heading","title":"U10 · Keep Zod optional","pageTitle":"Requirements · Typed Sunstack use from TypeScript","ancestors":["Use either path in a TypeScript program"],"href":"../../specs/2026-11-11-typescript-sdk/requirements.html#heading-u10-keep-zod-optional"},{"kind":"heading","title":"What a model should be able to do","pageTitle":"Requirements · Typed Sunstack use from TypeScript","ancestors":[],"href":"../../specs/2026-11-11-typescript-sdk/requirements.html#journey"},{"kind":"heading","title":"Scope and negative space","pageTitle":"Requirements · Typed Sunstack use from TypeScript","ancestors":[],"href":"../../specs/2026-11-11-typescript-sdk/requirements.html#boundary"},{"kind":"heading","title":"Authority and source record","pageTitle":"Requirements · Typed Sunstack use from TypeScript","ancestors":[],"href":"../../specs/2026-11-11-typescript-sdk/requirements.html#sources"},{"kind":"page","title":"Specification · Typed configuration and engine calls","pageTitle":"Specification · Typed configuration and engine calls","ancestors":[],"href":"../../specs/2026-11-11-typescript-sdk/specification.html#heading-specification-typed-configuration-and-engine-calls"},{"kind":"heading","title":"What each path promises","pageTitle":"Specification · Typed configuration and engine calls","ancestors":[],"href":"../../specs/2026-11-11-typescript-sdk/specification.html#capabilities"},{"kind":"heading","title":"Consumers and boundary","pageTitle":"Specification · Typed configuration and engine calls","ancestors":[],"href":"../../specs/2026-11-11-typescript-sdk/specification.html#context"},{"kind":"heading","title":"The things this contract names","pageTitle":"Specification · Typed configuration and engine calls","ancestors":[],"href":"../../specs/2026-11-11-typescript-sdk/specification.html#entities"},{"kind":"heading","title":"R1 · Discover and resolve existing configs","pageTitle":"Specification · Typed configuration and engine calls","ancestors":[],"href":"../../specs/2026-11-11-typescript-sdk/specification.html#heading-r1-discover-and-resolve-existing-configs"},{"kind":"heading","title":"R2 · Capture an immutable load snapshot","pageTitle":"Specification · Typed configuration and engine calls","ancestors":[],"href":"../../specs/2026-11-11-typescript-sdk/specification.html#heading-r2-capture-an-immutable-load-snapshot"},{"kind":"heading","title":"R3 · Express complete definitions as typed values","pageTitle":"Specification · Typed configuration and engine calls","ancestors":[],"href":"../../specs/2026-11-11-typescript-sdk/specification.html#heading-r3-express-complete-definitions-as-typed-values"},{"kind":"heading","title":"R4 · Constrain input and result shapes","pageTitle":"Specification · Typed configuration and engine calls","ancestors":[],"href":"../../specs/2026-11-11-typescript-sdk/specification.html#heading-r4-constrain-input-and-result-shapes"},{"kind":"heading","title":"R5 · Share semantic admission","pageTitle":"Specification · Typed configuration and engine calls","ancestors":[],"href":"../../specs/2026-11-11-typescript-sdk/specification.html#heading-r5-share-semantic-admission"},{"kind":"heading","title":"R6 · Keep check credential-free","pageTitle":"Specification · Typed configuration and engine calls","ancestors":[],"href":"../../specs/2026-11-11-typescript-sdk/specification.html#heading-r6-keep-check-credential-free"},{"kind":"heading","title":"R7 · Run explicitly and preserve outcomes","pageTitle":"Specification · Typed configuration and engine calls","ancestors":[],"href":"../../specs/2026-11-11-typescript-sdk/specification.html#heading-r7-run-explicitly-and-preserve-outcomes"},{"kind":"heading","title":"R8 · Isolate and settle cancellation","pageTitle":"Specification · Typed configuration and engine calls","ancestors":[],"href":"../../specs/2026-11-11-typescript-sdk/specification.html#heading-r8-isolate-and-settle-cancellation"},{"kind":"heading","title":"R9 · Preserve CLI compatibility","pageTitle":"Specification · Typed configuration and engine calls","ancestors":[],"href":"../../specs/2026-11-11-typescript-sdk/specification.html#heading-r9-preserve-cli-compatibility"},{"kind":"heading","title":"R10 · Install matching platform artifacts","pageTitle":"Specification · Typed configuration and engine calls","ancestors":[],"href":"../../specs/2026-11-11-typescript-sdk/specification.html#heading-r10-install-matching-platform-artifacts"},{"kind":"heading","title":"R11 · Return source provenance without changing legacy reports","pageTitle":"Specification · Typed configuration and engine calls","ancestors":[],"href":"../../specs/2026-11-11-typescript-sdk/specification.html#heading-r11-return-source-provenance-without-changing-legacy-reports"},{"kind":"heading","title":"R12 · Bound ast-grep type claims","pageTitle":"Specification · Typed configuration and engine calls","ancestors":[],"href":"../../specs/2026-11-11-typescript-sdk/specification.html#heading-r12-bound-ast-grep-type-claims"},{"kind":"heading","title":"R13 · Preserve numeric values","pageTitle":"Specification · Typed configuration and engine calls","ancestors":[],"href":"../../specs/2026-11-11-typescript-sdk/specification.html#heading-r13-preserve-numeric-values"},{"kind":"heading","title":"R14 · Detect incompatible contract versions","pageTitle":"Specification · Typed configuration and engine calls","ancestors":[],"href":"../../specs/2026-11-11-typescript-sdk/specification.html#heading-r14-detect-incompatible-contract-versions"},{"kind":"heading","title":"R15 · Make validation extras optional","pageTitle":"Specification · Typed configuration and engine calls","ancestors":[],"href":"../../specs/2026-11-11-typescript-sdk/specification.html#heading-r15-make-validation-extras-optional"},{"kind":"heading","title":"Public behavior and typed outcomes","pageTitle":"Specification · Typed configuration and engine calls","ancestors":[],"href":"../../specs/2026-11-11-typescript-sdk/specification.html#public-api"},{"kind":"heading","title":"Loading and editing","pageTitle":"Specification · Typed configuration and engine calls","ancestors":[],"href":"../../specs/2026-11-11-typescript-sdk/specification.html#load-use"},{"kind":"heading","title":"Reference case for complete inline authoring","pageTitle":"Specification · Typed configuration and engine calls","ancestors":[],"href":"../../specs/2026-11-11-typescript-sdk/specification.html#reference-example"},{"kind":"heading","title":"Exact limits of the contract","pageTitle":"Specification · Typed configuration and engine calls","ancestors":[],"href":"../../specs/2026-11-11-typescript-sdk/specification.html#constraints"},{"kind":"heading","title":"Pinned engine 0.16.0 contracts","pageTitle":"Specification · Typed configuration and engine calls","ancestors":[],"href":"../../specs/2026-11-11-typescript-sdk/specification.html#engine-baseline"},{"kind":"heading","title":"Selection requests describe the fields that were cut","pageTitle":"Specification · Typed configuration and engine calls","ancestors":["Pinned engine 0.16.0 contracts"],"href":"../../specs/2026-11-11-typescript-sdk/specification.html#selection-cut-contract"},{"kind":"heading","title":"Native HTML sections in the current Rust contract","pageTitle":"Specification · Typed configuration and engine calls","ancestors":["Pinned engine 0.16.0 contracts"],"href":"../../specs/2026-11-11-typescript-sdk/specification.html#native-html-contract"},{"kind":"heading","title":"Native Markdown units and heading anchors","pageTitle":"Specification · Typed configuration and engine calls","ancestors":["Pinned engine 0.16.0 contracts"],"href":"../../specs/2026-11-11-typescript-sdk/specification.html#native-markdown-contract"},{"kind":"heading","title":"Read heading text as a typed field","pageTitle":"Specification · Typed configuration and engine calls","ancestors":["Pinned engine 0.16.0 contracts"],"href":"../../specs/2026-11-11-typescript-sdk/specification.html#native-heading-contract"},{"kind":"heading","title":"Optional fields and structured values keep their actual wire shape","pageTitle":"Specification · Typed configuration and engine calls","ancestors":["Pinned engine 0.16.0 contracts"],"href":"../../specs/2026-11-11-typescript-sdk/specification.html#wire-fidelity"},{"kind":"heading","title":"Source identity and exact content","pageTitle":"Specification · Typed configuration and engine calls","ancestors":[],"href":"../../specs/2026-11-11-typescript-sdk/specification.html#source-contract"},{"kind":"heading","title":"Accepted matcher properties and compatibility","pageTitle":"Specification · Typed configuration and engine calls","ancestors":[],"href":"../../specs/2026-11-11-typescript-sdk/specification.html#matcher-contract"},{"kind":"heading","title":"Need to obligation coverage","pageTitle":"Specification · Typed configuration and engine calls","ancestors":[],"href":"../../specs/2026-11-11-typescript-sdk/specification.html#coverage"},{"kind":"page","title":"Program Design · One Rust engine, multiple consumers","pageTitle":"Program Design · One Rust engine, multiple consumers","ancestors":[],"href":"../../specs/2026-11-11-typescript-sdk/program-design.html#heading-program-design-one-rust-engine-multiple-consumers"},{"kind":"heading","title":"Who owns what","pageTitle":"Program Design · One Rust engine, multiple consumers","ancestors":[],"href":"../../specs/2026-11-11-typescript-sdk/program-design.html#composition"},{"kind":"heading","title":"Why this structure","pageTitle":"Program Design · One Rust engine, multiple consumers","ancestors":[],"href":"../../specs/2026-11-11-typescript-sdk/program-design.html#alternatives"},{"kind":"heading","title":"Current source and changed calls","pageTitle":"Program Design · One Rust engine, multiple consumers","ancestors":[],"href":"../../specs/2026-11-11-typescript-sdk/program-design.html#current-paths"},{"kind":"heading","title":"Root and origin call-path changes","pageTitle":"Program Design · One Rust engine, multiple consumers","ancestors":["Current source and changed calls"],"href":"../../specs/2026-11-11-typescript-sdk/program-design.html#preserved-root"},{"kind":"heading","title":"Entity homes and boundary shapes","pageTitle":"Program Design · One Rust engine, multiple consumers","ancestors":[],"href":"../../specs/2026-11-11-typescript-sdk/program-design.html#bindings"},{"kind":"heading","title":"The input and result shapes","pageTitle":"Program Design · One Rust engine, multiple consumers","ancestors":[],"href":"../../specs/2026-11-11-typescript-sdk/program-design.html#shapes"},{"kind":"heading","title":"Ast-grep: precise types without a fork","pageTitle":"Program Design · One Rust engine, multiple consumers","ancestors":[],"href":"../../specs/2026-11-11-typescript-sdk/program-design.html#ast-boundary"},{"kind":"heading","title":"Native section kinds use the same Rust compiler","pageTitle":"Program Design · One Rust engine, multiple consumers","ancestors":[],"href":"../../specs/2026-11-11-typescript-sdk/program-design.html#native-html-wire"},{"kind":"heading","title":"Export the admitted Rust shape at the SDK boundary","pageTitle":"Program Design · One Rust engine, multiple consumers","ancestors":["Native section kinds use the same Rust compiler"],"href":"../../specs/2026-11-11-typescript-sdk/program-design.html#contract-shape-export"},{"kind":"heading","title":"Markdown kinds keep their flat, unit-only wire","pageTitle":"Program Design · One Rust engine, multiple consumers","ancestors":["Native section kinds use the same Rust compiler"],"href":"../../specs/2026-11-11-typescript-sdk/program-design.html#native-markdown-wire"},{"kind":"heading","title":"Heading values use the existing typed field boundary","pageTitle":"Program Design · One Rust engine, multiple consumers","ancestors":["Native section kinds use the same Rust compiler"],"href":"../../specs/2026-11-11-typescript-sdk/program-design.html#native-heading-wire"},{"kind":"heading","title":"Selection metadata stays with the Rust request owner","pageTitle":"Program Design · One Rust engine, multiple consumers","ancestors":["Native section kinds use the same Rust compiler"],"href":"../../specs/2026-11-11-typescript-sdk/program-design.html#selection-wire-owner"},{"kind":"heading","title":"Integration against engine 0.16.0","pageTitle":"Program Design · One Rust engine, multiple consumers","ancestors":[],"href":"../../specs/2026-11-11-typescript-sdk/program-design.html#engine-integration"},{"kind":"heading","title":"Load, check and run","pageTitle":"Program Design · One Rust engine, multiple consumers","ancestors":[],"href":"../../specs/2026-11-11-typescript-sdk/program-design.html#execution"},{"kind":"heading","title":"Cancellation, overlap and failure","pageTitle":"Program Design · One Rust engine, multiple consumers","ancestors":[],"href":"../../specs/2026-11-11-typescript-sdk/program-design.html#lifecycle"},{"kind":"heading","title":"Packaging and compatibility","pageTitle":"Program Design · One Rust engine, multiple consumers","ancestors":[],"href":"../../specs/2026-11-11-typescript-sdk/program-design.html#packaging"},{"kind":"heading","title":"One realization row per observable obligation","pageTitle":"Program Design · One Rust engine, multiple consumers","ancestors":[],"href":"../../specs/2026-11-11-typescript-sdk/program-design.html#trace"},{"kind":"heading","title":"Enforcement and excluded machinery","pageTitle":"Program Design · One Rust engine, multiple consumers","ancestors":[],"href":"../../specs/2026-11-11-typescript-sdk/program-design.html#limits"},{"kind":"page","title":"Verification Design · How we will know the SDK works","pageTitle":"Verification Design · How we will know the SDK works","ancestors":[],"href":"../../specs/2026-11-11-typescript-sdk/verification.html#heading-verification-design-how-we-will-know-the-sdk-works"},{"kind":"heading","title":"Follow the caller’s path","pageTitle":"Verification Design · How we will know the SDK works","ancestors":[],"href":"../../specs/2026-11-11-typescript-sdk/verification.html#proof-path"},{"kind":"heading","title":"Six questions the implementation must answer","pageTitle":"Verification Design · How we will know the SDK works","ancestors":[],"href":"../../specs/2026-11-11-typescript-sdk/verification.html#observations"},{"kind":"heading","title":"Does loading keep the config stable?","pageTitle":"Verification Design · How we will know the SDK works","ancestors":["Six questions the implementation must answer"],"href":"../../specs/2026-11-11-typescript-sdk/verification.html#heading-does-loading-keep-the-config-stable"},{"kind":"heading","title":"Can I author everything in TypeScript?","pageTitle":"Verification Design · How we will know the SDK works","ancestors":["Six questions the implementation must answer"],"href":"../../specs/2026-11-11-typescript-sdk/verification.html#heading-can-i-author-everything-in-typescript"},{"kind":"heading","title":"Do the types and Rust checks catch mistakes?","pageTitle":"Verification Design · How we will know the SDK works","ancestors":["Six questions the implementation must answer"],"href":"../../specs/2026-11-11-typescript-sdk/verification.html#heading-do-the-types-and-rust-checks-catch-mistakes"},{"kind":"heading","title":"Are check and cancellation safe to compose?","pageTitle":"Verification Design · How we will know the SDK works","ancestors":["Six questions the implementation must answer"],"href":"../../specs/2026-11-11-typescript-sdk/verification.html#heading-are-check-and-cancellation-safe-to-compose"},{"kind":"heading","title":"Does the npm package work on Mac and Linux?","pageTitle":"Verification Design · How we will know the SDK works","ancestors":["Six questions the implementation must answer"],"href":"../../specs/2026-11-11-typescript-sdk/verification.html#heading-does-the-npm-package-work-on-mac-and-linux"},{"kind":"heading","title":"Did we preserve the CLI and connect the real provider?","pageTitle":"Verification Design · How we will know the SDK works","ancestors":["Six questions the implementation must answer"],"href":"../../specs/2026-11-11-typescript-sdk/verification.html#heading-did-we-preserve-the-cli-and-connect-the-real-provider"},{"kind":"heading","title":"What counts as evidence?","pageTitle":"Verification Design · How we will know the SDK works","ancestors":[],"href":"../../specs/2026-11-11-typescript-sdk/verification.html#limits"},{"kind":"heading","title":"How each need will be shown","pageTitle":"Verification Design · How we will know the SDK works","ancestors":[],"href":"../../specs/2026-11-11-typescript-sdk/verification.html#proven-by"},{"kind":"heading","title":"U1 · Load existing configs","pageTitle":"Verification Design · How we will know the SDK works","ancestors":["How each need will be shown"],"href":"../../specs/2026-11-11-typescript-sdk/verification.html#heading-u1-load-existing-configs"},{"kind":"heading","title":"U2 · Use stable loaded values","pageTitle":"Verification Design · How we will know the SDK works","ancestors":["How each need will be shown"],"href":"../../specs/2026-11-11-typescript-sdk/verification.html#heading-u2-use-stable-loaded-values"},{"kind":"heading","title":"U3 · Author the entire definition in TypeScript","pageTitle":"Verification Design · How we will know the SDK works","ancestors":["How each need will be shown"],"href":"../../specs/2026-11-11-typescript-sdk/verification.html#heading-u3-author-the-entire-definition-in-typescript"},{"kind":"heading","title":"U4 · Get concrete types in both directions","pageTitle":"Verification Design · How we will know the SDK works","ancestors":["How each need will be shown"],"href":"../../specs/2026-11-11-typescript-sdk/verification.html#heading-u4-get-concrete-types-in-both-directions"},{"kind":"heading","title":"U5 · Keep Rust guarantees","pageTitle":"Verification Design · How we will know the SDK works","ancestors":["How each need will be shown"],"href":"../../specs/2026-11-11-typescript-sdk/verification.html#heading-u5-keep-rust-guarantees"},{"kind":"heading","title":"U6 · Keep using the CLI","pageTitle":"Verification Design · How we will know the SDK works","ancestors":["How each need will be shown"],"href":"../../specs/2026-11-11-typescript-sdk/verification.html#heading-u6-keep-using-the-cli"},{"kind":"heading","title":"U7 · Call the engine from code mode","pageTitle":"Verification Design · How we will know the SDK works","ancestors":["How each need will be shown"],"href":"../../specs/2026-11-11-typescript-sdk/verification.html#heading-u7-call-the-engine-from-code-mode"},{"kind":"heading","title":"U8 · Use ast-grep typing where it applies","pageTitle":"Verification Design · How we will know the SDK works","ancestors":["How each need will be shown"],"href":"../../specs/2026-11-11-typescript-sdk/verification.html#heading-u8-use-ast-grep-typing-where-it-applies"},{"kind":"heading","title":"U9 · Install through npm on Mac and Linux","pageTitle":"Verification Design · How we will know the SDK works","ancestors":["How each need will be shown"],"href":"../../specs/2026-11-11-typescript-sdk/verification.html#heading-u9-install-through-npm-on-mac-and-linux"},{"kind":"heading","title":"U10 · Keep Zod optional","pageTitle":"Verification Design · How we will know the SDK works","ancestors":["How each need will be shown"],"href":"../../specs/2026-11-11-typescript-sdk/verification.html#heading-u10-keep-zod-optional"},{"kind":"heading","title":"Coverage for review and implementation planning","pageTitle":"Verification Design · How we will know the SDK works","ancestors":[],"href":"../../specs/2026-11-11-typescript-sdk/verification.html#coverage"},{"kind":"heading","title":"Existing evidence and journey gaps","pageTitle":"Verification Design · How we will know the SDK works","ancestors":[],"href":"../../specs/2026-11-11-typescript-sdk/verification.html#references"},{"kind":"heading","title":"Evidence required before implementation acceptance","pageTitle":"Verification Design · How we will know the SDK works","ancestors":[],"href":"../../specs/2026-11-11-typescript-sdk/verification.html#gates"},{"kind":"page","title":"Write TypeScript. Call the Rust engine.","pageTitle":"Write TypeScript. Call the Rust engine.","ancestors":[],"href":"dx.html#heading-write-typescript-call-the-rust-engine"},{"kind":"heading","title":"What types do, and what Rust does","pageTitle":"Write TypeScript. Call the Rust engine.","ancestors":[],"href":"dx.html#model"},{"kind":"heading","title":"Can the whole config live in TypeScript?","pageTitle":"Write TypeScript. Call the Rust engine.","ancestors":[],"href":"dx.html#inline"},{"kind":"heading","title":"Can I define HTML sections as typed values?","pageTitle":"Write TypeScript. Call the Rust engine.","ancestors":[],"href":"dx.html#html-sections"},{"kind":"heading","title":"Markdown units use the same typed boundary","pageTitle":"Write TypeScript. Call the Rust engine.","ancestors":["Can I define HTML sections as typed values?"],"href":"dx.html#markdown-kind"},{"kind":"heading","title":"Own heading and enclosing heading path","pageTitle":"Write TypeScript. Call the Rust engine.","ancestors":["Can I define HTML sections as typed values?"],"href":"dx.html#heading-fields"},{"kind":"heading","title":"What happens when I load and change a config?","pageTitle":"Write TypeScript. Call the Rust engine.","ancestors":[],"href":"dx.html#load"},{"kind":"heading","title":"What comes back?","pageTitle":"Write TypeScript. Call the Rust engine.","ancestors":[],"href":"dx.html#results"},{"kind":"heading","title":"Why isn’t Zod required?","pageTitle":"Write TypeScript. Call the Rust engine.","ancestors":[],"href":"dx.html#zod"},{"kind":"heading","title":"Try the local candidate","pageTitle":"Write TypeScript. Call the Rust engine.","ancestors":[],"href":"dx.html#try"},{"kind":"heading","title":"Proof snapshots","pageTitle":"Write TypeScript. Call the Rust engine.","ancestors":[],"href":"dx.html#evidence"}]</script></body></html>

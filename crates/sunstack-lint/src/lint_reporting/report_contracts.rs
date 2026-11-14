@@ -8,6 +8,7 @@ use sunstack_evidence::{
     EvidenceKindName, EvidencePiece, FieldName, MarkerId, PieceLocation, SourceSpan,
 };
 use sunstack_rules::{Anchor, Basis, RuleId, RulebookSkippedRule, Severity, StepName};
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 #[derive(schemars::JsonSchema)]
@@ -30,18 +31,21 @@ pub struct LintRequest {
     #[serde(default)]
     pub evidence_listing: Option<Option<sunstack_evidence::EvidenceKindName>>,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 #[derive(schemars::JsonSchema)]
 pub enum WidenedReason {
     ConfigChanged,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct ScopeReport {
     #[serde(flatten)]
     pub kind: ScopeChoice,
     pub widened: Option<WidenedReason>,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 #[derive(schemars::JsonSchema)]
@@ -69,6 +73,7 @@ impl LintStatus {
     }
 }
 
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 #[derive(schemars::JsonSchema)]
@@ -97,16 +102,23 @@ pub struct Finding {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct RelatedPlace {
     pub label: String,
+    /// A checked file, or the CLI path of the standard's rulebook definition.
     pub file: PathBuf,
     pub first_line: usize,
     pub last_line: usize,
+    /// Set when this place is a definition (the standard); never CLI-serialized.
+    #[serde(skip)]
+    #[schemars(skip)]
+    pub definition: Option<sunstack_evidence::DefinitionOrigin>,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct JudgmentSummary {
     pub answers: NamedAnswerMap,
     pub value: Option<f64>,
     pub path_taken: Vec<StepName>,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct UncertainResult {
     pub id: usize,
@@ -118,11 +130,13 @@ pub struct UncertainResult {
     pub state: SharedEvidenceState,
     pub answers: NamedAnswerMap,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Default, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct SeverityCounts {
     pub error: u32,
     pub warn: u32,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Default, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct ExclusionCounts {
     pub off: u32,
@@ -131,6 +145,7 @@ pub struct ExclusionCounts {
     pub outside_change_scope: u32,
     pub zero_matches: u32,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 #[derive(schemars::JsonSchema)]
@@ -165,6 +180,7 @@ pub enum IncompleteReason {
     EvidenceTooLarge,
     RequestTooLarge,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct IncompletePart {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -173,6 +189,7 @@ pub struct IncompletePart {
     pub file: Option<PathBuf>,
     pub reason: IncompleteReason,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Default, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct UsageSummary {
     /// Distinct logical checked/target content acquisitions; Git snapshot verification rereads are excluded.
@@ -194,6 +211,14 @@ pub struct LintDiagnostic {
     pub column: Option<u32>,
     pub code: LintInvalidCode,
     pub message: String,
+    /// The definition this diagnostic belongs to; never part of CLI serialization.
+    #[serde(skip)]
+    #[schemars(skip)]
+    pub definition: Option<sunstack_evidence::DefinitionOrigin>,
+    /// The configuration field path, when known; never part of CLI serialization.
+    #[serde(skip)]
+    #[schemars(skip)]
+    pub json_path: Vec<String>,
 }
 impl From<LintInvalid> for LintDiagnostic {
     fn from(error: LintInvalid) -> Self {
@@ -204,6 +229,8 @@ impl From<LintInvalid> for LintDiagnostic {
             column: error.column,
             code: error.code,
             message: error.message,
+            definition: error.definition.map(|definition| *definition),
+            json_path: error.json_path,
         }
     }
 }
@@ -218,6 +245,12 @@ pub struct EvidenceListing {
     pub version: String,
     pub config: PathBuf,
     pub scope: ScopeReport,
+    /// Evidence acquisition/selection status, never a rule evaluation verdict.
+    pub status: LintStatus,
+    pub limits: EffectiveLimits,
+    pub exclusions: ExclusionCounts,
+    pub diagnostics: Vec<LintDiagnostic>,
+    pub incomplete: Vec<IncompletePart>,
     pub pieces: Vec<EvidencePiece>,
     pub selections: Vec<SelectionEntry>,
     pub file_counts: Vec<sunstack_evidence::FileCount>,
@@ -253,6 +286,25 @@ pub struct LintReport {
     pub evidence_listing: Option<EvidenceListing>,
 }
 impl LintReport {
+    /// The single writer of CLI listing facts, including early and partial endings.
+    pub(crate) fn with_evidence_listing(mut self, pieces: Vec<EvidencePiece>) -> Self {
+        self.evidence_listing = Some(EvidenceListing {
+            version: self.version.clone(),
+            config: self.config.clone(),
+            scope: self.scope.clone(),
+            status: self.status,
+            limits: self.limits.clone(),
+            exclusions: self.exclusions.clone(),
+            diagnostics: self.diagnostics.clone(),
+            incomplete: self.incomplete.clone(),
+            pieces,
+            selections: self.selections.clone(),
+            file_counts: self.file_counts.clone(),
+            usage: self.usage.clone(),
+        });
+        self
+    }
+
     pub(crate) fn empty(config: PathBuf, scope: ScopeChoice, limits: EffectiveLimits) -> Self {
         Self {
             preparation: None,
@@ -306,6 +358,7 @@ pub struct SelectionDependency {
     pub selection_kind: EvidenceKindName,
     pub request_id: usize,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum PieceOutcome {
@@ -316,6 +369,7 @@ pub enum PieceOutcome {
     Incomplete,
 }
 
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct RulePieceResult {
     pub text_sha256: Option<String>,
@@ -374,6 +428,7 @@ pub enum CheckResult {
     Invalid { diagnostics: Vec<LintDiagnostic> },
 }
 
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct SelectionEntry {
     pub kind: EvidenceKindName,

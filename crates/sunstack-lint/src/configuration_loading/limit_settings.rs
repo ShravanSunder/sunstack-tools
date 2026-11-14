@@ -5,6 +5,7 @@ use sunstack_decisions::{AccountingPolicy, AttemptSettings, RequestBudgetSetting
 use sunstack_evidence::{DiscoveryLimits, EvidenceDiscovery, InvocationLimits};
 use sunstack_rules::{ExecutionSettings, Speculation};
 
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct EffectiveLimits {
     pub max_locate_lines: u32,

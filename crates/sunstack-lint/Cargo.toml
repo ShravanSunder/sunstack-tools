@@ -6,12 +6,14 @@ rust-version.workspace = true
 publish.workspace = true
 
 [features]
+typescript = ["dep:specta", "sunstack-rules/typescript", "sunstack-evidence/typescript", "sunstack-decisions/typescript"]
 test-support = []
 
 [lints]
 workspace = true
 
 [dependencies]
+specta = { version = "=2.0.0-rc.28", features = ["derive", "serde_json"], optional = true }
 sunstack-rules.workspace = true
 sunstack-evidence.workspace = true
 sunstack-decisions.workspace = true

@@ -11,6 +11,7 @@ use sunstack_evidence::{
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 #[error("A rule identifier must match the authored rule-id contract.")]
 pub struct InvalidRuleId;
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(try_from = "String", into = "String")]
 pub struct RuleId(String);
@@ -80,6 +81,7 @@ pub struct RuleSetDefinition {
     pub rule_paths: Vec<PathBuf>,
 }
 
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum Severity {

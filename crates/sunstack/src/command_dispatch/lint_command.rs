@@ -177,7 +177,7 @@ async fn execute(arguments: LintArguments, cancellation: CancellationToken) -> E
         {
             Ok(Ok(location)) => output(
                 &format!(
-                    "Created {}. Add the rulebook, rule entries and evidence project before running lint.",
+                    "Created {} only. Author its referenced Markdown rulebook, marker-keyed JSON rule entries, evidence/sgconfig.yml and matcher files before running lint. Complete example: https://github.com/ShravanSunder/sunstack-tools/blob/main/crates/sunstack/README.md#complete-keyless-example",
                     location.file.display()
                 ),
                 0,
@@ -234,7 +234,7 @@ async fn execute(arguments: LintArguments, cancellation: CancellationToken) -> E
         };
         sunstack_lint::prepare(request, cancellation, selections).await
     } else {
-        let credential = crate::process_runtime::provider_credentials::resolve().await;
+        let credential = sunstack::host_services::provider_credentials::resolve().await;
         sunstack_lint::run(request, cancellation, credential).await
     };
     if let Some(path) = arguments.prepare.as_ref().or(arguments.report.as_ref()) {
