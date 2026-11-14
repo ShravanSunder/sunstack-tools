@@ -16,6 +16,7 @@ Release date: 2026-11-14.
   Other ordinary cross-language directions remain refused.
 - Align the SDK and six platform packages to 0.22.0 / contract revision 16,
   regenerating declarations from the Rust field and unavailable-reason contracts.
+
 ## 0.21.2
 
 Release date: 2026-11-14.
