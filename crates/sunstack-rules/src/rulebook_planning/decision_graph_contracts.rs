@@ -234,10 +234,17 @@ pub struct CombineStepWire {
     pub no: RouteWire,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum MeasuredTextFormat {
+    Html,
+    Markdown,
+    PlainText,
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct FieldMeasurementSettings {
     pub html_settings: sunstack_evidence::HtmlEvidenceSettings,
-    pub field_languages: BTreeMap<FieldName, sunstack_evidence::EvidenceLanguage>,
+    pub field_formats: BTreeMap<FieldName, MeasuredTextFormat>,
 }
 
 #[derive(Debug, Clone)]

@@ -668,7 +668,8 @@ a list field and counts its entries, including entries with empty text.
 Word counts use the field's evidence language: HTML text content is projected
 as one value, including blank lines inside details/pre/code and configured
 `text_attributes`; Markdown and Markdown islands retain their Markdown parsing.
-Finding placeholders use the same measurement. Unreadable markup stays unavailable.
+Finding placeholders use the same measurement. Already-projected HTML headings
+count as plain text, preserving literal angle brackets. Unreadable markup stays unavailable.
 For a table, collect rows in one `inside` field and header cells in another; use
 `piece_count` with `bound: {"greater_than": 20}` or `{"greater_than": 7}`.
 The three bounds are `at_least`, `at_most` and `greater_than`, each with one

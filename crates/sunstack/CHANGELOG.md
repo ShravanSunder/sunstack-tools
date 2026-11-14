@@ -5,7 +5,8 @@
 - Measure HTML fields directly as HTML text content, preserving blank lines in
   details/pre/code blocks and configured text attributes. Word-count gates and
   finding placeholders use each field's evidence language, including document
-  fields and Markdown islands. Markdown and piece-count behavior stay unchanged.
+  fields and Markdown islands. Already-projected HTML headings count as plain
+  text, retaining literal angle brackets. Markdown and piece-count behavior stay unchanged.
 - Align the SDK and six platform package versions to 0.22.3; the wire contract
   remains revision 18.
 

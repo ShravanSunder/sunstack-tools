@@ -346,3 +346,54 @@ async fn html_measurements_keep_blank_line_blocks_whole_and_use_the_field_langua
         );
     }
 }
+
+#[tokio::test]
+async fn projected_html_headings_are_counted_as_plain_text_for_scalar_and_enclosing_fields() {
+    for (encoded, plain, count) in [
+        ("Queue &lt;T&gt; words", "Queue <T> words", 3),
+        ("Visible &lt;broken", "Visible <broken", 2),
+    ] {
+        let root = tempfile::tempdir().unwrap();
+        let mut config = fixture::write(root.path());
+        config["check"]["files"] = json!(["docs/page.html"]);
+        config["evidence"]["kinds"] = json!({
+            "outline":{"html_units":{"mode":"unit","units":["section"]},"fields":{}},
+            "section":{"html_units":{"mode":"unit","units":["section"]},"fields":{"heading":{"from":"section","text":"heading"}}},
+            "paragraph":{"rule":"paragraph","fields":{"heading":{"from":"enclosing","kind":"outline","text":"heading"}}}
+        });
+        std::fs::write(
+            root.path().join("evidence/rules/heading.yml"),
+            "id: paragraph\nlanguage: Html\nrule: {kind: element, regex: '^<p'}\n",
+        )
+        .unwrap();
+        std::fs::write(
+            root.path().join("docs/page.html"),
+            format!("<h2>{encoded}</h2><p>Body.</p>"),
+        )
+        .unwrap();
+        fixture::config_file(root.path(), &config);
+        let entry = |kind| json!({"name":kind,"evidence":kind,"severity":"warn","decision":{"start":"words","steps":{"words":{"mechanical_check":{"tool":"word_count","field":"heading","bound":{"at_least":count}},"yes":{"finding":"{{word_count:heading}} words."},"no":"pass"}}}});
+        fixture::entry_file(
+            root.path(),
+            &json!({"K001":entry("section"),"K002":entry("paragraph")}),
+        );
+        std::fs::write(
+            root.path().join("rulebook.md"),
+            "Count section headings.<!-- K001 -->\nCount enclosing headings.<!-- K002 -->\n",
+        )
+        .unwrap();
+        let report = report(root.path(), &["--all"], 0).await;
+        assert!(
+            report["incomplete"].as_array().unwrap().is_empty(),
+            "{report}"
+        );
+        assert_eq!(
+            report["findings"].as_array().unwrap().len(),
+            2,
+            "{plain}: {report}"
+        );
+        for finding in report["findings"].as_array().unwrap() {
+            assert_eq!(finding["message"], format!("{count} words."));
+        }
+    }
+}

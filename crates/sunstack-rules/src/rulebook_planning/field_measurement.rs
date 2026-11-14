@@ -20,7 +20,7 @@ impl crate::FieldMeasurementSettings {
                 .and_then(|kind| evidence_kind_language(project, name, kind))
         };
         let own_language = evidence_kind_language(project, name, definition);
-        let field_languages = definition
+        let field_formats = definition
             .fields
             .iter()
             .filter_map(|(field, source)| {
@@ -45,12 +45,33 @@ impl crate::FieldMeasurementSettings {
                     | FieldSource::Yaml { .. }
                     | FieldSource::Target { .. } => None,
                 };
-                language.map(|language| (field.clone(), language))
+                language.map(|language| {
+                    let format = match language {
+                        sunstack_evidence::EvidenceLanguage::Html
+                            if matches!(
+                                source,
+                                FieldSource::Section {
+                                    text: sunstack_evidence::SectionText::Heading
+                                } | FieldSource::Enclosing {
+                                    text: sunstack_evidence::ContextText::Heading,
+                                    ..
+                                }
+                            ) =>
+                        {
+                            crate::MeasuredTextFormat::PlainText
+                        }
+                        sunstack_evidence::EvidenceLanguage::Html => {
+                            crate::MeasuredTextFormat::Html
+                        }
+                        _ => crate::MeasuredTextFormat::Markdown,
+                    };
+                    (field.clone(), format)
+                })
             })
             .collect();
         Self {
             html_settings: project.document_settings.html.clone(),
-            field_languages,
+            field_formats,
         }
     }
 }
@@ -104,12 +125,16 @@ impl FieldMeasure {
             },
             Self::Words => {
                 let count = |text: &str| {
-                    if settings.field_languages.get(field)
-                        == Some(&sunstack_evidence::EvidenceLanguage::Html)
-                    {
-                        count_html_content_words(text, &settings.html_settings)
-                    } else {
-                        count_text_content_words(text, &settings.html_settings)
+                    match settings.field_formats.get(field) {
+                        Some(crate::MeasuredTextFormat::Html) => {
+                            count_html_content_words(text, &settings.html_settings)
+                        }
+                        Some(crate::MeasuredTextFormat::PlainText) => {
+                            Ok(text.split_whitespace().count())
+                        }
+                        Some(crate::MeasuredTextFormat::Markdown) | None => {
+                            count_text_content_words(text, &settings.html_settings)
+                        }
                     }
                     .map_err(|_| field.clone())
                 };
