@@ -1284,6 +1284,12 @@ export const wideIntegerDefinitions = {
 		generics: [],
 		shape: {
 			object: {
+				embedded_markdown: {
+					list: {
+						arguments: {},
+						ref: 'HtmlMarkdownIsland',
+					},
+				},
 				skip_tags: {
 					list: {
 						arguments: {},
@@ -1297,6 +1303,17 @@ export const wideIntegerDefinitions = {
 							ref: 'HtmlAttributeName',
 						},
 					},
+				},
+			},
+		},
+	},
+	HtmlMarkdownIsland: {
+		generics: [],
+		shape: {
+			object: {
+				tag: {
+					arguments: {},
+					ref: 'HtmlTagName',
 				},
 			},
 		},

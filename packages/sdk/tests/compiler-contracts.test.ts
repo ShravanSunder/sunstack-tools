@@ -86,6 +86,19 @@ await test('a complete valid caller compiles: exit 0, no diagnostics, nothing on
 	assert.deepEqual(compile('valid-caller.ts'), { kind: 'compiled' });
 });
 
+await test('configured Markdown islands and empty defaults compile from Rust-derived settings', () => {
+	assert.deepEqual(compile('valid-markdown-islands.ts'), { kind: 'compiled' });
+});
+
+await test('island selectors reject missing tags, unknown members, null and non-string values', () => {
+	const expected = expectedDiagnostics('invalid-markdown-islands.ts');
+	assert.equal(expected.length, 6);
+	const result = compile('invalid-markdown-islands.ts');
+	assert.equal(result.kind, 'diagnostics', result.kind === 'process_failure' ? result.detail : '');
+	if (result.kind === 'diagnostics')
+		assert.deepEqual(sortDiagnostics(result.diagnostics), sortDiagnostics(expected));
+});
+
 await test('wrong configuration and result shapes fail exactly where marked', () => {
 	const expected = expectedDiagnostics('invalid-callers.ts');
 	assert.ok(expected.length >= 8, 'every negative case is marked');

@@ -717,6 +717,12 @@ export type HtmlAttributeName = string;
 export type HtmlEvidenceSettings = {
 	skip_tags?: HtmlTagName[];
 	text_attributes?: { [key in HtmlTagName]: HtmlAttributeName[] };
+	embedded_markdown?: HtmlMarkdownIsland[];
+};
+
+export type HtmlMarkdownIsland = {
+	tag: HtmlTagName;
+	attributes?: { [key in HtmlAttributeName]: string };
 };
 
 export type HtmlTagName = string;

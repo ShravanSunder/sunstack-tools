@@ -60,6 +60,7 @@ pub struct HtmlEvidenceSettings {
     pub embedded_markdown: Vec<HtmlMarkdownIsland>,
 }
 
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct HtmlMarkdownIsland {

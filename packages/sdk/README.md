@@ -220,6 +220,13 @@ const configured = {
 - `html.text_attributes` reads the listed attributes of a tag as `[name: value]`
   tokens of asking text, in source order. Raw fields, spans and locations stay the
   source.
+- `html.embedded_markdown: [{ tag: 'script', attributes: { type: 'text/markdown' } }]`
+  makes the selected elements' inner bytes available to Markdown matchers and units.
+  `tag` is required; omitted `attributes` matches every element of that tag. Names
+  are case-insensitive and attribute values are exact. No wrapper or MIME type is
+  selected by default. Raw text and spans still refer to the original HTML; each
+  island keeps its own Markdown context. Only closed, outermost selected elements
+  produce islands, and the usual match budgets cover both languages.
 - `markdown.heading_anchors: 'github'` resolves heading fragments with GitHub's slugs.
   Without it, a heading fragment is `{ status: 'unsupported', reason:
   'heading_scheme_not_configured' }`. Explicit HTML `id` and anchor `name` values

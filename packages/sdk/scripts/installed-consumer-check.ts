@@ -187,6 +187,10 @@ for (const example of exampleFiles) {
 		join(consumer, example),
 	);
 }
+copyFileSync(
+	join(packageDirectory, 'tests', 'installed-cases', 'markdown-islands.ts'),
+	join(consumer, 'markdown-islands.ts'),
+);
 writeFileSync(
 	join(consumer, 'tsconfig.json'),
 	`${JSON.stringify(
@@ -239,6 +243,11 @@ step({
 	label: 'readme-typecheck',
 	command: join(consumer, 'node_modules', '.bin', 'tsc'),
 	args: documentedCompilerArguments.split(/\s+/u),
+});
+step({
+	label: 'configured-markdown-islands',
+	command: process.execPath,
+	args: ['markdown-islands.ts'],
 });
 
 // Heading pages: a non-ASCII setext heading and an ATX child keep their Markdown source; HTML

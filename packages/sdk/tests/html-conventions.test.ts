@@ -319,7 +319,7 @@ await test('blank names, null or mistyped values, unknown schemes and unknown ke
 			[
 				{ html: { skip: ['aside'] } },
 				'unknown_field',
-				'unknown field `skip`, expected `skip_tags` or `text_attributes`',
+				'unknown field `skip`, expected one of `skip_tags`, `text_attributes`, `embedded_markdown`',
 			],
 			[
 				{ markdown: { anchors: 'github' } },

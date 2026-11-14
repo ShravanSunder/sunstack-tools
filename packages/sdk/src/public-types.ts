@@ -47,6 +47,7 @@ export type SdkFinding = DeepReadonly<Contracts.SdkFinding>;
 export type EvidenceLanguage = Contracts.EvidenceLanguage;
 /** HTML conventions: tags left out of section outlines, attributes read as asking text. */
 export type HtmlEvidenceSettings = DeepReadonly<Contracts.HtmlEvidenceSettings>;
+export type HtmlMarkdownIsland = DeepReadonly<Contracts.HtmlMarkdownIsland>;
 /** Markdown conventions: the heading-anchor scheme, if any. */
 export type MarkdownEvidenceSettings = DeepReadonly<Contracts.MarkdownEvidenceSettings>;
 export type HeadingAnchorScheme = Contracts.HeadingAnchorScheme;
