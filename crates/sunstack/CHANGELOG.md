@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.21.0
+
+Release date: 2026-11-14.
+
+- Add `word_count` and `piece_count` decision tools with exclusive `at_least`,
+  `at_most` and `greater_than` integer bounds. A scalar field name or nonempty
+  list of distinct names selects values to sum. Word counts use complete
+  projected text content with markup removed; cut or unavailable text stays
+  incomplete. Piece counts count captured list entries, including empty text.
+- Scoped fields add `section_own`, a nonempty list of configured outline kinds.
+  It ends the nearest section at the next configured heading regardless of level,
+  including HTML/Markdown boundaries, so parents cannot borrow child pictures.
+  Existing section/prefix scopes retain their meanings. Rust `SectionScope`
+  adds `Own`; callers use `kinds()` instead of the former scalar `kind()`.
+- Findings support `{{word_count:field}}` and `{{piece_count:field}}`, including
+  comma-separated field sums. Existing raw fields, spans and result shapes stay
+  unchanged. The README adds an executable HTML/Markdown section-picture rule.
+- Rust `DecisionMechanicalTool` adds `WordCount` and `PieceCount`, with
+  `MeasureFields` and `CountBound` contracts. The matching TypeScript SDK and six
+  addons use release 0.21.0 / contract revision 15; earlier saved revisions are
+  explicit incompatibilities.
+- Manually constructed Rust `DecisionGraph` values supply `html_settings`;
+  admitted graphs inherit the project's existing HTML text conventions.
+
 ## 0.20.1
 
 Release date: 2026-11-14.

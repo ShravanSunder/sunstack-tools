@@ -27,6 +27,9 @@ pub struct Exported {
     pub wide_integers: Value,
 }
 
+#[path = "exclusive_fields_export.rs"]
+mod exclusive_fields_export;
+
 fn is_wide(primitive: &Primitive) -> bool {
     matches!(
         primitive,
@@ -518,6 +521,12 @@ pub fn export() -> Result<Exported, Box<dyn Error>> {
     select_question_shape(&mut types)?;
     exclusive_matcher_shape(&mut types)?;
     exclusive_inside_scope_shape(&mut types)?;
+    exclusive_fields_export::exclude_other_fields(
+        &mut types,
+        "CountBound",
+        "decision_graph_contracts",
+    )?;
+    exclusive_fields_export::exclude_other_fields(&mut types, "SectionScope", "section_scope")?;
     let declarations = specta_typescript::Typescript::default().export(&types, SdkFormat)?;
     let mut serde_types = specta_serde::Format
         .map_types(&types)

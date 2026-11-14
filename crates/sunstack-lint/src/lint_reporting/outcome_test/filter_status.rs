@@ -120,6 +120,7 @@ async fn runtime_filter_choice_boundary_preserves_typed_count_limit_through_repo
             )]),
             reference: BTreeMap::new(),
             decision: DecisionGraph {
+                html_settings: Default::default(),
                 start: StepName::new("purpose").unwrap(),
                 steps: BTreeMap::from([(
                     StepName::new("purpose").unwrap(),
@@ -272,6 +273,7 @@ async fn runtime_filter_choice_boundary_preserves_typed_count_limit_through_repo
             kind: peer_piece.kind.clone(),
             questions: BTreeMap::new(),
             decision: DecisionGraph {
+                html_settings: Default::default(),
                 start: peer_step.clone(),
                 steps: BTreeMap::from([(
                     peer_step,

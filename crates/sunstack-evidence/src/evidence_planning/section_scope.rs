@@ -1,4 +1,4 @@
-use crate::EvidenceKindName;
+use crate::{ContainingKinds, EvidenceKindName};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -8,12 +8,14 @@ use serde::{Deserialize, Serialize};
 pub enum SectionScope {
     Section { section: EvidenceKindName },
     Prefix { section_prefix: EvidenceKindName },
+    Own { section_own: ContainingKinds },
 }
 impl SectionScope {
-    pub fn kind(&self) -> &EvidenceKindName {
+    pub fn kinds(&self) -> &[EvidenceKindName] {
         match self {
-            Self::Section { section } => section,
-            Self::Prefix { section_prefix } => section_prefix,
+            Self::Section { section } => std::slice::from_ref(section),
+            Self::Prefix { section_prefix } => std::slice::from_ref(section_prefix),
+            Self::Own { section_own } => section_own.as_slice(),
         }
     }
 }

@@ -514,6 +514,170 @@ the `regex` check because there is no item to match. `complete` establishes
 availability rather than picture presence. Add `--max-warnings 0` to the final
 command to make its two warnings exit 1.
 
+### Mechanical example: substantial sections need pictures
+
+This rule nudges a section with at least 100 prose words and no picture. The
+caller defines prose and picture kinds; HTML paragraphs and parsed Markdown
+paragraphs contribute to one sum. Both HTML pictures and Mermaid fences in the
+configured Markdown islands qualify. `section_own` names a nonempty list of
+distinct outline kinds, including both languages here. It measures presence,
+not picture quality.
+
+<!-- runnable-example: section-pictures -->
+````sh
+mkdir -p section-example/evidence/rules section-example/pages
+cat > section-example/sunstack.lint.json <<'JSON'
+{
+  "rulebook": [{"markdown": "rulebook.md", "rules": "rules.json"}],
+  "marker_prefix": "K",
+  "decision_model": {"model": "jev-latest"},
+  "check": {"files": ["pages/*.html"]},
+  "evidence": {
+    "ast_grep": "evidence/sgconfig.yml",
+    "html": {"embedded_markdown": [{"tag": "script", "attributes": {"type": "text/markdown"}}]},
+    "kinds": {
+      "outline": {"html_units": {"mode": "unit", "units": ["section"]}, "fields": {}},
+      "markdown_outline": {"markdown_units": {"mode": "unit", "units": ["section"]}, "fields": {}},
+      "html_prose": {"rule": "html-prose", "fields": {}},
+      "markdown_prose": {"rule": "markdown-prose", "fields": {}},
+      "html_picture": {"rule": "html-picture", "fields": {}},
+      "markdown_picture": {"rule": "markdown-picture", "fields": {}},
+      "section": {"html_units": {"mode": "unit", "units": ["section"]}, "max_chars": 200000, "fields": {
+        "html_prose": {"from": "inside", "kind": "html_prose", "scope": {"section_own": ["outline", "markdown_outline"]}},
+        "markdown_prose": {"from": "inside", "kind": "markdown_prose", "scope": {"section_own": ["outline", "markdown_outline"]}},
+        "html_pictures": {"from": "inside", "kind": "html_picture", "scope": {"section_own": ["outline", "markdown_outline"]}},
+        "markdown_pictures": {"from": "inside", "kind": "markdown_picture", "scope": {"section_own": ["outline", "markdown_outline"]}}
+      }},
+      "markdown_section": {"markdown_units": {"mode": "unit", "units": ["section"]}, "max_chars": 200000, "fields": {
+        "html_prose": {"from": "inside", "kind": "html_prose", "scope": {"section_own": ["outline", "markdown_outline"]}},
+        "markdown_prose": {"from": "inside", "kind": "markdown_prose", "scope": {"section_own": ["outline", "markdown_outline"]}},
+        "html_pictures": {"from": "inside", "kind": "html_picture", "scope": {"section_own": ["outline", "markdown_outline"]}},
+        "markdown_pictures": {"from": "inside", "kind": "markdown_picture", "scope": {"section_own": ["outline", "markdown_outline"]}}
+      }}
+    }
+  }
+}
+JSON
+cat > section-example/rulebook.md <<'MD'
+A section with at least 100 prose words contains a picture.<!-- K001 -->
+A Markdown heading section with at least 100 prose words contains a picture.<!-- K002 -->
+MD
+cat > section-example/rules.json <<'JSON'
+{
+  "K001": {
+    "name": "section_picture", "evidence": "section", "severity": "warn",
+    "decision": {"start": "substantial", "steps": {
+      "substantial": {
+        "mechanical_check": {"tool": "word_count", "field": ["html_prose", "markdown_prose"], "bound": {"at_least": 100}},
+        "yes": "picture", "no": "pass"
+      },
+      "picture": {
+        "mechanical_check": {"tool": "piece_count", "field": ["html_pictures", "markdown_pictures"], "bound": {"greater_than": 0}},
+        "yes": "pass", "no": {"finding": "{{word_count:html_prose,markdown_prose}} words, no picture. Add a picture explaining this section."}
+      }
+    }}
+  },
+  "K002": {
+    "name": "markdown_section_picture", "evidence": "markdown_section", "severity": "warn",
+    "decision": {"start": "substantial", "steps": {
+      "substantial": {
+        "mechanical_check": {"tool": "word_count", "field": ["html_prose", "markdown_prose"], "bound": {"at_least": 100}},
+        "yes": "picture", "no": "pass"
+      },
+      "picture": {
+        "mechanical_check": {"tool": "piece_count", "field": ["html_pictures", "markdown_pictures"], "bound": {"greater_than": 0}},
+        "yes": "pass", "no": {"finding": "{{word_count:html_prose,markdown_prose}} words, no picture. Add a picture explaining this section."}
+      }
+    }}
+  }
+}
+JSON
+cat > section-example/evidence/sgconfig.yml <<'YAML'
+ruleDirs: [rules]
+YAML
+cat > section-example/evidence/rules/content.yml <<'YAML'
+id: html-prose
+language: Html
+rule: {kind: element, regex: '^<p\b'}
+---
+id: markdown-prose
+language: Markdown
+rule: {kind: paragraph}
+---
+id: html-picture
+language: Html
+rule:
+  any: [{kind: element}, {kind: self_closing_tag}]
+  regex: '^<(svg|img|figure)\b'
+---
+id: markdown-picture
+language: Markdown
+rule: {kind: fenced_code_block, regex: '^```mermaid\b'}
+YAML
+prose='One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten.'
+cat > section-example/pages/sections.html <<HTML
+<h2>HTML without a picture</h2>
+<p>$prose</p>
+<h3>Only the child has a picture</h3>
+<svg aria-label="A child picture"></svg>
+<h2>HTML with a picture</h2>
+<p>$prose</p><svg aria-label="A connects to B"></svg>
+<h2>Markdown without a picture</h2>
+<script type="text/markdown">
+$prose
+</script>
+<h2>Markdown with a picture</h2>
+<script type="text/markdown">
+### A heading inside Markdown
+
+$prose
+\`\`\`mermaid
+graph LR
+  A --> B
+\`\`\`
+</script>
+<h2>A small section</h2>
+<p>Brief text needs no picture under this rule.</p>
+HTML
+sunstack lint --config section-example/sunstack.lint.json --root section-example --check > section-example/check.json
+sunstack lint --config section-example/sunstack.lint.json --root section-example --all --format json > section-example/report.json
+sunstack lint --config section-example/sunstack.lint.json --root section-example --all
+````
+
+All three commands exit 0: seven section results, five passes, two warnings,
+zero model requests, no incomplete results. Each warning begins `100 words, no
+picture.` The own section ends at the next configured HTML or Markdown heading, of any
+level, so a parent cannot borrow a child section's picture. The two rule entries
+use the same check on HTML and embedded Markdown heading subjects. Use the
+existing scalar `scope: {"section":"outline"}` for a whole hierarchical section,
+or `scope: {"section_prefix":"outline"}` for earlier pieces.
+The library does not infer which kinds count as prose or pictures.
+
+`word_count` accepts a text field or list of text values; `piece_count` accepts
+a list field and counts its entries, including entries with empty text. For a
+table, collect rows in one `inside` field and header cells in another; use
+`piece_count` with `bound: {"greater_than": 20}` or `{"greater_than": 7}`.
+The three bounds are `at_least`, `at_most` and `greater_than`, each with one
+nonnegative integer. Exactly one bound is required. `field` accepts one name or
+a nonempty list of distinct names, summed without deduplicating overlapping
+pieces. Select nonoverlapping kinds when measuring prose.
+
+Words are whitespace-separated text-content tokens, summed per value. Markdown
+links contribute labels, code contributes its text, and tags, attributes used
+only as markup, URLs used only as destinations, and formatting delimiters do not
+contribute words. Existing HTML asking-text attributes still contribute their
+projected text. Raw evidence and original spans stay unchanged. A word count
+needs the complete projected field: raise that kind's `max_chars` for large
+sections. A cut, unavailable or selection-pending field stays incomplete; an
+available empty list measures zero. Piece counts use the full captured list
+independently of the asking-text budget. Missing documents stay incomplete until
+routed around with `complete`.
+
+Findings can include `{{word_count:field}}` or `{{piece_count:field}}`; comma-separated
+field names sum the same fields as a measurement check. Undefined or incompatible
+fields are refused during `--check`; an unavailable value at runtime makes the
+finding incomplete. Other finding text remains literal.
+
 ### Mechanical example: requirement IDs on another page
 
 This independent block defines requirements as Markdown paragraphs beginning

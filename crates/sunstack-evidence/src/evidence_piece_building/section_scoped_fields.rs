@@ -6,10 +6,63 @@ pub(super) fn scoped_range(
     subject: &MatchRange,
     pieces: &[EvidencePiece],
 ) -> Result<MatchRange, FieldUnavailable> {
-    let mut range =
-        super::section_prefix_fields::nearest_section_range(file, scope.kind(), subject, pieces)?;
-    if matches!(scope, crate::SectionScope::Prefix { .. }) {
-        range.end = subject.start;
+    let mut range = if matches!(scope, crate::SectionScope::Own { .. }) {
+        let kinds = scope.kinds();
+        if kinds.iter().any(|kind| {
+            file.native_units
+                .get(kind)
+                .map_or(file.index.limited, NativeMatchedKind::is_limited)
+        }) {
+            return Err(FieldUnavailable::Unreadable);
+        }
+        let outlines = pieces
+            .iter()
+            .filter(|piece| {
+                kinds.contains(&piece.kind) && piece.location.span.source == file.source
+            })
+            .collect::<Vec<_>>();
+        let mut containing = outlines
+            .iter()
+            .filter(|piece| {
+                match_within(
+                    subject,
+                    &MatchRange {
+                        start: piece.location.span.byte_start,
+                        end: piece.location.span.byte_end,
+                    },
+                )
+            })
+            .collect::<Vec<_>>();
+        containing
+            .sort_by_key(|piece| piece.location.span.byte_end - piece.location.span.byte_start);
+        let nearest = containing.first().ok_or(FieldUnavailable::Unreadable)?;
+        let start = nearest.location.span.byte_start;
+        let mut end = nearest.location.span.byte_end;
+        if !containing.iter().all(|piece| {
+            piece.location.span.byte_start <= start && end <= piece.location.span.byte_end
+        }) {
+            return Err(FieldUnavailable::Unreadable);
+        }
+        if let Some(next) = outlines
+            .iter()
+            .map(|piece| piece.location.span.byte_start)
+            .filter(|next| *next > start)
+            .min()
+        {
+            end = end.min(next);
+        }
+        MatchRange { start, end }
+    } else {
+        super::section_prefix_fields::nearest_section_range(
+            file,
+            &scope.kinds()[0],
+            subject,
+            pieces,
+        )?
+    };
+    match scope {
+        crate::SectionScope::Prefix { .. } => range.end = subject.start,
+        crate::SectionScope::Section { .. } | crate::SectionScope::Own { .. } => {}
     }
     file.text
         .get(range.start..range.end)

@@ -107,6 +107,19 @@ await test('document fields accept scalar paths, candidate lists and both result
 	assert.deepEqual(compile('valid-document-fields.ts'), { kind: 'compiled' });
 });
 
+await test('section measurement callers compile with full-width exclusive bounds', () => {
+	assert.deepEqual(compile('valid-section-measures.ts'), { kind: 'compiled' });
+});
+
+await test('section measurement callers reject mixed bounds, numbers and missing payloads', () => {
+	const expected = expectedDiagnostics('invalid-section-measures.ts');
+	assert.equal(expected.length, 5);
+	const result = compile('invalid-section-measures.ts');
+	assert.equal(result.kind, 'diagnostics');
+	if (result.kind === 'diagnostics')
+		assert.deepEqual(sortDiagnostics(result.diagnostics), sortDiagnostics(expected));
+});
+
 await test('document variants reject incorrect paths and missing payloads', () => {
 	const expected = expectedDiagnostics('invalid-document-fields.ts');
 	assert.equal(expected.length, 6);

@@ -101,14 +101,78 @@ impl TryFrom<RouteWire> for DecisionRoute {
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "tool", rename_all = "snake_case", deny_unknown_fields)]
 pub enum DecisionMechanicalTool {
-    AstGrep { rule: EvidenceRuleId },
-    Regex { field: FieldName, pattern: String },
-    Contains { field: FieldName, text: String },
-    MaxChars { field: FieldName, max: usize },
-    FileExists { field: FieldName },
-    AnchorExists { field: FieldName },
-    ContainsField { field: FieldName, needle: FieldName },
-    Complete { field: FieldName },
+    AstGrep {
+        rule: EvidenceRuleId,
+    },
+    Regex {
+        field: FieldName,
+        pattern: String,
+    },
+    Contains {
+        field: FieldName,
+        text: String,
+    },
+    MaxChars {
+        field: FieldName,
+        max: usize,
+    },
+    FileExists {
+        field: FieldName,
+    },
+    AnchorExists {
+        field: FieldName,
+    },
+    ContainsField {
+        field: FieldName,
+        needle: FieldName,
+    },
+    Complete {
+        field: FieldName,
+    },
+    WordCount {
+        field: MeasureFields,
+        bound: CountBound,
+    },
+    PieceCount {
+        field: MeasureFields,
+        bound: CountBound,
+    },
+}
+
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(untagged)]
+pub enum MeasureFields {
+    One(FieldName),
+    Many(#[schemars(length(min = 1))] Vec<FieldName>),
+}
+
+impl MeasureFields {
+    pub fn as_slice(&self) -> &[FieldName] {
+        match self {
+            Self::One(field) => std::slice::from_ref(field),
+            Self::Many(fields) => fields,
+        }
+    }
+}
+
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(untagged, deny_unknown_fields)]
+pub enum CountBound {
+    AtLeast { at_least: usize },
+    AtMost { at_most: usize },
+    GreaterThan { greater_than: usize },
+}
+
+impl CountBound {
+    pub fn matches(&self, count: usize) -> bool {
+        match self {
+            Self::AtLeast { at_least } => count >= *at_least,
+            Self::AtMost { at_most } => count <= *at_most,
+            Self::GreaterThan { greater_than } => count > *greater_than,
+        }
+    }
 }
 #[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
@@ -172,6 +236,7 @@ pub struct CombineStepWire {
 
 #[derive(Debug, Clone)]
 pub struct DecisionGraph {
+    pub html_settings: sunstack_evidence::HtmlEvidenceSettings,
     pub start: StepName,
     pub steps: BTreeMap<StepName, DecisionStep>,
 }

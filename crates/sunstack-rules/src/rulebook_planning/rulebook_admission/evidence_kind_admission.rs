@@ -210,7 +210,7 @@ pub fn admit_evidence_kinds(
                     if !kinds.contains_key(kind) {
                         errors.push(refusal(path.with_key("kind"), "undefined evidence kind"));
                     }
-                    if !kinds.contains_key(scope.kind()) {
+                    if scope.kinds().iter().any(|kind| !kinds.contains_key(kind)) {
                         errors.push(refusal(
                             path.with_key("scope"),
                             "undefined section scope kind",
