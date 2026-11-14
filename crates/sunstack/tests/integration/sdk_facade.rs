@@ -171,6 +171,65 @@ async fn load_discovers_upward_and_resolves_references_from_the_config_directory
 }
 
 #[tokio::test]
+async fn load_receipt_includes_the_acquired_project_once_with_original_bytes() {
+    let definitions = tempfile::tempdir().unwrap();
+    let checked = tempfile::tempdir().unwrap();
+    write_project(definitions.path(), checked.path());
+    let project = definitions.path().join("lint").canonicalize().unwrap();
+    let original = "# project receipt café\nruleDirs: [rules]\nutilDirs: [utils]\n";
+    let project_file = project.join("evidence/sgconfig.yml");
+    std::fs::write(&project_file, original).unwrap();
+    let held = load(&project).await;
+    let expected = [
+        "sunstack.lint.json",
+        "evidence/sgconfig.yml",
+        "evidence/utils/front.yml",
+        "evidence/rules/nested/skill.yml",
+        "standards/rulebook.md",
+        "standards/rules.json",
+    ]
+    .map(|path| DefinitionOrigin::file(project.join(path)));
+    assert_eq!(
+        held.sources
+            .iter()
+            .map(|source| source.origin.clone())
+            .collect::<Vec<_>>(),
+        expected,
+        "receipt must include every acquired source once, in acquisition order"
+    );
+    let captured = held
+        .sources
+        .iter()
+        .find(|source| source.origin == DefinitionOrigin::file(&project_file))
+        .unwrap()
+        .clone();
+    assert_eq!(captured.content, original);
+    assert_eq!(
+        captured.sha256,
+        sunstack_evidence::content_digest(original.as_bytes())
+    );
+    assert_eq!(
+        captured.representation,
+        SnapshotRepresentation::OriginalText
+    );
+    assert_eq!(captured.acquisition, SnapshotAcquisition::Read);
+
+    // Receipt data stays captured after the source is changed and then removed.
+    std::fs::write(&project_file, "ruleDirs: [missing]\n").unwrap();
+    std::fs::remove_file(&project_file).unwrap();
+    assert_eq!(
+        held.sources
+            .iter()
+            .find(|source| source.origin == captured.origin),
+        Some(&captured)
+    );
+    assert_eq!(
+        finding_count(&run_all(transported(&held.configuration), checked.path()).await),
+        1
+    );
+}
+
+#[tokio::test]
 async fn held_snapshot_copy_and_reload_each_execute_their_own_definitions() {
     let definitions = tempfile::tempdir().unwrap();
     let checked = tempfile::tempdir().unwrap();

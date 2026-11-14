@@ -1,7 +1,8 @@
 // Keyless calls through the real addon: snapshots, check effects and run endings.
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { chmodSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { chmodSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
 
@@ -89,6 +90,43 @@ async function loaded(directory: string): Promise<LoadedConfiguration> {
 	if (outcome.kind !== 'loaded') throw new Error('unreachable');
 	return outcome.value;
 }
+
+await test('load receipts include the original ast-grep project exactly once after source deletion', async () => {
+	writeMechanicalProject(definitions.path, checked.path);
+	const project = realpathSync(join(definitions.path, 'lint'));
+	const projectFile = join(project, 'evidence', 'sgconfig.yml');
+	const original = '# source receipt café\nruleDirs: [rules]\n';
+	writeFileSync(projectFile, original);
+	const held = await loaded(project);
+	assert.deepEqual(
+		held.sources.map((source) =>
+			source.origin.kind === 'file' ? source.origin.path : source.origin.kind,
+		),
+		[
+			join(project, 'sunstack.lint.json'),
+			projectFile,
+			join(project, 'evidence', 'rules', 'nested', 'skill.yml'),
+			join(project, 'standards', 'rulebook.md'),
+			join(project, 'standards', 'rules.json'),
+		],
+	);
+	const captured = held.sources.filter(
+		(source) => source.origin.kind === 'file' && source.origin.path === projectFile,
+	);
+	assert.equal(captured.length, 1);
+	assert.deepEqual(captured[0], {
+		origin: { kind: 'file', path: projectFile },
+		content: original,
+		sha256: createHash('sha256').update(original).digest('hex'),
+		representation: 'original_text',
+		acquisition: 'read',
+	});
+	writeFileSync(projectFile, 'ruleDirs: [missing]\n');
+	rmSync(projectFile);
+	assert.equal(captured[0]?.content, original);
+	assert.equal(findingCount(await run(held, { root: checked.path, scope: { kind: 'all' } })), 1);
+	writeMechanicalProject(definitions.path, checked.path);
+});
 
 await test('a held snapshot, an edited copy and a reload each execute their own definitions', async () => {
 	writeMechanicalProject(definitions.path, checked.path);

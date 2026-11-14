@@ -94,6 +94,7 @@ pub fn load_configuration(options: &LoadOptions) -> Result<LoadedConfiguration, 
         }
         ProjectReadFailure::Refused(detail) => invalid(project_refusal(&detail)),
     })?;
+    receipt.read(&project.project);
     let mut utilities = BTreeMap::new();
     for acquired in &project.utility_files {
         let file = acquired

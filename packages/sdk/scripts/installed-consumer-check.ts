@@ -191,6 +191,10 @@ copyFileSync(
 	join(packageDirectory, 'tests', 'installed-cases', 'markdown-islands.ts'),
 	join(consumer, 'markdown-islands.ts'),
 );
+copyFileSync(
+	join(packageDirectory, 'tests', 'installed-cases', 'load-receipt.ts'),
+	join(consumer, 'load-receipt.ts'),
+);
 writeFileSync(
 	join(consumer, 'tsconfig.json'),
 	`${JSON.stringify(
@@ -249,6 +253,7 @@ step({
 	command: process.execPath,
 	args: ['markdown-islands.ts'],
 });
+step({ label: 'load-receipt', command: process.execPath, args: ['load-receipt.ts'] });
 
 // Heading pages: a non-ASCII setext heading and an ATX child keep their Markdown source; HTML
 // entities are decoded exactly once.
