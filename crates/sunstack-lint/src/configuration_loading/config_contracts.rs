@@ -10,6 +10,7 @@ use sunstack_rules::RulebookPair;
 #[derive(Debug, Clone, thiserror::Error)]
 #[error("{0}")]
 pub struct InvalidConfigValue(pub(crate) &'static str);
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(try_from = "String", into = "String")]
 pub struct GlobPattern(String);
@@ -45,32 +46,46 @@ impl JsonSchema for GlobPattern {
     }
 }
 
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
+/// Every limit is optional: an absent limit keeps its default.
 pub struct LintLimits {
     #[schemars(extend("maximum" = sunstack_decisions::MAX_CHOICE_OPTIONS))]
+    #[cfg_attr(feature = "typescript", specta(optional))]
     pub max_locate_lines: Option<NonZeroU32>,
     #[schemars(range(min = 1000))]
+    #[cfg_attr(feature = "typescript", specta(optional))]
     pub evidence_max_chars: Option<NonZeroU32>,
+    #[cfg_attr(feature = "typescript", specta(optional))]
     pub request_max_chars: Option<NonZeroU32>,
     #[schemars(extend("maximum" = u32::MAX))]
+    #[cfg_attr(feature = "typescript", specta(optional))]
     pub max_files: Option<NonZeroU32>,
     #[schemars(extend("maximum" = u64::MAX))]
+    #[cfg_attr(feature = "typescript", specta(optional))]
     pub max_file_bytes: Option<NonZeroU64>,
     #[schemars(extend("maximum" = u64::MAX))]
+    #[cfg_attr(feature = "typescript", specta(optional))]
     pub max_total_bytes: Option<NonZeroU64>,
     #[schemars(extend("maximum" = u32::MAX))]
+    #[cfg_attr(feature = "typescript", specta(optional))]
     pub max_matches: Option<NonZeroU32>,
     #[schemars(extend("maximum" = u32::MAX))]
+    #[cfg_attr(feature = "typescript", specta(optional))]
     pub max_model_requests: Option<NonZeroU32>,
     #[schemars(extend("maximum" = u32::MAX))]
+    #[cfg_attr(feature = "typescript", specta(optional))]
     pub max_input_tokens_per_request: Option<NonZeroU32>,
     #[schemars(extend("maximum" = u32::MAX))]
+    #[cfg_attr(feature = "typescript", specta(optional))]
     pub attempt_timeout_seconds: Option<NonZeroU32>,
     #[schemars(extend("maximum" = u32::MAX))]
+    #[cfg_attr(feature = "typescript", specta(optional))]
     pub max_concurrent_requests: Option<NonZeroU32>,
 }
 
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct CheckedFiles {
@@ -79,6 +94,7 @@ pub struct CheckedFiles {
     #[serde(default)]
     pub ignore: Vec<GlobPattern>,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct DecisionModelSettings {
@@ -143,12 +159,16 @@ pub enum LintInvalidCode {
 #[derive(Debug, Clone, Serialize, Deserialize, thiserror::Error)]
 #[error("{message}")]
 pub struct LintInvalid {
+    /// CLI location: the definition file, or the checked input for target refusals.
     pub file: PathBuf,
     pub line: Option<u32>,
     pub column: Option<u32>,
     pub json_path: Vec<String>,
     pub code: LintInvalidCode,
     pub message: String,
+    /// The definition this refusal belongs to; absent for checked-input refusals.
+    #[serde(skip)]
+    pub definition: Option<Box<sunstack_evidence::DefinitionOrigin>>,
 }
 impl LintInvalid {
     pub fn at(file: impl Into<PathBuf>, code: LintInvalidCode, message: impl Into<String>) -> Self {
@@ -159,6 +179,12 @@ impl LintInvalid {
             json_path: vec![],
             code,
             message: message.into(),
+            definition: None,
         }
+    }
+    /// Attribute this refusal to the definition it concerns.
+    pub fn in_definition(mut self, definition: &sunstack_evidence::DefinitionOrigin) -> Self {
+        self.definition = Some(Box::new(definition.clone()));
+        self
     }
 }

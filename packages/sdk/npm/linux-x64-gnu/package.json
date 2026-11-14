@@ -1,0 +1,27 @@
+{
+	"name": "@sunstack/sdk-linux-x64-gnu",
+	"version": "0.20.0",
+	"description": "Sunstack SDK native addon for x86_64-unknown-linux-gnu",
+	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/ShravanSunder/sunstack-tools",
+		"directory": "packages/sdk/npm/linux-x64-gnu"
+	},
+	"files": [
+		"sunstack-sdk.linux-x64-gnu.node"
+	],
+	"os": [
+		"linux"
+	],
+	"cpu": [
+		"x64"
+	],
+	"libc": [
+		"glibc"
+	],
+	"main": "sunstack-sdk.linux-x64-gnu.node",
+	"engines": {
+		"node": ">=26.0.0"
+	}
+}

@@ -20,6 +20,10 @@ Release date: 2026-11-13.
   Read, containment and budget failures remain incomplete. Scalar successful
   document fields retain their existing text-list output. Rust `FieldSource`
   uses `DocumentCandidates`; `FieldValue` adds `Document` and `MissingDocument`.
+- The TypeScript SDK and its six platform packages align with 0.20.0. Generated
+  declarations and exact codec metadata carry both document states and candidate
+  paths under SDK contract revision 14. Older saved revisions remain explicit
+  incompatibilities; no migration is guessed.
 
 ## 0.19.0
 

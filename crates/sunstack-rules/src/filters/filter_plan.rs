@@ -8,6 +8,7 @@ use std::{
 use sunstack_decisions::{ChoiceLabel, NamedQuestionMap};
 use sunstack_evidence::{ConfigPath, EvidenceKindDefinition, EvidenceKindName, FieldName};
 
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, JsonSchema)]
 #[serde(try_from = "String", into = "String")]
 pub struct FilterName(String);
@@ -35,6 +36,7 @@ impl From<FilterName> for String {
     }
 }
 
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct ReadsSpec {
@@ -42,6 +44,7 @@ pub struct ReadsSpec {
     pub kind: EvidenceKindName,
     pub fields: Vec<FieldName>,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct FilterWire {

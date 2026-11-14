@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 mod github_heading_slug;
 
 /// The configured renderer convention for Markdown heading anchors.
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum HeadingAnchorScheme {

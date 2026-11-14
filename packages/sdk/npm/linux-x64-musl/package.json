@@ -1,0 +1,27 @@
+{
+	"name": "@sunstack/sdk-linux-x64-musl",
+	"version": "0.20.0",
+	"description": "Sunstack SDK native addon for x86_64-unknown-linux-musl",
+	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/ShravanSunder/sunstack-tools",
+		"directory": "packages/sdk/npm/linux-x64-musl"
+	},
+	"files": [
+		"sunstack-sdk.linux-x64-musl.node"
+	],
+	"os": [
+		"linux"
+	],
+	"cpu": [
+		"x64"
+	],
+	"libc": [
+		"musl"
+	],
+	"main": "sunstack-sdk.linux-x64-musl.node",
+	"engines": {
+		"node": ">=26.0.0"
+	}
+}

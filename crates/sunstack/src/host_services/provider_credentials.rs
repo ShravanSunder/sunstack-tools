@@ -7,7 +7,7 @@ use std::{
 
 const CREDENTIAL_SERVICE: &str = "sunstack";
 const CREDENTIAL_ACCOUNT: &str = "openrouter-api-key";
-pub(crate) const MISSING_CREDENTIAL: &str = "OpenRouter credential is missing. Set OPENROUTER_API_KEY or run sunstack credentials save with the variable set. This build may need keychain approval: run from a terminal to approve store access.";
+pub const MISSING_CREDENTIAL: &str = "OpenRouter credential is missing. Set OPENROUTER_API_KEY or run sunstack credentials save with the variable set. This build may need keychain approval: run from a terminal to approve store access.";
 
 fn native_entry() -> keyring_core::Result<Arc<Entry>> {
     #[cfg(target_os = "macos")]
@@ -22,21 +22,19 @@ fn native_entry() -> keyring_core::Result<Arc<Entry>> {
     Err(keyring_core::Error::NoDefaultStore)
 }
 
-// Only this binary accesses Keychain, once per command. Scope its process-wide
-// UI setting to the blocking store access, leaving interactive terminals alone.
+// Sunstack's own Keychain lookups, from the CLI or any SDK call routed through here,
+// share one noninteractive hold over the process-wide UI setting (see
+// `keychain_interaction`): overlapping lookups keep it off until the last one leaves, and
+// a setting the host already turned off stays off. Other code in the host process that
+// changes the setting is not coordinated. Interactive terminals keep the Keychain prompt.
 fn with_native_access<Output>(operation: impl FnOnce() -> Output) -> Option<Output> {
     #[cfg(target_os = "macos")]
-    let _interaction_guard = {
+    {
         use std::io::IsTerminal;
-        if io::stdin().is_terminal() {
-            None
-        } else {
-            Some(
-                security_framework::os::macos::keychain::SecKeychain::disable_user_interaction()
-                    .ok()?,
-            )
+        if !io::stdin().is_terminal() {
+            return super::keychain_interaction::KEYCHAIN_NONINTERACTIVE.run(operation);
         }
-    };
+    }
     Some(operation())
 }
 
@@ -59,7 +57,9 @@ fn resolve_with(
     })
 }
 
-pub(crate) async fn resolve() -> Option<String> {
+/// Resolve the OpenRouter credential: environment first, then the OS store.
+/// The secret stays inside Rust; callers pass it straight to the engine.
+pub async fn resolve() -> Option<String> {
     if let Some(api_key) = nonempty_key(std::env::var("OPENROUTER_API_KEY").ok()) {
         return Some(api_key);
     }
@@ -123,7 +123,7 @@ async fn save_environment() -> Result<(), CredentialSaveError> {
     .unwrap_or(Err(CredentialSaveError::StoreUnavailable))
 }
 
-pub(crate) async fn save_command() -> ExitCode {
+pub async fn save_command() -> ExitCode {
     match save_environment().await {
         Ok(()) => {
             #[cfg(target_os = "macos")]

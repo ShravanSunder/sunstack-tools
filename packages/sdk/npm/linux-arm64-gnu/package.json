@@ -1,0 +1,27 @@
+{
+	"name": "@sunstack/sdk-linux-arm64-gnu",
+	"version": "0.20.0",
+	"description": "Sunstack SDK native addon for aarch64-unknown-linux-gnu",
+	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/ShravanSunder/sunstack-tools",
+		"directory": "packages/sdk/npm/linux-arm64-gnu"
+	},
+	"files": [
+		"sunstack-sdk.linux-arm64-gnu.node"
+	],
+	"os": [
+		"linux"
+	],
+	"cpu": [
+		"arm64"
+	],
+	"libc": [
+		"glibc"
+	],
+	"main": "sunstack-sdk.linux-arm64-gnu.node",
+	"engines": {
+		"node": ">=26.0.0"
+	}
+}

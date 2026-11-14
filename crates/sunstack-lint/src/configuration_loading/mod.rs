@@ -3,4 +3,5 @@ pub(crate) mod config_contracts;
 pub(crate) mod config_decoding;
 mod config_starter;
 pub(crate) mod config_validation;
+pub mod definition_bundle;
 pub(crate) mod limit_settings;

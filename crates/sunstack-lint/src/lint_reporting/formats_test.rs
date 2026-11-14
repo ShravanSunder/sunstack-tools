@@ -18,6 +18,8 @@ fn summary_report(status: LintStatus, diagnostic_count: usize) -> LintReport {
             column: None,
             code: LintInvalidCode::Syntax,
             message: "Cannot read the configured rulebook".into(),
+            definition: None,
+            json_path: vec![],
         })
         .collect();
     report

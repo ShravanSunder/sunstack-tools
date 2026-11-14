@@ -1,0 +1,23 @@
+{
+	"$schema": "../../node_modules/oxlint/configuration_schema.json",
+	"extends": ["../../.oxlintrc.json"],
+	"rules": {
+		"id-length": [
+			"warn",
+			{
+				"min": 3,
+				"exceptions": ["_", "i", "id", "to", "x", "y", "bg", "fg"],
+				"properties": "never"
+			}
+		]
+	},
+	"ignorePatterns": [
+		"tests/compiler-cases/invalid-callers.ts",
+		"tests/compiler-cases/invalid-markdown-islands.ts",
+		"tests/compiler-cases/invalid-scoped-inside.ts",
+		"tests/compiler-cases/invalid-document-fields.ts",
+		"src/contracts/contracts.ts",
+		"src/contracts/ast-grep.ts",
+		"src/contracts/wide-integers.ts"
+	]
+}

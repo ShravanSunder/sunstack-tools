@@ -2,12 +2,17 @@ use super::{
     lint_run::{RunState, failed},
     run_coverage::PickedEvidence,
 };
-use crate::{configuration_loading::config_validation::CheckedRulebook, *};
+use crate::{
+    configuration_loading::{
+        config_validation::CheckedRulebook, definition_bundle::DefinitionBundle,
+    },
+    *,
+};
 use sunstack_rules::run_rulebook_with_dispatcher;
 
 pub(super) async fn evaluate_run(
     state: RunState,
-    config: &RulesConfig,
+    bundle: &DefinitionBundle,
     checked: &CheckedRulebook,
     evidence: PickedEvidence,
 ) -> LintReport {
@@ -28,7 +33,7 @@ pub(super) async fn evaluate_run(
         &folders,
         sunstack_rules::FilterEvidence {
             pieces: &catalog.pieces,
-            kinds: &config.evidence.kinds,
+            kinds: &bundle.settings.kinds,
             project: &checked.project,
             matches: &catalog.matches,
         },

@@ -2,12 +2,14 @@ use crate::{EvidenceCode, EvidenceError, EvidenceResult};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum HtmlUnitKind {
     Section,
 }
 
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged, deny_unknown_fields)]
 pub enum HtmlUnitFilter {
@@ -15,6 +17,7 @@ pub enum HtmlUnitFilter {
     Regex { pattern: String },
 }
 
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(try_from = "SelectionWire", into = "SelectionWire")]
 #[schemars(with = "SelectionWire")]
@@ -26,6 +29,7 @@ pub enum HtmlUnitSelection {
 }
 
 // Each flat alternative closes its filter keys without flattening an untagged enum.
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged, deny_unknown_fields)]
 enum SelectionWire {
@@ -50,6 +54,7 @@ enum SelectionWire {
     },
 }
 
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 enum UnitOnly {

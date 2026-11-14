@@ -103,12 +103,43 @@ export function errorMessage(error: unknown): string {
 export function codePoints(value: string): number {
 	return Array.from(value).length;
 }
-export function prepareFixture(destination: string, markers: readonly string[] = []): string {
+type FixtureTemplateEntry =
+	| { kind: 'directory'; relativePath: string; mode: number }
+	| { kind: 'file'; relativePath: string; mode: number; content: Buffer };
+
+/** Capture once per preparation batch; clones still own independent writable files. */
+export function captureFixtureTemplate(): readonly FixtureTemplateEntry[] {
+	const entries: FixtureTemplateEntry[] = [];
+	function capture(relativePath: string): void {
+		const source = path.join(fixtureSource, relativePath);
+		const stat = filesystem.lstatSync(source);
+		const mode = stat.mode & 0o777;
+		if (stat.isDirectory()) {
+			entries.push({ kind: 'directory', relativePath, mode });
+			for (const name of filesystem.readdirSync(source)) capture(path.join(relativePath, name));
+		} else {
+			requireCondition(stat.isFile(), `Unsupported fixture entry: ${source}`);
+			entries.push({ kind: 'file', relativePath, mode, content: filesystem.readFileSync(source) });
+		}
+	}
+	capture('');
+	return entries;
+}
+
+export function prepareFixture(
+	destination: string,
+	markers: readonly string[] = [],
+	template: readonly FixtureTemplateEntry[] = captureFixtureTemplate(),
+): string {
 	requireCondition(
 		!filesystem.existsSync(destination),
 		`Fixture destination exists: ${destination}`,
 	);
-	filesystem.cpSync(fixtureSource, destination, { recursive: true });
+	for (const entry of template) {
+		const target = path.join(destination, entry.relativePath);
+		if (entry.kind === 'directory') filesystem.mkdirSync(target, { mode: entry.mode });
+		else filesystem.writeFileSync(target, entry.content, { mode: entry.mode });
+	}
 	if (markers.length > 0) {
 		const rules = readObject(path.join(destination, rulesName));
 		const selected: JsonObject = {};

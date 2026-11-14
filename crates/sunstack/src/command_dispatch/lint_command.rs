@@ -234,7 +234,7 @@ async fn execute(arguments: LintArguments, cancellation: CancellationToken) -> E
         };
         sunstack_lint::prepare(request, cancellation, selections).await
     } else {
-        let credential = crate::process_runtime::provider_credentials::resolve().await;
+        let credential = sunstack::host_services::provider_credentials::resolve().await;
         sunstack_lint::run(request, cancellation, credential).await
     };
     if let Some(path) = arguments.prepare.as_ref().or(arguments.report.as_ref()) {

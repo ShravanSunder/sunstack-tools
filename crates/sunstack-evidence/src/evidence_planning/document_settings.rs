@@ -8,6 +8,7 @@ pub struct InvalidHtmlName(&'static str);
 
 macro_rules! html_name {
     ($name:ident, $label:literal) => {
+        #[cfg_attr(feature = "typescript", derive(specta::Type))]
         #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
         #[serde(try_from = "String", into = "String")]
         pub struct $name(String);
@@ -49,6 +50,7 @@ macro_rules! html_name {
 html_name!(HtmlTagName, "HTML tag name");
 html_name!(HtmlAttributeName, "HTML attribute name");
 
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(default, deny_unknown_fields)]
 pub struct HtmlEvidenceSettings {
@@ -58,6 +60,7 @@ pub struct HtmlEvidenceSettings {
     pub embedded_markdown: Vec<HtmlMarkdownIsland>,
 }
 
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct HtmlMarkdownIsland {
@@ -74,6 +77,7 @@ impl HtmlEvidenceSettings {
     }
 }
 
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(default, deny_unknown_fields)]
 pub struct MarkdownEvidenceSettings {

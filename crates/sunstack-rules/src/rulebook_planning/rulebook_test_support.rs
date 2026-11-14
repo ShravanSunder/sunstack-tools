@@ -41,7 +41,7 @@ pub fn rule(marker: &str) -> RulebookRule {
         name: entry.name,
         sentence: RulebookSentence {
             marker: MarkerId::new(marker).unwrap(),
-            rulebook: "rulebook.md".into(),
+            rulebook: sunstack_evidence::DefinitionOrigin::file("rulebook.md"),
             line: 1,
             standard: "A checkable completion covers its obligations.".into(),
         },

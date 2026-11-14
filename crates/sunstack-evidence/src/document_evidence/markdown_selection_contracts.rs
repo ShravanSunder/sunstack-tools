@@ -2,6 +2,7 @@ use crate::SourceSpan;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(
     Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, JsonSchema,
 )]
@@ -58,10 +59,38 @@ enum SelectionWire {
     },
 }
 
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
-enum UnitOnly {
+pub(crate) enum UnitOnly {
     Unit,
+}
+
+/// The `markdown_units` selection a rulebook evidence kind accepts: the flat wire of
+/// [`MarkdownUnitSelection`] in unit mode only, as the kind schema restricts it. Declares
+/// the kind boundary for TypeScript; values still decode as [`MarkdownUnitSelection`].
+#[cfg(feature = "typescript")]
+#[derive(specta::Type, Serialize)]
+#[serde(untagged)]
+#[allow(
+    dead_code,
+    reason = "declaration-only for TypeScript generation; built only by its decode agreement test"
+)]
+pub(crate) enum MarkdownUnitsKindWire {
+    Unfiltered {
+        mode: UnitOnly,
+        units: Vec<MarkdownUnitKind>,
+    },
+    StartsWith {
+        mode: UnitOnly,
+        units: Vec<MarkdownUnitKind>,
+        starts_with: String,
+    },
+    Regex {
+        mode: UnitOnly,
+        units: Vec<MarkdownUnitKind>,
+        pattern: String,
+    },
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
@@ -165,3 +194,7 @@ pub struct SelectedMarkdownUnit {
     pub visible_text: String,
     pub occurrence: MarkdownOccurrence,
 }
+
+#[cfg(all(test, feature = "typescript"))]
+#[path = "markdown_selection_contracts_kind_wire_test.rs"]
+mod kind_wire_tests;

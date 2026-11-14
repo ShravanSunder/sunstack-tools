@@ -1,4 +1,4 @@
-use crate::{configuration_loading::config_validation::config_directory, *};
+use crate::*;
 use std::{
     collections::BTreeSet,
     path::{Path, PathBuf},
@@ -47,8 +47,10 @@ fn matches(patterns: &[GlobPattern], file: &Path) -> bool {
         globset::Glob::new(pattern.as_str()).is_ok_and(|glob| glob.compile_matcher().is_match(file))
     })
 }
+/// Select checked files: under an explicit root, or the config directory's Git workdir.
 pub(crate) fn select_targets(
-    config: &RulesConfig,
+    check: &CheckedFiles,
+    config_directory: &Path,
     paths: &[PathBuf],
     cwd: &Path,
     checked_root: Option<&Path>,
@@ -68,9 +70,9 @@ pub(crate) fn select_targets(
                 "checked root must be a directory",
             ));
         }
-        return select_targets_in_root(&config.check, &resolved, paths, cwd);
+        return select_targets_in_root(check, &resolved, paths, cwd);
     }
-    let directory = config_directory(config).canonicalize().map_err(|_| {
+    let directory = config_directory.canonicalize().map_err(|_| {
         LintInvalid::at(
             "sunstack.lint.json",
             LintInvalidCode::Syntax,
@@ -83,7 +85,7 @@ pub(crate) fn select_targets(
         .and_then(|repo| repo.workdir())
         .unwrap_or(&directory)
         .to_path_buf();
-    select_targets_in_root(&config.check, &root, paths, cwd)
+    select_targets_in_root(check, &root, paths, cwd)
 }
 
 pub(crate) fn select_targets_in_root(

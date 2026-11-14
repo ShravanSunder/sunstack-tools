@@ -9,6 +9,7 @@ pub struct InvalidEvidenceName(String);
 
 macro_rules! evidence_name {
     ($name:ident, $validate:expr) => {
+        #[cfg_attr(feature = "typescript", derive(specta::Type))]
         #[derive(
             Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, JsonSchema,
         )]
@@ -41,6 +42,7 @@ macro_rules! evidence_name {
 }
 evidence_name!(EvidenceKindName, |_: &str| true);
 
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(try_from = "Vec<EvidenceKindName>", into = "Vec<EvidenceKindName>")]
 #[schemars(extend("minItems" = 1, "uniqueItems" = true))]
@@ -121,6 +123,7 @@ impl EvidenceSettings {
         }
     }
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(
     try_from = "super::kind_matcher_decoding::EvidenceKindWire",
@@ -135,12 +138,19 @@ pub struct EvidenceKindDefinition {
     pub within: Option<ContainingKinds>,
 }
 
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum KindMatcher {
     Named(EvidenceRuleId),
-    Inline { text: String },
+    Inline {
+        text: String,
+    },
     HtmlUnits(crate::HtmlUnitSelection),
-    MarkdownUnits(crate::MarkdownUnitSelection),
+    // A kind's Markdown selection is unit-mode only; declare that boundary, not call_site.
+    MarkdownUnits(
+        #[cfg_attr(feature = "typescript", specta(type = crate::MarkdownUnitsKindWire))]
+        crate::MarkdownUnitSelection,
+    ),
 }
 
 impl KindMatcher {
@@ -153,6 +163,7 @@ impl KindMatcher {
     }
 }
 
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(try_from = "u8", into = "u8")]
 #[schemars(extend("minimum" = 1, "maximum" = 5))]
@@ -191,6 +202,7 @@ impl From<NeighbourCount> for u8 {
     }
 }
 
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, JsonSchema)]
 #[serde(tag = "from", rename_all = "snake_case", deny_unknown_fields)]
 pub enum FieldSource {
@@ -257,12 +269,14 @@ pub enum FieldSource {
         exclude: Option<TargetExclude>,
     },
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct TargetExclude {
     pub rule: EvidenceRuleId,
 }
 
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum ContextText {
@@ -276,6 +290,7 @@ impl ContextText {
         *self == Self::FirstLine
     }
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum SectionText {
@@ -287,6 +302,7 @@ pub enum SectionText {
 pub(super) fn default_opening_chars() -> usize {
     3000
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum EvidenceTargetResolution {
@@ -320,6 +336,7 @@ impl FieldSource {
         }
     }
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "state", rename_all = "snake_case", deny_unknown_fields)]
 pub enum FieldValue {
@@ -347,6 +364,7 @@ pub enum FieldValue {
         reason: FieldUnavailable,
     },
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum FieldUnavailable {
@@ -378,6 +396,7 @@ impl FieldValue {
         }
     }
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "status", rename_all = "snake_case", deny_unknown_fields)]
 pub enum TargetAnchor {
@@ -393,6 +412,7 @@ pub enum TargetAnchor {
     },
 }
 
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum TargetAnchorUnsupportedReason {
@@ -400,6 +420,7 @@ pub enum TargetAnchorUnsupportedReason {
     UnsupportedDocument,
 }
 
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub struct LoadTarget {
     pub name: String,
@@ -418,6 +439,7 @@ pub struct LoadTarget {
     pub opening_last_line: Option<usize>,
 }
 
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub struct PieceLocation {
     pub file: PathBuf,
@@ -425,6 +447,7 @@ pub struct PieceLocation {
     pub last_line: usize,
     pub span: SourceSpan,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub struct EvidencePiece {
     pub kind: EvidenceKindName,
@@ -435,6 +458,7 @@ pub struct EvidencePiece {
     pub model_view: ModelView,
 }
 
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged)]
 pub enum ModelFieldValue {
@@ -444,6 +468,7 @@ pub enum ModelFieldValue {
     Boolean(bool),
     Absent,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "state", rename_all = "snake_case")]
 pub enum ModelView {
@@ -462,6 +487,7 @@ pub fn match_within(inner: &MatchRange, outer: &MatchRange) -> bool {
     outer.start <= inner.start && inner.end <= outer.end
 }
 
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct SelectionWire {
@@ -472,12 +498,14 @@ pub struct SelectionWire {
     pub shared: Vec<FieldName>,
 }
 
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged, deny_unknown_fields)]
 pub enum MatchSource {
     Rule { rule: EvidenceRuleId },
     Kind { kind: EvidenceKindName },
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct CandidateId {
     pub kind: EvidenceKindName,
@@ -510,6 +538,7 @@ impl Ord for CandidateId {
         self.identity().cmp(&other.identity())
     }
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, JsonSchema)]
 #[serde(try_from = "String", into = "String")]
 pub struct CandidateKey(String);
@@ -546,6 +575,7 @@ impl CandidateKey {
         &self.0
     }
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct SelectionCandidate {
     pub id: CandidateId,
@@ -555,6 +585,7 @@ pub struct SelectionCandidate {
     pub fields: BTreeMap<FieldName, FieldValue>,
     pub selection_view: ModelView,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct SharedView {
     pub file: PathBuf,
@@ -578,6 +609,7 @@ pub enum BuildStep {
     },
     Done(crate::EvidenceCatalog),
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Default, Serialize, Deserialize, JsonSchema)]
 pub struct KindCount {
     pub matches: usize,
@@ -587,6 +619,7 @@ pub struct KindCount {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub selection: Option<SelectionCount>,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Default, Serialize, Deserialize, JsonSchema)]
 pub struct SelectionCount {
     pub candidates: usize,
@@ -596,6 +629,7 @@ pub struct SelectionCount {
     pub uncertain: usize,
     pub incomplete: usize,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct FileCount {
     pub file: PathBuf,

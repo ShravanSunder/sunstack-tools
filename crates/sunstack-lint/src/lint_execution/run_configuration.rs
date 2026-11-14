@@ -1,14 +1,20 @@
-use super::lint_run::{ExecutionMode, RunState, failed, invalid};
+use super::{
+    lint_run::{ExecutionMode, RunState, failed, invalid},
+    stopped_stages::{RunStage, RunStageStopped},
+};
 use crate::{
-    configuration_loading::config_validation::{
-        CheckedRulebook, load_checked_rulebook, native_diagnostics,
+    configuration_loading::{
+        config_validation::{CheckedRulebook, admit_definitions, native_diagnostics},
+        definition_bundle::{DefinitionBundle, acquire_file_definitions},
     },
     *,
 };
 use std::{ops::ControlFlow, path::PathBuf};
 use tokio_util::sync::CancellationToken;
 
-pub(super) async fn configure_run(
+/// The CLI's first step: discover and read its configuration file, then acquire and
+/// admit the definitions it names.
+pub(super) async fn acquire_file_run(
     request: LintRequest,
     cancellation: CancellationToken,
     mode: ExecutionMode,
@@ -17,10 +23,8 @@ pub(super) async fn configure_run(
     (
         RunState,
         PathBuf,
-        ConfigLocation,
-        RulesConfig,
-        CheckedRulebook,
-        bool,
+        DefinitionBundle,
+        Result<CheckedRulebook, Vec<LintDiagnostic>>,
     ),
 > {
     let preparing = matches!(mode, ExecutionMode::Prepare { .. });
@@ -75,34 +79,64 @@ pub(super) async fn configure_run(
         report.status = LintStatus::Cancelled;
         return ControlFlow::Break(report);
     }
-    let config_to_check = config.clone();
-    let checked =
-        match tokio::task::spawn_blocking(move || load_checked_rulebook(&config_to_check)).await {
-            Ok(Ok(checked)) => checked,
-            Ok(Err(diagnostics)) => {
-                report.status = LintStatus::Invalid;
-                report.diagnostics = diagnostics;
-                return ControlFlow::Break(report);
-            }
-            Err(_) => return ControlFlow::Break(failed(report, "rulebook loading failed")),
-        };
+    let acquired = tokio::task::spawn_blocking(move || {
+        let bundle = acquire_file_definitions(&config, &location);
+        let checked = admit_definitions(&bundle);
+        (bundle, checked)
+    })
+    .await;
+    let (bundle, checked) = match acquired {
+        Ok(value) => value,
+        Err(_) => {
+            return ControlFlow::Break(
+                RunStageStopped::before_dispatch(RunStage::Admission, report).into_cli_report(),
+            );
+        }
+    };
+    ControlFlow::Continue((
+        RunState {
+            request,
+            cancellation,
+            preparing,
+            recorded_selections,
+            report,
+        },
+        cwd,
+        bundle,
+        checked,
+    ))
+}
+
+/// Settle an admission result into the report and decide whether the run needs model work.
+pub(super) fn configure_admitted_run(
+    mut state: RunState,
+    bundle: &DefinitionBundle,
+    checked: Result<CheckedRulebook, Vec<LintDiagnostic>>,
+) -> ControlFlow<LintReport, (RunState, CheckedRulebook, bool)> {
+    let request = &state.request;
+    let mut report = state.report;
+    let checked = match checked {
+        Ok(checked) => checked,
+        Err(diagnostics) => {
+            report.status = LintStatus::Invalid;
+            report.diagnostics = diagnostics;
+            return ControlFlow::Break(report);
+        }
+    };
     if let Some(Some(kind)) = &request.evidence_listing
-        && !config.evidence.kinds.contains_key(kind)
+        && !bundle.settings.kinds.contains_key(kind)
     {
         return ControlFlow::Break(invalid(
             report,
-            LintInvalid::at(
-                &location.file,
-                LintInvalidCode::Syntax,
-                "unknown evidence kind",
-            ),
+            bundle
+                .root
+                .invalid(LintInvalidCode::Syntax, "unknown evidence kind"),
         ));
     }
-    report.rulebook_files =
-        match crate::lint_reporting::saved_reports::capture_files(&checked.inputs) {
-            Ok(files) => files,
-            Err(_) => return ControlFlow::Break(failed(report, "rulebook snapshot unavailable")),
-        };
+    report.rulebook_files = match bundle.file_snapshots(&checked.inputs) {
+        Ok(files) => files,
+        Err(_) => return ControlFlow::Break(failed(report, "rulebook snapshot unavailable")),
+    };
     report.skipped_rules = checked.assembly.skipped.clone();
     if !report.skipped_rules.is_empty() {
         report.incomplete.push(IncompletePart {
@@ -116,9 +150,10 @@ pub(super) async fn configure_run(
             },
         });
         for skipped in &checked.assembly.skipped {
-            report
-                .diagnostics
-                .extend(native_diagnostics(&config, skipped.diagnostics.clone()));
+            report.diagnostics.extend(native_diagnostics(
+                &bundle.root,
+                skipped.diagnostics.clone(),
+            ));
         }
     }
     let asking = checked
@@ -126,8 +161,8 @@ pub(super) async fn configure_run(
         .rules
         .iter()
         .any(|rule| !rule.questions.is_empty());
-    let selected = config
-        .evidence
+    let selected = bundle
+        .settings
         .kinds
         .values()
         .any(|kind| kind.select.is_some());
@@ -137,18 +172,6 @@ pub(super) async fn configure_run(
         .iter()
         .any(|rule| rule.gate.is_some());
     let model_work = selected || (request.evidence_listing.is_none() && (asking || gated));
-    ControlFlow::Continue((
-        RunState {
-            request,
-            cancellation,
-            preparing,
-            recorded_selections,
-            report,
-        },
-        cwd,
-        location,
-        config,
-        checked,
-        model_work,
-    ))
+    state.report = report;
+    ControlFlow::Continue((state, checked, model_work))
 }

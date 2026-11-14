@@ -15,10 +15,12 @@ import {
 	arrayValue,
 	baselineGit,
 	configName,
+	fixtureSource,
 	gitCommand,
 	objectValue,
 	parseObject,
 	readObject,
+	rulebookName,
 	skillName,
 	type JsonObject,
 	type JsonValue,
@@ -106,6 +108,14 @@ test('refusal setup preserves duplicate/malformed inputs and all adopted control
 	expect(
 		filesystem.readFileSync(path.join(root, 'marker-spaced-heading/rulebook/steering.md'), 'utf8'),
 	).toContain('Extra heading <!-- K004 -->');
+	const source = filesystem.readFileSync(path.join(fixtureSource, rulebookName), 'utf8');
+	const firstClone = path.join(root, 'config-duplicate', rulebookName);
+	const peerClone = path.join(root, 'config-syntax', rulebookName);
+	expect(filesystem.readFileSync(firstClone, 'utf8')).toBe(source);
+	expect(filesystem.readFileSync(peerClone, 'utf8')).toBe(source);
+	filesystem.appendFileSync(firstClone, '\nIndependent clone sentinel\n');
+	expect(filesystem.readFileSync(peerClone, 'utf8')).toBe(source);
+	expect(filesystem.readFileSync(path.join(fixtureSource, rulebookName), 'utf8')).toBe(source);
 });
 test('missing key compares acquisitions rather than physical reads', () => {
 	const scenario = lintCaseSchema.parse({

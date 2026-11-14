@@ -58,10 +58,15 @@ pub enum RuleDiagnosticOrigin {
 pub enum RuleDiagnosticLocation {
     None,
     Definition {
+        /// The CLI path projection of the definition (empty for in-memory definitions).
         file: PathBuf,
         line: usize,
         column: usize,
         field_path: Vec<String>,
+        /// The definition's origin for SDK projection; never part of CLI serialization.
+        #[serde(skip)]
+        #[schemars(skip)]
+        definition: Option<sunstack_evidence::DefinitionOrigin>,
     },
     Field {
         field_path: Vec<String>,
@@ -187,6 +192,7 @@ impl RuleDiagnostic {
             line,
             column,
             field_path: field_path.into_iter().take(32).collect(),
+            definition: None,
         };
         self
     }
@@ -255,6 +261,21 @@ impl From<sunstack_decisions::DiagnosticList> for DiagnosticList {
                 .map(|diagnostic| ReportDiagnostic::Decision(Box::new(diagnostic)))
                 .collect(),
             omitted_count: value.omitted_count,
+        }
+    }
+}
+
+impl DiagnosticList {
+    /// Attribute definition-located diagnostics without an origin to `origin`.
+    pub fn attribute_definition(&mut self, origin: &sunstack_evidence::DefinitionOrigin) {
+        for item in &mut self.items {
+            if let ReportDiagnostic::Rule(diagnostic) = item
+                && let RuleDiagnosticLocation::Definition { definition, .. } =
+                    &mut diagnostic.location
+                && definition.is_none()
+            {
+                *definition = Some(origin.clone());
+            }
         }
     }
 }

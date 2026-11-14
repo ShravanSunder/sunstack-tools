@@ -89,6 +89,15 @@ async fn lint_help_documents_config_discovery_and_all_status_exit_codes() {
 
     let help = String::from_utf8(output.stdout).unwrap();
     assert!(help.contains("nearest sunstack.lint.json upward"), "{help}");
+    for guidance in [
+        "--evidence",
+        "--prepare FILE",
+        "no rule evaluation",
+        "complete-keyless-example",
+        "runnable mechanical starter",
+    ] {
+        assert!(help.contains(guidance), "missing {guidance}: {help}");
+    }
     for line in [
         "0  Clean or nothing selected",
         "1  Findings",
@@ -100,4 +109,67 @@ async fn lint_help_documents_config_discovery_and_all_status_exit_codes() {
     ] {
         assert!(help.contains(line), "missing {line}: {help}");
     }
+}
+
+#[tokio::test]
+async fn the_complete_readme_recipe_admits_and_lists_before_ordinary_rule_evaluation() {
+    // Arrange: execute the actual authored example blocks, not a parallel fixture.
+    let root = tempfile::tempdir().unwrap();
+    let readme = include_str!("../../../README.md");
+    let recipe = readme
+        .split("### Complete keyless example")
+        .nth(1)
+        .unwrap()
+        .split("Evidence fields can use")
+        .next()
+        .unwrap();
+    let blocks = recipe
+        .split("```")
+        .enumerate()
+        .filter(|(index, _)| index % 2 == 1)
+        .map(|(_, block)| block.split_once('\n').unwrap().1)
+        .collect::<Vec<_>>();
+    let paths = [
+        "sunstack.lint.json",
+        "rulebook.md",
+        "rulebook.rules.json",
+        "evidence/sgconfig.yml",
+        "evidence/rules/skill.yml",
+        "docs/one.md",
+    ];
+    assert_eq!(
+        blocks.len(),
+        paths.len() + 1,
+        "six files and one command block"
+    );
+    for (path, content) in paths.iter().zip(&blocks) {
+        let path = root.path().join(path);
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(path, content).unwrap();
+    }
+
+    // Act: normal CLI admission, listing and rule evaluation share these files.
+    invoke(root.path(), &["--check"], 0).await;
+    let listed: Value = serde_json::from_slice(
+        &invoke(root.path(), &["--all", "--evidence", "skill"], 0)
+            .await
+            .stdout,
+    )
+    .unwrap();
+    let clean = report(root.path(), &["--all"], 0).await;
+
+    // Assert: listing exposes evidence and coverage; ordinary lint evaluates K001.
+    assert_eq!(listed["status"]["kind"], "clean");
+    assert_eq!(listed["pieces"].as_array().unwrap().len(), 1);
+    assert!(listed["pieces"][0]["where"]["span"]["source"].is_object());
+    assert_eq!(listed["file_counts"].as_array().unwrap().len(), 1);
+    assert_eq!(clean["results"].as_array().unwrap().len(), 1);
+    assert_eq!(clean["status"]["kind"], "clean");
+    std::fs::write(
+        root.path().join("docs/one.md"),
+        blocks[5].replace("Use when checking a complete example.", "Wrong opening"),
+    )
+    .unwrap();
+    let findings = report(root.path(), &["--all"], 1).await;
+    assert_eq!(findings["findings"].as_array().unwrap().len(), 1);
 }
