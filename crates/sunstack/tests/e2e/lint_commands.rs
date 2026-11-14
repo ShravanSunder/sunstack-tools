@@ -27,6 +27,8 @@ mod html_evidence;
 mod html_sections;
 #[path = "lint_commands/marker_runs.rs"]
 mod marker_runs;
+#[path = "lint_commands/section_levels.rs"]
+mod section_levels;
 #[path = "lint_commands/section_measures.rs"]
 mod section_measures;
 #[path = "lint_commands/section_prefix.rs"]

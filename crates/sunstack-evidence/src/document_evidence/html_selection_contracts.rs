@@ -1,4 +1,4 @@
-use crate::{EvidenceCode, EvidenceError, EvidenceResult};
+use crate::{EvidenceCode, EvidenceError, EvidenceResult, HeadingLevels};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -25,6 +25,7 @@ pub enum HtmlUnitSelection {
     Unit {
         units: Vec<HtmlUnitKind>,
         filter: Option<HtmlUnitFilter>,
+        levels: Option<HeadingLevels>,
     },
 }
 
@@ -32,11 +33,20 @@ pub enum HtmlUnitSelection {
 #[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged, deny_unknown_fields)]
+#[schemars(extend("allOf" = [{"if":{"required":["levels"]},"then":{"properties":{"units":{"const":["section"]}}}}]))]
 enum SelectionWire {
     Unfiltered {
         mode: UnitOnly,
         #[schemars(length(min = 1))]
         units: Vec<HtmlUnitKind>,
+        #[serde(
+            default,
+            skip_serializing_if = "Option::is_none",
+            deserialize_with = "super::heading_levels::optional_heading_levels"
+        )]
+        #[schemars(with = "HeadingLevels")]
+        #[cfg_attr(feature = "typescript", specta(type = HeadingLevels, optional))]
+        levels: Option<HeadingLevels>,
     },
     StartsWith {
         mode: UnitOnly,
@@ -44,6 +54,14 @@ enum SelectionWire {
         units: Vec<HtmlUnitKind>,
         #[schemars(length(min = 1))]
         starts_with: String,
+        #[serde(
+            default,
+            skip_serializing_if = "Option::is_none",
+            deserialize_with = "super::heading_levels::optional_heading_levels"
+        )]
+        #[schemars(with = "HeadingLevels")]
+        #[cfg_attr(feature = "typescript", specta(type = HeadingLevels, optional))]
+        levels: Option<HeadingLevels>,
     },
     Regex {
         mode: UnitOnly,
@@ -51,6 +69,14 @@ enum SelectionWire {
         units: Vec<HtmlUnitKind>,
         #[schemars(length(min = 1))]
         pattern: String,
+        #[serde(
+            default,
+            skip_serializing_if = "Option::is_none",
+            deserialize_with = "super::heading_levels::optional_heading_levels"
+        )]
+        #[schemars(with = "HeadingLevels")]
+        #[cfg_attr(feature = "typescript", specta(type = HeadingLevels, optional))]
+        levels: Option<HeadingLevels>,
     },
 }
 
@@ -65,16 +91,30 @@ impl TryFrom<SelectionWire> for HtmlUnitSelection {
     type Error = EvidenceError;
 
     fn try_from(wire: SelectionWire) -> Result<Self, Self::Error> {
-        let (units, filter) = match wire {
-            SelectionWire::Unfiltered { units, .. } => (units, None),
+        let (units, filter, levels) = match wire {
+            SelectionWire::Unfiltered { units, levels, .. } => (units, None, levels),
             SelectionWire::StartsWith {
-                units, starts_with, ..
-            } => (units, Some(HtmlUnitFilter::StartsWith { starts_with })),
-            SelectionWire::Regex { units, pattern, .. } => {
-                (units, Some(HtmlUnitFilter::Regex { pattern }))
-            }
+                units,
+                starts_with,
+                levels,
+                ..
+            } => (
+                units,
+                Some(HtmlUnitFilter::StartsWith { starts_with }),
+                levels,
+            ),
+            SelectionWire::Regex {
+                units,
+                pattern,
+                levels,
+                ..
+            } => (units, Some(HtmlUnitFilter::Regex { pattern }), levels),
         };
-        let selection = Self::Unit { units, filter };
+        let selection = Self::Unit {
+            units,
+            filter,
+            levels,
+        };
         selection.validate()?;
         Ok(selection)
     }
@@ -82,21 +122,28 @@ impl TryFrom<SelectionWire> for HtmlUnitSelection {
 
 impl From<HtmlUnitSelection> for SelectionWire {
     fn from(selection: HtmlUnitSelection) -> Self {
-        let HtmlUnitSelection::Unit { units, filter } = selection;
+        let HtmlUnitSelection::Unit {
+            units,
+            filter,
+            levels,
+        } = selection;
         match filter {
             None => Self::Unfiltered {
                 mode: UnitOnly::Unit,
                 units,
+                levels,
             },
             Some(HtmlUnitFilter::StartsWith { starts_with }) => Self::StartsWith {
                 mode: UnitOnly::Unit,
                 units,
                 starts_with,
+                levels,
             },
             Some(HtmlUnitFilter::Regex { pattern }) => Self::Regex {
                 mode: UnitOnly::Unit,
                 units,
                 pattern,
+                levels,
             },
         }
     }
@@ -104,8 +151,12 @@ impl From<HtmlUnitSelection> for SelectionWire {
 
 impl HtmlUnitSelection {
     pub fn validate(&self) -> EvidenceResult<()> {
-        let Self::Unit { units, filter } = self;
-        if units.is_empty() {
+        let Self::Unit {
+            units,
+            filter,
+            levels,
+        } = self;
+        if units.is_empty() || (levels.is_some() && units.as_slice() != [HtmlUnitKind::Section]) {
             return Err(EvidenceCode::InvalidSelector.into());
         }
         match filter {
@@ -136,6 +187,11 @@ impl HtmlUnitSelection {
                 .map(|expression| expression.is_match(text))
                 .map_err(|_| EvidenceCode::InvalidSelector.into()),
         }
+    }
+
+    pub fn matches_heading_level(&self, level: u8) -> bool {
+        let Self::Unit { levels, .. } = self;
+        levels.as_ref().is_none_or(|levels| levels.contains(level))
     }
 }
 

@@ -17,6 +17,7 @@
 		"tests/compiler-cases/invalid-scoped-inside.ts",
 		"tests/compiler-cases/invalid-document-fields.ts",
 		"tests/compiler-cases/invalid-section-measures.ts",
+		"tests/compiler-cases/invalid-section-levels.ts",
 		"src/contracts/contracts.ts",
 		"src/contracts/ast-grep.ts",
 		"src/contracts/wide-integers.ts"

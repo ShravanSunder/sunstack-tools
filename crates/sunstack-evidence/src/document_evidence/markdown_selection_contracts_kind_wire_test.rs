@@ -10,6 +10,7 @@ fn kind_wire_forms_decode_as_unit_selections() {
         (
             MarkdownUnitsKindWire::Unfiltered {
                 mode: UnitOnly::Unit,
+                levels: None,
                 units: units.clone(),
             },
             None,
@@ -17,6 +18,7 @@ fn kind_wire_forms_decode_as_unit_selections() {
         (
             MarkdownUnitsKindWire::StartsWith {
                 mode: UnitOnly::Unit,
+                levels: None,
                 units: units.clone(),
                 starts_with: "Steps".into(),
             },
@@ -27,6 +29,7 @@ fn kind_wire_forms_decode_as_unit_selections() {
         (
             MarkdownUnitsKindWire::Regex {
                 mode: UnitOnly::Unit,
+                levels: None,
                 units: units.clone(),
                 pattern: "^S".into(),
             },
@@ -41,10 +44,42 @@ fn kind_wire_forms_decode_as_unit_selections() {
         assert_eq!(
             decoded,
             MarkdownUnitSelection::Unit {
+                levels: None,
                 units: units.clone(),
                 filter
             }
         );
         assert_eq!(serde_json::to_value(&decoded).unwrap(), wire);
+    }
+}
+
+#[test]
+fn kind_wire_level_predicates_decode_with_the_same_nonnull_payload() {
+    let levels = crate::HeadingLevels::new(vec![1, 2]).unwrap();
+    for declared in [
+        MarkdownUnitsKindWire::Unfiltered {
+            mode: UnitOnly::Unit,
+            units: vec![MarkdownUnitKind::Section],
+            levels: Some(levels.clone()),
+        },
+        MarkdownUnitsKindWire::StartsWith {
+            mode: UnitOnly::Unit,
+            units: vec![MarkdownUnitKind::Section],
+            levels: Some(levels.clone()),
+            starts_with: "Decision".into(),
+        },
+        MarkdownUnitsKindWire::Regex {
+            mode: UnitOnly::Unit,
+            units: vec![MarkdownUnitKind::Section],
+            levels: Some(levels.clone()),
+            pattern: "Decision".into(),
+        },
+    ] {
+        let wire = serde_json::to_value(declared).unwrap();
+        let decoded: MarkdownUnitSelection = serde_json::from_value(wire.clone()).unwrap();
+        assert!(
+            matches!(&decoded, MarkdownUnitSelection::Unit {levels:Some(value), ..} if value==&levels)
+        );
+        assert_eq!(serde_json::to_value(decoded).unwrap(), wire);
     }
 }

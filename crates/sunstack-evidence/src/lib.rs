@@ -21,6 +21,7 @@ pub use conversation_evidence::transcript_formats::*;
 pub use document_evidence::document_selection::*;
 pub use document_evidence::frontmatter_contracts::*;
 pub use document_evidence::heading_anchor_schemes::HeadingAnchorScheme;
+pub use document_evidence::heading_levels::{HeadingLevels, InvalidHeadingLevels};
 pub use document_evidence::html_selection_contracts::*;
 pub use document_evidence::markdown_contracts::*;
 pub use document_evidence::markdown_document::*;

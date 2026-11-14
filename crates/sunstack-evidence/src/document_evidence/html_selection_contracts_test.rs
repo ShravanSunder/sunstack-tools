@@ -29,16 +29,19 @@ fn html_unit_filters_accept_matching_text_and_reject_nonmatching_text() {
 fn html_unit_validation_refuses_invalid_programmatic_selections() {
     for selection in [
         HtmlUnitSelection::Unit {
+            levels: None,
             units: vec![],
             filter: None,
         },
         HtmlUnitSelection::Unit {
+            levels: None,
             units: vec![HtmlUnitKind::Section],
             filter: Some(HtmlUnitFilter::StartsWith {
                 starts_with: String::new(),
             }),
         },
         HtmlUnitSelection::Unit {
+            levels: None,
             units: vec![HtmlUnitKind::Section],
             filter: Some(HtmlUnitFilter::Regex {
                 pattern: "a*".into(),

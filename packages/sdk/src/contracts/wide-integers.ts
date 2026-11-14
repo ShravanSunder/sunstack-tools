@@ -1418,6 +1418,10 @@ export const wideIntegerDefinitions = {
 			union: [
 				{
 					object: {
+						levels: {
+							arguments: {},
+							ref: 'HeadingLevels',
+						},
 						mode: {
 							arguments: {},
 							ref: 'UnitOnly',
@@ -1432,6 +1436,10 @@ export const wideIntegerDefinitions = {
 				},
 				{
 					object: {
+						levels: {
+							arguments: {},
+							ref: 'HeadingLevels',
+						},
 						mode: {
 							arguments: {},
 							ref: 'UnitOnly',
@@ -1446,6 +1454,10 @@ export const wideIntegerDefinitions = {
 				},
 				{
 					object: {
+						levels: {
+							arguments: {},
+							ref: 'HeadingLevels',
+						},
 						mode: {
 							arguments: {},
 							ref: 'UnitOnly',
@@ -1997,6 +2009,10 @@ export const wideIntegerDefinitions = {
 			union: [
 				{
 					object: {
+						levels: {
+							arguments: {},
+							ref: 'HeadingLevels',
+						},
 						mode: {
 							arguments: {},
 							ref: 'MarkdownUnitOnly',
@@ -2011,6 +2027,10 @@ export const wideIntegerDefinitions = {
 				},
 				{
 					object: {
+						levels: {
+							arguments: {},
+							ref: 'HeadingLevels',
+						},
 						mode: {
 							arguments: {},
 							ref: 'MarkdownUnitOnly',
@@ -2025,6 +2045,10 @@ export const wideIntegerDefinitions = {
 				},
 				{
 					object: {
+						levels: {
+							arguments: {},
+							ref: 'HeadingLevels',
+						},
 						mode: {
 							arguments: {},
 							ref: 'MarkdownUnitOnly',

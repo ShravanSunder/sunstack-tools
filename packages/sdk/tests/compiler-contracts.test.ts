@@ -86,6 +86,19 @@ await test('a complete valid caller compiles: exit 0, no diagnostics, nothing on
 	assert.deepEqual(compile('valid-caller.ts'), { kind: 'compiled' });
 });
 
+await test('section levels compile for HTML and Markdown selectors', () => {
+	assert.deepEqual(compile('valid-section-levels.ts'), { kind: 'compiled' });
+});
+
+await test('section levels reject null and nonnumeric members at their declared properties', () => {
+	const expected = expectedDiagnostics('invalid-section-levels.ts');
+	assert.equal(expected.length, 4);
+	const result = compile('invalid-section-levels.ts');
+	assert.equal(result.kind, 'diagnostics');
+	if (result.kind === 'diagnostics')
+		assert.deepEqual(sortDiagnostics(result.diagnostics), sortDiagnostics(expected));
+});
+
 await test('configured Markdown islands and empty defaults compile from Rust-derived settings', () => {
 	assert.deepEqual(compile('valid-markdown-islands.ts'), { kind: 'compiled' });
 });

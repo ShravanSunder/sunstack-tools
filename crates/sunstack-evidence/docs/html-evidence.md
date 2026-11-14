@@ -166,6 +166,14 @@ not a fixed built-in outline. Native HTML/Markdown sections or AST-backed kinds
 can supply its ranges. Kind dependencies, selection and language checks apply.
 Use a filter on that kind when a broader section should govern the subject.
 
+Section-unit selectors can use `levels: [1,2]` to emit only sections opened by
+h1/h2 headings. HTML and Markdown (including ATX, setext and configured islands)
+share the option. The nonempty list contains distinct integers from 1 through 6 and requires
+unit mode with units exactly `["section"]`. It intersects the existing visible-text
+filter before match-budget accounting. Omission retains all levels; filtering
+emitted sections never rewrites the original full/own/enclosing outline ranges.
+See the [governing-section example](../../sunstack/README.md#html-evidence).
+
 For section `[S0,S1)` containing subject `[E0,E1)`, the scalar raw field is exactly
 `[S0,E0)`: heading/opening included, subject and later bytes excluded. The nearest
 configured containing range wins, independently of DOM wrappers. Each subject

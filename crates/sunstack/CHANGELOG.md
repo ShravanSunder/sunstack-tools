@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.22.1
+
+Release date: 2026-11-14.
+
+- HTML and Markdown section-unit selections accept `levels`, a nonempty list of
+  distinct heading levels from 1 through 6. It intersects visible-text filters before match
+  limits apply, including ATX/setext headings and embedded Markdown islands.
+  Selected section kinds can govern prefixes and scoped containment across
+  sibling subsections without changing original outline spans or child boundaries.
+  Omitted levels preserve existing configs; paragraph/list/call-site combinations
+  with levels are refused.
+- Rust unit-selection `Unit` variants add optional `levels: HeadingLevels`;
+  manually constructed unfiltered selections use `levels: None`. The SDK and six
+  platform packages align to 0.22.1 / contract revision 17 with regenerated declarations.
+
 ## 0.22.0
 
 Release date: 2026-11-14.

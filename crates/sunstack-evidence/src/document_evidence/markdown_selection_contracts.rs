@@ -1,4 +1,4 @@
-use crate::SourceSpan;
+use crate::{EvidenceCode, EvidenceError, HeadingLevels, SourceSpan};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -21,11 +21,13 @@ pub enum MarkdownUnitFilter {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
-#[serde(from = "SelectionWire", into = "SelectionWire")]
+#[serde(try_from = "SelectionWire", into = "SelectionWire")]
+#[schemars(with = "SelectionWire")]
 pub enum MarkdownUnitSelection {
     Unit {
         units: Vec<MarkdownUnitKind>,
         filter: Option<MarkdownUnitFilter>,
+        levels: Option<HeadingLevels>,
     },
     CallSite {
         units: Vec<MarkdownUnitKind>,
@@ -37,16 +39,31 @@ pub enum MarkdownUnitSelection {
 // reject valid filter fields together with deny_unknown_fields.
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged, deny_unknown_fields)]
+#[schemars(extend("allOf" = [{"if":{"required":["levels"]},"then":{"properties":{"mode":{"const":"unit"},"units":{"const":["section"]}}}}]))]
 enum SelectionWire {
     Unfiltered {
         mode: UnitOnly,
         #[schemars(length(min = 1))]
         units: Vec<MarkdownUnitKind>,
+        #[serde(
+            default,
+            skip_serializing_if = "Option::is_none",
+            deserialize_with = "super::heading_levels::optional_heading_levels"
+        )]
+        #[schemars(with = "HeadingLevels")]
+        levels: Option<HeadingLevels>,
     },
     StartsWith {
         mode: SelectionMode,
         #[schemars(length(min = 1))]
         units: Vec<MarkdownUnitKind>,
+        #[serde(
+            default,
+            skip_serializing_if = "Option::is_none",
+            deserialize_with = "super::heading_levels::optional_heading_levels"
+        )]
+        #[schemars(with = "HeadingLevels")]
+        levels: Option<HeadingLevels>,
         #[schemars(length(min = 1))]
         starts_with: String,
     },
@@ -54,6 +71,13 @@ enum SelectionWire {
         mode: SelectionMode,
         #[schemars(length(min = 1))]
         units: Vec<MarkdownUnitKind>,
+        #[serde(
+            default,
+            skip_serializing_if = "Option::is_none",
+            deserialize_with = "super::heading_levels::optional_heading_levels"
+        )]
+        #[schemars(with = "HeadingLevels")]
+        levels: Option<HeadingLevels>,
         #[schemars(length(min = 1))]
         pattern: String,
     },
@@ -80,15 +104,24 @@ pub(crate) enum MarkdownUnitsKindWire {
     Unfiltered {
         mode: UnitOnly,
         units: Vec<MarkdownUnitKind>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        #[specta(type = HeadingLevels, optional)]
+        levels: Option<HeadingLevels>,
     },
     StartsWith {
         mode: UnitOnly,
         units: Vec<MarkdownUnitKind>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        #[specta(type = HeadingLevels, optional)]
+        levels: Option<HeadingLevels>,
         starts_with: String,
     },
     Regex {
         mode: UnitOnly,
         units: Vec<MarkdownUnitKind>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        #[specta(type = HeadingLevels, optional)]
+        levels: Option<HeadingLevels>,
         pattern: String,
     },
 }
@@ -100,54 +133,78 @@ enum SelectionMode {
     CallSite,
 }
 
-impl From<SelectionWire> for MarkdownUnitSelection {
-    fn from(wire: SelectionWire) -> Self {
-        let (mode, units, filter) = match wire {
-            SelectionWire::Unfiltered { units, .. } => {
-                return Self::Unit {
-                    units,
-                    filter: None,
-                };
+impl TryFrom<SelectionWire> for MarkdownUnitSelection {
+    type Error = EvidenceError;
+
+    fn try_from(wire: SelectionWire) -> Result<Self, Self::Error> {
+        let (mode, units, filter, levels) = match wire {
+            SelectionWire::Unfiltered { units, levels, .. } => {
+                (SelectionMode::Unit, units, None, levels)
             }
             SelectionWire::StartsWith {
                 mode,
                 units,
                 starts_with,
-            } => (mode, units, MarkdownUnitFilter::StartsWith { starts_with }),
+                levels,
+            } => (
+                mode,
+                units,
+                Some(MarkdownUnitFilter::StartsWith { starts_with }),
+                levels,
+            ),
             SelectionWire::Regex {
                 mode,
                 units,
                 pattern,
-            } => (mode, units, MarkdownUnitFilter::Regex { pattern }),
+                levels,
+            } => (
+                mode,
+                units,
+                Some(MarkdownUnitFilter::Regex { pattern }),
+                levels,
+            ),
         };
-        match mode {
+        if levels.is_some()
+            && (!matches!(mode, SelectionMode::Unit)
+                || units.as_slice() != [MarkdownUnitKind::Section])
+        {
+            return Err(EvidenceCode::InvalidSelector.into());
+        }
+        Ok(match mode {
             SelectionMode::Unit => Self::Unit {
                 units,
-                filter: Some(filter),
+                filter,
+                levels,
             },
-            SelectionMode::CallSite => Self::CallSite { units, filter },
-        }
+            SelectionMode::CallSite => Self::CallSite {
+                units,
+                filter: filter.ok_or(EvidenceCode::InvalidSelector)?,
+            },
+        })
     }
 }
 
 impl From<MarkdownUnitSelection> for SelectionWire {
     fn from(selection: MarkdownUnitSelection) -> Self {
-        let (mode, units, filter) = match selection {
+        let (mode, units, filter, levels) = match selection {
             MarkdownUnitSelection::Unit {
                 units,
                 filter: None,
+                levels,
             } => {
                 return Self::Unfiltered {
                     mode: UnitOnly::Unit,
                     units,
+                    levels,
                 };
             }
             MarkdownUnitSelection::Unit {
                 units,
                 filter: Some(filter),
-            } => (SelectionMode::Unit, units, filter),
+                levels,
+            } => (SelectionMode::Unit, units, filter, levels),
             MarkdownUnitSelection::CallSite { units, filter } => {
-                (SelectionMode::CallSite, units, filter)
+                (SelectionMode::CallSite, units, filter, None)
             }
         };
         match filter {
@@ -155,11 +212,13 @@ impl From<MarkdownUnitSelection> for SelectionWire {
                 mode,
                 units,
                 starts_with,
+                levels,
             },
             MarkdownUnitFilter::Regex { pattern } => Self::Regex {
                 mode,
                 units,
                 pattern,
+                levels,
             },
         }
     }

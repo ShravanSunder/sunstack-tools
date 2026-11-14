@@ -214,6 +214,9 @@ pub(super) fn collect_native_units(
                 let mut selected = Vec::new();
                 let mut limited = false;
                 for (index, section) in outline.iter().enumerate() {
+                    if !selection.matches_heading_level(section.heading_level) {
+                        continue;
+                    }
                     let visible =
                         html_text_content(&text[section.section_range.clone()], html_settings);
                     if !selection
