@@ -774,6 +774,8 @@ export type GlobPattern = string;
 /**  The configured renderer convention for Markdown heading anchors. */
 export type HeadingAnchorScheme = 'github';
 
+export type HeadingLevels = number[];
+
 export type HtmlAttributeName = string;
 
 export type HtmlEvidenceSettings = {
@@ -798,9 +800,16 @@ export type HtmlUnitKind = 'section';
 export type HtmlUnitSelection = HtmlUnitSelectionWire;
 
 export type HtmlUnitSelectionWire =
-	| ({ mode: UnitOnly; units: HtmlUnitKind[] } & { pattern?: never; starts_with?: never })
-	| ({ mode: UnitOnly; units: HtmlUnitKind[]; starts_with: string } & { pattern?: never })
-	| ({ mode: UnitOnly; units: HtmlUnitKind[]; pattern: string } & { starts_with?: never });
+	| ({ mode: UnitOnly; units: HtmlUnitKind[]; levels?: HeadingLevels } & {
+			pattern?: never;
+			starts_with?: never;
+	  })
+	| ({ mode: UnitOnly; units: HtmlUnitKind[]; starts_with: string; levels?: HeadingLevels } & {
+			pattern?: never;
+	  })
+	| ({ mode: UnitOnly; units: HtmlUnitKind[]; pattern: string; levels?: HeadingLevels } & {
+			starts_with?: never;
+	  });
 
 export type IdentifiedResult<T> = {
 	id: bigint;
@@ -1030,16 +1039,22 @@ export type MarkdownUnitOnly = 'unit';
  *  the kind boundary for TypeScript; values still decode as [`MarkdownUnitSelection`].
  */
 export type MarkdownUnitsKindWire =
-	| ({ mode: MarkdownUnitOnly; units: MarkdownUnitKind[] } & {
+	| ({ mode: MarkdownUnitOnly; units: MarkdownUnitKind[]; levels?: HeadingLevels } & {
 			pattern?: never;
 			starts_with?: never;
 	  })
-	| ({ mode: MarkdownUnitOnly; units: MarkdownUnitKind[]; starts_with: string } & {
-			pattern?: never;
-	  })
-	| ({ mode: MarkdownUnitOnly; units: MarkdownUnitKind[]; pattern: string } & {
-			starts_with?: never;
-	  });
+	| ({
+			mode: MarkdownUnitOnly;
+			units: MarkdownUnitKind[];
+			levels?: HeadingLevels;
+			starts_with: string;
+	  } & { pattern?: never })
+	| ({
+			mode: MarkdownUnitOnly;
+			units: MarkdownUnitKind[];
+			levels?: HeadingLevels;
+			pattern: string;
+	  } & { starts_with?: never });
 
 export type MarkerId = string;
 

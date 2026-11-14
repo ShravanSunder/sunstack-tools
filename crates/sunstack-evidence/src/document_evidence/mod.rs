@@ -2,6 +2,7 @@ pub mod document_selection;
 pub(crate) mod embedded_markdown;
 pub mod frontmatter_contracts;
 pub mod heading_anchor_schemes;
+pub mod heading_levels;
 pub(crate) mod html_content;
 pub(crate) mod html_outline;
 pub mod html_selection_contracts;

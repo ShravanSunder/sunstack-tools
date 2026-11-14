@@ -867,6 +867,23 @@ and cuts. The full section can coexist in an `enclosing` field. See
 [section prefixes](../sunstack-evidence/docs/html-evidence.md#section-prefixes)
 for empty/unavailable behavior and AST composition limits.
 
+To make the governing kind select only h1/h2 sections, use this selection under
+either `html_units` or `markdown_units`:
+
+<!-- example: governing-section-levels -->
+```json
+{"mode":"unit","units":["section"],"levels":[1,2]}
+```
+
+For example, a `governing_section` kind with this selection lets
+`{"from":"section_prefix","kind":"governing_section"}` and scoped `inside`
+reach a drawing under a sibling h3 of the same h2. `levels` is an optional,
+nonempty list of distinct integers from 1 through 6, valid only for unit mode
+with `units: ["section"]`. It intersects `starts_with` or `pattern` before the
+match budget is counted. Markdown includes ATX/setext headings and configured
+islands. Omission selects every level. Original section and child boundaries
+remain unchanged; selecting only h1/h2 does not flatten their content.
+
 To collect pieces from that section rather than its raw text, use
 `{"from":"inside","kind":"picture","scope":{"section_prefix":"outline"}}`.
 Use `scope: {"section":"outline"}` for the whole containing section. Both names

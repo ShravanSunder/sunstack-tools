@@ -19,6 +19,27 @@ fn document(text: &str) -> CapturedDocument {
 }
 
 #[test]
+fn html_heading_levels_intersect_text_filters_before_the_match_budget() {
+    let raw =
+        "猫<h3>Keep wrong-level</h3><h2>Keep correct-level</h2><h3>Keep child</h3><h2>Other</h2>";
+    let doc = document(raw);
+    let selection = serde_json::from_value(json!({"kind":"html_units","mode":"unit","units":["section"],"levels":[2],"starts_with":"Keep"})).unwrap();
+
+    let result = select_document(&doc, &selection, &Default::default(), 1).unwrap();
+
+    let SelectionContent::Matches { matches } = result else {
+        panic!("expected matches")
+    };
+    assert_eq!(matches.len(), 1);
+    assert_eq!(
+        matches[0].text,
+        "<h2>Keep correct-level</h2><h3>Keep child</h3>"
+    );
+    assert_eq!(matches[0].span.byte_start, raw.find("<h2>").unwrap());
+    assert_eq!(matches[0].span.byte_end, raw.find("<h2>Other").unwrap());
+}
+
+#[test]
 fn html_unit_public_selector_preserves_full_lexical_utf8_ranges() {
     let raw = "猫<h2>Parent</h2>Intro<div><h4>Child</h4>Body</div><h2>Next</h2>End";
     let doc = document(raw);

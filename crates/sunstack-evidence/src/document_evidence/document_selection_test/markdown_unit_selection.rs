@@ -18,6 +18,25 @@ fn document(text: &str) -> CapturedDocument {
     }
 }
 
+#[test]
+fn markdown_heading_levels_filter_atx_and_setext_before_the_match_budget() {
+    let raw = "### Keep wrong-level\n\nKeep correct-level\n------------------\n\n### Keep child\n\nOther\n=====\n";
+    let doc = document(raw);
+    let selection = serde_json::from_value(json!({"kind":"markdown_units","mode":"unit","units":["section"],"levels":[2],"starts_with":"Keep"})).unwrap();
+
+    let result = select_document(&doc, &selection, &Default::default(), 1).unwrap();
+
+    let SelectionContent::MarkdownUnits { units } = result else {
+        panic!("expected Markdown units")
+    };
+    assert_eq!(units.len(), 1);
+    let start = raw.find("Keep correct-level").unwrap();
+    let end = raw.find("Other").unwrap();
+    assert_eq!(units[0].text, raw[start..end]);
+    assert_eq!(units[0].span.byte_start, start);
+    assert_eq!(units[0].span.byte_end, end);
+}
+
 fn selection(value: serde_json::Value) -> EvidenceSelection {
     serde_json::from_value(value).unwrap()
 }

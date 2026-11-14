@@ -559,7 +559,7 @@ jobs:
           node packages/sdk/scripts/installed-consumer-check.ts --print-contract --evidence "$RUNNER_TEMP/sdk-consumer" --expect-cell "$cell"
       - name: Preserve SDK registry install logs
         if: ${{ always() && vars.SDK_NPM_TRUSTED_PUBLISHING == 'true' }}
-        uses: actions/upload-artifact@v8
+        uses: actions/upload-artifact@v7
         with:
           name: sdk-registry-consumer-${{ matrix.runner }}
           path: ${{ runner.temp }}/sdk-consumer/*.log

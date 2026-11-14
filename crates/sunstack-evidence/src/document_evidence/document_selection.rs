@@ -167,6 +167,9 @@ pub(crate) fn select_document_bounded(
                 crate::document_evidence::html_outline::html_sections(text, &settings.html)
                     .map_err(|_| EvidenceCode::SourceUnavailable)?;
             for section in sections {
+                if !selection.matches_heading_level(section.heading_level) {
+                    continue;
+                }
                 let raw = &text[section.section_range.clone()];
                 let visible =
                     crate::document_evidence::html_content::html_text_content(raw, &settings.html);

@@ -7,7 +7,9 @@ use crate::{
 impl MarkdownUnitSelection {
     pub fn validate(&self) -> EvidenceResult<()> {
         let (units, filter) = self.parts();
-        if units.is_empty() {
+        if units.is_empty()
+            || (self.heading_levels().is_some() && units != [MarkdownUnitKind::Section])
+        {
             return Err(EvidenceCode::InvalidSelector.into());
         }
         if let Some(filter) = filter {
@@ -32,8 +34,15 @@ impl MarkdownUnitSelection {
 
     fn parts(&self) -> (&[MarkdownUnitKind], Option<&MarkdownUnitFilter>) {
         match self {
-            Self::Unit { units, filter } => (units, filter.as_ref()),
+            Self::Unit { units, filter, .. } => (units, filter.as_ref()),
             Self::CallSite { units, filter } => (units, Some(filter)),
+        }
+    }
+
+    fn heading_levels(&self) -> Option<&crate::HeadingLevels> {
+        match self {
+            Self::Unit { levels, .. } => levels.as_ref(),
+            Self::CallSite { .. } => None,
         }
     }
 }
@@ -89,6 +98,13 @@ impl MarkdownDocument {
                     _ => return None,
                 };
                 if !kinds.contains(&kind) {
+                    return None;
+                }
+                if kind == MarkdownUnitKind::Section
+                    && selection.heading_levels().is_some_and(|levels| {
+                        heading_level(&node).is_none_or(|level| !levels.contains(level))
+                    })
+                {
                     return None;
                 }
                 let range = if kind == MarkdownUnitKind::Section {
