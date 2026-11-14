@@ -18,6 +18,8 @@ enum FieldSourceWire {
     },
     Inside {
         #[serde(default, deserialize_with = "present_match_source")]
+        scope: Option<crate::SectionScope>,
+        #[serde(default, deserialize_with = "present_match_source")]
         rule: Option<EvidenceRuleId>,
         #[serde(default, deserialize_with = "present_match_source")]
         kind: Option<EvidenceKindName>,
@@ -97,8 +99,18 @@ impl<'de> Deserialize<'de> for FieldSource {
             FieldSourceWire::Section { text } => Self::Section { text },
             FieldSourceWire::SectionPrefix { kind } => Self::SectionPrefix { kind },
             FieldSourceWire::Capture { regex } => Self::Capture { regex },
-            FieldSourceWire::Inside { rule, kind } => Self::Inside {
-                of: source(rule, kind)?,
+            FieldSourceWire::Inside { rule, kind, scope } => match scope {
+                Some(scope) => match (rule, kind) {
+                    (None, Some(kind)) => Self::ScopedInside { kind, scope },
+                    _ => {
+                        return Err(serde::de::Error::custom(
+                            "scoped inside requires kind and does not accept rule",
+                        ));
+                    }
+                },
+                None => Self::Inside {
+                    of: source(rule, kind)?,
+                },
             },
             FieldSourceWire::Enclosing { rule, kind, text } => Self::Enclosing {
                 of: source(rule, kind)?,

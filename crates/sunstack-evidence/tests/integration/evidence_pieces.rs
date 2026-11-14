@@ -12,6 +12,8 @@ mod embedded_markdown;
 mod html_documents;
 #[path = "evidence_pieces/nudge_context.rs"]
 mod nudge_context;
+#[path = "evidence_pieces/section_scoped_containment.rs"]
+mod section_scoped_containment;
 
 fn fixture() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../sunstack/tests/fixtures/rulebook-lint")
