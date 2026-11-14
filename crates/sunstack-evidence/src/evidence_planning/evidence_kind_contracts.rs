@@ -237,6 +237,8 @@ pub enum FieldSource {
         #[serde(default, skip_serializing_if = "ContextText::is_first_line")]
         text: ContextText,
         #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[schemars(with = "FieldName")]
+        #[cfg_attr(feature = "typescript", specta(type = FieldName, optional))]
         containing: Option<FieldName>,
     },
     Next {
@@ -260,6 +262,8 @@ pub enum FieldSource {
         path: crate::DocumentCandidates,
         rule: EvidenceRuleId,
         #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[schemars(with = "FieldName")]
+        #[cfg_attr(feature = "typescript", specta(type = FieldName, optional))]
         containing: Option<FieldName>,
     },
     Target {

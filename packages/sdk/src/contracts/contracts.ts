@@ -583,7 +583,7 @@ export type FieldSource =
 			from: 'same_file';
 	  } & {
 			text?: ContextText;
-			containing?: FieldName | null;
+			containing?: FieldName;
 	  } & MatchSource)
 	| ({ from: 'next'; rule: EvidenceRuleId; count?: NeighbourCount } & {
 			as_kind?: never;
@@ -643,7 +643,7 @@ export type FieldSource =
 			from: 'document';
 			path: DocumentCandidates;
 			rule: EvidenceRuleId;
-			containing?: FieldName | null;
+			containing?: FieldName;
 	  } & {
 			as_kind?: never;
 			count?: never;

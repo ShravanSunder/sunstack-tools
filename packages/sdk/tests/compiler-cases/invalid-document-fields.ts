@@ -12,3 +12,12 @@ export const missingChosenPath: FieldValue = { state: 'document', values: [], sp
 export const missingValues: FieldValue = { state: 'document', path: 'verification.md', spans: [] };
 // expect TS2322
 export const wrongCandidates: FieldValue = { state: 'missing_document', candidates: [42] };
+// expect TS2322
+export const nullDocumentFilter: FieldSource = {
+	from: 'document',
+	path: 'verification.md',
+	rule: 'row',
+	containing: null,
+};
+// expect TS2322
+export const nullSameFileFilter: FieldSource = { from: 'same_file', rule: 'row', containing: null };
