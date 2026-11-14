@@ -7,8 +7,10 @@ Release date: 2026-11-14.
 - Add `word_count` and `piece_count` decision tools with exclusive `at_least`,
   `at_most` and `greater_than` integer bounds. A scalar field name or nonempty
   list of distinct names selects values to sum. Word counts use complete
-  projected text content with markup removed; cut or unavailable text stays
-  incomplete. Piece counts count captured list entries, including empty text.
+  captured text content with markup removed, including inline HTML text
+  attributes. Counts are independent of asking-view cuts and pending siblings;
+  unavailable measured fields stay incomplete. Piece counts count captured list
+  entries, including empty text.
 - Scoped fields add `section_own`, a nonempty list of configured outline kinds.
   It ends the nearest section at the next configured heading regardless of level,
   including HTML/Markdown boundaries, so parents cannot borrow child pictures.

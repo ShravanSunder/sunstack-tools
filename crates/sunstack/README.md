@@ -666,12 +666,12 @@ Words are whitespace-separated text-content tokens, summed per value. Markdown
 links contribute labels, code contributes its text, and tags, attributes used
 only as markup, URLs used only as destinations, and formatting delimiters do not
 contribute words. Existing HTML asking-text attributes still contribute their
-projected text. Raw evidence and original spans stay unchanged. A word count
-needs the complete projected field: raise that kind's `max_chars` for large
-sections. A cut, unavailable or selection-pending field stays incomplete; an
-available empty list measures zero. Piece counts use the full captured list
-independently of the asking-text budget. Missing documents stay incomplete until
-routed around with `complete`.
+projected text, including attributes on inline Markdown HTML tags. Raw evidence
+and original spans stay unchanged. Counts read the complete captured field,
+independently of asking-text cuts or pending sibling fields. An unavailable or
+selection-pending measured field stays incomplete; an available empty list
+measures zero. Acquisition and match limits still apply. Missing documents stay
+incomplete until routed around with `complete`.
 
 Findings can include `{{word_count:field}}` or `{{piece_count:field}}`; comma-separated
 field names sum the same fields as a measurement check. Undefined or incompatible

@@ -1,6 +1,52 @@
 use super::*;
 
 #[tokio::test]
+async fn short_prose_bound_can_pass_before_an_unanswered_picture_selection() {
+    let root = tempfile::tempdir().unwrap();
+    let mut config = measurement_fixture(root.path(), "html");
+    std::fs::write(
+        root.path().join("docs/page.html"),
+        "<h2>Short</h2><p>Only three words.</p><img alt='A picture'>",
+    )
+    .unwrap();
+    std::fs::write(
+        root.path().join("evidence/rules/picture.yml"),
+        "id: picture\nlanguage: Html\nrule: {kind: element, regex: '^<img\\b'}\n",
+    )
+    .unwrap();
+    config["evidence"]["kinds"]["picture"] = json!({"rule":"picture","fields":{"body":{"from":"remainder"}},"select":{"question":{"type":"noul","instructions":{"check":"body","task":"Keep this picture?"}},"yes_at_or_above":0.7,"no_at_or_below":0.3}});
+    config["evidence"]["kinds"]["section"]["fields"]["pictures"] =
+        json!({"from":"inside","kind":"picture","scope":{"section":"outline"}});
+    fixture::config_file(root.path(), &config);
+    fixture::entry_file(
+        root.path(),
+        &json!({"K001":{"name":"short_prose","evidence":"section","decision":{"start":"substantial","steps":{
+            "substantial":{"mechanical_check":{"tool":"word_count","field":"prose","bound":{"at_least":100}},"yes":"picture","no":"pass"},
+            "picture":{"mechanical_check":{"tool":"piece_count","field":"pictures","bound":{"greater_than":0}},"yes":"pass","no":{"finding":"Add a picture."}}
+        }}}}),
+    );
+    let saved = root.path().join("prepared.json");
+    invoke(
+        root.path(),
+        &["--all", "--prepare", saved.to_str().unwrap()],
+        6,
+    )
+    .await;
+    let observed: Value = serde_json::from_slice(&std::fs::read(saved).unwrap()).unwrap();
+    assert_eq!(observed["results"][0]["outcome"], "pass");
+    assert_eq!(observed["incomplete"], json!([]));
+    assert_eq!(observed["usage"]["model_requests"], 0);
+    let piece = &observed["piece_evidence"]
+        .as_object()
+        .unwrap()
+        .values()
+        .next()
+        .unwrap()["piece"];
+    assert_eq!(piece["model_view"]["state"], "selection_pending");
+    assert_eq!(piece["fields"]["pictures"]["reason"], "selection_pending");
+}
+
+#[tokio::test]
 async fn section_own_scope_stops_at_child_headings_and_uses_configured_text_attributes() {
     let root = tempfile::tempdir().unwrap();
     let mut config = measurement_fixture(root.path(), "html");

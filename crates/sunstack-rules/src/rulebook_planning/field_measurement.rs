@@ -1,7 +1,5 @@
 use sunstack_evidence::document_evidence::text_content_measures::count_text_content_words;
-use sunstack_evidence::{
-    EvidencePiece, FieldName, FieldShape, FieldValue, ModelFieldValue, ModelView,
-};
+use sunstack_evidence::{EvidencePiece, FieldName, FieldShape, FieldValue};
 
 #[derive(Debug, Clone, Copy)]
 pub(super) enum FieldMeasure {
@@ -51,28 +49,19 @@ impl FieldMeasure {
                 _ => Err(field.clone()),
             },
             Self::Words => {
-                let ModelView::Bounded { fields, cut } = &piece.model_view else {
-                    return Err(field.clone());
+                let count = |text: &str| {
+                    count_text_content_words(text, settings).map_err(|_| field.clone())
                 };
-                if cut.contains(field) {
-                    return Err(field.clone());
-                }
-                let count = |value: &ModelFieldValue| match value {
-                    ModelFieldValue::Text(text) => {
-                        count_text_content_words(text, settings).map_err(|_| field.clone())
-                    }
-                    _ => Err(field.clone()),
-                };
-                match fields.get(field) {
-                    Some(ModelFieldValue::Text(_)) => count(&fields[field]),
-                    Some(ModelFieldValue::List(values)) => {
+                match value {
+                    FieldValue::Text { value, .. } => count(value),
+                    FieldValue::Texts { values, .. } | FieldValue::Document { values, .. } => {
                         values.iter().try_fold(0usize, |total, value| {
                             total
                                 .checked_add(count(value)?)
                                 .ok_or_else(|| field.clone())
                         })
                     }
-                    Some(ModelFieldValue::Absent) if matches!(value, FieldValue::Absent) => Ok(0),
+                    FieldValue::Absent => Ok(0),
                     _ => Err(field.clone()),
                 }
             }

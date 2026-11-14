@@ -16,14 +16,15 @@ pub fn count_text_content_words(
     for event in Parser::new_ext(raw, options) {
         match event {
             Event::Text(text) | Event::Code(text) => content.push_str(&text),
-            Event::Html(html) => {
+            Event::Html(html) | Event::InlineHtml(html) => {
+                content.push(' ');
                 match html_asking_text(&html, settings) {
                     HtmlAskingText::Complete(text) => content.push_str(&text),
                     HtmlAskingText::Incomplete { .. } => return Err(FieldUnavailable::Unreadable),
                 }
                 content.push(' ');
             }
-            Event::InlineHtml(_) | Event::SoftBreak | Event::HardBreak | Event::Rule => {
+            Event::SoftBreak | Event::HardBreak | Event::Rule => {
                 content.push(' ');
             }
             Event::End(

@@ -232,8 +232,10 @@ budget checks. Missing, crossing or limited context remains unavailable; unresol
 boundaries remain selection-pending. Existing `section` and `section_prefix`
 retain their whole-section and before-subject meanings.
 
-`word_count` measures complete projected text content and `piece_count` counts
-captured text-list entries. Both support integer bounds and field sums; findings
+`word_count` measures complete captured text content, including configured inline
+HTML attributes, and `piece_count` counts captured text-list entries. Asking-view
+cuts or pending sibling fields do not block an available field's count. Both
+support integer bounds and field sums; findings
 can interpolate their numbers. See the runnable
 [section-picture example](../../sunstack/README.md#mechanical-example-substantial-sections-need-pictures).
 

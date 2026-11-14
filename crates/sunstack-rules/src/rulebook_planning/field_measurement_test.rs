@@ -2,7 +2,7 @@
 use super::*;
 use crate::{CountBound, DecisionMechanicalTool};
 use serde_json::json;
-use sunstack_evidence::project_model_view;
+use sunstack_evidence::{ModelView, project_model_view};
 
 #[test]
 fn count_bounds_are_exclusive_nonnegative_integers_and_test_exact_edges() {
@@ -35,7 +35,7 @@ fn count_bounds_are_exclusive_nonnegative_integers_and_test_exact_edges() {
 }
 
 #[test]
-fn count_values_include_empty_pieces_but_refuse_unavailable_and_partial_text() {
+fn count_values_include_empty_pieces_and_complete_raw_text_but_refuse_unavailable() {
     let mut piece = super::super::rulebook_test_support::piece();
     let field = FieldName::new("completion").unwrap();
     piece.fields.insert(
@@ -68,7 +68,7 @@ fn count_values_include_empty_pieces_but_refuse_unavailable_and_partial_text() {
     }
     assert_eq!(
         FieldMeasure::Words.read(&piece, &field, &Default::default()),
-        Err(field.clone())
+        Ok(3)
     );
     assert_eq!(
         FieldMeasure::Pieces.read(&piece, &field, &Default::default()),
@@ -99,5 +99,22 @@ fn count_values_include_empty_pieces_but_refuse_unavailable_and_partial_text() {
     assert_eq!(
         FieldMeasure::Words.read(&piece, &field, &Default::default()),
         Ok(0)
+    );
+}
+
+#[test]
+fn word_count_is_independent_of_an_unanswered_sibling_selection() {
+    let mut piece = super::super::rulebook_test_support::piece();
+    let body = FieldName::new("body").unwrap();
+    piece.fields.insert(
+        FieldName::new("pictures").unwrap(),
+        FieldValue::Unavailable {
+            reason: sunstack_evidence::FieldUnavailable::SelectionPending,
+        },
+    );
+    piece.model_view = ModelView::SelectionPending;
+    assert_eq!(
+        FieldMeasure::Words.read(&piece, &body, &Default::default()),
+        Ok(6)
     );
 }
