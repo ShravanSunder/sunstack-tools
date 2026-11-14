@@ -146,3 +146,37 @@ await test('real addon measures mixed content and preserves full-width bounds an
 		repository.remove();
 	}
 });
+
+await test('HTML blocks with blank lines and Markdown islands share the native measurement path', async () => {
+	const repository = ownedDirectory('blank-line-measures');
+	try {
+		writeFiles(repository.path, {
+			'docs/page.html':
+				'<h2>Mixed</h2><details><summary>One two</summary>\n<pre><code>three four\n\nfive six</code></pre></details><script type="text/markdown">\n**Seven** [eight](https://example.com/not-counted) `nine`.\n</script>',
+		});
+		const baseline = configuration(repository.path, { at_least: 9n });
+		if (baseline.evidence.kind !== 'inline') throw new Error('inline fixture required');
+		const config: Configuration = {
+			...baseline,
+			evidence: {
+				...baseline.evidence,
+				matchers: {
+					...baseline.evidence.matchers,
+					html: { language: 'Html', rule: { kind: 'element', regex: '^<details\\b' } },
+				},
+			},
+		};
+		assert.equal((await check(config)).kind, 'valid');
+
+		const outcome = await run(config, { root: repository.path, scope: { kind: 'all' } });
+
+		assert.equal(outcome.kind, 'completed');
+		if (outcome.kind !== 'completed') throw new Error('measurement did not complete');
+		assert.deepEqual(outcome.report.incomplete, []);
+		assert.equal(outcome.report.findings[0]?.message, '9 words in 2 pieces.');
+		assert.equal(outcome.report.usage.model_requests, 0);
+		await roundTrip({ kind: 'run_outcome', value: outcome });
+	} finally {
+		repository.remove();
+	}
+});

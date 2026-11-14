@@ -325,7 +325,7 @@ pub(crate) fn walk_decision_with_omissions(
             let message = match super::field_measurement::render_measured_finding(
                 &finding.finding,
                 piece,
-                &rule.decision.html_settings,
+                &rule.decision.measurements,
             ) {
                 Ok(message) => message,
                 Err(field) => {
@@ -452,7 +452,7 @@ pub(super) fn mechanical_check(
     tool: &DecisionMechanicalTool,
     piece: &EvidencePiece,
     index: &FileMatchIndex,
-    settings: &sunstack_evidence::HtmlEvidenceSettings,
+    measurements: &crate::FieldMeasurementSettings,
 ) -> Result<bool, FieldName> {
     let field = match tool {
         DecisionMechanicalTool::AstGrep { rule } => {
@@ -475,12 +475,12 @@ pub(super) fn mechanical_check(
         | DecisionMechanicalTool::Complete { field } => field,
         DecisionMechanicalTool::WordCount { field, bound } => {
             return super::field_measurement::FieldMeasure::Words
-                .read_fields(piece, field, settings)
+                .read_fields(piece, field, measurements)
                 .map(|count| bound.matches(count));
         }
         DecisionMechanicalTool::PieceCount { field, bound } => {
             return super::field_measurement::FieldMeasure::Pieces
-                .read_fields(piece, field, settings)
+                .read_fields(piece, field, measurements)
                 .map(|count| bound.matches(count));
         }
     };

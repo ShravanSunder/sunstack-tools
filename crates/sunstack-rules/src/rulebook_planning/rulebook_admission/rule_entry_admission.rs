@@ -47,7 +47,7 @@ pub fn admit_rule_entry(
         &ConfigPath::keys(["questions"]),
         &mut errors,
     );
-    let graph = admit_graph(
+    let mut graph = admit_graph(
         &entry.decision,
         &entry.questions,
         kind,
@@ -56,6 +56,8 @@ pub fn admit_rule_entry(
         &mut errors,
         None,
     );
+    graph.measurements =
+        crate::FieldMeasurementSettings::for_kind(&entry.evidence, kind, kinds, project);
     if errors.is_empty() {
         Ok(graph)
     } else {

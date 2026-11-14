@@ -253,7 +253,10 @@ pub(crate) fn admit_graph(
         }
     }
     let graph = DecisionGraph {
-        html_settings: project.document_settings.html.clone(),
+        measurements: crate::FieldMeasurementSettings {
+            html_settings: project.document_settings.html.clone(),
+            field_languages: BTreeMap::new(),
+        },
         start: wire.start.clone(),
         steps,
     };

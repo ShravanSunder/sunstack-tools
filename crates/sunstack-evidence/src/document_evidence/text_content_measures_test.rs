@@ -42,3 +42,20 @@ fn inline_html_keeps_standard_and_configured_attribute_text() {
         );
     }
 }
+
+#[test]
+fn html_blank_line_blocks_and_attributes_count_without_markdown_fragmentation() {
+    let settings =
+        serde_json::from_value(serde_json::json!({"text_attributes":{"diagram":["caption"]}}))
+            .unwrap();
+    let raw = "<details><summary>One two</summary>\n<pre><code>three four\n\nfive six</code></pre>\n<diagram caption='Seven eight'></diagram></details>";
+
+    let measured = super::count_html_content_words(raw, &settings);
+
+    assert_eq!(measured, Ok(9));
+    assert_eq!(
+        super::count_html_content_words("Visible <broken", &settings),
+        Err(crate::FieldUnavailable::Unreadable)
+    );
+    assert_eq!(super::count_html_content_words("", &settings), Ok(0));
+}
