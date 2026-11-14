@@ -145,7 +145,7 @@ pub(crate) fn uncertain_text(result: &UncertainResult) -> String {
         serde_json::to_string(&result.answers).unwrap_or_else(|_| "unavailable".into())
     )
 }
-fn human(report: &LintReport, prepare_file: Option<&Path>) -> String {
+fn human(report: &LintReport, prepare_file: Option<&Path>, max_warnings: Option<u32>) -> String {
     let mut output = format!("Scope: {}\n", scope_text(&report.scope));
     if !report.filter_answers.is_empty() {
         let mut labels = std::collections::BTreeMap::<String, usize>::new();
@@ -343,6 +343,22 @@ fn human(report: &LintReport, prepare_file: Option<&Path>) -> String {
         );
     }
     match report.status {
+        LintStatus::Clean if report.counts.warn > 0 => {
+            let noun = if report.counts.warn == 1 {
+                "warning"
+            } else {
+                "warnings"
+            };
+            let reason = max_warnings.map_or_else(
+                || "because no --max-warnings was set".to_owned(),
+                |maximum| format!("within --max-warnings {maximum}"),
+            );
+            let _ = writeln!(
+                output,
+                "Completed with {} {noun}; exit 0 {reason}",
+                report.counts.warn
+            );
+        }
         LintStatus::Invalid | LintStatus::Cancelled | LintStatus::NothingSelected => {
             let diagnostic_count = report.diagnostics.len();
             let problem_word = if diagnostic_count == 1 {
@@ -488,9 +504,19 @@ fn github(report: &LintReport) -> String {
     );
     output
 }
+/// Render with no warning limit; callers using a limit pass it to `render_with_warning_limit`.
 pub fn render(report: &LintReport, format: OutputFormat) -> String {
+    render_with_warning_limit(report, format, None)
+}
+
+/// Render the human exit-policy explanation with the caller's actual warning limit.
+pub fn render_with_warning_limit(
+    report: &LintReport,
+    format: OutputFormat,
+    max_warnings: Option<u32>,
+) -> String {
     match format {
-        OutputFormat::Default => human(report, None),
+        OutputFormat::Default => human(report, None, max_warnings),
         OutputFormat::Github => github(report),
         OutputFormat::Json => serde_json::to_string_pretty(report)
             .unwrap_or_else(|_| "Unable to encode lint report.\n".into()),
@@ -501,7 +527,7 @@ pub fn render(report: &LintReport, format: OutputFormat) -> String {
 
 pub fn render_prepared(report: &LintReport, format: OutputFormat, prepare_file: &Path) -> String {
     match format {
-        OutputFormat::Default => human(report, Some(prepare_file)),
+        OutputFormat::Default => human(report, Some(prepare_file), None),
         _ => render(report, format),
     }
 }

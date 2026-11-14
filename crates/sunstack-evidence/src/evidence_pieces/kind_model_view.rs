@@ -90,6 +90,18 @@ fn html_field_value(
                 .collect(),
             spans: spans.clone(),
         },
+        FieldValue::Document {
+            path,
+            values,
+            spans,
+        } => FieldValue::Document {
+            path: path.clone(),
+            values: values
+                .iter()
+                .map(|value| project_html_asking_text(value, incomplete, settings))
+                .collect(),
+            spans: spans.clone(),
+        },
         FieldValue::Targets { values } => FieldValue::Targets {
             values: values
                 .iter()
@@ -113,7 +125,9 @@ fn html_field_value(
                 })
                 .collect(),
         },
-        FieldValue::Absent | FieldValue::Unavailable { .. } => value.clone(),
+        FieldValue::Absent
+        | FieldValue::Unavailable { .. }
+        | FieldValue::MissingDocument { .. } => value.clone(),
     }
 }
 

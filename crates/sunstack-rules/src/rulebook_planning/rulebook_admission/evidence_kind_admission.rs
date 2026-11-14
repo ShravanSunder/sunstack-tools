@@ -307,7 +307,12 @@ pub fn admit_evidence_kinds(
                     path: document_path,
                     rule,
                 } => {
-                    if document_path.as_os_str().is_empty() {
+                    if document_path.paths().is_empty()
+                        || document_path
+                            .paths()
+                            .iter()
+                            .any(|path| path.as_os_str().is_empty())
+                    {
                         errors.push(refusal(
                             path.with_key("path"),
                             "document path must not be empty",

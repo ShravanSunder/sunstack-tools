@@ -368,6 +368,11 @@ pub(crate) fn config_field_position(text: &str, path: &ConfigPath) -> Option<usi
 }
 
 fn migration_message(message: &str) -> String {
+    if message.starts_with("missing field `decision_model`") {
+        return format!(
+            "{message}. Add \"decision_model\": {{\"model\": \"jev-latest\"}}. This required field names the model for asking rules and selections; mechanical-only rules send no model requests merely because a model name is configured."
+        );
+    }
     for (old, replacement) in [
         ("rule_sets", "rulebook"),
         ("rules", "severity in the rule file"),

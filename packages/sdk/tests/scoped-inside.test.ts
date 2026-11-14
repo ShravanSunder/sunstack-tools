@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { inspect as formatValue } from 'node:util';
 
+import { CONTRACT_REVISION } from '../src/contracts/contract-revision.ts';
 import type { Configuration, FieldSource, FieldValue, InspectionReport } from '../src/index.ts';
 import { check, deserialize, inspect, run, serialize } from '../src/index.ts';
 import { isCheckOutcome } from '../src/reply-decoding.ts';
@@ -200,7 +201,10 @@ await test('Rust owns scoped null, shape and dependency refusals at admission an
 				assert.ok(isCheckOutcome(checked));
 				assert.equal(checked.kind, 'invalid');
 				const decoded = await deserialize(
-					JSON.stringify({ contract_revision: 13, payload: { kind: 'configuration', value } }),
+					JSON.stringify({
+						contract_revision: CONTRACT_REVISION,
+						payload: { kind: 'configuration', value },
+					}),
 				);
 				assert.equal(decoded.kind, 'invalid');
 				if (decoded.kind !== 'invalid') throw new Error('invalid field decoded');
@@ -217,7 +221,7 @@ await test('Rust owns scoped null, shape and dependency refusals at admission an
 			}),
 		);
 		await Promise.all(
-			[11, 12].map(async (revision) => {
+			[11, 12, 13].map(async (revision) => {
 				const result = await deserialize(
 					JSON.stringify({ contract_revision: revision, payload: {} }),
 				);

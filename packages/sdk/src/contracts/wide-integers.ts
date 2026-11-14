@@ -692,6 +692,13 @@ export const wideIntegerDefinitions = {
 			},
 		},
 	},
+	DocumentCandidates: {
+		generics: [],
+		shape: {
+			arguments: {},
+			ref: 'CandidateWire',
+		},
+	},
 	EffectiveLimits: {
 		generics: [],
 		shape: {
@@ -998,6 +1005,10 @@ export const wideIntegerDefinitions = {
 				},
 				{
 					object: {
+						path: {
+							arguments: {},
+							ref: 'DocumentCandidates',
+						},
 						rule: {
 							arguments: {},
 							ref: 'EvidenceRuleId',
@@ -1028,6 +1039,16 @@ export const wideIntegerDefinitions = {
 		generics: [],
 		shape: {
 			union: [
+				{
+					object: {
+						spans: {
+							list: {
+								arguments: {},
+								ref: 'SourceSpan',
+							},
+						},
+					},
+				},
 				{
 					object: {
 						spans: {

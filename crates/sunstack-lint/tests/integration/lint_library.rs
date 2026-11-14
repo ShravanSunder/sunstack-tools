@@ -155,14 +155,14 @@ async fn validation_listing_and_init_work_without_backend_or_target_content() {
     assert_eq!(listings[0].severity, sunstack_rules::Severity::Error);
     assert_eq!(listings[0].marker.as_str(), "K001");
     let empty = tempfile::tempdir().unwrap();
-    let skeleton = init_config(empty.path()).unwrap();
-    let original = std::fs::read(&skeleton.file).unwrap();
+    let starter = init_config(empty.path()).unwrap();
+    let original = std::fs::read(&starter.file).unwrap();
     assert!(init_config(empty.path()).is_err());
-    assert_eq!(std::fs::read(&skeleton.file).unwrap(), original);
-    let loaded = load_config(&skeleton).unwrap();
+    assert_eq!(std::fs::read(&starter.file).unwrap(), original);
+    let loaded = load_config(&starter).unwrap();
     assert!(matches!(
         check(&loaded, CancellationToken::new()).await,
-        CheckResult::Invalid { .. }
+        CheckResult::Valid { .. }
     ));
 }
 

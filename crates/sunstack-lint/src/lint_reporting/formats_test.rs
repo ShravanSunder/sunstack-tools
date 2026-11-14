@@ -193,3 +193,29 @@ fn prepared_destination_preserves_transport_outputs_and_saved_report() {
     }
     assert_eq!(serde_json::to_value(&report).unwrap(), saved_before);
 }
+
+#[test]
+fn successful_warning_summary_names_actual_policy_without_changing_transports() {
+    let mut report = summary_report(LintStatus::Clean, 0);
+    report.counts.warn = 2;
+    let before = serde_json::to_value(&report).unwrap();
+    assert!(
+        render(&report, OutputFormat::Default)
+            .contains("Completed with 2 warnings; exit 0 because no --max-warnings was set")
+    );
+    assert!(
+        render_with_warning_limit(&report, OutputFormat::Default, Some(3))
+            .contains("Completed with 2 warnings; exit 0 within --max-warnings 3")
+    );
+    for format in [
+        OutputFormat::Json,
+        OutputFormat::Github,
+        OutputFormat::Sarif,
+    ] {
+        assert_eq!(
+            render(&report, format),
+            render_with_warning_limit(&report, format, Some(3))
+        );
+    }
+    assert_eq!(serde_json::to_value(&report).unwrap(), before);
+}

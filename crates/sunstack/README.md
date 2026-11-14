@@ -5,9 +5,30 @@ decision steps. Use `sunstack exec` for the native JSON protocol.
 
 ## Repository lint
 
-Create a configuration skeleton with `sunstack lint --init`, then add the
-referenced Markdown rulebook, JSON rule entries and ast-grep project. Init writes
-only `sunstack.lint.json` and refuses to overwrite an existing file.
+Create a complete local-only check with `sunstack lint --init` in a fresh directory.
+It writes `sunstack.lint.json` plus the rulebook, rule entry, ast-grep project and
+sample under `sunstack-starter/`. Existing config or starter paths are refused
+without overwriting them. Run:
+
+```sh
+sunstack lint --init
+sunstack lint --root . --check
+sunstack lint --root . --all
+```
+
+The sample has one passing paragraph, zero model requests and exit 0. Add `TODO`
+to its paragraph to see a warning; add `--max-warnings 0` to fail on that warning.
+An empty sample produces no selected pieces and exits 0. Keep `--root .` when
+trying a nested example inside a Git repository.
+
+`decision_model` is required because it names the model for asking rules and
+selections. A model name alone sends no request. The starter and the complete
+examples below are mechanical-only: they need no key and send zero model requests.
+The [picture check](#mechanical-example-a-picture-before-each-choice) and
+[requirement-ID check](#mechanical-example-requirement-ids-on-another-page)
+include every file and their expected results.
+
+A configuration has the following parts:
 
 ```json
 {
@@ -355,7 +376,10 @@ Lint exits 0 for clean or nothing selected, 1 for error findings or warnings ove
 and 5 for uncertain decisions. Uncertainty retains the decision step, sent state
 and answers for the caller to inspect. Cancellation takes precedence over
 incomplete work, then findings, then uncertainty. A warning alone does not fail
-unless it exceeds `--max-warnings`.
+unless it exceeds `--max-warnings`. A successful human run with warnings explains
+its exit-0 policy. Without a warning limit it says `Completed with N warnings;
+exit 0 because no --max-warnings was set`; an explicit limit is named instead.
+JSON retains status `clean` and the warning count.
 
 A failed provider request carries its class and, when received, its HTTP status
 in the incomplete reason:
@@ -375,6 +399,205 @@ and its [rulebook entries](tests/fixtures/rulebook-lint/rulebook/steering.rules.
 for a complete test example. Copy the fixture directory to an isolated root to
 try it; its checked-file globs are relative to that root. The example's
 skill-specific rules are test content.
+
+### Mechanical example: a picture before each choice
+
+From an empty working directory with `sunstack` on PATH, paste the complete block.
+It checks structural picture presence in the nearest heading section, before
+that choice. It accepts the configured HTML picture tags or a parsed Mermaid
+fence inside the configured Markdown wrapper. A picture after the choice or
+under an earlier heading does not qualify. It does not judge picture quality.
+
+<!-- runnable-example: choice-pictures -->
+````sh
+mkdir -p choice-example/evidence/rules choice-example/pages
+cat > choice-example/sunstack.lint.json <<'JSON'
+{
+  "rulebook": [{"markdown": "rulebook.md", "rules": "rules.json"}],
+  "marker_prefix": "K",
+  "decision_model": {"model": "jev-latest"},
+  "check": {"files": ["pages/*.html"]},
+  "evidence": {
+    "ast_grep": "evidence/sgconfig.yml",
+    "html": {"embedded_markdown": [{"tag": "script", "attributes": {"type": "text/markdown"}}]},
+    "kinds": {
+      "outline": {"html_units": {"mode": "unit", "units": ["section"]}, "fields": {}},
+      "html_picture": {"rule": "html-picture", "fields": {}},
+      "markdown_wrapper": {"rule": "markdown-wrapper", "fields": {}},
+      "markdown_picture": {"rule": "mermaid-picture", "within": ["markdown_wrapper"], "fields": {}},
+      "choice": {"rule": "choice", "fields": {
+        "html_pictures": {"from": "inside", "kind": "html_picture", "scope": {"section_prefix": "outline"}},
+        "markdown_pictures": {"from": "inside", "kind": "markdown_picture", "scope": {"section_prefix": "outline"}}
+      }}
+    }
+  }
+}
+JSON
+cat > choice-example/rulebook.md <<'MD'
+A choice has a picture in its own heading section before the choice.<!-- K001 -->
+MD
+cat > choice-example/rules.json <<'JSON'
+{
+  "K001": {
+    "name": "picture_before_choice", "evidence": "choice", "severity": "warn",
+    "decision": {"start": "html_picture", "steps": {
+      "html_picture": {
+        "mechanical_check": {"tool": "regex", "field": "html_pictures", "pattern": "(?s).*"},
+        "yes": "pass", "no": "markdown_picture"
+      },
+      "markdown_picture": {
+        "mechanical_check": {"tool": "regex", "field": "markdown_pictures", "pattern": "(?s).*"},
+        "yes": "pass", "no": {"finding": "Add a picture before this choice in its own section."}
+      }
+    }}
+  }
+}
+JSON
+cat > choice-example/evidence/sgconfig.yml <<'YAML'
+ruleDirs: [rules]
+YAML
+cat > choice-example/evidence/rules/pictures.yml <<'YAML'
+id: choice
+language: Html
+rule: {kind: element, regex: '^<choice-panel\b'}
+---
+id: html-picture
+language: Html
+rule:
+  any: [{kind: element}, {kind: self_closing_tag}]
+  regex: '^<(diagram-block|svg|img|figure)\b'
+---
+id: markdown-wrapper
+language: Html
+rule: {kind: element, regex: '^<markdown-island\b'}
+---
+id: mermaid-picture
+language: Markdown
+rule: {kind: fenced_code_block, regex: '^```mermaid\b'}
+YAML
+cat > choice-example/pages/choices.html <<'HTML'
+<h2>HTML picture</h2>
+<img src="diagram.svg" alt="A to B">
+<choice-panel id="html">Choose an option.</choice-panel>
+<h2>Markdown picture</h2>
+<markdown-island><script type="text/markdown">
+```mermaid
+graph LR
+  A --> B
+```
+</script></markdown-island>
+<choice-panel id="markdown">Choose an option.</choice-panel>
+<h2>Earlier picture belongs to another heading</h2>
+<choice-panel id="missing">Choose an option.</choice-panel>
+<h2>Later picture</h2>
+<choice-panel id="later">Choose an option.</choice-panel>
+<img src="later.svg" alt="Too late">
+HTML
+sunstack lint --config choice-example/sunstack.lint.json --root choice-example --check > choice-example/check.json
+sunstack lint --config choice-example/sunstack.lint.json --root choice-example --all --format json > choice-example/report.json
+sunstack lint --config choice-example/sunstack.lint.json --root choice-example --all
+````
+
+All three commands exit 0. The check lists one mechanical rule. `report.json`
+has four results: `html` and `markdown` pass; `missing` and `later` warn. It has
+`counts: {"error": 0, "warn": 2}`, `status: {"kind": "clean"}`, and
+`usage.model_requests: 0`. Human output ends with:
+
+```text
+Completed with 2 warnings; exit 0 because no --max-warnings was set
+```
+
+These tags are document syntax used by this example; the engine takes them from
+the config. Referenced image files need not exist for this structural check.
+The wrapper containment excludes unrelated scripts. An empty picture list fails
+the `regex` check because there is no item to match. `complete` establishes
+availability rather than picture presence. Add `--max-warnings 0` to the final
+command to make its two warnings exit 1.
+
+### Mechanical example: requirement IDs on another page
+
+This independent block defines requirements as Markdown paragraphs beginning
+`U<number>:`. It checks whether each captured ID occurs as a whole token anywhere
+in `Specification.md`. It checks mention, not semantic fulfillment. Only the
+Requirements page is selected for evaluation; the Specification is read as
+context. `U20` and `XU3` deliberately do not cover `U2` and `U3`.
+
+<!-- runnable-example: requirement-coverage -->
+````sh
+mkdir -p requirement-example/evidence/rules requirement-example/pages
+cat > requirement-example/sunstack.lint.json <<'JSON'
+{
+  "rulebook": [{"markdown": "rulebook.md", "rules": "rules.json"}],
+  "marker_prefix": "K",
+  "decision_model": {"model": "jev-latest"},
+  "check": {"files": ["pages/Requirements.md"]},
+  "evidence": {
+    "ast_grep": "evidence/sgconfig.yml",
+    "kinds": {
+      "requirement": {"rule": "requirement", "fields": {
+        "identifier": {"from": "capture", "regex": "^(U[0-9]+):"},
+        "specification": {"from": "document", "path": ["Specification.md", "specification.md"], "rule": "markdown-document"}
+      }}
+    }
+  }
+}
+JSON
+cat > requirement-example/rulebook.md <<'MD'
+Every requirement ID appears in the specification.<!-- K001 -->
+MD
+cat > requirement-example/rules.json <<'JSON'
+{
+  "K001": {
+    "name": "requirement_in_specification", "evidence": "requirement", "severity": "warn",
+    "decision": {"start": "available", "steps": {
+      "available": {
+        "mechanical_check": {"tool": "complete", "field": "specification"},
+        "yes": "covered", "no": "not_applicable"
+      },
+      "covered": {
+        "mechanical_check": {"tool": "contains_field", "field": "specification", "needle": "identifier"},
+        "yes": "pass", "no": {"finding": "This requirement ID never appears in Specification.md."}
+      }
+    }}
+  }
+}
+JSON
+cat > requirement-example/evidence/sgconfig.yml <<'YAML'
+ruleDirs: [rules]
+YAML
+cat > requirement-example/evidence/rules/requirements.yml <<'YAML'
+id: requirement
+language: Markdown
+rule: {kind: paragraph, regex: '^U[0-9]+:'}
+---
+id: markdown-document
+language: Markdown
+rule: {kind: document}
+YAML
+cat > requirement-example/pages/Requirements.md <<'MD'
+U1: The page has a title.
+
+U2: The page has an author.
+
+U3: The page has a date.
+MD
+cat > requirement-example/pages/Specification.md <<'MD'
+The title implements U1. Other tokens are U20 and XU3.
+MD
+sunstack lint --config requirement-example/sunstack.lint.json --root requirement-example --check > requirement-example/check.json
+sunstack lint --config requirement-example/sunstack.lint.json --root requirement-example --all --format json > requirement-example/report.json
+sunstack lint --config requirement-example/sunstack.lint.json --root requirement-example --all
+````
+
+All three commands exit 0. The check lists one mechanical rule. `report.json`
+contains three results: `U1` passes, `U2` and `U3` warn. Expected counts are
+`{"error": 0, "warn": 2}`, status is `{"kind": "clean"}`, and
+`usage.model_requests` is zero. Human output ends with the same two-warning
+summary above; adding `--max-warnings 0` makes the evaluation exit 1. A missing
+Specification file makes the `complete` step take its `not_applicable` route.
+The ordered path list chooses the first existing name, recorded with the field's
+`path`, values and spans. A present but unreadable or scan-limited file stays
+incomplete; it does not silently fall back to another name.
 
 ## HTML evidence
 

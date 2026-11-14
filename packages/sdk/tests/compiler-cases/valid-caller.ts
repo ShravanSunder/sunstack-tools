@@ -382,6 +382,8 @@ export function headingPath(value: FieldValue | undefined): readonly string[] {
 		case 'texts':
 			return value.values;
 		case 'targets':
+		case 'document':
+		case 'missing_document':
 		case 'absent':
 		case 'unavailable':
 		case undefined:

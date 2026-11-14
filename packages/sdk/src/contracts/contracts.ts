@@ -70,6 +70,8 @@ export type CandidateId = {
 
 export type CandidateKey = string;
 
+export type CandidateWire = string | string[];
+
 /**  Evidence captured by `load`. */
 export type CapturedEvidence = {
 	kind: CapturedKind;
@@ -338,6 +340,8 @@ export type DiagnosticList = {
 	items: DecisionDiagnostic[];
 	omitted_count: bigint;
 };
+
+export type DocumentCandidates = CandidateWire;
 
 export type DocumentInvalidReason =
 	| 'malformed_json'
@@ -618,7 +622,7 @@ export type FieldSource =
 			scope?: never;
 			text?: never;
 	  })
-	| ({ from: 'document'; path: string; rule: EvidenceRuleId } & {
+	| ({ from: 'document'; path: DocumentCandidates; rule: EvidenceRuleId } & {
 			as_kind?: never;
 			count?: never;
 			exclude?: never;
@@ -658,6 +662,8 @@ export type FieldUnavailable =
 export type FieldValue =
 	| { state: 'text'; value: string; spans: SourceSpan[] }
 	| { state: 'texts'; values: string[]; spans: SourceSpan[] }
+	| { state: 'document'; path: string; values: string[]; spans: SourceSpan[] }
+	| { state: 'missing_document'; candidates: string[] }
 	| { state: 'targets'; values: LoadTarget[] }
 	| { state: 'absent' }
 	| { state: 'unavailable'; reason: FieldUnavailable };

@@ -63,7 +63,32 @@ Use this decision step to check the identifier against the acquired document:
 { "mechanical_check": { "tool": "contains_field", "field": "verification", "needle": "identifier" }, "yes": "pass", "no": { "finding": "The requirement has no verification coverage." } }
 ```
 
-`document` resolves its `path` relative to the source piece's file and returns the raw matches of its ast-grep `rule` as a text list with source spans. It uses the shared file acquisition cache and budgets. A missing or unreadable file makes the field unavailable and the rule incomplete; a successfully read file with no matches yields an empty list.
+`document` resolves its `path` relative to the source piece's file and returns
+the raw matches of its ast-grep `rule` with source spans. A scalar path keeps the
+existing text-list output for a successful read. An ordered, nonempty path list
+selects the first existing file and records `state: "document"`, its `path`,
+`values` and `spans`, including when the match list is empty:
+
+```json
+{"from":"document","path":["verification.html","verification-design.html"],"rule":"whole-document"}
+```
+
+If every candidate is missing, raw evidence records `state: "missing_document"`
+and the resolved candidate paths. A `complete` check on that field returns no,
+so its decision can skip or find a missing page. Other checks requiring its text
+remain incomplete until the rule routes around the missing input. For example:
+
+```json
+{"mechanical_check":{"tool":"complete","field":"verification"},"yes":"covered","no":"not_applicable"}
+```
+
+Read errors, outside-root paths and acquisition/scan limits remain unavailable
+and incomplete; they do not fall through to a later candidate. No glob expansion
+is performed. The shared cache and budgets still apply. Existing rules reading a
+present scalar-path document retain their behavior; missing scalar documents now
+support the same `complete` routing as candidate lists. This route operates per
+subject; choose `not_applicable` to skip per-requirement warnings when an entire
+page is absent. It does not add automatic finding deduplication.
 
 Document fields are acquired after evidence selection. A selection question cannot name one, and a target's `as_kind` cannot name a kind containing document fields. Those configurations are refused during admission; a selected kind may still declare a document field that its selection question does not reference.
 

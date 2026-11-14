@@ -13,7 +13,9 @@ pub use lint_execution::lint_run::{
     inspect_definitions, prepare, run, run_definitions, run_with_source,
 };
 pub use lint_execution::stopped_stages::{RunStage, RunStageStopped};
-pub use lint_reporting::formats::{OutputFormat, render, render_prepared};
+pub use lint_reporting::formats::{
+    OutputFormat, render, render_prepared, render_with_warning_limit,
+};
 pub use lint_reporting::report_contracts::*;
 
 pub use lint_reporting::saved_report_contracts::*;

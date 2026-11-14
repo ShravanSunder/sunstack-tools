@@ -103,6 +103,19 @@ await test('unscoped and section-scoped inside fields compile with their derived
 	assert.deepEqual(compile('valid-scoped-inside.ts'), { kind: 'compiled' });
 });
 
+await test('document fields accept scalar paths, candidate lists and both result variants', () => {
+	assert.deepEqual(compile('valid-document-fields.ts'), { kind: 'compiled' });
+});
+
+await test('document variants reject incorrect paths and missing payloads', () => {
+	const expected = expectedDiagnostics('invalid-document-fields.ts');
+	assert.equal(expected.length, 6);
+	const result = compile('invalid-document-fields.ts');
+	assert.equal(result.kind, 'diagnostics', result.kind === 'process_failure' ? result.detail : '');
+	if (result.kind === 'diagnostics')
+		assert.deepEqual(sortDiagnostics(result.diagnostics), sortDiagnostics(expected));
+});
+
 await test('scoped inside fields reject cross-branch combinations and invalid scopes', () => {
 	const expected = expectedDiagnostics('invalid-scoped-inside.ts');
 	assert.equal(expected.length, 9);

@@ -94,7 +94,7 @@ async fn lint_help_documents_config_discovery_and_all_status_exit_codes() {
         "--prepare FILE",
         "no rule evaluation",
         "complete-keyless-example",
-        "config skeleton",
+        "runnable mechanical starter",
     ] {
         assert!(help.contains(guidance), "missing {guidance}: {help}");
     }

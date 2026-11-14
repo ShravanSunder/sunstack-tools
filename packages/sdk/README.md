@@ -246,6 +246,29 @@ configured HTML/Markdown kinds. A scoped field requires `kind` and excludes `rul
 the existing unscoped `inside` rule/kind forms keep their behavior. Missing or
 unreadable containers remain unavailable rather than falling back to the page.
 
+## Document fields
+
+Document fields accept a scalar path or an ordered candidate list, relative to
+the subject's source file:
+
+```ts
+import type { FieldSource } from '@sunstack/sdk';
+
+const verification = {
+	from: 'document',
+	path: ['verification.md', 'verification-design.md'],
+	rule: 'whole-document',
+} as const satisfies FieldSource;
+```
+
+The first existing candidate is recorded as `FieldValue` state `document`, with
+`path`, `values` and original `spans`. A successful scalar path retains state
+`texts`. If every candidate is missing, state `missing_document` records their
+paths; a mechanical `complete` check returns no so a decision can skip or find.
+Unreadable, outside-root or scan-limited input stays unavailable/incomplete and
+does not fall through. `serialize`/`deserialize` preserve these variants and path
+order under SDK contract revision 14; older revisions are refused explicitly.
+
 ## Section heading fields
 
 Native section kinds (`html_units`, or `markdown_units` with units exactly `['section']`)

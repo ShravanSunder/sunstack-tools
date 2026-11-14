@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto';
 import { test } from 'node:test';
 import { inspect as formatValue } from 'node:util';
 
+import { CONTRACT_REVISION } from '../src/contracts/contract-revision.ts';
 import type {
 	Configuration,
 	ConfigurationInput,
@@ -168,10 +169,10 @@ await test('omitted, empty and nonmatching selectors acquire no Markdown and pre
 		const contract = await contractInfo();
 		assert.equal(contract.kind, 'ready');
 		if (contract.kind !== 'ready') throw new Error('addon unavailable');
-		assert.equal(contract.contract.sdk_release, '0.19.0');
-		assert.equal(contract.contract.contract_revision, 13);
+		assert.equal(contract.contract.sdk_release, '0.20.0');
+		assert.equal(contract.contract.contract_revision, 14);
 		const previous = await deserialize(
-			'{"contract_revision":12,"payload":{"kind":"configuration","value":{}}}',
+			'{"contract_revision":13,"payload":{"kind":"configuration","value":{}}}',
 		);
 		assert.equal(previous.kind, 'incompatible');
 	} finally {
@@ -243,7 +244,10 @@ await test('Rust refuses invalid selector shapes at both check and document deco
 				assert.ok(isCheckOutcome(checked));
 				assert.equal(checked.kind, 'invalid');
 				const decoded = await deserialize(
-					JSON.stringify({ contract_revision: 13, payload: { kind: 'configuration', value } }),
+					JSON.stringify({
+						contract_revision: CONTRACT_REVISION,
+						payload: { kind: 'configuration', value },
+					}),
 				);
 				assert.equal(decoded.kind, 'invalid');
 				if (decoded.kind !== 'invalid') throw new Error('invalid selector was decoded');

@@ -57,7 +57,7 @@ enum FieldSourceWire {
         exclude: Option<MatchSource>,
     },
     Document {
-        path: std::path::PathBuf,
+        path: crate::DocumentCandidates,
         rule: EvidenceRuleId,
     },
     Target {

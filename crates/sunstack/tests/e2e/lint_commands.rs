@@ -11,6 +11,8 @@ use sunstack_rules::test_support::controlled_http as controlled;
 use tokio::process::Command;
 #[path = "lint_commands/checked_root.rs"]
 mod checked_root;
+#[path = "lint_commands/config_onboarding.rs"]
+mod config_onboarding;
 #[path = "lint_commands/document_conventions.rs"]
 mod document_conventions;
 #[path = "lint_commands/filter_admission.rs"]
@@ -352,7 +354,7 @@ async fn discovery_inspection_and_init_need_no_key_or_target_read_and_bad_flags_
     assert!(skeleton["evidence"]["ast_grep"].is_string());
     assert!(skeleton["$schema"].is_string());
     invoke(empty.path(), &["--init"], 2).await;
-    invoke(empty.path(), &["--check"], 2).await;
+    invoke(empty.path(), &["--check"], 0).await;
     assert_eq!(
         std::fs::read(empty.path().join("sunstack.lint.json")).unwrap(),
         original

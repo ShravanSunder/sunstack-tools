@@ -177,7 +177,7 @@ async fn execute(arguments: LintArguments, cancellation: CancellationToken) -> E
         {
             Ok(Ok(location)) => output(
                 &format!(
-                    "Created {} only. Author its referenced Markdown rulebook, marker-keyed JSON rule entries, evidence/sgconfig.yml and matcher files before running lint. Complete example: https://github.com/ShravanSunder/sunstack-tools/blob/main/crates/sunstack/README.md#complete-keyless-example",
+                    "Created {} and sunstack-starter/ with a runnable mechanical check. Run sunstack lint --root . --check, then sunstack lint --root . --all.",
                     location.file.display()
                 ),
                 0,
@@ -254,7 +254,11 @@ async fn execute(arguments: LintArguments, cancellation: CancellationToken) -> E
     }
     let rendered = match &arguments.prepare {
         Some(path) => sunstack_lint::render_prepared(&report, arguments.format, path),
-        None => sunstack_lint::render(&report, arguments.format),
+        None => sunstack_lint::render_with_warning_limit(
+            &report,
+            arguments.format,
+            arguments.max_warnings,
+        ),
     };
     output(rendered.trim_end_matches('\n'), report.status.exit_code())
 }

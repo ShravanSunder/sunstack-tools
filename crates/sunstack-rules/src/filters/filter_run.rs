@@ -175,7 +175,7 @@ fn request_for(
                     field: Some(field.clone()),
                 });
             }
-            Some(FieldValue::Absent) | None => {
+            Some(FieldValue::Absent | FieldValue::MissingDocument { .. }) | None => {
                 return Err(FilterRequestFailure {
                     reason: FilterIncomplete::ReadsAbsent,
                     field: Some(field.clone()),

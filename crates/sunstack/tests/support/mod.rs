@@ -33,6 +33,36 @@ pub fn isolated_command_with_binary(root: &Path, binary: &Path) -> Command {
         .kill_on_drop(true);
     command
 }
+pub fn documented_shell_command(root: &Path, script: &str) -> Command {
+    let isolated = isolated_command(root);
+    let launch = isolated.as_std();
+    let script = format!(
+        "set -eu\nsunstack() {{ \"$SUNSTACK_EXAMPLE_RUNNER\" \"$SUNSTACK_EXAMPLE_BINARY\" \"$@\"; }}\n{script}\n"
+    );
+    let mut shell = Command::new("sh");
+    shell
+        .arg("-c")
+        .arg(script)
+        .current_dir(root)
+        .env("SUNSTACK_EXAMPLE_RUNNER", launch.get_program())
+        .env("SUNSTACK_EXAMPLE_BINARY", launch.get_args().next().unwrap())
+        .env_remove("OPENROUTER_API_KEY")
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .kill_on_drop(true);
+    for (name, value) in launch.get_envs() {
+        match value {
+            Some(value) => {
+                shell.env(name, value);
+            }
+            None => {
+                shell.env_remove(name);
+            }
+        }
+    }
+    shell
+}
 fn process_command(root: &Path) -> Command {
     let mut command = isolated_command(root);
     command.arg("exec");

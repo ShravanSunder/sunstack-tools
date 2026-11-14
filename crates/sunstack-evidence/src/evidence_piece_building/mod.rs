@@ -170,9 +170,11 @@ impl EvidenceBuild {
                 for range in &file.kind_ranges(kind, definition) {
                     for field in definition.fields.values() {
                         if let FieldSource::Document { path: document, .. } = field {
-                            let target = path.parent().unwrap_or(Path::new("")).join(document);
-                            if let Some(resolved) = source.resolve_file(&target).ok().or_else(|| crate::source_acquisition::checked_file_source::contained_target_identity(repository_root, &target)) {
+                            for candidate in document.paths() {
+                                let target = path.parent().unwrap_or(Path::new("")).join(candidate);
+                                if let Some(resolved) = source.resolve_file(&target).ok().or_else(|| crate::source_acquisition::checked_file_source::contained_target_identity(repository_root, &target)) {
                                 targets.entry(path.clone()).or_default().push(resolved);
+                            }
                             }
                             continue;
                         }
