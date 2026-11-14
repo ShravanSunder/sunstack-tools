@@ -9,7 +9,7 @@ import { check, deserialize, inspect, run, serialize } from '@sunstack/sdk';
 const root = join(process.cwd(), 'island-checked');
 mkdirSync(root);
 const page =
-	'猫<p>Before</p><custom-guide>## Guide\n\nCafé instructions.\n</custom-guide><p>After</p>';
+	'猫<h2>Scope</h2><p>Before</p><custom-guide>## Guide\n\nCafé instructions.\n</custom-guide><p>After</p>';
 writeFileSync(join(root, 'page.html'), page);
 const selector = { tag: 'custom-guide' } satisfies HtmlMarkdownIsland;
 const configuration = {
@@ -22,11 +22,17 @@ const configuration = {
 		kind: 'inline',
 		html: { embedded_markdown: [selector] },
 		utilities: {},
-		matchers: {},
+		matchers: { html: { language: 'Html', rule: { kind: 'element', regex: '^<p>' } } },
 		kinds: {
+			outline: { html_units: { mode: 'unit', units: ['section'] }, fields: {} },
+			html: { rule: 'html', fields: {} },
 			paragraph: {
 				markdown_units: { mode: 'unit', units: ['paragraph'] },
-				fields: { body: { from: 'remainder' } },
+				fields: {
+					body: { from: 'remainder' },
+					before: { from: 'inside', kind: 'html', scope: { section_prefix: 'outline' } },
+					full: { from: 'inside', kind: 'html', scope: { section: 'outline' } },
+				},
 			},
 		},
 	},
@@ -56,7 +62,7 @@ const configuration = {
 	],
 } as const satisfies Configuration;
 assert.equal((await check(configuration)).kind, 'valid');
-const options = { root, scope: { kind: 'all' as const } };
+const options = { root, scope: { kind: 'all' as const }, evidence_kind: 'paragraph' };
 const observed = await inspect(configuration, options);
 assert.equal(observed.kind, 'inspected');
 if (observed.kind !== 'inspected') throw new Error('inspection failed');
@@ -66,6 +72,12 @@ assert.deepEqual(
 );
 const piece = observed.report.pieces[0];
 assert.ok(piece !== undefined);
+assert.equal(piece.fields['before']?.state, 'texts');
+assert.equal(piece.fields['full']?.state, 'texts');
+if (piece.fields['before']?.state !== 'texts' || piece.fields['full']?.state !== 'texts')
+	throw new Error('scoped collection missing');
+assert.deepEqual(piece.fields['before'].values, ['<p>Before</p>']);
+assert.deepEqual(piece.fields['full'].values, ['<p>Before</p>', '<p>After</p>']);
 assert.equal(
 	piece.where.span.byte_start,
 	BigInt(Buffer.byteLength(page.slice(0, page.indexOf('Café')))),
@@ -91,5 +103,5 @@ assert.equal(repeated.kind, 'inspected');
 if (repeated.kind !== 'inspected') throw new Error('restored inspection failed');
 assert.deepEqual(repeated.report.pieces, observed.report.pieces);
 process.stdout.write(
-	'Installed configured Markdown island: strict types, inspect/run, UTF-8 span and exact config readback passed.\n',
+	'Installed configured Markdown island and scoped inside: strict types, inspect/run, UTF-8 span and exact config readback passed.\n',
 );

@@ -449,6 +449,56 @@ fn exclusive_matcher(wire: Option<DataType>) -> Result<DataType, String> {
     ]))
 }
 
+/// The unscoped and scoped `inside` branches share a wire tag. Structural TypeScript
+/// assignments must not accept a scoped value through the unscoped branch.
+fn exclusive_inside_scope_shape(types: &mut Types) -> Result<(), Box<dyn Error>> {
+    let mut outcome = Err("FieldSource is not registered".to_string());
+    types.iter_mut(|named| {
+        if named.name == "FieldSource" && named.module_path.ends_with("evidence_kind_contracts") {
+            outcome = exclude_inside_scope(named.ty.as_mut());
+        }
+    });
+    outcome.map_err(Into::into)
+}
+
+fn exclude_inside_scope(datatype: Option<&mut DataType>) -> Result<(), String> {
+    let Some(DataType::Enum(enumeration)) = datatype else {
+        return Err("FieldSource is not an enum".into());
+    };
+    let scoped = enumeration
+        .variants
+        .iter()
+        .find(|(name, _)| name == "ScopedInside")
+        .ok_or("FieldSource has no ScopedInside variant")?;
+    let Fields::Named(scoped_fields) = &scoped.1.fields else {
+        return Err("ScopedInside has no named fields".into());
+    };
+    let (scope_name, scope_field) = scoped_fields
+        .fields
+        .iter()
+        .find(|(name, _)| name == "scope")
+        .ok_or("ScopedInside has no scope field")?;
+    if scope_field.optional || scope_field.ty.is_none() {
+        return Err("ScopedInside scope is no longer required".into());
+    }
+    let scope_name = scope_name.clone();
+    let mut excluded_scope = Field::new(DataType::Reference(specta_typescript::define("never")));
+    excluded_scope.optional = true;
+    let (_, unscoped) = enumeration
+        .variants
+        .iter_mut()
+        .find(|(name, _)| name == "Inside")
+        .ok_or("FieldSource has no Inside variant")?;
+    let Fields::Named(fields) = &mut unscoped.fields else {
+        return Err("Inside has no named fields".into());
+    };
+    if fields.fields.len() != 1 || fields.fields[0].0 != "of" {
+        return Err("Inside no longer has exactly its flattened source field".into());
+    }
+    fields.fields.push((scope_name, excluded_scope));
+    Ok(())
+}
+
 pub fn export() -> Result<Exported, Box<dyn Error>> {
     let mut types = Types::default()
         .register::<Configuration>()
@@ -467,6 +517,7 @@ pub fn export() -> Result<Exported, Box<dyn Error>> {
         .register::<sunstack_evidence::EvidenceLanguage>();
     select_question_shape(&mut types)?;
     exclusive_matcher_shape(&mut types)?;
+    exclusive_inside_scope_shape(&mut types)?;
     let declarations = specta_typescript::Typescript::default().export(&types, SdkFormat)?;
     let mut serde_types = specta_serde::Format
         .map_types(&types)

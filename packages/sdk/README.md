@@ -238,6 +238,14 @@ keeps its file origin; an edited copy reports the root as `edited`. A change on 
 takes effect only when you call `load` again. Blank names, unknown keys and unknown
 schemes are refused by the engine.
 
+An `inside` field can collect a configured kind within a containing section:
+`{ from: 'inside', kind: 'picture', scope: { section_prefix: 'outline' } }` collects
+pieces before the subject; `{ section: 'outline' }` collects the full section.
+Both forms return ordered text lists and original source spans, including across
+configured HTML/Markdown kinds. A scoped field requires `kind` and excludes `rule`;
+the existing unscoped `inside` rule/kind forms keep their behavior. Missing or
+unreadable containers remain unavailable rather than falling back to the page.
+
 ## Section heading fields
 
 Native section kinds (`html_units`, or `markdown_units` with units exactly `['section']`)

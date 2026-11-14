@@ -39,6 +39,7 @@ export type EvidenceKindDefinition = DeepReadonly<Contracts.EvidenceKindWire>;
 export type FilterDefinition = DeepReadonly<Contracts.FilterWire>;
 /** Where an evidence field's text comes from; section and context text modes include `heading`. */
 export type FieldSource = DeepReadonly<Contracts.FieldSource>;
+export type SectionScope = DeepReadonly<Contracts.SectionScope>;
 export type SectionText = Contracts.SectionText;
 export type ContextText = Contracts.ContextText;
 /** A built field: one text, ordered texts, targets, absent, or unavailable with a reason. */

@@ -99,6 +99,19 @@ await test('island selectors reject missing tags, unknown members, null and non-
 		assert.deepEqual(sortDiagnostics(result.diagnostics), sortDiagnostics(expected));
 });
 
+await test('unscoped and section-scoped inside fields compile with their derived types', () => {
+	assert.deepEqual(compile('valid-scoped-inside.ts'), { kind: 'compiled' });
+});
+
+await test('scoped inside fields reject cross-branch combinations and invalid scopes', () => {
+	const expected = expectedDiagnostics('invalid-scoped-inside.ts');
+	assert.equal(expected.length, 9);
+	const result = compile('invalid-scoped-inside.ts');
+	assert.equal(result.kind, 'diagnostics', result.kind === 'process_failure' ? result.detail : '');
+	if (result.kind === 'diagnostics')
+		assert.deepEqual(sortDiagnostics(result.diagnostics), sortDiagnostics(expected));
+});
+
 await test('wrong configuration and result shapes fail exactly where marked', () => {
 	const expected = expectedDiagnostics('invalid-callers.ts');
 	assert.ok(expected.length >= 8, 'every negative case is marked');

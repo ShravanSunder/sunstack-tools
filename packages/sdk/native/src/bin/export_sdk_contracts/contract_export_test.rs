@@ -128,3 +128,50 @@ fn private_same_path_u64_and_u32_roots_have_distinct_widening_shapes() {
     );
     assert_eq!(wide_shape(&root(Primitive::u32), &types), None);
 }
+
+#[test]
+fn inside_scope_exclusion_follows_the_registered_rust_variant_and_refuses_shape_drift() {
+    let types = Types::default().register::<sunstack_evidence::FieldSource>();
+    let original = types
+        .into_sorted_iter()
+        .find(|named| named.name == "FieldSource")
+        .and_then(|named| named.ty.clone())
+        .unwrap();
+    let mut current = original.clone();
+    exclude_inside_scope(Some(&mut current)).unwrap();
+    let DataType::Enum(current) = current else {
+        panic!("FieldSource enum required");
+    };
+    let (_, inside) = current
+        .variants
+        .iter()
+        .find(|(name, _)| name == "Inside")
+        .unwrap();
+    let Fields::Named(fields) = &inside.fields else {
+        panic!("Inside named fields required");
+    };
+    assert_eq!(fields.fields.len(), 2);
+    assert!(
+        fields
+            .fields
+            .iter()
+            .any(|(name, field)| name == "scope" && field.optional)
+    );
+
+    // An additional real field needs a new policy; generation must not drop it.
+    let mut drifted = original;
+    let DataType::Enum(enumeration) = &mut drifted else {
+        panic!("FieldSource enum required");
+    };
+    let (_, inside) = enumeration
+        .variants
+        .iter_mut()
+        .find(|(name, _)| name == "Inside")
+        .unwrap();
+    let Fields::Named(fields) = &mut inside.fields else {
+        panic!("Inside named fields required");
+    };
+    fields.fields.push(("new_field".into(), field(false)));
+    assert!(exclude_inside_scope(Some(&mut drifted)).is_err());
+    assert!(exclude_inside_scope(None).is_err());
+}

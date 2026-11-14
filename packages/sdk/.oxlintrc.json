@@ -14,6 +14,7 @@
 	"ignorePatterns": [
 		"tests/compiler-cases/invalid-callers.ts",
 		"tests/compiler-cases/invalid-markdown-islands.ts",
+		"tests/compiler-cases/invalid-scoped-inside.ts",
 		"src/contracts/contracts.ts",
 		"src/contracts/ast-grep.ts",
 		"src/contracts/wide-integers.ts"

@@ -499,6 +499,7 @@ export type FieldSource =
 			regex?: never;
 			resolve?: never;
 			rule?: never;
+			scope?: never;
 			text?: never;
 	  })
 	| ({ from: 'section'; text: SectionText } & {
@@ -512,6 +513,7 @@ export type FieldSource =
 			regex?: never;
 			resolve?: never;
 			rule?: never;
+			scope?: never;
 	  })
 	| ({ from: 'section_prefix'; kind: EvidenceKindName } & {
 			as_kind?: never;
@@ -523,6 +525,7 @@ export type FieldSource =
 			regex?: never;
 			resolve?: never;
 			rule?: never;
+			scope?: never;
 			text?: never;
 	  })
 	| ({ from: 'capture'; regex: string } & {
@@ -535,11 +538,26 @@ export type FieldSource =
 			path?: never;
 			resolve?: never;
 			rule?: never;
+			scope?: never;
 			text?: never;
 	  })
 	| ({
 			from: 'inside';
+	  } & {
+			scope?: never;
 	  } & MatchSource)
+	| ({ from: 'inside'; kind: EvidenceKindName; scope: SectionScope } & {
+			as_kind?: never;
+			count?: never;
+			exclude?: never;
+			key?: never;
+			opening_chars?: never;
+			path?: never;
+			regex?: never;
+			resolve?: never;
+			rule?: never;
+			text?: never;
+	  })
 	| ({
 			from: 'enclosing';
 	  } & {
@@ -559,6 +577,7 @@ export type FieldSource =
 			path?: never;
 			regex?: never;
 			resolve?: never;
+			scope?: never;
 			text?: never;
 	  })
 	| ({ from: 'previous'; rule: EvidenceRuleId; count?: NeighbourCount } & {
@@ -570,6 +589,7 @@ export type FieldSource =
 			path?: never;
 			regex?: never;
 			resolve?: never;
+			scope?: never;
 			text?: never;
 	  })
 	| ({ from: 'yaml'; key: string } & {
@@ -582,6 +602,7 @@ export type FieldSource =
 			regex?: never;
 			resolve?: never;
 			rule?: never;
+			scope?: never;
 			text?: never;
 	  })
 	| ({ from: 'remainder'; exclude?: MatchSource | null } & {
@@ -594,6 +615,7 @@ export type FieldSource =
 			regex?: never;
 			resolve?: never;
 			rule?: never;
+			scope?: never;
 			text?: never;
 	  })
 	| ({ from: 'document'; path: string; rule: EvidenceRuleId } & {
@@ -605,6 +627,7 @@ export type FieldSource =
 			opening_chars?: never;
 			regex?: never;
 			resolve?: never;
+			scope?: never;
 			text?: never;
 	  })
 	| ({
@@ -614,7 +637,15 @@ export type FieldSource =
 			opening_chars?: bigint;
 			as_kind?: EvidenceKindName | null;
 			exclude?: TargetExclude | null;
-	  } & { count?: never; key?: never; kind?: never; path?: never; rule?: never; text?: never });
+	  } & {
+			count?: never;
+			key?: never;
+			kind?: never;
+			path?: never;
+			rule?: never;
+			scope?: never;
+			text?: never;
+	  });
 
 export type FieldUnavailable =
 	| 'selection_pending'
@@ -1360,6 +1391,10 @@ export type SdkSkippedRule = {
 	rule_id: RuleId | null;
 	diagnostics: Diagnostic[];
 };
+
+export type SectionScope =
+	| ({ section: EvidenceKindName } & { section_prefix?: never })
+	| ({ section_prefix: EvidenceKindName } & { section?: never });
 
 export type SectionText = 'full' | 'own' | 'enclosing_own' | 'heading';
 

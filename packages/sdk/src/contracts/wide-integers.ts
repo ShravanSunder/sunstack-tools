@@ -921,6 +921,18 @@ export const wideIntegerDefinitions = {
 					],
 				},
 				{
+					object: {
+						kind: {
+							arguments: {},
+							ref: 'EvidenceKindName',
+						},
+						scope: {
+							arguments: {},
+							ref: 'SectionScope',
+						},
+					},
+				},
+				{
 					all: [
 						{
 							object: {
@@ -3097,6 +3109,29 @@ export const wideIntegerDefinitions = {
 					ref: 'DefinitionOrigin',
 				},
 			},
+		},
+	},
+	SectionScope: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						section: {
+							arguments: {},
+							ref: 'EvidenceKindName',
+						},
+					},
+				},
+				{
+					object: {
+						section_prefix: {
+							arguments: {},
+							ref: 'EvidenceKindName',
+						},
+					},
+				},
+			],
 		},
 	},
 	SelectionCandidate: {
