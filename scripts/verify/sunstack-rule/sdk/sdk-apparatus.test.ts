@@ -66,6 +66,32 @@ describe('SDK apparatus rejects false greens', () => {
 			requireSdkLoadFileReceipt([actual[0], { ...project, content: 'changed' }], expected),
 		).toThrow('content');
 	});
+	it('uses a canonical fixture root when an evidence ancestor is a symlink', () => {
+		const directory = ownedDirectory();
+		const realRoot = path.join(directory, 'actual');
+		filesystem.mkdirSync(realRoot);
+		const alias = path.join(directory, 'alias');
+		filesystem.symlinkSync(realRoot, alias);
+		const content = 'ruleDirs: [rules]\n';
+		const project = path.join(realRoot, 'sgconfig.yml');
+		filesystem.writeFileSync(project, content);
+		const receipt = [
+			{
+				origin: { kind: 'file', path: project },
+				content,
+				sha256: createHash('sha256').update(content).digest('hex'),
+				representation: 'original_text',
+				acquisition: 'read',
+			},
+		];
+		const rawExpected = new Map([[path.join(alias, 'sgconfig.yml'), content]]);
+		const canonicalExpected = new Map([
+			[path.join(filesystem.realpathSync(alias), 'sgconfig.yml'), content],
+		]);
+		expect(() => requireSdkLoadFileReceipt(receipt, rawExpected)).toThrow('missing or duplicates');
+		expect(() => requireSdkLoadFileReceipt(receipt, canonicalExpected)).not.toThrow();
+		expect(() => requireSdkLoadFileReceipt(receipt, new Map([[project, content]]))).not.toThrow();
+	});
 	it('allows independent request arrival swaps but preserves full payloads, duplicates and dependencies', () => {
 		const first = '{"state":{"owner":"folder-a"},"questions":{"purpose":{"type":"choice"}}}';
 		const second = '{"state":{"owner":"folder-b"},"questions":{"purpose":{"type":"choice"}}}';

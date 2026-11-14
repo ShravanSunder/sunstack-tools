@@ -164,9 +164,10 @@ async function runConfigured(
 }
 
 export async function observeSdkSnapshot(context: JourneyContext): Promise<JourneyResult> {
-	const root = path.join(context.evidence, 'snapshot-root');
-	createCheckedSdkInputs(root);
-	createSdkFileDefinitions(root, context.backend.endpoint);
+	const fixtureRoot = path.join(context.evidence, 'snapshot-root');
+	createCheckedSdkInputs(fixtureRoot);
+	createSdkFileDefinitions(fixtureRoot, context.backend.endpoint);
+	const root = filesystem.realpathSync(fixtureRoot);
 	const expectedReceipt = new Map(
 		[
 			'sunstack.lint.json',
