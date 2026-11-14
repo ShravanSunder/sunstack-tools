@@ -76,7 +76,7 @@ fn at_line(catalog: &EvidenceCatalog, line: usize) -> &EvidencePiece {
 }
 fn neighbours(piece: &EvidencePiece) -> (&[String], &[SourceSpan]) {
     match &piece.fields[&FieldName::new("neighbours").unwrap()] {
-        FieldValue::Texts { values, spans } => (values, spans),
+        FieldValue::Texts { values, spans, .. } => (values, spans),
         other => panic!("{other:?}"),
     }
 }

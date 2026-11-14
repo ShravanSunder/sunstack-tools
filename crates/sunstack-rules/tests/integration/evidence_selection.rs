@@ -466,6 +466,7 @@ async fn unequal_candidates_share_one_independently_bounded_shared_view_in_each_
     let mut input = input("thirty-three");
     input.candidates.truncate(2);
     let outline = FieldValue::Texts {
+        cut: false,
         values: vec!["outline".repeat(120); 12],
         spans: vec![],
     };

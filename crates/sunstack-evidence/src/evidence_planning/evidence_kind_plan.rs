@@ -19,7 +19,7 @@ impl EvidenceKindPlan {
         let mut depends_on = BTreeMap::new();
         let mut errors = Vec::new();
         for (name, definition) in kinds {
-            if let Err(message) = definition.containing_field_order() {
+            if let Err(message) = definition.derived_field_order() {
                 errors.push(KindPlanRefusal {
                     field: ConfigPath::keys(["evidence", "kinds", name.as_str(), "fields"]),
                     message,

@@ -78,6 +78,7 @@ pub fn piece() -> EvidencePiece {
         (
             FieldName::new("completion").unwrap(),
             FieldValue::Texts {
+                cut: false,
                 values: vec!["Completion: ready.".into()],
                 spans: vec![span(7801, 7908, 59)],
             },

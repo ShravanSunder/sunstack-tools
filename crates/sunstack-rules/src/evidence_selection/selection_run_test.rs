@@ -144,6 +144,7 @@ fn selection_cut_fields_name_exact_candidate_and_shared_cuts_without_rewriting_t
 #[test]
 fn selection_cut_fields_include_list_reductions_and_change_only_cut_bearing_request_hashes() {
     let list = FieldValue::Texts {
+        cut: false,
         values: vec!["short item ".repeat(5); 40],
         spans: vec![],
     };

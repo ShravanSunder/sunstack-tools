@@ -39,6 +39,7 @@ fn scalar_cut_preserves_edges_and_raw_middle_with_unicode_character_accounting()
 #[test]
 fn eighty_item_list_reduces_strings_to_floor_then_trims_its_tail() {
     let raw = fields(FieldValue::Texts {
+        cut: false,
         values: (0..80)
             .map(|i| format!("{i}:{}", "x".repeat(300)))
             .collect(),
@@ -63,6 +64,7 @@ fn authored_cut_looking_list_tail_is_reduced_without_mutating_raw_values() {
         let mut values = vec!["a".repeat(32); 79];
         values.push(tail.into());
         let raw = fields(FieldValue::Texts {
+            cut: false,
             values: values.clone(),
             spans: vec![],
         });
@@ -83,6 +85,7 @@ fn authored_cut_looking_list_tail_is_reduced_without_mutating_raw_values() {
         assert_eq!(
             raw,
             fields(FieldValue::Texts {
+                cut: false,
                 values,
                 spans: vec![]
             })

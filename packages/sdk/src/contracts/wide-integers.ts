@@ -966,6 +966,14 @@ export const wideIntegerDefinitions = {
 					},
 				},
 				{
+					object: {
+						of: {
+							arguments: {},
+							ref: 'FieldName',
+						},
+					},
+				},
+				{
 					all: [
 						{
 							arguments: {},
@@ -1005,6 +1013,10 @@ export const wideIntegerDefinitions = {
 					all: [
 						{
 							object: {
+								attach: {
+									arguments: {},
+									ref: 'SiblingAttachment',
+								},
 								containing: {
 									arguments: {},
 									ref: 'FieldName',
@@ -1055,6 +1067,10 @@ export const wideIntegerDefinitions = {
 				},
 				{
 					object: {
+						attach: {
+							arguments: {},
+							ref: 'SiblingAttachment',
+						},
 						containing: {
 							arguments: {},
 							ref: 'FieldName',
@@ -3459,6 +3475,17 @@ export const wideIntegerDefinitions = {
 				view: {
 					arguments: {},
 					ref: 'ModelView',
+				},
+			},
+		},
+	},
+	SiblingAttachment: {
+		generics: [],
+		shape: {
+			object: {
+				until: {
+					arguments: {},
+					ref: 'EvidenceRuleId',
 				},
 			},
 		},

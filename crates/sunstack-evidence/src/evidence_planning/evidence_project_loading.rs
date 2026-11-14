@@ -200,6 +200,8 @@ pub struct ParentChild {
     pub node: NodeKey,
     pub range: MatchRange,
     pub continuation: bool,
+    #[serde(default)]
+    pub heading: bool,
 }
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ParentEntry {
@@ -326,6 +328,28 @@ impl EvidenceProject {
                                         end: range.end + offset,
                                     },
                                     continuation: child.kind() == "block_continuation",
+                                    heading: matches!(
+                                        child.kind().as_ref(),
+                                        "atx_heading" | "setext_heading"
+                                    ) || (child.kind() == "section"
+                                        && child.children().any(|part| {
+                                            matches!(
+                                                part.kind().as_ref(),
+                                                "atx_heading" | "setext_heading"
+                                            )
+                                        }))
+                                        || (language == EvidenceLanguage::Html && {
+                                            let text = child.text();
+                                            let bytes = text.as_bytes();
+                                            bytes.first() == Some(&b'<')
+                                                && bytes.get(1).is_some_and(|byte| {
+                                                    byte.eq_ignore_ascii_case(&b'h')
+                                                })
+                                                && matches!(bytes.get(2), Some(b'1'..=b'6'))
+                                                && bytes.get(3).is_some_and(|byte| {
+                                                    byte.is_ascii_whitespace() || *byte == b'>'
+                                                })
+                                        }),
                                 }
                             })
                             .collect::<Vec<_>>();

@@ -63,7 +63,7 @@ fn scoped_inside_uses_nearest_same_source_section_and_orders_final_pieces() {
         &pieces,
     );
     assert!(
-        matches!(before,FieldValue::Texts{values,spans} if values==["xxxxx"] && spans[0].byte_start==15)
+        matches!(before,FieldValue::Texts { values, spans, .. } if values==["xxxxx"] && spans[0].byte_start==15)
     );
     let whole = scoped_inside_field(
         &file,
@@ -73,7 +73,7 @@ fn scoped_inside_uses_nearest_same_source_section_and_orders_final_pieces() {
         &pieces,
     );
     assert!(
-        matches!(whole,FieldValue::Texts{values,spans} if values==["xxxxx","xxxxx"] && spans.iter().map(|s|s.byte_start).collect::<Vec<_>>()==[15,45])
+        matches!(whole,FieldValue::Texts { values, spans, .. } if values==["xxxxx","xxxxx"] && spans.iter().map(|s|s.byte_start).collect::<Vec<_>>()==[15,45])
     );
 }
 
@@ -93,7 +93,7 @@ fn scoped_inside_distinguishes_empty_from_missing_ambiguous_and_scan_limited() {
         &[piece(&file, "outline", 10, 80)],
     );
     assert!(
-        matches!(empty,FieldValue::Texts{values,spans} if values.is_empty() && spans.is_empty())
+        matches!(empty,FieldValue::Texts { values, spans, .. } if values.is_empty() && spans.is_empty())
     );
     let unavailable = FieldValue::Unavailable {
         reason: FieldUnavailable::Unreadable,

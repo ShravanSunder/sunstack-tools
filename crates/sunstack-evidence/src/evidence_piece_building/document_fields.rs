@@ -80,12 +80,17 @@ impl EvidenceBuild {
             .collect();
         if relative.records_resolution() {
             FieldValue::Document {
+                cut: false,
                 path: chosen_path,
                 values,
                 spans,
             }
         } else {
-            FieldValue::Texts { values, spans }
+            FieldValue::Texts {
+                cut: false,
+                values,
+                spans,
+            }
         }
     }
 }

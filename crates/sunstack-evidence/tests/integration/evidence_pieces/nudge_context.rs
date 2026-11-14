@@ -108,7 +108,7 @@ fn full_enclosing_and_same_file_text_preserve_the_whole_matched_span() {
         limits(),
     );
     for name in ["enclosing", "same"] {
-        let FieldValue::Texts { values, spans } = field(&catalog.pieces[0], name) else {
+        let FieldValue::Texts { values, spans, .. } = field(&catalog.pieces[0], name) else {
             panic!()
         };
         assert_eq!(values, &[text]);

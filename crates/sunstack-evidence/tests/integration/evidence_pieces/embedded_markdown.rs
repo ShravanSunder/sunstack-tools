@@ -133,7 +133,7 @@ fn embedded_markdown_siblings_and_section_fields_stay_in_their_island() {
         .collect::<Vec<_>>();
     assert_eq!(paragraphs.len(), 3);
     assert!(
-        matches!(field(paragraphs[0], "next"), FieldValue::Texts {values, spans} if values == &["Two.\n"] && spans[0].byte_start == text.find("Two.").unwrap())
+        matches!(field(paragraphs[0], "next"), FieldValue::Texts { values, spans, .. } if values == &["Two.\n"] && spans[0].byte_start == text.find("Two.").unwrap())
     );
     assert!(
         matches!(field(paragraphs[1], "next"), FieldValue::Texts {values, ..} if values.is_empty())

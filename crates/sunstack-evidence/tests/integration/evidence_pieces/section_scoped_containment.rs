@@ -45,7 +45,7 @@ fn section_scoped_containment_crosses_languages_and_excludes_earlier_headings() 
         ("html_section", 2),
         ("markdown_section", 1),
     ] {
-        let FieldValue::Texts { values, spans } = field(own, name) else {
+        let FieldValue::Texts { values, spans, .. } = field(own, name) else {
             panic!("{name} must be a text list")
         };
         assert_eq!(values.len(), expected, "{name}");
@@ -79,7 +79,7 @@ fn section_scoped_containment_crosses_languages_and_excludes_earlier_headings() 
         "markdown_section",
     ] {
         assert!(
-            matches!(field(empty,name),FieldValue::Texts{values,spans} if values.is_empty() && spans.is_empty()),
+            matches!(field(empty,name),FieldValue::Texts { values, spans, .. } if values.is_empty() && spans.is_empty()),
             "{name}"
         );
     }

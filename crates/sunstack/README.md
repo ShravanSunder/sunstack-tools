@@ -809,6 +809,52 @@ Document fields and fields depending on them are unavailable to selection
 questions. Subject-dependent `same_file` fields cannot be shared across
 selection candidates. Without `containing`, existing collection is unchanged.
 
+### Capture inline IDs and keep their realization blocks
+
+`captures` collects distinct nonempty regex matches in encounter order as plain
+strings. It reads the piece's own raw text by default, or a named text/text-list
+field through `of`. Without groups it returns the whole match; with groups it
+returns the first nonempty participating group of each match, in group order.
+Empty matches are skipped. Unlike scalar `capture`, it does not subtract from
+`remainder`. Empty or absent input returns an available empty list; unavailable
+or missing-document input stays unavailable. References must name defined text
+fields and must not form a dependency cycle.
+
+For Markdown paragraph rules `obligation-row`, `realization-lead` and
+`block-boundary`, add these fields to the subject kind:
+
+<!-- example: captures-attached-blocks -->
+```json
+{
+  "requirement_ids": {"from": "captures", "regex": "\\bU[0-9]+\\b"},
+  "linked_obligations": {"from": "document", "path": ["specification.md"], "rule": "obligation-row", "containing": "requirement_ids"},
+  "obligation_ids": {"from": "captures", "of": "linked_obligations", "regex": "\\bR[0-9]+[a-z]?\\b"},
+  "realizations": {"from": "document", "path": ["program-design.md"], "rule": "realization-lead", "containing": "obligation_ids", "attach": {"until": "block-boundary", "max_siblings": 12}}
+}
+```
+
+A subject citing `U2, U3` collects only their obligation paragraphs, extracts
+the R IDs, then collects their realization blocks. Fields run in dependency
+order, regardless of their names. Captures remain literal strings in asking
+state. Raw matches keep their original byte spans; captures of transformed
+strings (such as decoded YAML) retain the input's context span.
+
+`attach` is available on `document` and AST-backed `same_file` sources, with or
+without `containing`. The boundary is a rule in the source's evidence language.
+The leading match is filtered before attachment, so a later sibling's ID cannot
+select an unrelated lead. The result is the full source interval through the
+following named siblings, including their whitespace. `attach` takes precedence
+over `same_file.text`. It excludes the next boundary match or heading and never
+leaves the parser parent or Markdown island. Markdown continuation nodes do not
+count toward the cap. `max_siblings` is a required positive integer counting
+following siblings, excluding the lead. A boundary or parent end exactly at the
+cap is complete; another attachable sibling makes the field `cut: true`.
+
+The asking state's `cut-fields` includes capped fields and their dependent
+captures and filters, so `complete` and pass guards cannot certify partial
+blocks. Native section units have no AST sibling identity and are refused as
+`same_file` attachment sources. Without `attach`, collection is unchanged.
+
 ## HTML evidence
 
 For the `requirement-row` and `whole-document` HTML ast-grep rules in the

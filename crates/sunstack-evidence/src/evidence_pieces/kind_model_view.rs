@@ -49,7 +49,7 @@ pub fn project_kind_model_view(
                     project.language_for_rule(rule) == Some(EvidenceLanguage::Html)
                 }
                 Some(FieldSource::Target { .. }) => true,
-                Some(FieldSource::ScopedInside { .. }) => false,
+                Some(FieldSource::ScopedInside { .. } | FieldSource::Captures { .. }) => false,
                 _ => html,
             };
             let mut incomplete = false;
@@ -83,7 +83,8 @@ fn html_field_value(
             value: project_html_asking_text(value, incomplete, settings),
             spans: spans.clone(),
         },
-        FieldValue::Texts { values, spans } => FieldValue::Texts {
+        FieldValue::Texts { values, spans, cut } => FieldValue::Texts {
+            cut: *cut,
             values: values
                 .iter()
                 .map(|value| project_html_asking_text(value, incomplete, settings))
@@ -91,10 +92,12 @@ fn html_field_value(
             spans: spans.clone(),
         },
         FieldValue::Document {
+            cut,
             path,
             values,
             spans,
         } => FieldValue::Document {
+            cut: *cut,
             path: path.clone(),
             values: values
                 .iter()

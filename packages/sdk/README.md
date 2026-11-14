@@ -414,3 +414,10 @@ artifact. A failed addon build or candidate install blocks publication. npm
 publishes packages individually: a publication failure can leave some addons
 published. The SDK publication waits until all six addon publications succeed;
 recovery from a partial publication requires maintainer action.
+
+`captures` collects distinct regex results from the piece or a named text field
+(`of`). `document` and AST-backed `same_file` fields accept
+`attach: { until: 'boundary-rule', max_siblings: 12 }` to collect following
+siblings. A cap marks raw list values `cut: true` and asking state `cut-fields`;
+use `complete` to guard pass routes. These types and cut flags round-trip through
+SDK contract revision 18. See the engine README's capture/attachment example.

@@ -41,6 +41,7 @@ fn count_values_include_empty_pieces_and_complete_raw_text_but_refuse_unavailabl
     piece.fields.insert(
         field.clone(),
         FieldValue::Texts {
+            cut: false,
             values: vec!["One two".into(), "".into(), "three".into()],
             spans: vec![],
         },
