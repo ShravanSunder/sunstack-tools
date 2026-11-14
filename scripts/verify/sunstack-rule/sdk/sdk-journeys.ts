@@ -102,6 +102,29 @@ export function requireSdkSources(value: unknown, kind: 'file' | 'inline' | 'edi
 			'Returned source content/digest disagree',
 		);
 }
+
+/** The load receipt must contain each independently authored definition exactly once. */
+export function requireSdkLoadFileReceipt(
+	value: unknown,
+	expected: ReadonlyMap<string, string>,
+): void {
+	const sources = sourcesSchema.parse(value);
+	requireSdk(sources.length === expected.size, 'Load receipt definition count differs');
+	for (const [file, content] of expected) {
+		const matches = sources.filter(
+			(source) => source.origin.kind === 'file' && source.origin['path'] === file,
+		);
+		requireSdk(matches.length === 1 && matches[0], `Load receipt missing or duplicates ${file}`);
+		const source = matches[0];
+		requireSdk(
+			source.content === content &&
+				source.sha256 === createHash('sha256').update(content).digest('hex') &&
+				source.representation === 'original_text' &&
+				source.acquisition === 'read',
+			`Load receipt original content, hash or acquisition differs: ${file}`,
+		);
+	}
+}
 function requireRequestSentinel(
 	backend: SdkControlledBackend,
 	since: number,
@@ -144,13 +167,47 @@ export async function observeSdkSnapshot(context: JourneyContext): Promise<Journ
 	const root = path.join(context.evidence, 'snapshot-root');
 	createCheckedSdkInputs(root);
 	createSdkFileDefinitions(root, context.backend.endpoint);
+	const expectedReceipt = new Map(
+		[
+			'sunstack.lint.json',
+			'evidence/sgconfig.yml',
+			'evidence/utils/paragraph.yml',
+			'evidence/rules/paragraph.yml',
+			'rulebook.md',
+			'rules.json',
+		].map((relative) => {
+			const file = path.join(root, relative);
+			return [file, filesystem.readFileSync(file, 'utf8')] as const;
+		}),
+	);
 	const loaded = requireSdkKind(
 		await context.sdk.load({ directory: path.join(root, 'skills', 'portable') }),
 		'loaded',
 	);
 	const held = record(loaded['value']);
 	requireSdkSources(held['sources'], 'file');
+	requireSdkLoadFileReceipt(held['sources'], expectedReceipt);
 	requireDeepFrozenSdkValue(loaded['value']);
+	const projectFile = path.join(root, 'evidence', 'sgconfig.yml');
+	const projectContent = expectedReceipt.get(projectFile);
+	requireSdk(projectContent !== undefined, 'Missing independent project fixture');
+	filesystem.writeFileSync(projectFile, 'changed after load: true\n');
+	requireSdkLoadFileReceipt(held['sources'], expectedReceipt);
+	requireSdk(context.sdk.serialize && context.sdk.deserialize, 'Loaded receipt codec unavailable');
+	const encodedReceipt = record(
+		context.sdk.serialize({ kind: 'loaded_configuration', value: held }),
+	);
+	requireSdk(
+		encodedReceipt['kind'] === 'serialized' && typeof encodedReceipt['json'] === 'string',
+		'Loaded receipt did not serialize',
+	);
+	const decodedReceipt = record(
+		await boundedSdkWait(context.sdk.deserialize(encodedReceipt['json']), 'loaded receipt codec'),
+	);
+	requireSdk(decodedReceipt['kind'] === 'decoded', 'Loaded receipt did not decode');
+	const decodedRoot = record(decodedReceipt['value']);
+	requireSdk(decodedRoot['kind'] === 'loaded_configuration', 'Loaded receipt codec root differs');
+	requireSdkLoadFileReceipt(record(decodedRoot['value'])['sources'], expectedReceipt);
 	filesystem.writeFileSync(
 		path.join(root, 'rulebook.md'),
 		'ACTOR_B: Changed disk standard. <!-- K001 -->\n',
@@ -159,6 +216,7 @@ export async function observeSdkSnapshot(context: JourneyContext): Promise<Journ
 	const original = await runConfigured(context, held, root);
 	requireRequestSentinel(context.backend, before, 'ACTOR_A', 'ACTOR_B');
 	requireSdkSources(original['sources'], 'file');
+	filesystem.writeFileSync(projectFile, projectContent);
 	const configuration = record(structuredClone(held['configuration']));
 	const rulebooks = z.array(sdkRecordSchema).parse(configuration['rulebooks']);
 	const first = rulebooks[0];
@@ -265,6 +323,7 @@ export async function observeSdkSnapshot(context: JourneyContext): Promise<Journ
 		receiptOnly,
 		invalidCapture,
 		filterEdited,
+		decodedReceipt,
 		deniedDependency,
 		inaccessibleSnapshot,
 	});
@@ -279,6 +338,7 @@ export async function observeSdkSnapshot(context: JourneyContext): Promise<Journ
 			'file/edited content hashes',
 			'missing/malformed config distinction',
 			'deep frozen returned graph, receipt-only override ignored and malformed provenance refused',
+			'all six loaded definitions including the ast-grep project retain original file, content, hash and single read receipt through edit and codec',
 			'copied filter edit executes with edited provenance',
 			'proven unreadable dependency is unavailable while held snapshot still executes A',
 		],

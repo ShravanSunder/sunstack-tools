@@ -16,6 +16,7 @@ import {
 	requireBlockedSdkResult,
 	requireSdkKind,
 	requireSdkSources,
+	requireSdkLoadFileReceipt,
 	observeSdkInline,
 } from './sdk-journeys.ts';
 import { requireSdkRequestParity } from './sdk-request-parity.ts';
@@ -43,6 +44,28 @@ const source = {
 };
 
 describe('SDK apparatus rejects false greens', () => {
+	it('requires the project receipt exactly once with independently authored bytes and hash', () => {
+		const root = '/independent-fixture';
+		const expected = new Map([
+			[`${root}/sunstack.lint.json`, '{}\n'],
+			[`${root}/evidence/sgconfig.yml`, 'ruleDirs: [rules]\n'],
+		]);
+		const actual = [...expected].map(([file, content]) => ({
+			origin: { kind: 'file', path: file },
+			content,
+			sha256: createHash('sha256').update(content).digest('hex'),
+			representation: 'original_text',
+			acquisition: 'read',
+		}));
+		expect(() => requireSdkLoadFileReceipt(actual, expected)).not.toThrow();
+		expect(() => requireSdkLoadFileReceipt(actual.slice(0, 1), expected)).toThrow('count');
+		expect(() => requireSdkLoadFileReceipt([actual[0], actual[0]], expected)).toThrow('duplicates');
+		const project = actual[1];
+		expect(project).toBeDefined();
+		expect(() =>
+			requireSdkLoadFileReceipt([actual[0], { ...project, content: 'changed' }], expected),
+		).toThrow('content');
+	});
 	it('allows independent request arrival swaps but preserves full payloads, duplicates and dependencies', () => {
 		const first = '{"state":{"owner":"folder-a"},"questions":{"purpose":{"type":"choice"}}}';
 		const second = '{"state":{"owner":"folder-b"},"questions":{"purpose":{"type":"choice"}}}';
