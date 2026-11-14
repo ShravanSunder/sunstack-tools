@@ -56,7 +56,7 @@ export function checkPackageMetadata(
 		});
 	} else {
 		const binary = `sunstack-sdk.${cell.key}.node`;
-		assert.deepEqual(files.toSorted(), ['package.json', binary]);
+		assert.deepEqual(files.toSorted(), ['LICENSE', 'package.json', binary]);
 		assert.equal(metadata['main'], binary);
 		assert.deepEqual(metadata['files'], [binary]);
 	}
@@ -103,6 +103,7 @@ function checkTarballs(): void {
 		encoding: 'utf8',
 	});
 	const expectedSdkFiles = [
+		'LICENSE',
 		'README.md',
 		'package.json',
 		...sourceFiles.flatMap((file) =>

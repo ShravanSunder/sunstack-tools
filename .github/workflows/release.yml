@@ -480,6 +480,8 @@ jobs:
       - name: Verify SDK packages match the CLI tag before any publication
         run: node packages/sdk/scripts/check-packages.ts --tarballs "$PWD/candidate" --tag '${{ needs.plan.outputs.tag }}' > "$RUNNER_TEMP/sdk-package-checks.json"
       - name: Publish SDK addons, then SDK, with GitHub OIDC
+        id: publish-sdk
+        background: true
         if: ${{ vars.SDK_NPM_TRUSTED_PUBLISHING == 'true' }}
         # Owner bootstrap and all seven trusted publishers must exist first.
         # Each command must succeed before the SDK can become installable.
@@ -489,12 +491,17 @@ jobs:
           done
           npm publish --access public "candidate/sunstack-sdk-${GITHUB_REF_NAME#v}.tgz"
       - name: Publish assembled packages with GitHub OIDC
+        id: publish-cli
+        background: true
         # npm generates provenance automatically for GitHub trusted publishing.
         run: |
           for release in $(echo "$PLAN" | jq --compact-output '.releases[] | select([.artifacts[] | endswith("-npm-package.tar.gz")] | any)'); do
             pkg=$(echo "$release" | jq '.artifacts[] | select(endswith("-npm-package.tar.gz"))' --raw-output)
             npm publish --access public "./npm/${pkg}"
           done
+
+      - name: Wait for npm publications
+        wait-all:
 
   announce:
     needs:

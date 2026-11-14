@@ -22,7 +22,7 @@ const manifest = {
 	main: 'sunstack-sdk.linux-x64-musl.node',
 	files: ['sunstack-sdk.linux-x64-musl.node'],
 };
-const files = ['package.json', 'sunstack-sdk.linux-x64-musl.node'];
+const files = ['LICENSE', 'package.json', 'sunstack-sdk.linux-x64-musl.node'];
 
 void test('package gate accepts the advertised platform and rejects absent binaries or wrong metadata', () => {
 	assert.doesNotThrow(() => checkPackageMetadata(manifest, files, '0.21.2', linux, []));
