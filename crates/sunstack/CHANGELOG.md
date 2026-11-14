@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.20.1
+
+Release date: 2026-11-14.
+
+- The 0.20.0 release build failed; republished as 0.20.1. CLI distribution
+  builds only its selected package, excluding the SDK's Node cdylib on musl.
+  The SDK's independent addon workflow is unchanged.
+
 ## 0.20.0
 
 Release date: 2026-11-13.

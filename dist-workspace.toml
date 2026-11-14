@@ -5,6 +5,8 @@ members = ["cargo:."]
 [dist]
 # The preferred dist version to use in CI (Cargo.toml SemVer syntax)
 cargo-dist-version = "0.32.0"
+# The CLI release must not compile unrelated workspace cdylibs for its targets.
+precise-builds = true
 # CI backends to support
 ci = "github"
 # Sign before packaging so archive checksums cover the Developer ID signature.
