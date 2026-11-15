@@ -55,6 +55,7 @@ export interface ControlledReply {
 }
 export interface RunCase {
 	readonly target?: ProcessTarget;
+	readonly timeoutMilliseconds?: number;
 	root: string;
 	name: string;
 	arguments: string[];
@@ -67,6 +68,14 @@ export interface ProcessResult {
 	stdout: Buffer;
 	stderr: Buffer;
 	captures: CapturedRequest[];
+}
+export function processDeadline(value: number | undefined): number {
+	const deadline = value ?? 30000;
+	requireCondition(
+		Number.isSafeInteger(deadline) && deadline > 0 && deadline <= 600000,
+		'Process deadline must be a positive integer at most 600000 ms',
+	);
+	return deadline;
 }
 export function binaryDigest(binary: string): string {
 	filesystem.accessSync(binary, filesystem.constants.X_OK);
@@ -261,6 +270,7 @@ export class RulebookProcess {
 		this.events.push({ request: number, event: 'responded' });
 	}
 	async run(options: RunCase): Promise<ProcessResult> {
+		const timeoutMilliseconds = processDeadline(options.timeoutMilliseconds);
 		const target = options.target ?? this.target;
 		confirmProcessTarget(target);
 		confirmProcessTarget(this.target);
@@ -296,7 +306,7 @@ export class RulebookProcess {
 		const timer = setTimeout(() => {
 			timedOut = true;
 			if (child.pid) process.kill(-child.pid, 'SIGKILL');
-		}, 30000);
+		}, timeoutMilliseconds);
 		let ending: { code: number | null; signal: NodeJS.Signals | null };
 		try {
 			if (options.input) child.stdin.end(options.input);
@@ -327,12 +337,16 @@ export class RulebookProcess {
 			stdin_held_open: !options.input,
 			cancel_on_request: options.cancel ?? false,
 			timed_out: timedOut,
+			timeout_milliseconds: timeoutMilliseconds,
 		});
 		confirmProcessTarget(target);
 		confirmProcessTarget(this.target);
 		if (!options.arguments.includes('--init'))
 			equal(fixtureSnapshot(options.root), snapshot, 'Lint modified its input fixture');
-		requireCondition(!timedOut, `${options.name}: process did not settle in 30 seconds`);
+		requireCondition(
+			!timedOut,
+			`${options.name}: process did not settle in ${timeoutMilliseconds} ms`,
+		);
 		equal(ending.code, options.expectedExit, `${options.name}: wrong exit; inspect ${directory}`);
 		return { stdout: output, stderr: errors, captures };
 	}

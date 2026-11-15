@@ -7,6 +7,7 @@ import path from 'node:path';
 import { describe, expect, test } from 'vitest';
 
 import { indexJson, jsonSlice } from '../prepare/raw-json.ts';
+import { processDeadline } from '../rulebook/rulebook-process.ts';
 import { reportReply } from '../rulebook/rulebook-report.ts';
 import {
 	attributeControlledCaptures,
@@ -68,6 +69,12 @@ const selectedRequest =
 const excludedRequest = '{"state":{"text":"exclude"},"questions":{"a":{"type":"noul"}}}';
 
 describe('selected request parity observation', () => {
+	test('uses the existing 30-second default and only finite bounded explicit deadlines', () => {
+		expect(processDeadline(undefined)).toBe(30000);
+		expect(processDeadline(600000)).toBe(600000);
+		for (const invalid of [0, -1, 600001, Infinity, NaN, 0.5])
+			expect(() => processDeadline(invalid)).toThrow('Process deadline');
+	});
 	test('pending cases retain outer findings and a single prepared prerequisite without a final result', () => {
 		const request = { state: {}, questions: {} };
 		const digest = createHash('sha256').update(JSON.stringify(request)).digest('hex');

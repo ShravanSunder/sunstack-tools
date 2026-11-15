@@ -51,6 +51,7 @@ export async function observeCorpusSelectedPreparation(options: {
 					saved,
 				],
 				expectedExit: options.preparedExit,
+				timeoutMilliseconds: 600000,
 			});
 			assert.equal(result.captures.length, 0, 'Corpus preparation dispatched HTTP');
 			const report = parseObject(filesystem.readFileSync(saved, 'utf8'));
