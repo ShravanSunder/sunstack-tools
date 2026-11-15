@@ -338,6 +338,13 @@ export async function observeMissingSdk(options: {
 	);
 	assert.equal(relative['kind'], 'invalid');
 	writeFixture(root, backend.endpoint, 'invalid');
-	await run('sdk-invalid-global', await load(), 'invalid');
+	const invalidLoad = record(
+		await boundedSdkWait(sdk.load({ directory: root }), 'invalid configuration load'),
+	);
+	saveSdkEvidence(path.join(evidence, 'sdk-invalid-load.json'), invalidLoad);
+	assert.equal(invalidLoad['kind'], 'invalid');
+	const captured = record(record(configuration)['configuration']);
+	const invalidConfiguration = { ...captured, check: { ...record(captured['check']), files: [] } };
+	await run('sdk-invalid-global', invalidConfiguration, 'invalid');
 	return { root, reports };
 }

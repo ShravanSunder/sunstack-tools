@@ -78,6 +78,16 @@ export async function observeMissingCli(
 			file,
 		};
 	};
+	await runSequence(['mechanical', 'mixed', 'filter', 'selection'] as const, async (mode) => {
+		writeFixture(root, observer.endpoint, mode);
+		const checked = await observer.run({
+			root,
+			name: `admission-${mode}`,
+			arguments: ['lint', '--config', 'sunstack.lint.json', '--check'],
+			expectedExit: 0,
+		});
+		assert.equal(checked.captures.length, 0, 'Static fixture admission submitted HTTP');
+	});
 	writeFixture(root, observer.endpoint, 'mixed');
 	const casesInput = path.join(evidence, 'cases-input.json');
 	writeCases(root, casesInput);

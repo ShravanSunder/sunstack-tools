@@ -149,7 +149,7 @@ export function writeFixture(root: string, endpoint: string, mode: FixtureMode):
 		};
 		kinds['document'] = {
 			inline_rule: '{language: Markdown, rule: {kind: document}}',
-			fields: { body: { from: 'remainder' }, selected: { from: 'inside', kind: 'selected' } },
+			fields: { body: { from: 'first_line' }, selected: { from: 'inside', kind: 'selected' } },
 		};
 		entries['K006'] = { ...mechanical('selected_child'), evidence: 'child' };
 		entries['K007'] = { ...mechanical('needed_field', 'selected'), evidence: 'document' };
