@@ -94,6 +94,54 @@ function preparedInventory(raw: string): Map<string, number> {
 	return inventory;
 }
 
+/** Connect the persisted prepare digest to the actual saved runtime request for each owner. */
+export function requirePreparedRuntimeParity(
+	prepared: string,
+	runtime: string,
+	owners: readonly string[],
+): void {
+	assert.ok(
+		owners.length > 0 && new Set(owners).size === owners.length,
+		'Prepared/runtime owners must be nonempty and unique',
+	);
+	const preparedOwners = preparedInventory(prepared);
+	const runtimeRows = arrayValue(parseObject(runtime)['requests']).map(objectValue);
+	for (const owner of owners) {
+		const preparedIndex = preparedOwners.get(owner);
+		assert.notEqual(preparedIndex, undefined, `Prepared owner missing: ${owner}`);
+		if (preparedIndex === undefined) throw new Error('Missing prepared owner');
+		const runtimeIndexes = runtimeRows.flatMap((_row, index) =>
+			requestOwnerAt(runtime, index) === owner ? [index] : [],
+		);
+		assert.equal(runtimeIndexes.length, 1, `Runtime owner missing or duplicated: ${owner}`);
+		const runtimeIndex = runtimeIndexes[0];
+		if (runtimeIndex === undefined) throw new Error('Missing runtime owner');
+		assert.equal(
+			runtimeRows[runtimeIndex]?.['state'],
+			'run',
+			`Runtime owner did not dispatch: ${owner}`,
+		);
+		requirePayloadBytes({
+			left: prepared,
+			leftPath: ['requests', preparedIndex, 'request'],
+			right: runtime,
+			rightPath: ['requests', runtimeIndex, 'request'],
+			label: `${owner}: prepared/runtime input differs`,
+		});
+		const digest = createHash('sha256')
+			.update(compactJson(jsonSlice(runtime, ['requests', runtimeIndex, 'request'])))
+			.digest('hex');
+		assert.equal(
+			digest,
+			objectValue(arrayValue(parseObject(prepared)['requests'])[preparedIndex])['input_sha256'],
+			`${owner}: runtime input digest differs`,
+		);
+		const runtimeDigest = runtimeRows[runtimeIndex]?.['input_sha256'];
+		if (runtimeDigest !== undefined)
+			assert.equal(runtimeDigest, digest, `${owner}: stored runtime input digest differs`);
+	}
+}
+
 /** Bind raw HTTP captures to their one saved request using model and complete request fields. */
 export function attributeControlledCaptures(
 	reportRaw: string,

@@ -1,11 +1,13 @@
 /** Installed native SDK selection using the same independently authored fixture. */
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
+import filesystem from 'node:fs';
 import path from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
 
 import { compactJson, jsonSlice, requirePayloadBytes } from '../prepare/raw-json.ts';
 import { parseObject, textValue } from '../rulebook/rulebook-fixture-support.ts';
+import { type RulebookProcess } from '../rulebook/rulebook-process.ts';
 import { boundedSdkWait } from '../sdk/sdk-controlled-backend.ts';
 import {
 	requireCompletedSdkReport,
@@ -17,6 +19,7 @@ import {
 	attributeControlledCaptures,
 	requireCaseAccounting,
 	requireControlledDispatch,
+	requirePreparedRuntimeParity,
 	requestOwnerAt,
 } from './case-dispatch-checks.ts';
 import { createCaseDispatchFixture, selectedText } from './case-dispatch-fixture.ts';
@@ -38,7 +41,10 @@ function requestDigest(raw: string, index: number): string {
 }
 
 /** Caller owns the pinned installed SDK, started controlled backend and evidence directory. */
-export async function observeInstalledCaseDispatch(context: JourneyContext): Promise<void> {
+export async function observeInstalledCaseDispatch(
+	context: JourneyContext,
+	observer: RulebookProcess,
+): Promise<void> {
 	const root = path.join(context.evidence, 'case-dispatch-sdk-fixture');
 	createCaseDispatchFixture(root, context.backend.endpoint);
 	const sdk = context.sdk;
@@ -139,6 +145,17 @@ export async function observeInstalledCaseDispatch(context: JourneyContext): Pro
 	}
 	const selectedOwner = JSON.stringify(['rule', 'approval', 'docs/pieces.md', '1', '1']);
 	const excludedOwner = JSON.stringify(['rule', 'approval', 'docs/pieces.md', '3', '3']);
+	const preparePath = path.join(context.evidence, 'case-dispatch-sdk-ordinary-prepared.json');
+	const prepared = await observer.run({
+		root,
+		name: 'sdk-input-ordinary-prepare',
+		arguments: ['lint', '--config', 'sunstack.lint.json', '--all', '--prepare', preparePath],
+		expectedExit: 6,
+	});
+	assert.equal(prepared.captures.length, 0, 'SDK input prepare sent HTTP');
+	const preparedRaw = filesystem.readFileSync(preparePath, 'utf8');
+	requirePreparedRuntimeParity(preparedRaw, ordinary.raw, [selectedOwner, excludedOwner]);
+	requirePreparedRuntimeParity(preparedRaw, chosen.raw, [selectedOwner]);
 	requireControlledDispatch({
 		ordinary: attributeControlledCaptures(ordinary.raw, ordinary.captures),
 		selected: attributeControlledCaptures(chosen.raw, chosen.captures),
@@ -168,6 +185,13 @@ export async function observeInstalledCaseDispatch(context: JourneyContext): Pro
 	const ordinaryDigest = requestDigest(ordinary.raw, ordinaryIndex);
 	const selectedDigest = requestDigest(chosen.raw, selectedIndex);
 	assert.equal(selectedDigest, ordinaryDigest, 'Independently computed SDK input digest differs');
+	for (const [row, digest] of [
+		[ordinaryRequests[ordinaryIndex], ordinaryDigest],
+		[selectedRequests[selectedIndex], selectedDigest],
+	]) {
+		const stored = objectValue(row)['input_sha256'];
+		if (stored !== undefined) assert.equal(stored, digest, 'Stored SDK input digest differs');
+	}
 	const empty = await run([]);
 	assert.equal(empty.captures.length, 0, 'Explicit empty selection dispatched HTTP');
 	assert.deepEqual(
@@ -184,6 +208,19 @@ export async function observeInstalledCaseDispatch(context: JourneyContext): Pro
 	);
 	assert.deepEqual(objectValue(wideBinding['binding'])['lines'], wideInput.lines);
 	assert.equal(objectValue(wideBinding['outcome'])['kind'], 'stale');
+	const beforeDuplicate = context.backend.captures.length;
+	const duplicate = objectValue(
+		await boundedSdkWait(
+			sdk.run(loaded['value'], { ...options, case_selection: [binding, binding] }),
+			'duplicate SDK IDs',
+		),
+	);
+	assert.equal(duplicate['kind'], 'invalid', 'Duplicate SDK IDs were not refused');
+	assert.equal(
+		context.backend.captures.length,
+		beforeDuplicate,
+		'Duplicate SDK IDs dispatched HTTP',
+	);
 	const encoded = objectValue(serialize({ kind: 'report', value: report }));
 	requireSdk(
 		encoded['kind'] === 'serialized' && typeof encoded['json'] === 'string',
@@ -230,6 +267,7 @@ export async function observeInstalledCaseDispatch(context: JourneyContext): Pro
 		selected: chosen.outcome,
 		empty: empty.outcome,
 		wideInput: wideRun.outcome,
+		duplicate,
 		ordinaryHttp: ordinary.captures,
 		selectedHttp: chosen.captures,
 		selectedEncoded: encoded['json'],

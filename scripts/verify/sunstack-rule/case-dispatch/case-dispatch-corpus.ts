@@ -25,6 +25,33 @@ export interface CorpusFileSelection {
 	readonly notCollectibleIds: readonly string[];
 }
 
+/** Recheck each declared immutable instrument file, rather than trusting old booleans. */
+export function verifyInstrumentPins(receiptPath: string, configPath: string): void {
+	assert.ok(path.isAbsolute(receiptPath) && path.isAbsolute(configPath));
+	const receipt = parseObject(filesystem.readFileSync(receiptPath, 'utf8'));
+	assert.equal(receipt['config'], configPath, 'Declared instrument config differs');
+	assert.equal(receipt['instrument'], '70b18679863d10679ddcbd8eff426b47018e6811');
+	const pins = arrayValue(receipt['pins']).map(objectValue);
+	assert.equal(pins.length, 24, 'Instrument pin denominator differs');
+	const files = new Set<string>();
+	for (const pin of pins) {
+		const file = textValue(pin['file']);
+		assert.ok(
+			path.isAbsolute(file) && !files.has(file),
+			'Instrument pin path is invalid or repeated',
+		);
+		files.add(file);
+		const digest = createHash('sha256').update(filesystem.readFileSync(file)).digest('hex');
+		assert.equal(digest, textValue(pin['sha256']), `Instrument pin differs: ${file}`);
+	}
+	assert.ok(files.has(configPath), 'Instrument config was not pinned');
+	assert.equal(
+		createHash('sha256').update(filesystem.readFileSync(configPath)).digest('hex'),
+		'd265854fea3d57b79138e85795241bc14ff3c78dfda4b224e70d9edb1cb71987',
+		'Round-8 config digest differs',
+	);
+}
+
 /** The copy may rebase only repository; expected labels never become SDK bindings. */
 export function readCorpusSelections(
 	manifestPath: string,

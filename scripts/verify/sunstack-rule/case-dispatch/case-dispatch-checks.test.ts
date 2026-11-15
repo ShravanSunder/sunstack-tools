@@ -10,12 +10,14 @@ import {
 	requireCaseAccounting,
 	requireControlledDispatch,
 	requireManifestSelection,
+	requirePreparedRuntimeParity,
 	requireSelectedRequestParity,
 	requireUniqueOwnerBindings,
 	requestOwnerAt,
 } from './case-dispatch-checks.ts';
 import { readCorpusSelections, scoreSelectionArguments } from './case-dispatch-corpus.ts';
 import { createCaseDispatchFixture } from './case-dispatch-fixture.ts';
+import { candidateLines } from './case-dispatch-pending.ts';
 
 function requestRecord(rule: string, line: number, rawRequest: string): string {
 	const digest = createHash('sha256').update(rawRequest).digest('hex');
@@ -34,6 +36,12 @@ const selectedRequest =
 const excludedRequest = '{"state":{"text":"exclude"},"questions":{"a":{"type":"noul"}}}';
 
 describe('selected request parity observation', () => {
+	test('derives only unique complete-line pending candidates, including Unicode', () => {
+		expect(candidateLines('α\nstep café\nsecond\nend\n', 'step café\nsecond\n')).toEqual([2, 3]);
+		expect(() => candidateLines('prefix step\n', 'step\n')).toThrow('starts inside a line');
+		expect(() => candidateLines('step\nstep\n', 'step\n')).toThrow('missing or repeated');
+		expect(() => candidateLines('step', 'step')).toThrow('complete final line');
+	});
 	test('permits only a repository locator change and selects the exact score IDs', () => {
 		const root = filesystem.mkdtempSync(path.join(tmpdir(), '2026-11-case-corpus-'));
 		const originals = path.join(root, 'originals');
@@ -275,6 +283,36 @@ describe('selected request parity observation', () => {
 				prerequisiteOwners: [],
 			}),
 		).not.toThrow();
+	});
+	test('joins a prepared digest to actual runtime request bytes', () => {
+		const prepared = report(requestRecord('same', 1, selectedRequest));
+		const runtime = report(
+			requestRecord('same', 1, selectedRequest).replace(
+				'"state":"prepared","status":"prepared"',
+				'"state":"run"',
+			),
+		);
+		expect(() => requirePreparedRuntimeParity(prepared, runtime, [chosen])).not.toThrow();
+		expect(() =>
+			requirePreparedRuntimeParity(prepared, runtime.replace('café', 'changed'), [chosen]),
+		).toThrow('prepared/runtime input differs');
+		expect(() => requirePreparedRuntimeParity(prepared, runtime, [omitted])).toThrow(
+			'Prepared owner missing',
+		);
+		expect(() =>
+			requirePreparedRuntimeParity(
+				prepared,
+				runtime.replace('"state":"run"', '"state":"not_sent"'),
+				[chosen],
+			),
+		).toThrow('did not dispatch');
+		expect(() =>
+			requirePreparedRuntimeParity(
+				prepared,
+				runtime.replace(/"input_sha256":"[a-f0-9]+"/u, '"input_sha256":"incorrect"'),
+				[chosen],
+			),
+		).toThrow('stored runtime input digest differs');
 	});
 	test('rejects post-dispatch filtering, inert baselines and changed numeric payload', () => {
 		const ordinary = report(

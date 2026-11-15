@@ -31,8 +31,9 @@ export async function observeFilterDispatch(options: {
 	const rules = arrayValue(fixture['rule_cases']).map(objectValue);
 	const filters = arrayValue(fixture['filter_cases']).map(objectValue);
 	const selectedRule = rules.find((row) => row['id'] === 'pass');
+	const incompleteRule = rules.find((row) => row['id'] === 'incomplete');
 	const selectedFilter = filters.find((row) => row['id'] === 'filter-right');
-	assert.ok(selectedRule && selectedFilter);
+	assert.ok(selectedRule && selectedFilter && incompleteRule);
 	const configFile = path.join(root, casesConfigName);
 	const config = parseObject(filesystem.readFileSync(configFile, 'utf8'));
 	objectValue(config['decision_model'])['endpoint'] = options.observer.endpoint;
@@ -51,9 +52,10 @@ export async function observeFilterDispatch(options: {
 		set: 'development',
 		label_from: 'blind-agents',
 	};
+	const stale = { ...selectedFilter, id: 'filter-stale', reads_sha256: '0'.repeat(64) };
 	writeJson(casesPath, {
 		repository: root,
-		cases: [selectedRule, selectedFilter, unrelated],
+		cases: [selectedRule, selectedFilter, unrelated, stale, incompleteRule],
 		bars: [],
 	});
 	const history = textValue(selectedRule['revision']);
@@ -80,7 +82,12 @@ export async function observeFilterDispatch(options: {
 	assert.equal(result.captures.length, 0);
 	const raw = filesystem.readFileSync(saved, 'utf8');
 	const report = parseObject(raw);
-	assert.deepEqual(report['not_selected'], ['pass', 'unrelated-filter']);
+	assert.deepEqual(report['not_selected'], [
+		'pass',
+		'unrelated-filter',
+		'filter-stale',
+		'incomplete',
+	]);
 	requireCaseAccounting({
 		selectedIds: ['filter-right'],
 		dispositions: arrayValue(report['cases'])
@@ -132,4 +139,147 @@ export async function observeFilterDispatch(options: {
 		[JSON.stringify(['filter', 'category', includedFolder])],
 		'Standalone filter did not dispatch exactly its selected owner',
 	);
+	const gatedReport = path.join(options.evidence, 'filter-gated-rule-run.json');
+	const gated = await options.observer.run({
+		root,
+		name: 'filter-gated-rule-run',
+		arguments: [
+			'lint',
+			'--config',
+			casesConfigName,
+			'--report',
+			gatedReport,
+			'cases',
+			casesPath,
+			'--set',
+			'development',
+			'--case',
+			'pass',
+		],
+		credential: true,
+		expectedExit: 0,
+	});
+	const gatedRaw = filesystem.readFileSync(gatedReport, 'utf8');
+	const gatedCaptures = attributeControlledCaptures(
+		jsonSlice(gatedRaw, ['runs', 0, 'report']),
+		gated.captures.map((entry) => entry.raw.toString('utf8')),
+	);
+	const lines = arrayValue(selectedRule['lines']);
+	const firstLine = lines[0];
+	const lastLine = lines[1];
+	assert.ok(typeof firstLine === 'number' && typeof lastLine === 'number');
+	const gatedRuleOwner = JSON.stringify([
+		'rule',
+		textValue(selectedRule['rule']),
+		textValue(selectedRule['file']),
+		String(firstLine),
+		String(lastLine),
+	]);
+	const selectedFilterOwner = JSON.stringify(['filter', 'category', includedFolder]);
+	assert.deepEqual(
+		gatedCaptures.map((entry) => entry.owner).toSorted(),
+		[selectedFilterOwner, gatedRuleOwner].toSorted(),
+		'Gated selected case did not dispatch exactly its dependency and rule',
+	);
+	const standaloneBody = captures.find((entry) => entry.owner === selectedFilterOwner)?.raw;
+	const dependencyBody = gatedCaptures.find((entry) => entry.owner === selectedFilterOwner)?.raw;
+	assert.ok(standaloneBody && dependencyBody, 'Missing standalone or dependency filter HTTP');
+	assert.equal(
+		dependencyBody,
+		standaloneBody,
+		'Dependency filter body differs from standalone selection',
+	);
+	const unrelatedReport = path.join(options.evidence, 'filter-unrelated-positive-run.json');
+	const positive = await options.observer.run({
+		root,
+		name: 'filter-unrelated-positive-run',
+		arguments: [
+			'lint',
+			'--config',
+			casesConfigName,
+			'--report',
+			unrelatedReport,
+			'cases',
+			casesPath,
+			'--set',
+			'development',
+			'--case',
+			'unrelated-filter',
+		],
+		credential: true,
+		expectedExit: 0,
+	});
+	const unrelatedRaw = filesystem.readFileSync(unrelatedReport, 'utf8');
+	const positiveCaptures = attributeControlledCaptures(
+		jsonSlice(unrelatedRaw, ['runs', 0, 'report']),
+		positive.captures.map((entry) => entry.raw.toString('utf8')),
+	);
+	assert.deepEqual(
+		positiveCaptures.map((entry) => entry.owner),
+		[JSON.stringify(['filter', 'category', unrelatedFolder])],
+		'Unrelated folder has no independently selected HTTP witness',
+	);
+	const staleReport = path.join(options.evidence, 'filter-stale-run.json');
+	const staleRun = await options.observer.run({
+		root,
+		name: 'filter-stale-run',
+		arguments: [
+			'lint',
+			'--config',
+			casesConfigName,
+			'--report',
+			staleReport,
+			'cases',
+			casesPath,
+			'--set',
+			'development',
+			'--case',
+			'filter-stale',
+		],
+		credential: true,
+		expectedExit: 1,
+	});
+	assert.equal(staleRun.captures.length, 0, 'Stale filter dispatched a request');
+	const staleRows = arrayValue(
+		parseObject(filesystem.readFileSync(staleReport, 'utf8'))['cases'],
+	).map(objectValue);
+	requireCaseAccounting({
+		selectedIds: ['filter-stale'],
+		dispositions: staleRows.map((row) => ({
+			id: textValue(row['id']),
+			kind: textValue(objectValue(row['outcome'])['kind']),
+		})),
+		expectedKinds: new Map([['filter-stale', 'stale']]),
+	});
+	const incompleteReport = path.join(options.evidence, 'case-incomplete-run.json');
+	await options.observer.run({
+		root,
+		name: 'case-incomplete-run',
+		arguments: [
+			'lint',
+			'--config',
+			casesConfigName,
+			'--report',
+			incompleteReport,
+			'cases',
+			casesPath,
+			'--set',
+			'development',
+			'--case',
+			'incomplete',
+		],
+		credential: true,
+		expectedExit: 1,
+	});
+	const incompleteRows = arrayValue(
+		parseObject(filesystem.readFileSync(incompleteReport, 'utf8'))['cases'],
+	).map(objectValue);
+	requireCaseAccounting({
+		selectedIds: ['incomplete'],
+		dispositions: incompleteRows.map((row) => ({
+			id: textValue(row['id']),
+			kind: textValue(objectValue(row['outcome'])['kind']),
+		})),
+		expectedKinds: new Map([['incomplete', 'incomplete']]),
+	});
 }

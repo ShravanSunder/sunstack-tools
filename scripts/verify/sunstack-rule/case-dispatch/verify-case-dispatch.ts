@@ -18,6 +18,7 @@ import { observeInstalledSelectionCompiler } from './case-dispatch-compiler.ts';
 import { observeCorpusSelectedPreparation } from './case-dispatch-corpus-prepare.ts';
 import { observeFilterDispatch } from './case-dispatch-filters.ts';
 import { observeSameFileCaseDispatch } from './case-dispatch-journey.ts';
+import { observePendingCaseSelection } from './case-dispatch-pending.ts';
 import { observeInstalledCaseDispatch } from './case-dispatch-sdk.ts';
 
 async function main(): Promise<void> {
@@ -30,13 +31,14 @@ async function main(): Promise<void> {
 			manifest: { type: 'string' },
 			copies: { type: 'string' },
 			'rulebook-config': { type: 'string' },
+			'instrument-pins': { type: 'string' },
 			'prepared-exit': { type: 'string' },
 			help: { type: 'boolean' },
 		},
 	});
 	if (values.help) {
 		process.stdout.write(
-			'Draft partial observer: --target <installed SDK target JSON with CLI pin> --compiler <absolute tsc> --evidence <new absolute directory>. Optional corpus preparation requires --manifest <original dispatch.json> --copies <directory> --rulebook-config <absolute config> --prepared-exit <code>. Exit 3 means remaining proof gaps. Run only on a frozen, separately commissioned target.\n',
+			'Draft partial observer: --target <installed SDK target JSON with CLI pin> --compiler <absolute tsc> --evidence <new absolute directory>. Optional corpus preparation requires --manifest <original dispatch.json> --copies <directory> --rulebook-config <absolute config> --instrument-pins <absolute preflight.json> --prepared-exit <code>. Exit 3 means remaining proof gaps. Run only on a frozen, separately commissioned target.\n',
 		);
 		return;
 	}
@@ -82,15 +84,25 @@ async function main(): Promise<void> {
 		observerStarted = true;
 		await observeSameFileCaseDispatch({ observer, evidence: observer.evidence });
 		await observeFilterDispatch({ observer, evidence: observer.evidence });
+		await observePendingCaseSelection({
+			observer,
+			evidence: observer.evidence,
+			sourceRoot: target.sourceRoot,
+		});
 		const corpusOptions = [
 			values.manifest,
 			values.copies,
 			values['rulebook-config'],
+			values['instrument-pins'],
 			values['prepared-exit'],
 		];
 		if (corpusOptions.some((value) => value !== undefined)) {
 			requireSdk(
-				values.manifest && values.copies && values['rulebook-config'] && values['prepared-exit'],
+				values.manifest &&
+					values.copies &&
+					values['rulebook-config'] &&
+					values['instrument-pins'] &&
+					values['prepared-exit'],
 				'Declare all corpus observation inputs together',
 			);
 			const preparedExit = Number(values['prepared-exit']);
@@ -104,6 +116,7 @@ async function main(): Promise<void> {
 				manifest: values.manifest,
 				copies: values.copies,
 				rulebookConfig: values['rulebook-config'],
+				instrumentPins: values['instrument-pins'],
 				preparedExit,
 			});
 		}
@@ -114,7 +127,10 @@ async function main(): Promise<void> {
 			path.join(values.evidence, 'native-contract.json'),
 			await inspectInstalledSdkContract(sdk, target),
 		);
-		await observeInstalledCaseDispatch({ sdk, target, evidence: values.evidence, backend });
+		await observeInstalledCaseDispatch(
+			{ sdk, target, evidence: values.evidence, backend },
+			observer,
+		);
 		observeInstalledSelectionCompiler({
 			target,
 			evidence: values.evidence,
@@ -127,13 +143,13 @@ async function main(): Promise<void> {
 			observed: [
 				'same-file selected/excluded CLI and installed SDK control',
 				'standalone selected-filter prepare and controlled HTTP inventory',
+				'gated-rule dependency and separately selected other-folder HTTP witness',
+				'stale filter and selected-case cancellation accounting',
+				'pending selection prerequisite and case disposition',
+				'incomplete selected-case accounting',
 				'installed positive and negative selection caller compiles',
 			],
-			gaps: [
-				'real corpus prepare parity',
-				'dependent filter control and excluded-folder positive witness',
-				'selection pending, cancellation and incomplete',
-			],
+			gaps: ['real corpus prepare parity', 'pending selection positive and negative settlement'],
 		});
 		process.exitCode = 3;
 	} catch (error) {
