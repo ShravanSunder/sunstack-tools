@@ -4,7 +4,7 @@ import { createHash } from 'node:crypto';
 import filesystem from 'node:fs';
 import path from 'node:path';
 
-import { compactJson, jsonSlice } from '../prepare/raw-json.ts';
+import { compactJson, indexJson } from '../prepare/raw-json.ts';
 import {
 	arrayValue,
 	objectValue,
@@ -77,10 +77,12 @@ export function readCorpusSelections(
 			.filter((key) => key !== 'repository')
 			.toSorted();
 		assert.deepEqual(originalKeys, copyKeys, 'Execution copy changed case-file fields');
+		const originalSpans = indexJson(originalRaw);
+		const copySpans = indexJson(copyRaw);
 		for (const key of originalKeys)
 			assert.equal(
-				compactJson(jsonSlice(originalRaw, [key])),
-				compactJson(jsonSlice(copyRaw, [key])),
+				compactJson(originalSpans.slice([key])),
+				compactJson(copySpans.slice([key])),
 				`Execution copy changed ${key}`,
 			);
 		const repository = textValue(copy['repository']);

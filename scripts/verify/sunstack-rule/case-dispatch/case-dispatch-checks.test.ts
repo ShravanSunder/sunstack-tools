@@ -6,8 +6,10 @@ import path from 'node:path';
 
 import { describe, expect, test } from 'vitest';
 
+import { indexJson, jsonSlice } from '../prepare/raw-json.ts';
 import {
 	attributeControlledCaptures,
+	indexRequestReport,
 	requireCaseAccounting,
 	requireControlledDispatch,
 	requireManifestSelection,
@@ -63,6 +65,16 @@ const selectedRequest =
 const excludedRequest = '{"state":{"text":"exclude"},"questions":{"a":{"type":"noul"}}}';
 
 describe('selected request parity observation', () => {
+	test('indexed JSON slices preserve original tokens and existing duplicate refusals', () => {
+		const raw =
+			'{ "wide": 9007199254740993, "nested": { "text": "café\\n\\\"quoted\\\"", "order": [1, 2] } }';
+		const indexed = indexJson(raw);
+		for (const selected of [['wide'], ['nested', 'text'], ['nested', 'order', 1]] as const)
+			expect(indexed.slice(selected)).toBe(jsonSlice(raw, selected));
+		expect(indexed.slice(['wide'])).toBe('9007199254740993');
+		expect(() => indexJson('{"duplicate":1,"duplicate":2}')).toThrow('Repeated JSON path');
+		expect(() => indexed.slice(['missing'])).toThrow('Missing JSON path');
+	});
 	test('snapshot wrapper preserves receipts and refuses changed selected bytes', () => {
 		const root = filesystem.mkdtempSync(path.join(tmpdir(), '2026-11-snapshot-probe-'));
 		const snapshot = path.join(root, 'snapshot');
@@ -480,6 +492,23 @@ describe('selected request parity observation', () => {
 				prerequisiteOwners: [],
 			}),
 		).not.toThrow();
+	});
+	test('rejects a reused span index for a different report', () => {
+		const ordinary = report(
+			requestRecord('same', 1, selectedRequest),
+			requestRecord('same', 2, excludedRequest),
+		);
+		const selected = report(requestRecord('same', 1, selectedRequest));
+		expect(() =>
+			requireSelectedRequestParity({
+				ordinary,
+				selected,
+				selectedOwners: [chosen],
+				excludedOwners: [omitted],
+				prerequisiteOwners: [],
+				ordinaryReport: indexRequestReport(selected),
+			}),
+		).toThrow('Ordinary report index input differs');
 	});
 	test('joins a prepared digest to actual runtime request bytes', () => {
 		const prepared = report(requestRecord('same', 1, selectedRequest));

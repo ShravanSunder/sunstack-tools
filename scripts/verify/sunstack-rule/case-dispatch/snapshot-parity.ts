@@ -1,14 +1,14 @@
 /** Compare reports captured within one actual engine-owned revision snapshot. */
 import assert from 'node:assert/strict';
 
-import { compactJson, jsonSlice, requirePayloadBytes } from '../prepare/raw-json.ts';
+import { compactJson, indexJson } from '../prepare/raw-json.ts';
 import {
 	arrayValue,
 	objectValue,
 	parseObject,
 	textValue,
 } from '../rulebook/rulebook-fixture-support.ts';
-import { requireSelectedRequestParity, requestOwnerAt } from './case-dispatch-checks.ts';
+import { indexRequestReport, requireSelectedRequestParity } from './case-dispatch-checks.ts';
 
 export function requireSnapshotParity(
 	ordinary: string,
@@ -16,6 +16,7 @@ export function requireSnapshotParity(
 	bindingsRaw: string,
 ): object {
 	const bindings = arrayValue(JSON.parse(bindingsRaw)).map(objectValue);
+	const bindingSpans = indexJson(bindingsRaw);
 	const ids = new Set<string>();
 	const allowed = new Set<string>();
 	for (const [index, binding] of bindings.entries()) {
@@ -30,7 +31,7 @@ export function requireSnapshotParity(
 		}
 		assert.equal(binding['kind'], 'rule', 'Unknown selected binding kind');
 		const line = (position: number): string => {
-			const token = compactJson(jsonSlice(bindingsRaw, [index, 'lines', position]));
+			const token = compactJson(bindingSpans.slice([index, 'lines', position]));
 			assert.match(token, /^(0|[1-9][0-9]*)$/u);
 			return token;
 		};
@@ -44,12 +45,14 @@ export function requireSnapshotParity(
 			]),
 		);
 	}
-	const selectedRows = arrayValue(parseObject(selected)['requests']).map(objectValue);
+	const selectedIndex = indexRequestReport(selected);
+	const ordinaryReport = indexRequestReport(ordinary);
+	const selectedRows = selectedIndex.rows;
 	const selectedOwners = selectedRows.flatMap((row, index) =>
-		objectValue(row['owner'])['kind'] === 'selection' ? [] : [requestOwnerAt(selected, index)],
+		objectValue(row['owner'])['kind'] === 'selection' ? [] : [selectedIndex.ownerAt(index)],
 	);
 	const prerequisiteOwners = selectedRows.flatMap((row, index) =>
-		objectValue(row['owner'])['kind'] === 'selection' ? [requestOwnerAt(selected, index)] : [],
+		objectValue(row['owner'])['kind'] === 'selection' ? [selectedIndex.ownerAt(index)] : [],
 	);
 	const selection = objectValue(parseObject(selected)['case_selection']);
 	const dispositions = arrayValue(selection['bindings'])
@@ -71,7 +74,7 @@ export function requireSnapshotParity(
 			assert.equal(owner['kind'], 'rule', 'Unknown excluded execution owner');
 			const line = (position: number): string => {
 				const token = compactJson(
-					jsonSlice(selected, ['case_selection', 'excluded', index, 'lines', position]),
+					selectedIndex.slice(['case_selection', 'excluded', index, 'lines', position]),
 				);
 				assert.match(token, /^(0|[1-9][0-9]*)$/u);
 				return token;
@@ -101,36 +104,34 @@ export function requireSnapshotParity(
 		selectedOwners,
 		excludedOwners: [],
 		prerequisiteOwners,
+		ordinaryReport,
+		selectedReport: selectedIndex,
 	});
-	const ordinaryOwners = arrayValue(parseObject(ordinary)['requests']).map((_row, index) =>
-		requestOwnerAt(ordinary, index),
-	);
-	const ordinaryRows = arrayValue(parseObject(ordinary)['requests']).map(objectValue);
+	const ordinaryRows = ordinaryReport.rows;
+	const ordinaryOwners = ordinaryRows.map((_row, index) => ordinaryReport.ownerAt(index));
 	for (const owner of prerequisiteOwners) {
 		const ordinaryIndex = ordinaryOwners.indexOf(owner);
-		const selectedIndex = selectedRows.findIndex(
-			(_row, index) => requestOwnerAt(selected, index) === owner,
+		const selectedRowIndex = selectedRows.findIndex(
+			(_row, index) => selectedIndex.ownerAt(index) === owner,
 		);
 		assert.ok(
-			ordinaryIndex >= 0 && selectedIndex >= 0,
+			ordinaryIndex >= 0 && selectedRowIndex >= 0,
 			`Missing ordinary selection prerequisite: ${owner}`,
 		);
-		requirePayloadBytes({
-			left: ordinary,
-			leftPath: ['requests', ordinaryIndex, 'request'],
-			right: selected,
-			rightPath: ['requests', selectedIndex, 'request'],
-			label: `${owner}: prerequisite request differs`,
-		});
+		assert.equal(
+			compactJson(ordinaryReport.slice(['requests', ordinaryIndex, 'request'])),
+			compactJson(selectedIndex.slice(['requests', selectedRowIndex, 'request'])),
+			`${owner}: prerequisite request differs`,
+		);
 		assert.equal(
 			ordinaryRows[ordinaryIndex]?.['input_sha256'],
-			selectedRows[selectedIndex]?.['input_sha256'],
+			selectedRows[selectedRowIndex]?.['input_sha256'],
 			`${owner}: prerequisite digest differs`,
 		);
 	}
-	const ordinaryExecutionOwners = arrayValue(parseObject(ordinary)['requests'])
-		.map(objectValue)
-		.filter((row) => objectValue(row['owner'])['kind'] !== 'selection').length;
+	const ordinaryExecutionOwners = ordinaryRows.filter(
+		(row) => objectValue(row['owner'])['kind'] !== 'selection',
+	).length;
 	return {
 		selectedOwners,
 		prerequisiteOwners,

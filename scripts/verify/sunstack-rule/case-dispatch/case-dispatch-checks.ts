@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 
-import { compactJson, jsonSlice, requirePayloadBytes } from '../prepare/raw-json.ts';
+import { compactJson, indexJson } from '../prepare/raw-json.ts';
 import {
 	arrayValue,
 	objectValue,
@@ -38,16 +38,37 @@ export function requireManifestSelection(options: {
 		assert.ok(caseIds.has(id), `Scored ID absent from case file: ${id}`);
 }
 
-/** Keep line identifiers as original integer tokens, not rounded JavaScript numbers. */
-export function requestOwnerAt(raw: string, index: number): string {
-	const rows = arrayValue(parseObject(raw)['requests']).map(objectValue);
+/** Reuse one parsed report and original byte-span index for all owner comparisons. */
+export function indexRequestReport(raw: string): {
+	readonly raw: string;
+	readonly rows: ReturnType<typeof objectValue>[];
+	readonly mode: unknown;
+	readonly slice: (path: readonly (string | number)[]) => string;
+	readonly ownerAt: (index: number) => string;
+} {
+	const report = parseObject(raw);
+	const rows = arrayValue(report['requests']).map(objectValue);
+	const spans = indexJson(raw);
+	return {
+		raw,
+		rows,
+		mode: report['mode'],
+		slice: spans.slice,
+		ownerAt: (index) => ownerAt(rows, spans.slice, index),
+	};
+}
+function ownerAt(
+	rows: ReturnType<typeof objectValue>[],
+	slice: (path: readonly (string | number)[]) => string,
+	index: number,
+): string {
 	const row = rows[index];
 	assert.ok(row, 'Missing indexed request');
 	const owner = objectValue(row['owner']);
 	if (owner['kind'] === 'rule') {
 		const piece = objectValue(owner['piece']);
 		const integer = (name: string): string => {
-			const token = compactJson(jsonSlice(raw, ['requests', index, 'owner', 'piece', name]));
+			const token = compactJson(slice(['requests', index, 'owner', 'piece', name]));
 			assert.match(token, /^(0|[1-9][0-9]*)$/u, 'Owner line is not an unsigned integer token');
 			return token;
 		};
@@ -68,26 +89,28 @@ export function requestOwnerAt(raw: string, index: number): string {
 		textValue(owner['file']),
 	]);
 }
+/** Keep line identifiers as original integer tokens, not rounded JavaScript numbers. */
+export function requestOwnerAt(raw: string, index: number): string {
+	return indexRequestReport(raw).ownerAt(index);
+}
 
-function preparedInventory(raw: string): Map<string, number> {
-	const report = parseObject(raw);
-	assert.equal(report['mode'], 'prepare');
+function preparedInventory(raw: string, indexed = indexRequestReport(raw)): Map<string, number> {
+	assert.equal(indexed.mode, 'prepare');
 	const inventory = new Map<string, number>();
-	for (const [index, value] of arrayValue(report['requests']).entries()) {
-		const row = objectValue(value);
+	for (const [index, row] of indexed.rows.entries()) {
 		assert.equal(row['state'], 'prepared');
 		assert.equal(row['status'], 'prepared');
 		assert.ok(
 			!('answers' in row) && !('answers' in objectValue(row['request'])),
 			'Prepared request invented answers',
 		);
-		const payload = compactJson(jsonSlice(raw, ['requests', index, 'request']));
+		const payload = compactJson(indexed.slice(['requests', index, 'request']));
 		assert.equal(
 			row['input_sha256'],
 			createHash('sha256').update(payload).digest('hex'),
 			'Prepared input hash differs',
 		);
-		const owner = requestOwnerAt(raw, index);
+		const owner = indexed.ownerAt(index);
 		assert.ok(!inventory.has(owner), `Duplicate prepared owner ${owner}`);
 		inventory.set(owner, index);
 	}
@@ -104,14 +127,16 @@ export function requirePreparedRuntimeParity(
 		owners.length > 0 && new Set(owners).size === owners.length,
 		'Prepared/runtime owners must be nonempty and unique',
 	);
-	const preparedOwners = preparedInventory(prepared);
-	const runtimeRows = arrayValue(parseObject(runtime)['requests']).map(objectValue);
+	const preparedReport = indexRequestReport(prepared);
+	const runtimeReport = indexRequestReport(runtime);
+	const preparedOwners = preparedInventory(prepared, preparedReport);
+	const runtimeRows = runtimeReport.rows;
 	for (const owner of owners) {
 		const preparedIndex = preparedOwners.get(owner);
 		assert.notEqual(preparedIndex, undefined, `Prepared owner missing: ${owner}`);
 		if (preparedIndex === undefined) throw new Error('Missing prepared owner');
 		const runtimeIndexes = runtimeRows.flatMap((_row, index) =>
-			requestOwnerAt(runtime, index) === owner ? [index] : [],
+			runtimeReport.ownerAt(index) === owner ? [index] : [],
 		);
 		assert.equal(runtimeIndexes.length, 1, `Runtime owner missing or duplicated: ${owner}`);
 		const runtimeIndex = runtimeIndexes[0];
@@ -121,19 +146,17 @@ export function requirePreparedRuntimeParity(
 			'run',
 			`Runtime owner did not dispatch: ${owner}`,
 		);
-		requirePayloadBytes({
-			left: prepared,
-			leftPath: ['requests', preparedIndex, 'request'],
-			right: runtime,
-			rightPath: ['requests', runtimeIndex, 'request'],
-			label: `${owner}: prepared/runtime input differs`,
-		});
+		assert.equal(
+			compactJson(preparedReport.slice(['requests', preparedIndex, 'request'])),
+			compactJson(runtimeReport.slice(['requests', runtimeIndex, 'request'])),
+			`${owner}: prepared/runtime input differs`,
+		);
 		const digest = createHash('sha256')
-			.update(compactJson(jsonSlice(runtime, ['requests', runtimeIndex, 'request'])))
+			.update(compactJson(runtimeReport.slice(['requests', runtimeIndex, 'request'])))
 			.digest('hex');
 		assert.equal(
 			digest,
-			objectValue(arrayValue(parseObject(prepared)['requests'])[preparedIndex])['input_sha256'],
+			preparedReport.rows[preparedIndex]?.['input_sha256'],
 			`${owner}: runtime input digest differs`,
 		);
 		const runtimeDigest = runtimeRows[runtimeIndex]?.['input_sha256'];
@@ -147,17 +170,19 @@ export function attributeControlledCaptures(
 	reportRaw: string,
 	captures: readonly string[],
 ): { readonly owner: string; readonly raw: string }[] {
-	const rows = arrayValue(parseObject(reportRaw)['requests']).map(objectValue);
+	const report = indexRequestReport(reportRaw);
+	const rows = report.rows;
 	assert.equal(rows.length, captures.length, 'Saved request and HTTP capture counts differ');
 	const consumed = new Set<number>();
 	return captures.map((raw) => {
 		const capture = parseObject(raw);
+		const captureSpans = indexJson(raw);
 		const matches = rows.flatMap((row, index) => {
 			if (consumed.has(index) || row['requested_model'] !== capture['model']) return [];
 			for (const field of ['state', 'questions']) {
 				if (
-					compactJson(jsonSlice(reportRaw, ['requests', index, 'request', field])) !==
-					compactJson(jsonSlice(raw, [field]))
+					compactJson(report.slice(['requests', index, 'request', field])) !==
+					compactJson(captureSpans.slice([field]))
 				)
 					return [];
 			}
@@ -168,7 +193,7 @@ export function attributeControlledCaptures(
 		assert.notEqual(index, undefined, 'Missing HTTP owner index');
 		if (index === undefined) throw new Error('Missing HTTP owner index');
 		consumed.add(index);
-		return { owner: requestOwnerAt(reportRaw, index), raw };
+		return { owner: report.ownerAt(index), raw };
 	});
 }
 
@@ -282,6 +307,8 @@ export function requireSelectedRequestParity(options: {
 	readonly selectedOwners: readonly string[];
 	readonly excludedOwners: readonly string[];
 	readonly prerequisiteOwners: readonly string[];
+	readonly ordinaryReport?: ReturnType<typeof indexRequestReport>;
+	readonly selectedReport?: ReturnType<typeof indexRequestReport>;
 }): void {
 	const expected = new Set(options.selectedOwners);
 	const excluded = new Set(options.excludedOwners);
@@ -297,8 +324,12 @@ export function requireSelectedRequestParity(options: {
 	for (const owner of expected)
 		assert.ok(!excluded.has(owner) && !prerequisites.has(owner), 'Owner categories overlap');
 	for (const owner of excluded) assert.ok(!prerequisites.has(owner), 'Owner categories overlap');
-	const ordinary = preparedInventory(options.ordinary);
-	const selected = preparedInventory(options.selected);
+	const ordinaryReport = options.ordinaryReport ?? indexRequestReport(options.ordinary);
+	const selectedReport = options.selectedReport ?? indexRequestReport(options.selected);
+	assert.equal(ordinaryReport.raw, options.ordinary, 'Ordinary report index input differs');
+	assert.equal(selectedReport.raw, options.selected, 'Selected report index input differs');
+	const ordinary = preparedInventory(options.ordinary, ordinaryReport);
+	const selected = preparedInventory(options.selected, selectedReport);
 	for (const owner of excluded) {
 		assert.ok(ordinary.has(owner), `Excluded owner has no ordinary dispatch witness: ${owner}`);
 		assert.ok(!selected.has(owner), `Excluded owner was prepared: ${owner}`);
@@ -309,21 +340,19 @@ export function requireSelectedRequestParity(options: {
 		[...allowed].toSorted(),
 		'Selected owner inventory differs',
 	);
-	const ordinaryRows = arrayValue(parseObject(options.ordinary)['requests']).map(objectValue);
-	const selectedRows = arrayValue(parseObject(options.selected)['requests']).map(objectValue);
+	const ordinaryRows = ordinaryReport.rows;
+	const selectedRows = selectedReport.rows;
 	for (const owner of expected) {
 		const oldIndex = ordinary.get(owner);
 		const newIndex = selected.get(owner);
 		assert.notEqual(oldIndex, undefined, `Selected owner missing in ordinary reference: ${owner}`);
 		assert.notEqual(newIndex, undefined, `Selected owner missing: ${owner}`);
 		if (oldIndex === undefined || newIndex === undefined) throw new Error('Missing owner index');
-		requirePayloadBytes({
-			left: options.ordinary,
-			leftPath: ['requests', oldIndex, 'request'],
-			right: options.selected,
-			rightPath: ['requests', newIndex, 'request'],
-			label: `${owner}: full request differs`,
-		});
+		assert.equal(
+			compactJson(ordinaryReport.slice(['requests', oldIndex, 'request'])),
+			compactJson(selectedReport.slice(['requests', newIndex, 'request'])),
+			`${owner}: full request differs`,
+		);
 		const oldRow = ordinaryRows[oldIndex];
 		const newRow = selectedRows[newIndex];
 		assert.ok(oldRow && newRow, 'Missing indexed request');
@@ -332,9 +361,7 @@ export function requireSelectedRequestParity(options: {
 			textValue(oldRow['input_sha256']),
 			`${owner}: input digest differs`,
 		);
-		const selectedBytes = compactJson(
-			jsonSlice(options.selected, ['requests', newIndex, 'request']),
-		);
+		const selectedBytes = compactJson(selectedReport.slice(['requests', newIndex, 'request']));
 		assert.equal(
 			newRow['input_sha256'],
 			createHash('sha256').update(selectedBytes).digest('hex'),

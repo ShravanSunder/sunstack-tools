@@ -5,7 +5,7 @@ import filesystem from 'node:fs';
 import path from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
 
-import { compactJson, jsonSlice, requirePayloadBytes } from '../prepare/raw-json.ts';
+import { compactJson, jsonSlice } from '../prepare/raw-json.ts';
 import { parseObject, textValue } from '../rulebook/rulebook-fixture-support.ts';
 import { type RulebookProcess } from '../rulebook/rulebook-process.ts';
 import { boundedSdkWait } from '../sdk/sdk-controlled-backend.ts';
@@ -17,10 +17,10 @@ import {
 import { requireSdk, saveSdkEvidence } from '../sdk/sdk-target.ts';
 import {
 	attributeControlledCaptures,
+	indexRequestReport,
 	requireCaseAccounting,
 	requireControlledDispatch,
 	requirePreparedRuntimeParity,
-	requestOwnerAt,
 } from './case-dispatch-checks.ts';
 import { createCaseDispatchFixture, selectedText } from './case-dispatch-fixture.ts';
 
@@ -34,9 +34,9 @@ function arrayValue(value: unknown): unknown[] {
 	return Array.from(value);
 }
 
-function requestDigest(raw: string, index: number): string {
+function requestDigest(report: ReturnType<typeof indexRequestReport>, index: number): string {
 	return createHash('sha256')
-		.update(compactJson(jsonSlice(raw, ['requests', index, 'request'])))
+		.update(compactJson(report.slice(['requests', index, 'request'])))
 		.digest('hex');
 }
 
@@ -163,27 +163,27 @@ export async function observeInstalledCaseDispatch(
 		excludedOwners: [excludedOwner],
 		prerequisiteOwners: [],
 	});
-	const ordinaryRequests = arrayValue(parseObject(ordinary.raw)['requests']);
-	const selectedRequests = arrayValue(parseObject(chosen.raw)['requests']);
+	const ordinaryReport = indexRequestReport(ordinary.raw);
+	const selectedReport = indexRequestReport(chosen.raw);
+	const ordinaryRequests = ordinaryReport.rows;
+	const selectedRequests = selectedReport.rows;
 	const ordinaryIndex = ordinaryRequests.findIndex(
-		(_row, index) => requestOwnerAt(ordinary.raw, index) === selectedOwner,
+		(_row, index) => ordinaryReport.ownerAt(index) === selectedOwner,
 	);
 	const selectedIndex = selectedRequests.findIndex(
-		(_row, index) => requestOwnerAt(chosen.raw, index) === selectedOwner,
+		(_row, index) => selectedReport.ownerAt(index) === selectedOwner,
 	);
 	assert.ok(
 		ordinaryIndex >= 0 && selectedIndex >= 0 && selectedRequests.length === 1,
 		'Selected SDK request inventory differs',
 	);
-	requirePayloadBytes({
-		left: ordinary.raw,
-		leftPath: ['requests', ordinaryIndex, 'request'],
-		right: chosen.raw,
-		rightPath: ['requests', selectedIndex, 'request'],
-		label: 'Selected SDK request payload differs',
-	});
-	const ordinaryDigest = requestDigest(ordinary.raw, ordinaryIndex);
-	const selectedDigest = requestDigest(chosen.raw, selectedIndex);
+	assert.equal(
+		compactJson(ordinaryReport.slice(['requests', ordinaryIndex, 'request'])),
+		compactJson(selectedReport.slice(['requests', selectedIndex, 'request'])),
+		'Selected SDK request payload differs',
+	);
+	const ordinaryDigest = requestDigest(ordinaryReport, ordinaryIndex);
+	const selectedDigest = requestDigest(selectedReport, selectedIndex);
 	assert.equal(selectedDigest, ordinaryDigest, 'Independently computed SDK input digest differs');
 	for (const [row, digest] of [
 		[ordinaryRequests[ordinaryIndex], ordinaryDigest],
