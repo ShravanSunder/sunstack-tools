@@ -363,3 +363,6 @@ fn missing_rule_piece_with_pending_dependency_remains_pending() {
     ));
     assert!(plan.allowed_rule_pieces.is_empty());
 }
+
+#[path = "case_selection_scope_test.rs"]
+mod scope_tests;

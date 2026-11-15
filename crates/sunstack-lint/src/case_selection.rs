@@ -138,6 +138,40 @@ fn filter_owner(folder: &FilterFolder) -> CaseExecutionOwner {
     }
 }
 
+// Rule out a global summary only when this binding has complete local evidence.
+fn file_kind_is_settled(
+    file: &Path,
+    kind: Option<&EvidenceKindName>,
+    catalog: &EvidenceCatalog,
+) -> bool {
+    let Some(kind) = kind else {
+        return false;
+    };
+    let Some(index) = catalog.matches.get(file) else {
+        return false;
+    };
+    if index.limited
+        || !index.failed_languages.is_empty()
+        || catalog.failures.iter().any(|failure| failure.file == file)
+    {
+        return false;
+    }
+    let Some(count) = catalog.file_counts.iter().find(|count| count.file == file) else {
+        return false;
+    };
+    count.kinds.contains_key(kind)
+        && count.kinds.values().all(|count| {
+            !count.limited
+                && count.selection.as_ref().is_none_or(|selection| {
+                    selection.incomplete == 0
+                        && selection.uncertain == 0
+                        && selection.asked == selection.candidates
+                        && selection.selected.checked_add(selection.not_selected)
+                            == Some(selection.candidates)
+                })
+        })
+}
+
 fn missing_status(
     file: &PathBuf,
     kind: Option<&EvidenceKindName>,
@@ -156,7 +190,7 @@ fn missing_status(
     }
     if let Some(part) = incomplete
         .iter()
-        .find(|part| part.file.as_ref() == Some(file) || part.file.is_none())
+        .find(|part| part.file.as_ref() == Some(file))
     {
         return CaseBindingStatus::Incomplete {
             reason: part.reason.clone(),
@@ -165,6 +199,21 @@ fn missing_status(
     if catalog.failures.iter().any(|failure| &failure.file == file) {
         return CaseBindingStatus::Incomplete {
             reason: IncompleteReason::EvidenceUnavailable,
+        };
+    }
+    let settled = file_kind_is_settled(file, kind, catalog);
+    if let Some(part) = incomplete.iter().find(|part| {
+        part.file.is_none()
+            && (!settled
+                || !matches!(
+                    part.reason,
+                    IncompleteReason::CoveragePartial
+                        | IncompleteReason::SelectionFailed
+                        | IncompleteReason::SelectionIncomplete
+                ))
+    }) {
+        return CaseBindingStatus::Incomplete {
+            reason: part.reason.clone(),
         };
     }
     CaseBindingStatus::Unmatched
@@ -270,7 +319,14 @@ pub(crate) fn plan_case_selection(
                                 .map(move |(pi, piece)| (ri, pi, rule_owner(candidate, piece)))
                         })
                         .collect::<Vec<_>>();
-                    if matches.is_empty() {
+                    let captured_hash =
+                        catalog
+                            .piece_text_hashes
+                            .get(&(file.clone(), lines[0], lines[1]));
+                    // Captured source mismatch settles identity despite later scan/selection gaps.
+                    if captured_hash.is_some_and(|hash| hash != text_sha256) {
+                        CaseBindingStatus::Stale
+                    } else if matches.is_empty() {
                         let kind = rules
                             .iter()
                             .find(|candidate| &candidate.name == rule)
@@ -279,11 +335,7 @@ pub(crate) fn plan_case_selection(
                         if !matches!(missing, CaseBindingStatus::Unmatched) {
                             missing
                         } else {
-                            match catalog
-                                .piece_text_hashes
-                                .get(&(file.clone(), lines[0], lines[1]))
-                            {
-                                Some(hash) if hash != text_sha256 => CaseBindingStatus::Stale,
+                            match captured_hash {
                                 None if catalog.matches.contains_key(file) => {
                                     CaseBindingStatus::Stale
                                 }
@@ -292,11 +344,7 @@ pub(crate) fn plan_case_selection(
                             }
                         }
                     } else {
-                        match catalog
-                            .piece_text_hashes
-                            .get(&(file.clone(), lines[0], lines[1]))
-                        {
-                            Some(hash) if hash != text_sha256 => CaseBindingStatus::Stale,
+                        match captured_hash {
                             None => CaseBindingStatus::Incomplete {
                                 reason: IncompleteReason::EvidenceUnavailable,
                             },

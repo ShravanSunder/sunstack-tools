@@ -3,6 +3,8 @@ use serde_json::json;
 use sunstack_decisions::{CancellationToken, JudgmentAnswer};
 use sunstack_lint::test_support::lint_fixture as fixture;
 use sunstack_lint::*;
+#[path = "judged_library/case_binding_failures.rs"]
+mod case_binding_failures;
 #[path = "judged_library/case_dispatch.rs"]
 mod case_dispatch;
 #[path = "judged_library/case_prerequisites.rs"]
