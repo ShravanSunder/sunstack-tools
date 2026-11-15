@@ -5,7 +5,7 @@ import filesystem from 'node:fs';
 import path from 'node:path';
 
 import { prepareConfig, prepareSelectionFixture } from '../prepare/prepare-fixtures.ts';
-import { jsonSlice } from '../prepare/raw-json.ts';
+import { compactJson, jsonSlice } from '../prepare/raw-json.ts';
 import {
 	arrayValue,
 	gitCommand,
@@ -35,6 +35,53 @@ export function candidateLines(source: string, text: string): [number, number] {
 	assert.ok(text.endsWith('\n'), 'Fixture candidate needs a complete final line');
 	const firstLine = source.slice(0, start).split('\n').length;
 	return [firstLine, firstLine + text.split('\n').length - 2];
+}
+
+export function requirePendingCasePreparation(raw: string): void {
+	const report = parseObject(raw);
+	assert.equal(report['mode'], 'prepare');
+	assert.equal(objectValue(report['status'])['kind'], 'findings');
+	assert.deepEqual(objectValue(report['errors']), {});
+	const cases = arrayValue(report['cases']).map(objectValue);
+	assert.equal(cases.length, 1);
+	assert.equal(cases[0]?.['id'], 'pending-step');
+	assert.deepEqual(cases[0]?.['outcome'], {
+		kind: 'selection_pending',
+		evidence_kind: 'step',
+		file: researchFile,
+	});
+	assert.equal(cases[0]?.['result_id'], null);
+	assert.equal(arrayValue(report['runs']).length, 1);
+	const nestedRaw = jsonSlice(raw, ['runs', 0, 'report']);
+	const nested = parseObject(nestedRaw);
+	assert.equal(nested['mode'], 'prepare');
+	assert.equal(objectValue(nested['status'])['kind'], 'prepared');
+	assert.deepEqual(arrayValue(nested['results']), []);
+	const requests = arrayValue(nested['requests']).map(objectValue);
+	assert.equal(requests.length, 1, 'Expected exactly one prerequisite and no final owner');
+	const request = requests[0];
+	assert.ok(request);
+	assert.deepEqual(request['owner'], {
+		kind: 'selection',
+		selection_kind: 'workflow_section',
+		file: researchFile,
+	});
+	assert.equal(request['state'], 'prepared');
+	assert.equal(request['status'], 'prepared');
+	assert.equal(
+		request['input_sha256'],
+		createHash('sha256')
+			.update(compactJson(jsonSlice(nestedRaw, ['requests', 0, 'request'])))
+			.digest('hex'),
+	);
+	const needs = arrayValue(nested['needs_answer'])
+		.map(objectValue)
+		.filter((entry) => entry['kind'] === 'step' && entry['file'] === researchFile);
+	assert.equal(needs.length, 1, 'Expected one pending step prerequisite');
+	assert.deepEqual(needs[0]?.['waits_on'], {
+		selection_kind: 'workflow_section',
+		request_id: request['id'],
+	});
 }
 
 export async function observePendingCaseSelection(options: {
@@ -86,29 +133,11 @@ export async function observePendingCaseSelection(options: {
 			'--prepare',
 			output,
 		],
-		expectedExit: 6,
+		expectedExit: 1,
 	});
 	assert.equal(result.captures.length, 0, 'Pending prepare dispatched HTTP');
 	const raw = filesystem.readFileSync(output, 'utf8');
-	const report = parseObject(raw);
-	requireCaseAccounting({
-		selectedIds: ['pending-step'],
-		dispositions: arrayValue(report['cases'])
-			.map(objectValue)
-			.map((item) => ({
-				id: textValue(item['id']),
-				kind: textValue(objectValue(item['outcome'])['kind']),
-			})),
-		expectedKinds: new Map([['pending-step', 'selection_pending']]),
-	});
-	assert.equal(arrayValue(report['runs']).length, 1);
-	const nested = parseObject(jsonSlice(raw, ['runs', 0, 'report']));
-	const requests = arrayValue(nested['requests']).map(objectValue);
-	assert.ok(requests.length > 0, 'Pending selection has no prerequisite request');
-	assert.ok(
-		requests.every((request) => objectValue(request['owner'])['kind'] === 'selection'),
-		'Pending case fabricated a final rule/filter owner',
-	);
+	requirePendingCasePreparation(raw);
 	await runSequence(
 		[
 			['positive', 0.95, 1, 'right'],

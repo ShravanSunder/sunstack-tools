@@ -23,7 +23,7 @@ import {
 } from './case-dispatch-checks.ts';
 import { readCorpusSelections, scoreSelectionArguments } from './case-dispatch-corpus.ts';
 import { createCaseDispatchFixture } from './case-dispatch-fixture.ts';
-import { candidateLines } from './case-dispatch-pending.ts';
+import { candidateLines, requirePendingCasePreparation } from './case-dispatch-pending.ts';
 import { ordinarySnapshotArguments } from './snapshot-arguments.ts';
 import { requireSnapshotParity } from './snapshot-parity.ts';
 
@@ -68,6 +68,71 @@ const selectedRequest =
 const excludedRequest = '{"state":{"text":"exclude"},"questions":{"a":{"type":"noul"}}}';
 
 describe('selected request parity observation', () => {
+	test('pending cases retain outer findings and a single prepared prerequisite without a final result', () => {
+		const request = { state: {}, questions: {} };
+		const digest = createHash('sha256').update(JSON.stringify(request)).digest('hex');
+		const file = 'skills/practices-research/SKILL.md';
+		const fixture = {
+			mode: 'prepare',
+			status: { kind: 'findings' },
+			errors: {},
+			cases: [
+				{
+					id: 'pending-step',
+					outcome: { kind: 'selection_pending', evidence_kind: 'step', file },
+					result_id: null,
+				},
+			],
+			runs: [
+				{
+					report: {
+						mode: 'prepare',
+						status: { kind: 'prepared' },
+						results: [],
+						requests: [
+							{
+								id: 1,
+								owner: { kind: 'selection', selection_kind: 'workflow_section', file },
+								state: 'prepared',
+								status: 'prepared',
+								input_sha256: digest,
+								request,
+							},
+						],
+						needs_answer: [
+							{
+								kind: 'step',
+								file,
+								waits_on: { selection_kind: 'workflow_section', request_id: 1 },
+							},
+						],
+					},
+				},
+			],
+		};
+		const raw = JSON.stringify(fixture);
+		expect(() => requirePendingCasePreparation(raw)).not.toThrow();
+		expect(() =>
+			requirePendingCasePreparation(raw.replace('"kind":"findings"', '"kind":"prepared"')),
+		).toThrow();
+		expect(() =>
+			requirePendingCasePreparation(raw.replace('"kind":"selection_pending"', '"kind":"prepared"')),
+		).toThrow();
+		expect(() =>
+			requirePendingCasePreparation(raw.replace('"result_id":null', '"result_id":1')),
+		).toThrow();
+		expect(() =>
+			requirePendingCasePreparation(raw.replace('"results":[]', '"results":[{"id":1}]')),
+		).toThrow();
+		expect(() =>
+			requirePendingCasePreparation(
+				raw.replace('"kind":"selection","selection_kind"', '"kind":"rule","selection_kind"'),
+			),
+		).toThrow();
+		expect(() =>
+			requirePendingCasePreparation(raw.replace('"request_id":1', '"request_id":2')),
+		).toThrow();
+	});
 	test('the existing report responder refuses the gap sentinel and accepts a passing neighbor', () => {
 		const refused = reportReply({
 			model: 'test',
