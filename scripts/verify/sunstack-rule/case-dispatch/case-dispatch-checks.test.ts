@@ -11,11 +11,13 @@ import {
 	attributeControlledCaptures,
 	indexRequestReport,
 	requireCaseAccounting,
+	requireCleanCaseRun,
 	requireControlledDispatch,
 	requireManifestSelection,
 	requirePreparedRuntimeParity,
 	requireSelectedRequestParity,
 	requireUniqueOwnerBindings,
+	requireUnassessedBars,
 	requestOwnerAt,
 } from './case-dispatch-checks.ts';
 import { readCorpusSelections, scoreSelectionArguments } from './case-dispatch-corpus.ts';
@@ -65,6 +67,42 @@ const selectedRequest =
 const excludedRequest = '{"state":{"text":"exclude"},"questions":{"a":{"type":"noul"}}}';
 
 describe('selected request parity observation', () => {
+	test('requires explicit unassessed empty-provenance bars and a clean inner case run', () => {
+		const casesReport = {
+			bars: [
+				{
+					state: 'unassessed',
+					reason: 'bar has no recorded development cases',
+					value: null,
+					set_from: [],
+				},
+			],
+			runs: [{ report: { status: { kind: 'clean' } } }],
+		};
+		expect(() => requireUnassessedBars(casesReport)).not.toThrow();
+		expect(() => requireCleanCaseRun(casesReport)).not.toThrow();
+		expect(() => requireUnassessedBars({ ...casesReport, bars: [] })).toThrow(
+			'Expected authored thresholds',
+		);
+		expect(() =>
+			requireUnassessedBars({
+				...casesReport,
+				bars: [{ ...casesReport.bars[0], state: 'assessed' }],
+			}),
+		).toThrow();
+		expect(() =>
+			requireUnassessedBars({
+				...casesReport,
+				bars: [{ ...casesReport.bars[0], reason: 'other' }],
+			}),
+		).toThrow();
+		expect(() =>
+			requireCleanCaseRun({
+				...casesReport,
+				runs: [{ report: { status: { kind: 'incomplete' } } }],
+			}),
+		).toThrow();
+	});
 	test('indexed JSON slices preserve original tokens and existing duplicate refusals', () => {
 		const raw =
 			'{ "wide": 9007199254740993, "nested": { "text": "café\\n\\\"quoted\\\"", "order": [1, 2] } }';

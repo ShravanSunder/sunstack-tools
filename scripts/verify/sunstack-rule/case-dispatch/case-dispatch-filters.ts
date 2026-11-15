@@ -20,7 +20,12 @@ import {
 	writeJson,
 } from '../rulebook/rulebook-fixture-support.ts';
 import { responseBody, type RulebookProcess } from '../rulebook/rulebook-process.ts';
-import { attributeControlledCaptures, requireCaseAccounting } from './case-dispatch-checks.ts';
+import {
+	attributeControlledCaptures,
+	requireCaseAccounting,
+	requireCleanCaseRun,
+	requireUnassessedBars,
+} from './case-dispatch-checks.ts';
 
 export async function observeFilterDispatch(options: {
 	readonly observer: RulebookProcess;
@@ -127,9 +132,22 @@ export async function observeFilterDispatch(options: {
 			'filter-right',
 		],
 		credential: true,
-		expectedExit: 0,
+		expectedExit: 1,
 	});
 	const runRaw = filesystem.readFileSync(selectedRun, 'utf8');
+	const standaloneReport = parseObject(runRaw);
+	requireUnassessedBars(standaloneReport);
+	requireCleanCaseRun(standaloneReport);
+	requireCaseAccounting({
+		selectedIds: ['filter-right'],
+		dispositions: arrayValue(standaloneReport['cases'])
+			.map(objectValue)
+			.map((row) => ({
+				id: textValue(row['id']),
+				kind: textValue(objectValue(row['outcome'])['kind']),
+			})),
+		expectedKinds: new Map([['filter-right', 'right']]),
+	});
 	const captures = attributeControlledCaptures(
 		jsonSlice(runRaw, ['runs', 0, 'report']),
 		run.captures.map((entry) => entry.raw.toString('utf8')),
@@ -157,9 +175,22 @@ export async function observeFilterDispatch(options: {
 			'pass',
 		],
 		credential: true,
-		expectedExit: 0,
+		expectedExit: 1,
 	});
 	const gatedRaw = filesystem.readFileSync(gatedReport, 'utf8');
+	const gatedCases = parseObject(gatedRaw);
+	requireUnassessedBars(gatedCases);
+	requireCleanCaseRun(gatedCases);
+	requireCaseAccounting({
+		selectedIds: ['pass'],
+		dispositions: arrayValue(gatedCases['cases'])
+			.map(objectValue)
+			.map((row) => ({
+				id: textValue(row['id']),
+				kind: textValue(objectValue(row['outcome'])['kind']),
+			})),
+		expectedKinds: new Map([['pass', 'right']]),
+	});
 	const gatedCaptures = attributeControlledCaptures(
 		jsonSlice(gatedRaw, ['runs', 0, 'report']),
 		gated.captures.map((entry) => entry.raw.toString('utf8')),
@@ -207,9 +238,22 @@ export async function observeFilterDispatch(options: {
 			'unrelated-filter',
 		],
 		credential: true,
-		expectedExit: 0,
+		expectedExit: 1,
 	});
 	const unrelatedRaw = filesystem.readFileSync(unrelatedReport, 'utf8');
+	const unrelatedCases = parseObject(unrelatedRaw);
+	requireUnassessedBars(unrelatedCases);
+	requireCleanCaseRun(unrelatedCases);
+	requireCaseAccounting({
+		selectedIds: ['unrelated-filter'],
+		dispositions: arrayValue(unrelatedCases['cases'])
+			.map(objectValue)
+			.map((row) => ({
+				id: textValue(row['id']),
+				kind: textValue(objectValue(row['outcome'])['kind']),
+			})),
+		expectedKinds: new Map([['unrelated-filter', 'right']]),
+	});
 	const positiveCaptures = attributeControlledCaptures(
 		jsonSlice(unrelatedRaw, ['runs', 0, 'report']),
 		positive.captures.map((entry) => entry.raw.toString('utf8')),
@@ -240,9 +284,9 @@ export async function observeFilterDispatch(options: {
 		expectedExit: 1,
 	});
 	assert.equal(staleRun.captures.length, 0, 'Stale filter dispatched a request');
-	const staleRows = arrayValue(
-		parseObject(filesystem.readFileSync(staleReport, 'utf8'))['cases'],
-	).map(objectValue);
+	const staleCases = parseObject(filesystem.readFileSync(staleReport, 'utf8'));
+	requireUnassessedBars(staleCases);
+	const staleRows = arrayValue(staleCases['cases']).map(objectValue);
 	requireCaseAccounting({
 		selectedIds: ['filter-stale'],
 		dispositions: staleRows.map((row) => ({
@@ -271,9 +315,9 @@ export async function observeFilterDispatch(options: {
 		credential: true,
 		expectedExit: 1,
 	});
-	const incompleteRows = arrayValue(
-		parseObject(filesystem.readFileSync(incompleteReport, 'utf8'))['cases'],
-	).map(objectValue);
+	const incompleteCases = parseObject(filesystem.readFileSync(incompleteReport, 'utf8'));
+	requireUnassessedBars(incompleteCases);
+	const incompleteRows = arrayValue(incompleteCases['cases']).map(objectValue);
 	requireCaseAccounting({
 		selectedIds: ['incomplete'],
 		dispositions: incompleteRows.map((row) => ({

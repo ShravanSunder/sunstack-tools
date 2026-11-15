@@ -15,9 +15,11 @@ import { type RulebookProcess } from '../rulebook/rulebook-process.ts';
 import {
 	attributeControlledCaptures,
 	requireCaseAccounting,
+	requireCleanCaseRun,
 	requireControlledDispatch,
 	requirePreparedRuntimeParity,
 	requireSelectedRequestParity,
+	requireUnassessedBars,
 } from './case-dispatch-checks.ts';
 import { createCaseDispatchFixture } from './case-dispatch-fixture.ts';
 
@@ -148,9 +150,11 @@ export async function observeSameFileCaseDispatch(options: {
 			...selected.slice(3),
 		],
 		credential: true,
-		expectedExit: 0,
+		expectedExit: 1,
 	});
 	const selectedRunRaw = filesystem.readFileSync(selectedReport, 'utf8');
+	requireUnassessedBars(parseObject(selectedRunRaw));
+	requireCleanCaseRun(parseObject(selectedRunRaw));
 	const ordinaryRunRaw = filesystem.readFileSync(ordinaryReport, 'utf8');
 	const selectedRuntime = jsonSlice(selectedRunRaw, ['runs', 0, 'report']);
 	requirePreparedRuntimeParity(baseline, ordinaryRunRaw, [selectedOwner, excludedOwner]);
@@ -207,9 +211,9 @@ export async function observeSameFileCaseDispatch(options: {
 		1,
 		'Cancellation control did not reach its selected request',
 	);
-	const cancelledRows = arrayValue(
-		parseObject(filesystem.readFileSync(cancelledReport, 'utf8'))['cases'],
-	).map(objectValue);
+	const cancelledCaseReport = parseObject(filesystem.readFileSync(cancelledReport, 'utf8'));
+	requireUnassessedBars(cancelledCaseReport);
+	const cancelledRows = arrayValue(cancelledCaseReport['cases']).map(objectValue);
 	requireCaseAccounting({
 		selectedIds: ['selected-a', 'selected-b'],
 		dispositions: cancelledRows.map((row) => ({

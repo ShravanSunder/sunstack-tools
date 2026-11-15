@@ -222,6 +222,24 @@ export function requireCaseAccounting(options: {
 	}
 }
 
+/** Empty bar provenance produces a meaningful unassessed cases exit, even when cases are right. */
+export function requireUnassessedBars(report: ReturnType<typeof parseObject>): void {
+	const bars = arrayValue(report['bars']).map(objectValue);
+	assert.ok(bars.length > 0, 'Expected authored thresholds with unassessed bars');
+	for (const bar of bars) {
+		assert.equal(bar['state'], 'unassessed');
+		assert.equal(bar['reason'], 'bar has no recorded development cases');
+		assert.equal(bar['value'], null);
+		assert.deepEqual(bar['set_from'], []);
+	}
+}
+
+export function requireCleanCaseRun(report: ReturnType<typeof parseObject>): void {
+	const runs = arrayValue(report['runs']).map(objectValue);
+	assert.equal(runs.length, 1, 'Expected one historical run');
+	assert.equal(objectValue(objectValue(runs[0]?.['report'])['status'])['kind'], 'clean');
+}
+
 /** Keep every matched case ID even when multiple IDs share a single execution owner. */
 export function requireUniqueOwnerBindings(options: {
 	readonly expected: ReadonlyMap<string, string>;

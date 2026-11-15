@@ -18,7 +18,12 @@ import {
 import { type RulebookProcess } from '../rulebook/rulebook-process.ts';
 import { oracleRows, researchFile } from '../selection/selection-fixture.ts';
 import { scriptedSelectionReply } from '../selection/selection-reply.ts';
-import { attributeControlledCaptures, requireCaseAccounting } from './case-dispatch-checks.ts';
+import {
+	attributeControlledCaptures,
+	requireCaseAccounting,
+	requireCleanCaseRun,
+	requireUnassessedBars,
+} from './case-dispatch-checks.ts';
 
 export function candidateLines(source: string, text: string): [number, number] {
 	const start = source.indexOf(text);
@@ -106,7 +111,7 @@ export async function observePendingCaseSelection(options: {
 	);
 	await runSequence(
 		[
-			['positive', 0.95, 0, 'right'],
+			['positive', 0.95, 1, 'right'],
 			['negative', 0.05, 1, 'no_matching_piece'],
 		] as const,
 		async ([label, probability, exit, disposition]) => {
@@ -141,6 +146,8 @@ export async function observePendingCaseSelection(options: {
 			});
 			const selectedRaw = filesystem.readFileSync(selectedFile, 'utf8');
 			const selectedReport = parseObject(selectedRaw);
+			requireUnassessedBars(selectedReport);
+			requireCleanCaseRun(selectedReport);
 			requireCaseAccounting({
 				selectedIds: ['pending-step'],
 				dispositions: arrayValue(selectedReport['cases'])
