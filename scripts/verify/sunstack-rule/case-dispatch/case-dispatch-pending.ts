@@ -11,12 +11,14 @@ import {
 	gitCommand,
 	objectValue,
 	parseObject,
+	runSequence,
 	textValue,
 	writeJson,
 } from '../rulebook/rulebook-fixture-support.ts';
 import { type RulebookProcess } from '../rulebook/rulebook-process.ts';
 import { oracleRows, researchFile } from '../selection/selection-fixture.ts';
-import { requireCaseAccounting } from './case-dispatch-checks.ts';
+import { scriptedSelectionReply } from '../selection/selection-reply.ts';
+import { attributeControlledCaptures, requireCaseAccounting } from './case-dispatch-checks.ts';
 
 export function candidateLines(source: string, text: string): [number, number] {
 	const start = source.indexOf(text);
@@ -101,5 +103,91 @@ export async function observePendingCaseSelection(options: {
 	assert.ok(
 		requests.every((request) => objectValue(request['owner'])['kind'] === 'selection'),
 		'Pending case fabricated a final rule/filter owner',
+	);
+	await runSequence(
+		[
+			['positive', 0.95, 0, 'right'],
+			['negative', 0.05, 1, 'no_matching_piece'],
+		] as const,
+		async ([label, probability, exit, disposition]) => {
+			options.observer.reply = scriptedSelectionReply({ probability: () => probability });
+			const ordinaryFile = path.join(options.evidence, `pending-${label}-ordinary.json`);
+			const selectedFile = path.join(options.evidence, `pending-${label}-selected.json`);
+			const ordinary = await options.observer.run({
+				root,
+				name: `pending-${label}-ordinary`,
+				arguments: ['lint', '--config', prepareConfig, '--all', '--report', ordinaryFile],
+				credential: true,
+				expectedExit: 0,
+			});
+			const selected = await options.observer.run({
+				root,
+				name: `pending-${label}-selected`,
+				arguments: [
+					'lint',
+					'--config',
+					prepareConfig,
+					'--report',
+					selectedFile,
+					'cases',
+					cases,
+					'--set',
+					'development',
+					'--case',
+					'pending-step',
+				],
+				credential: true,
+				expectedExit: exit,
+			});
+			const selectedRaw = filesystem.readFileSync(selectedFile, 'utf8');
+			const selectedReport = parseObject(selectedRaw);
+			requireCaseAccounting({
+				selectedIds: ['pending-step'],
+				dispositions: arrayValue(selectedReport['cases'])
+					.map(objectValue)
+					.map((item) => ({
+						id: textValue(item['id']),
+						kind: textValue(objectValue(item['outcome'])['kind']),
+					})),
+				expectedKinds: new Map([['pending-step', disposition]]),
+			});
+			const ordinaryCaptures = attributeControlledCaptures(
+				filesystem.readFileSync(ordinaryFile, 'utf8'),
+				ordinary.captures.map((capture) => capture.raw.toString('utf8')),
+			);
+			const selectedCaptures = attributeControlledCaptures(
+				jsonSlice(selectedRaw, ['runs', 0, 'report']),
+				selected.captures.map((capture) => capture.raw.toString('utf8')),
+			);
+			const selector = JSON.stringify(['selection', 'workflow_section', researchFile]);
+			const selectedSelector = selectedCaptures.find((capture) => capture.owner === selector);
+			const ordinarySelector = ordinaryCaptures.find((capture) => capture.owner === selector);
+			assert.ok(
+				selectedSelector && ordinarySelector,
+				'Selection settlement has no matching prerequisite witness',
+			);
+			assert.equal(
+				selectedSelector.raw,
+				ordinarySelector.raw,
+				'Selection prerequisite body differs',
+			);
+			const ruleOwner = JSON.stringify([
+				'rule',
+				'selected_step_asks',
+				researchFile,
+				String(lines[0]),
+				String(lines[1]),
+			]);
+			const selectedRule = selectedCaptures.find((capture) => capture.owner === ruleOwner);
+			if (label === 'positive') {
+				const ordinaryRule = ordinaryCaptures.find((capture) => capture.owner === ruleOwner);
+				assert.ok(selectedRule && ordinaryRule, 'Positive settlement did not reach selected rule');
+				assert.equal(
+					selectedRule.raw,
+					ordinaryRule.raw,
+					'Positive settlement changed selected request',
+				);
+			} else assert.equal(selectedRule, undefined, 'Negative settlement dispatched rejected rule');
+		},
 	);
 }
