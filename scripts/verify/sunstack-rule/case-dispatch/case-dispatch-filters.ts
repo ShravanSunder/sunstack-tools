@@ -20,6 +20,7 @@ import {
 	writeJson,
 } from '../rulebook/rulebook-fixture-support.ts';
 import { responseBody, type RulebookProcess } from '../rulebook/rulebook-process.ts';
+import { reportReply } from '../rulebook/rulebook-report.ts';
 import {
 	attributeControlledCaptures,
 	requireCaseAccounting,
@@ -311,27 +312,35 @@ export async function observeFilterDispatch(options: {
 		expectedKinds: new Map([['filter-stale', 'stale']]),
 	});
 	const incompleteReport = path.join(options.evidence, 'case-incomplete-run.json');
-	await options.observer.run({
-		root,
-		name: 'case-incomplete-run',
-		arguments: [
-			'lint',
-			'--config',
-			casesConfigName,
-			'--report',
-			incompleteReport,
-			'cases',
-			casesPath,
-			'--set',
-			'development',
-			'--case',
-			'incomplete',
-		],
-		credential: true,
-		expectedExit: 1,
-	});
+	const previousResponder = options.observer.respond;
+	let incompleteRun: Awaited<ReturnType<RulebookProcess['run']>>;
+	try {
+		options.observer.respond = ({ body }) => Promise.resolve(reportReply(body));
+		incompleteRun = await options.observer.run({
+			root,
+			name: 'case-incomplete-run',
+			arguments: [
+				'lint',
+				'--config',
+				casesConfigName,
+				'--report',
+				incompleteReport,
+				'cases',
+				casesPath,
+				'--set',
+				'development',
+				'--case',
+				'incomplete',
+			],
+			credential: true,
+			expectedExit: 1,
+		});
+	} finally {
+		options.observer.respond = previousResponder;
+	}
 	const incompleteCases = parseObject(filesystem.readFileSync(incompleteReport, 'utf8'));
 	requireUnassessedBars(incompleteCases);
+	requireEligibleFilter(incompleteCases, includedFolder);
 	const incompleteRows = arrayValue(incompleteCases['cases']).map(objectValue);
 	requireCaseAccounting({
 		selectedIds: ['incomplete'],
@@ -341,4 +350,57 @@ export async function observeFilterDispatch(options: {
 		})),
 		expectedKinds: new Map([['incomplete', 'incomplete']]),
 	});
+	assert.equal(
+		incompleteRun.captures.length,
+		2,
+		'Expected one filter and one refused rule request',
+	);
+	const incompleteRaw = filesystem.readFileSync(incompleteReport, 'utf8');
+	const captured = attributeControlledCaptures(
+		jsonSlice(incompleteRaw, ['runs', 0, 'report']),
+		incompleteRun.captures.map((entry) => entry.raw.toString('utf8')),
+	);
+	const incompleteFile = textValue(incompleteRule['file']);
+	const expectedFilterOwner = JSON.stringify(['filter', 'category', includedFolder]);
+	const expectedRuleOwner = JSON.stringify(['rule', 'asking_gate', incompleteFile, '1', '1']);
+	assert.deepEqual(
+		captured.map((entry) => entry.owner).toSorted(),
+		[expectedFilterOwner, expectedRuleOwner].toSorted(),
+		'Incomplete run request owners differ',
+	);
+	assert.ok(
+		captured.find((entry) => entry.owner === expectedRuleOwner)?.raw.includes('GAP_BODY_SENTINEL'),
+		'Refused rule request missed the authored sentinel',
+	);
+	const incompleteRuns = arrayValue(incompleteCases['runs']).map(objectValue);
+	assert.equal(incompleteRuns.length, 1);
+	const inner = objectValue(incompleteRuns[0]?.['report']);
+	assert.equal(objectValue(inner['status'])['kind'], 'incomplete');
+	const requests = arrayValue(inner['requests']).map(objectValue);
+	const filter = requests.filter((request) => objectValue(request['owner'])['kind'] === 'filter');
+	const rule = requests.filter((request) => objectValue(request['owner'])['kind'] === 'rule');
+	assert.equal(filter.length, 1);
+	assert.equal(rule.length, 1);
+	assert.equal(objectValue(filter[0]?.['outcome'])['kind'], 'completed');
+	const refusal = objectValue(rule[0]?.['outcome']);
+	assert.equal(refusal['kind'], 'provider_failure');
+	assert.equal(refusal['failure_class'], 'provider_rejected_request');
+	assert.equal(refusal['http_status'], 400);
+	const attempts = arrayValue(refusal['attempts']).map(objectValue);
+	assert.equal(attempts.length, 1);
+	assert.deepEqual(objectValue(attempts[0]?.['evidence']), {
+		kind: 'remote_outcome_unknown',
+		failure_class: 'provider_rejected_request',
+		http_status: 400,
+	});
+	const results = arrayValue(inner['results']).map(objectValue);
+	assert.equal(results.length, 1);
+	assert.equal(results[0]?.['outcome'], 'incomplete');
+	assert.equal(
+		incompleteRows[0]?.['result_id'],
+		results[0]?.['id'],
+		'Incomplete case did not retain its unique result',
+	);
+	assert.notEqual(incompleteRows[0]?.['result_id'], null);
+	assert.equal(results[0]?.['file'], incompleteFile);
 }

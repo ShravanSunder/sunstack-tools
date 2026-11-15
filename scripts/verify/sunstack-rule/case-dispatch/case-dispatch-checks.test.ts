@@ -7,6 +7,7 @@ import path from 'node:path';
 import { describe, expect, test } from 'vitest';
 
 import { indexJson, jsonSlice } from '../prepare/raw-json.ts';
+import { reportReply } from '../rulebook/rulebook-report.ts';
 import {
 	attributeControlledCaptures,
 	indexRequestReport,
@@ -67,6 +68,21 @@ const selectedRequest =
 const excludedRequest = '{"state":{"text":"exclude"},"questions":{"a":{"type":"noul"}}}';
 
 describe('selected request parity observation', () => {
+	test('the existing report responder refuses the gap sentinel and accepts a passing neighbor', () => {
+		const refused = reportReply({
+			model: 'test',
+			state: { body: 'Approved GAP_BODY_SENTINEL.' },
+			questions: { verdict: { type: 'noul' } },
+		});
+		const neighbor = reportReply({
+			model: 'test',
+			state: { body: 'Approved PASS_BODY_SENTINEL.' },
+			questions: { verdict: { type: 'noul' } },
+		});
+		expect(refused).toEqual({ status: 400, body: { error: 'controlled report refusal' } });
+		expect(neighbor.status).toBe(200);
+		expect(neighbor.body['answers']).toMatchObject({ verdict: { type: 'noul', noul: 0.95 } });
+	});
 	test('requires explicit unassessed empty-provenance bars and a clean inner case run', () => {
 		const casesReport = {
 			bars: [
