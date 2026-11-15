@@ -281,16 +281,23 @@ async fn invoke(
     executable: &Path,
     snapshot: &RevisionSnapshot,
     paths: &[PathBuf],
+    bindings: &[crate::CaseBinding],
     cancellation: &CancellationToken,
     mode: &super::CaseExecution,
 ) -> Result<std::process::Output, String> {
+    // Keep execution inputs outside the checked tree so they cannot become evidence.
+    let selection_path = snapshot._directory.path().join("case-selection.json");
+    let selection_bytes = serde_json::to_vec(bindings).map_err(|error| error.to_string())?;
+    std::fs::write(&selection_path, selection_bytes).map_err(|error| error.to_string())?;
     let mut command = tokio::process::Command::new(executable);
     command
         .current_dir(&snapshot.tree)
         .arg("lint")
         .arg("--config")
         .arg(&snapshot.config)
-        .args(["--format", "json"]);
+        .args(["--format", "json"])
+        .arg("--case-selection")
+        .arg(&selection_path);
     if let super::CaseExecution::Prepare { selections_from } = mode {
         command
             .arg("--prepare")
@@ -311,13 +318,14 @@ pub(super) async fn lint(
     executable: &Path,
     snapshot: &RevisionSnapshot,
     paths: &[PathBuf],
+    bindings: &[crate::CaseBinding],
     cancellation: &CancellationToken,
     mode: &super::CaseExecution,
 ) -> Result<LintReport, String> {
     if paths.is_empty() {
         return Err("no judgeable selected case paths at this revision".into());
     }
-    let output = invoke(executable, snapshot, paths, cancellation, mode).await?;
+    let output = invoke(executable, snapshot, paths, bindings, cancellation, mode).await?;
     serde_json::from_slice(&output.stdout).map_err(|error| {
         format!(
             "normal lint report unavailable: {error}; {}",

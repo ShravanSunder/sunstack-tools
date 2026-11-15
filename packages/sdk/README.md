@@ -353,8 +353,50 @@ values are refused before dispatch.
   from the configuration's `base_directory`, which resolves definition references only.
 - `scope`: `{ kind: 'default' }` (staged, unstaged and untracked changes; needs Git),
   `{ kind: 'since', rev }` or `{ kind: 'all' }`.
+- `case_selection`: optional label-free rule/filter bindings. Omit it for ordinary
+  execution; `[]` selects no execution owners. Each binding names an id and either
+  a rule/file/exact line range/text digest, or a filter/folder/read digest. Line
+  locations retain Rust's full width as `bigint`. Current checked content must match.
 - `signal`: an `AbortSignal` that cancels only this call. An already-aborted signal
   starts no work.
+
+```ts
+import { createHash } from 'node:crypto';
+
+import type { CaseBinding } from '@sunstack/sdk';
+
+const sha256OfOriginalLineBytes = createHash('sha256')
+	.update('The reviewer checks each change.\n')
+	.digest('hex');
+const cases = [
+	{
+		id: 'guide-opening',
+		kind: 'rule',
+		rule: 'instruction_actor',
+		file: 'skills/guide/SKILL.md',
+		lines: [3n, 3n],
+		text_sha256: sha256OfOriginalLineBytes,
+	},
+] as const satisfies readonly CaseBinding[];
+const selected = await run(configuration, {
+	root: '/absolute/checked/root',
+	scope: { kind: 'all' },
+	case_selection: cases,
+});
+if (selected.kind === 'completed') {
+	console.log(selected.report.case_selection?.bindings);
+	console.log(selected.report.case_selection?.excluded);
+}
+```
+
+The digest covers the original inclusive source lines, including their line endings.
+Selection happens before rule/filter request construction and preserves selected
+request payloads. Multiple case ids may share one unique execution owner: it runs
+once, with every id retained in accounting. `case_selection` reports binding
+outcomes (`selected`, `unmatched`, `ambiguous`, `stale`, `selection_pending`,
+`incomplete`, `cancelled`) separately from excluded execution owners. Shared
+model-backed evidence selection may still be needed before final pieces exist.
+Bindings contain no expected labels, and inspection keeps its existing options.
 
 `run` uses the existing credential route (`OPENROUTER_API_KEY`, then the OS
 credential store). The SDK never changes the process working directory or

@@ -5,7 +5,7 @@ use sunstack_lint::test_support::lint_fixture as fixture;
 use sunstack_lint::*;
 use sunstack_rules::test_support::controlled_http::ControlledServer;
 
-fn setup(root: &Path, endpoint: &str) -> Value {
+pub(super) fn setup(root: &Path, endpoint: &str) -> Value {
     let mut config = fixture::write(root);
     std::fs::write(
         root.join("evidence/rules/member.yml"),

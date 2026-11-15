@@ -131,6 +131,7 @@ fn all_files(root: &Path) -> RunRequest {
         root: root.to_path_buf(),
         scope: Scope::All,
         paths: vec![],
+        case_selection: None,
     }
 }
 
@@ -148,6 +149,7 @@ async fn run_captured(configuration: &Value, root: &Path) -> (DefinitionOrigin, 
         ScopeChoice::All,
         CancellationToken::new(),
         Some(PLACEHOLDER_KEY.into()),
+        None,
     )
     .await
     .expect("a refused backend is a domain refusal, not a stopped stage");

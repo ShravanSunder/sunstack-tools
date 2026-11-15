@@ -83,6 +83,7 @@ async fn filter_gate_prevents_real_first_walk_and_deduplicates_skips() {
                 &BTreeMap::new(),
                 &mut dispatcher,
                 &answers,
+                None,
             )
             .await;
             assert_eq!(FIRST_WALKS.with(|walks| walks.get()), 0);
@@ -113,6 +114,7 @@ async fn filter_gate_prevents_real_first_walk_and_deduplicates_skips() {
             &BTreeMap::new(),
             &mut dispatcher,
             &answers,
+            None,
         )
         .await;
         assert_eq!(FIRST_WALKS.with(|walks| walks.get()), 1);
@@ -124,6 +126,7 @@ async fn filter_gate_prevents_real_first_walk_and_deduplicates_skips() {
             &BTreeMap::new(),
             &mut dispatcher,
             &FilterAnswers::default(),
+            None,
         )
         .await;
         assert_eq!(FIRST_WALKS.with(|walks| walks.get()), 0);

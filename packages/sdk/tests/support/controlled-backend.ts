@@ -8,6 +8,8 @@ import { ownedDirectory } from './sdk-fixtures.ts';
 
 export interface CapturedRequest {
 	readonly body: Readonly<Record<string, unknown>>;
+	/** Complete incoming HTTP body bytes, captured before JSON decoding. */
+	readonly rawBody: Buffer;
 	/** Send the answer for this request. */
 	respond(status: number, body: unknown): void;
 	/** Whether the client closed the connection before an answer was sent. */
@@ -28,13 +30,19 @@ function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
 	return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-async function readBody(request: IncomingMessage): Promise<Readonly<Record<string, unknown>>> {
+interface CapturedBody {
+	readonly body: Readonly<Record<string, unknown>>;
+	readonly rawBody: Buffer;
+}
+
+async function readBody(request: IncomingMessage): Promise<CapturedBody> {
 	const chunks: Buffer[] = [];
 	for await (const chunk of request)
 		chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(String(chunk)));
-	const parsed: unknown = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+	const rawBody = Buffer.concat(chunks);
+	const parsed: unknown = JSON.parse(rawBody.toString('utf8'));
 	if (!isRecord(parsed)) throw new Error('decision request body is not an object');
-	return parsed;
+	return { body: parsed, rawBody };
 }
 
 export async function startControlledBackend(): Promise<ControlledBackend> {
@@ -50,9 +58,10 @@ export async function startControlledBackend(): Promise<ControlledBackend> {
 			open.delete(response);
 			if (!answered) clientClosed = true;
 		});
-		void readBody(request).then((body) => {
+		void readBody(request).then(({ body, rawBody }) => {
 			const captured: CapturedRequest = {
 				body,
+				rawBody,
 				respond(status, answer) {
 					answered = true;
 					response.writeHead(status, { 'content-type': 'application/json' });

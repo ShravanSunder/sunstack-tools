@@ -109,6 +109,9 @@ async fn execute(arguments: LintArguments, cancellation: CancellationToken) -> E
             2,
         );
     }
+    if arguments.case_selection.is_some() && arguments.command.is_some() {
+        return output("--case-selection applies to ordinary lint only.", 2);
+    }
     if let Some(LintCommand::Show { file, id }) = &arguments.command {
         let detail = std::fs::read(file)
             .map_err(|error| format!("cannot read saved report {}: {error}", file.display()))
@@ -123,7 +126,12 @@ async fn execute(arguments: LintArguments, cancellation: CancellationToken) -> E
             }
         };
     }
-    if let Some(LintCommand::Cases { file, set }) = &arguments.command {
+    if let Some(LintCommand::Cases {
+        file,
+        set,
+        case_ids,
+    }) = &arguments.command
+    {
         let executable = match std::env::current_exe() {
             Ok(path) => path,
             Err(_) => return output("Cannot locate sunstack executable.", 3),
@@ -133,6 +141,7 @@ async fn execute(arguments: LintArguments, cancellation: CancellationToken) -> E
                 file,
                 arguments.config.as_deref(),
                 set.as_deref(),
+                case_ids,
                 &executable,
                 cancellation,
                 arguments.selections_from.as_deref(),
@@ -143,6 +152,7 @@ async fn execute(arguments: LintArguments, cancellation: CancellationToken) -> E
                 file,
                 arguments.config.as_deref(),
                 set.as_deref(),
+                case_ids,
                 &executable,
                 cancellation,
             )
@@ -211,6 +221,18 @@ async fn execute(arguments: LintArguments, cancellation: CancellationToken) -> E
         Some(None) => Some(None),
         None => None,
     };
+    let case_selection = match arguments.case_selection {
+        Some(path) => match std::fs::read(&path)
+            .map_err(|error| error.to_string())
+            .and_then(|bytes| {
+                serde_json::from_slice::<Vec<sunstack_lint::CaseBinding>>(&bytes)
+                    .map_err(|error| error.to_string())
+            }) {
+            Ok(bindings) => Some(bindings),
+            Err(error) => return output(&format!("Cannot read case selection: {error}"), 2),
+        },
+        None => None,
+    };
     let request = LintRequest {
         config_path: arguments.config,
         root: arguments.root,
@@ -218,6 +240,7 @@ async fn execute(arguments: LintArguments, cancellation: CancellationToken) -> E
         scope,
         max_warnings: arguments.max_warnings,
         evidence_listing,
+        case_selection,
     };
     let report = if arguments.prepare.is_some() {
         let selections = match &arguments.selections_from {

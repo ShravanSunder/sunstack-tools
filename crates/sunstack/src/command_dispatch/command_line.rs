@@ -48,6 +48,8 @@ pub struct LintArguments {
     /// Reuse matching recorded selection answers while preparing.
     #[arg(long, global = true, value_name = "REPORT", requires = "prepare")]
     pub selections_from: Option<PathBuf>,
+    #[arg(long, hide = true, value_name = "FILE", conflicts_with_all = ["check", "rules", "init", "evidence"])]
+    pub case_selection: Option<PathBuf>,
 
     /// Files or directories to check; named paths default to full scope.
     #[arg(conflicts_with_all = ["check", "rules", "init"])]
@@ -90,6 +92,9 @@ pub enum LintCommand {
         file: PathBuf,
         #[arg(long)]
         set: Option<String>,
+        /// Select one case ID; repeat to select several, intersected with --set.
+        #[arg(long = "case", value_name = "ID")]
+        case_ids: Vec<String>,
     },
     /// Explain a result ID or case ID using only a saved report.
     Show { file: PathBuf, id: String },

@@ -114,10 +114,12 @@ function selectSignal(options: CallOptions | undefined): SignalSelection {
 function encodeRunRequest(options: RunOptions): WireEncoding {
 	try {
 		const paths = options.paths;
+		const caseSelection = options.case_selection;
 		return encodeForNative({
 			root: options.root,
 			scope: options.scope,
 			...(paths === undefined ? {} : { paths }),
+			...(caseSelection === undefined ? {} : { case_selection: caseSelection }),
 		});
 	} catch (error) {
 		return {

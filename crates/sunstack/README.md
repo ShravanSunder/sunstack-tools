@@ -342,6 +342,33 @@ invalid input exits **2**, incomplete processing **3**, and cancellation **4**.
 Invalid, cancelled and incomplete processing take precedence over case gaps.
 Unassessed case bars alone do not fail a prepare-only run.
 
+Select specific case IDs with repeatable `--case` flags:
+
+```sh
+sunstack lint cases cases.json --set development --case first-case --case second-case --prepare selected-cases.json
+```
+
+Replace the example IDs with IDs from the case file. Repeated flags select their
+union, intersected with `--set` when supplied. Omitting `--case` selects all cases
+in the chosen set, or all cases when no set is supplied. An unknown ID is invalid
+input (exit 2), even when `--set` would exclude every case. An empty intersection
+is also refused. `not_selected` lists cases excluded by either selector.
+
+Case identities bind before rule/filter request construction. Only uniquely
+bound selected rule pieces, explicitly selected filter folders and the filters
+needed by selected rules can create execution requests. Multiple IDs for one
+owner share its execution while keeping a separate case outcome for each ID.
+Each nested revision report's `case_selection.bindings` retains label-free
+identities and their selected, unmatched, ambiguous, stale, selection-pending,
+incomplete or cancelled disposition; `case_selection.excluded` lists excluded
+execution owners. Expected labels remain in the case-scoring report and never
+enter execution bindings.
+
+Evidence-selection prerequisites may still need shared requests before final
+pieces exist. During `--prepare`, unanswered prerequisites leave dependent cases
+`selection_pending`; they do not establish an unmatched or excluded owner.
+Prepared requests for uniquely selected owners retain the ordinary request body.
+
 A case file contains `cases` and `bars`, plus an optional local `repository`
 path (relative to the case file). Each case has a unique `id`, `revision`, `set`
 and `label_from` (`owner-fix`, `owner-ruling` or `blind-agents`).

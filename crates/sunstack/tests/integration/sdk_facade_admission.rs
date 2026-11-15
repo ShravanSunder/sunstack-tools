@@ -192,6 +192,7 @@ fn run_with_admission_held(configuration: &Value, root: &Path, abort: bool) -> L
             ScopeChoice::All,
             cancellation.clone(),
             None,
+            None,
         ));
         let first = std::future::poll_fn(|context| Poll::Ready(call.as_mut().poll(context))).await;
         assert!(

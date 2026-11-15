@@ -19,7 +19,11 @@ async fn selection_preserves_provider_class_status_and_invalid_response_reasons(
             server.endpoint.clone()
         };
         let mut settings = settings(&endpoint);
-        settings.attempts.attempt_timeout_ms = 200;
+        // Only the timeout scenario asks for a 200 ms deadline. The other cases
+        // observe actual provider replies and retain the bounded wait below.
+        if case == "timeout" {
+            settings.attempts.attempt_timeout_ms = 200;
+        }
         let mut dispatch = dispatcher(settings);
         let mut operation =
             tokio::spawn(async move { select_candidates(&input, &mut dispatch).await });

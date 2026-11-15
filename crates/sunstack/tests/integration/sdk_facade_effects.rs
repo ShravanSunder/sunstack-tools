@@ -103,6 +103,7 @@ async fn a_cancelled_run_settles_every_task_it_started_before_its_owner_sees_the
             root: checked.path().to_path_buf(),
             scope: Scope::All,
             paths: vec![],
+            case_selection: None,
         },
         cancellation.clone(),
         CredentialSource::Supplied(Some("synthetic-controlled-key".into())),

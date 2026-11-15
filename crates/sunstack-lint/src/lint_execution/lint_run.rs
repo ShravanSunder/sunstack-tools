@@ -11,6 +11,31 @@ use std::{ops::ControlFlow, path::PathBuf};
 use sunstack_evidence::CheckedFileSource;
 use tokio_util::sync::CancellationToken;
 
+pub(super) fn unstarted_case_report(
+    request: &LintRequest,
+    cancelled: bool,
+) -> Option<CaseSelectionReport> {
+    request
+        .case_selection
+        .as_ref()
+        .map(|bindings| CaseSelectionReport {
+            bindings: bindings
+                .iter()
+                .map(|binding| CaseBindingResult {
+                    binding: binding.clone(),
+                    outcome: if cancelled {
+                        CaseBindingStatus::Cancelled
+                    } else {
+                        CaseBindingStatus::Incomplete {
+                            reason: IncompleteReason::NotStarted,
+                        }
+                    },
+                })
+                .collect(),
+            excluded: vec![],
+        })
+}
+
 pub(super) fn invalid(mut report: LintReport, error: LintInvalid) -> LintReport {
     report.status = LintStatus::Invalid;
     report.diagnostics.push(error.into());
@@ -136,6 +161,7 @@ pub async fn run_definitions(
     scope: ScopeChoice,
     cancellation: CancellationToken,
     api_key: Option<String>,
+    case_selection: Option<Vec<CaseBinding>>,
 ) -> Result<LintReport, RunStageStopped> {
     let request = LintRequest {
         config_path: None,
@@ -144,6 +170,7 @@ pub async fn run_definitions(
         scope,
         max_warnings: None,
         evidence_listing: None,
+        case_selection,
     };
     run_definition_request(
         bundle,
@@ -174,6 +201,7 @@ pub async fn inspect_definitions(
         scope,
         max_warnings: None,
         evidence_listing: Some(evidence_kind),
+        case_selection: None,
     };
     let report = run_definition_request(
         bundle,
@@ -214,6 +242,7 @@ async fn run_definition_request(
             .map(EffectiveLimits::from)
             .unwrap_or_default(),
     );
+    report.case_selection = unstarted_case_report(&request, cancellation.is_cancelled());
     if cancellation.is_cancelled() {
         report.status = LintStatus::Cancelled;
         return Ok(report);
@@ -236,6 +265,7 @@ async fn run_definition_request(
     // before its result is used or any checked input is selected.
     if cancellation.is_cancelled() {
         report.status = LintStatus::Cancelled;
+        report.case_selection = unstarted_case_report(&request, true);
         return Ok(report);
     }
     let state = RunState {

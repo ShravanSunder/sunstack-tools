@@ -1,5 +1,5 @@
 use super::{
-    lint_run::{ExecutionMode, RunState, failed, invalid},
+    lint_run::{ExecutionMode, RunState, failed, invalid, unstarted_case_report},
     stopped_stages::{RunStage, RunStageStopped},
 };
 use crate::{
@@ -46,6 +46,7 @@ pub(super) async fn acquire_file_run(
         },
         EffectiveLimits::default(),
     );
+    report.case_selection = unstarted_case_report(&request, cancellation.is_cancelled());
     if preparing {
         report.preparation = Some(PreparedReport {
             mode: PrepareMode::Prepare,
@@ -77,6 +78,7 @@ pub(super) async fn acquire_file_run(
         .unwrap_or_default();
     if cancellation.is_cancelled() {
         report.status = LintStatus::Cancelled;
+        report.case_selection = unstarted_case_report(&request, true);
         return ControlFlow::Break(report);
     }
     let acquired = tokio::task::spawn_blocking(move || {
@@ -123,6 +125,21 @@ pub(super) fn configure_admitted_run(
             return ControlFlow::Break(report);
         }
     };
+    if let Some(bindings) = &request.case_selection {
+        if let Err(message) = crate::case_selection::validate_case_bindings(bindings) {
+            return ControlFlow::Break(invalid(
+                report,
+                bundle
+                    .root
+                    .invalid(LintInvalidCode::UnsupportedInputs, &message),
+            ));
+        }
+        if bindings.is_empty() {
+            report.case_selection = Some(CaseSelectionReport::default());
+            report.status = LintStatus::NothingSelected;
+            return ControlFlow::Break(report);
+        }
+    }
     if let Some(Some(kind)) = &request.evidence_listing
         && !bundle.settings.kinds.contains_key(kind)
     {
@@ -171,7 +188,15 @@ pub(super) fn configure_admitted_run(
         .rules
         .iter()
         .any(|rule| rule.gate.is_some());
-    let model_work = selected || (request.evidence_listing.is_none() && (asking || gated));
+    let explicit_filter =
+        request.case_selection.as_ref().is_some_and(|bindings| {
+            bindings.iter().any(|binding| matches!(
+            &binding.subject,
+            CaseSubjectBinding::Filter { filter, .. } if checked.filters.contains_key(filter)
+        ))
+        });
+    let model_work =
+        selected || (request.evidence_listing.is_none() && (asking || gated || explicit_filter));
     state.report = report;
     ControlFlow::Continue((state, checked, model_work))
 }

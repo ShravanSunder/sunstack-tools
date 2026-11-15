@@ -8,12 +8,14 @@ use sunstack_rules::{FilterName, FilterRegistry, RulebookRule};
 pub(crate) struct FilterFolderPlan {
     pub folders: BTreeMap<(FilterName, PathBuf), Vec<PathBuf>>,
     pub dependencies: BTreeMap<PathBuf, Vec<PathBuf>>,
+    pub explicit: BTreeSet<(FilterName, PathBuf)>,
 }
 
 pub(crate) fn resolve_filter_folders(
     filters: &FilterRegistry,
     rules: &[RulebookRule],
     files: &[PathBuf],
+    bindings: Option<&[crate::CaseBinding]>,
 ) -> FilterFolderPlan {
     let demanded = rules
         .iter()
@@ -38,6 +40,19 @@ pub(crate) fn resolve_filter_folders(
                     .or_default()
                     .push(file.clone());
             }
+        }
+    }
+    for binding in bindings.into_iter().flatten() {
+        if let crate::CaseSubjectBinding::Filter { filter, folder, .. } = &binding.subject
+            && let Some(definition) = filters.get(filter)
+            && definition
+                .per
+                .folder_for(&folder.join(&definition.reads.file))
+                .is_some_and(|(resolved, _)| resolved == *folder)
+        {
+            let owner = (filter.clone(), folder.clone());
+            result.explicit.insert(owner.clone());
+            result.folders.entry(owner).or_default();
         }
     }
     result
@@ -74,7 +89,9 @@ pub(crate) fn demanded_context_files(
     plan.folders
         .iter()
         .filter_map(|((filter, folder), members)| {
-            if demanded_members(filter, members, rules, checked_pieces).is_empty() {
+            if demanded_members(filter, members, rules, checked_pieces).is_empty()
+                && !plan.explicit.contains(&(filter.clone(), folder.clone()))
+            {
                 return None;
             }
             filters
@@ -98,7 +115,7 @@ pub(crate) fn bind_reads_pieces(
         .filter_map(|((filter, folder), members)| {
             let definition = filters.get(filter)?;
             let demanded = demanded_members(filter, members, rules, checked_pieces);
-            if demanded.is_empty() {
+            if demanded.is_empty() && !plan.explicit.contains(&(filter.clone(), folder.clone())) {
                 return None;
             }
             let input = folder.join(&definition.reads.file);

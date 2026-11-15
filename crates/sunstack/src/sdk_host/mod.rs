@@ -221,6 +221,7 @@ pub async fn run_with_credential(
         scope,
         cancellation,
         credential,
+        request.case_selection,
     )
     .await
     {

@@ -77,6 +77,7 @@ pub(super) async fn build_run_evidence(
             &checked.filters,
             &checked.assembly.rules,
             &files,
+            request.case_selection.as_deref(),
         )
     } else {
         super::filter_folders::FilterFolderPlan::default()
@@ -212,11 +213,41 @@ pub(super) async fn build_run_evidence(
                 else {
                     return ControlFlow::Break(Ok(failed(report, "selection admission missing")));
                 };
+                let mut files = selection_files.clone();
+                if let Some(bindings) = &request.case_selection {
+                    let mut relevant = BTreeSet::new();
+                    for binding in bindings {
+                        match &binding.subject {
+                            CaseSubjectBinding::Rule { rule, file, .. } => {
+                                if let Some(rule) = checked
+                                    .assembly
+                                    .rules
+                                    .iter()
+                                    .find(|candidate| &candidate.name == rule)
+                                {
+                                    relevant.insert(file.clone());
+                                    if let Some(gate) = &rule.gate
+                                        && let Some(filter) = checked.filters.get(&gate.filter)
+                                        && let Some((folder, _)) = filter.per.folder_for(file)
+                                    {
+                                        relevant.insert(folder.join(&filter.reads.file));
+                                    }
+                                }
+                            }
+                            CaseSubjectBinding::Filter { filter, folder, .. } => {
+                                if let Some(filter) = checked.filters.get(filter) {
+                                    relevant.insert(folder.join(&filter.reads.file));
+                                }
+                            }
+                        }
+                    }
+                    files.retain(|file| relevant.contains(file));
+                }
                 let input = SelectionInput {
                     selection,
                     candidates,
                     shared,
-                    files: selection_files.clone(),
+                    files,
                 };
                 let outcomes = select_candidates(&input, &mut dispatcher).await;
                 if preparing {
@@ -300,11 +331,12 @@ pub(super) async fn build_run_evidence(
         let acquired_before_stage = source.checked_files_acquired();
         let extended = tokio::task::spawn_blocking(move || {
             let catalog = build.add_context_files(&context_files, &mut source);
-            (source, catalog)
+            (build, source, catalog)
         })
         .await;
         match extended {
-            Ok((next_source, next_catalog)) => {
+            Ok((next_build, next_source, next_catalog)) => {
+                build = next_build;
                 source = next_source;
                 catalog = next_catalog;
             }
@@ -316,6 +348,15 @@ pub(super) async fn build_run_evidence(
                     acquired_before_stage,
                 )));
             }
+        }
+    }
+    for binding in request.case_selection.iter().flatten() {
+        if let CaseSubjectBinding::Rule { file, lines, .. } = &binding.subject
+            && let Some(digest) = build.captured_range_digest(file, *lines)
+        {
+            catalog
+                .piece_text_hashes
+                .insert((file.clone(), lines[0], lines[1]), digest);
         }
     }
     state.report = report;

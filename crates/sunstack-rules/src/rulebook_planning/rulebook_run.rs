@@ -84,6 +84,7 @@ pub async fn run_rulebook(
         indexes,
         &mut dispatcher,
         &crate::FilterAnswers::default(),
+        None,
     )
     .await
 }
@@ -93,6 +94,7 @@ pub async fn run_rulebook_with_dispatcher(
     indexes: &BTreeMap<PathBuf, FileMatchIndex>,
     dispatcher: &mut ModelRequestDispatch,
     filters: &crate::FilterAnswers,
+    selected_pairs: Option<&std::collections::BTreeSet<(usize, usize)>>,
 ) -> RulebookRun {
     let mut run = RulebookRun {
         prepared: vec![],
@@ -108,6 +110,10 @@ pub async fn run_rulebook_with_dispatcher(
             .enumerate()
             .filter(|(_, piece)| piece.kind == rule.kind)
         {
+            if selected_pairs.is_some_and(|selected| !selected.contains(&(rule_index, piece_index)))
+            {
+                continue;
+            }
             match if dispatcher.is_preparing()
                 && rule.gate.as_ref().is_none_or(|gate| {
                     filters

@@ -21,3 +21,8 @@ pub use lint_reporting::report_contracts::*;
 pub use lint_reporting::saved_report_contracts::*;
 
 pub mod case_runs;
+pub mod case_selection;
+pub use case_selection::{
+    CaseBinding, CaseBindingResult, CaseBindingStatus, CaseExecutionOwner, CaseSelectionReport,
+    CaseSubjectBinding,
+};

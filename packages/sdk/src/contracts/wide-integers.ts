@@ -199,6 +199,144 @@ export const wideIntegerDefinitions = {
 			},
 		},
 	},
+	CaseBinding: {
+		generics: [],
+		shape: {
+			all: [
+				{
+					arguments: {},
+					ref: 'CaseSubjectBinding',
+				},
+			],
+		},
+	},
+	CaseBindingResult: {
+		generics: [],
+		shape: {
+			object: {
+				binding: {
+					arguments: {},
+					ref: 'CaseBinding',
+				},
+				outcome: {
+					arguments: {},
+					ref: 'CaseBindingStatus',
+				},
+			},
+		},
+	},
+	CaseBindingStatus: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						owner: {
+							arguments: {},
+							ref: 'CaseExecutionOwner',
+						},
+					},
+				},
+				{
+					object: {
+						owners: {
+							list: {
+								arguments: {},
+								ref: 'CaseExecutionOwner',
+							},
+						},
+					},
+				},
+				{
+					object: {
+						evidence_kind: {
+							arguments: {},
+							ref: 'EvidenceKindName',
+						},
+					},
+				},
+				{
+					object: {
+						reason: {
+							arguments: {},
+							ref: 'IncompleteReason',
+						},
+					},
+				},
+			],
+		},
+	},
+	CaseExecutionOwner: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						lines: {
+							list: 'bigint',
+						},
+						rule: {
+							arguments: {},
+							ref: 'RuleId',
+						},
+					},
+				},
+				{
+					object: {
+						filter: {
+							arguments: {},
+							ref: 'FilterName',
+						},
+					},
+				},
+			],
+		},
+	},
+	CaseSelectionReport: {
+		generics: [],
+		shape: {
+			object: {
+				bindings: {
+					list: {
+						arguments: {},
+						ref: 'CaseBindingResult',
+					},
+				},
+				excluded: {
+					list: {
+						arguments: {},
+						ref: 'CaseExecutionOwner',
+					},
+				},
+			},
+		},
+	},
+	CaseSubjectBinding: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						lines: {
+							list: 'bigint',
+						},
+						rule: {
+							arguments: {},
+							ref: 'RuleId',
+						},
+					},
+				},
+				{
+					object: {
+						filter: {
+							arguments: {},
+							ref: 'FilterName',
+						},
+					},
+				},
+			],
+		},
+	},
 	CheckOutcome: {
 		generics: [],
 		shape: {
@@ -2706,6 +2844,12 @@ export const wideIntegerDefinitions = {
 		generics: [],
 		shape: {
 			object: {
+				case_selection: {
+					list: {
+						arguments: {},
+						ref: 'CaseBinding',
+					},
+				},
 				scope: {
 					arguments: {},
 					ref: 'Scope',
@@ -3090,6 +3234,10 @@ export const wideIntegerDefinitions = {
 		generics: ['TStatus'],
 		shape: {
 			object: {
+				case_selection: {
+					arguments: {},
+					ref: 'CaseSelectionReport',
+				},
 				configuration: {
 					arguments: {},
 					ref: 'DefinitionOrigin',

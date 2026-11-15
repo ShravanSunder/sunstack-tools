@@ -37,6 +37,7 @@ pub async fn run_cases(
     file_path: &Path,
     config_path: Option<&Path>,
     set: Option<&str>,
+    case_ids: &[String],
     executable: &Path,
     cancellation: CancellationToken,
 ) -> Result<CasesReport, String> {
@@ -44,6 +45,7 @@ pub async fn run_cases(
         file_path,
         config_path,
         set,
+        case_ids,
         executable,
         cancellation,
         CaseExecution::Ordinary,
@@ -54,6 +56,7 @@ pub async fn prepare_cases(
     file_path: &Path,
     config_path: Option<&Path>,
     set: Option<&str>,
+    case_ids: &[String],
     executable: &Path,
     cancellation: CancellationToken,
     selections_from: Option<&Path>,
@@ -68,6 +71,7 @@ pub async fn prepare_cases(
         file_path,
         config_path,
         set,
+        case_ids,
         executable,
         cancellation,
         CaseExecution::Prepare { selections_from },
@@ -89,6 +93,7 @@ async fn run_cases_internal(
     file_path: &Path,
     config_path: Option<&Path>,
     set: Option<&str>,
+    case_ids: &[String],
     executable: &Path,
     cancellation: CancellationToken,
     mode: CaseExecution,
@@ -100,6 +105,15 @@ async fn run_cases_internal(
         serde_json::from_slice(&std::fs::read(&file_path).map_err(|error| error.to_string())?)
             .map_err(|error| error.to_string())?;
     validate(&file)?;
+    for id in case_ids {
+        if !file.cases.iter().any(|case| &case.id == id) {
+            return Err(format!("unknown case id: {id}"));
+        }
+    }
+    let is_selected = |case: &LintCase| {
+        set.is_none_or(|set| case.set == set)
+            && (case_ids.is_empty() || case_ids.contains(&case.id))
+    };
     let cwd = std::env::current_dir().map_err(|error| error.to_string())?;
     let location = discover_config(&cwd, config_path).map_err(|error| error.to_string())?;
     let config = load_config(&location).map_err(|error| error.to_string())?;
@@ -134,7 +148,7 @@ async fn run_cases_internal(
     let selected = file
         .cases
         .iter()
-        .filter(|case| set.is_none_or(|set| case.set == set))
+        .filter(|case| is_selected(case))
         .collect::<Vec<_>>();
     if selected.is_empty() {
         return Err("no cases selected".into());
@@ -148,10 +162,7 @@ async fn run_cases_internal(
     let mut runs = Vec::new();
     for revision in revisions {
         if cancellation.is_cancelled() {
-            if mode.is_preparing() {
-                break;
-            }
-            return Err("case run cancelled".into());
+            break;
         }
         let case_files = selected
             .iter()
@@ -212,8 +223,20 @@ async fn run_cases_internal(
                     .collect::<BTreeSet<_>>()
                     .into_iter()
                     .collect::<Vec<_>>();
-                match snapshots::lint(executable, &snapshot, &input_paths, &cancellation, &mode)
-                    .await
+                let bindings = selected
+                    .iter()
+                    .filter(|case| case.revision == revision)
+                    .map(|case| case.binding())
+                    .collect::<Vec<_>>();
+                match snapshots::lint(
+                    executable,
+                    &snapshot,
+                    &input_paths,
+                    &bindings,
+                    &cancellation,
+                    &mode,
+                )
+                .await
                 {
                     Ok(report) => {
                         runs.push(RevisionRun {
@@ -241,7 +264,7 @@ async fn run_cases_internal(
         not_selected: file
             .cases
             .iter()
-            .filter(|case| set.is_some_and(|set| case.set != set))
+            .filter(|case| !is_selected(case))
             .map(|case| case.id.clone())
             .collect(),
         by_rule: BTreeMap::new(),
@@ -282,10 +305,17 @@ async fn run_cases_internal(
                     .get(filter)
                     .map(|entry| (entry.reads.kind.clone(), folder.join(&entry.reads.file))),
             };
-            let (outcome, id) = if mode.is_preparing() {
-                matching::prepare(case, snapshot, &run.report, dependency.as_ref())
+            let (outcome, id) = if let Some(result) = matching::selection_outcome(case, &run.report)
+            {
+                result
             } else {
-                matching::score(case, snapshot, &run.report)
+                matching::selected_result(
+                    case,
+                    snapshot,
+                    &run.report,
+                    dependency.as_ref(),
+                    mode.is_preparing(),
+                )
             };
             let crossings = (!mode.is_preparing())
                 .then_some(id)
@@ -351,6 +381,8 @@ async fn run_cases_internal(
                 })
                 .unwrap_or_default();
             (outcome, id, crossings)
+        } else if cancellation.is_cancelled() {
+            (CaseOutcome::Cancelled, None, vec![])
         } else {
             (
                 CaseOutcome::Incomplete {

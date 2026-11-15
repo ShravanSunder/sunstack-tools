@@ -68,14 +68,14 @@ export interface CallOptions {
 	readonly signal?: AbortSignal;
 }
 
-/** A run selects an absolute checked root and a scope explicitly. */
-export interface RunOptions extends CallOptions {
-	/** Absolute checked root, used exactly as `sunstack lint --root`. */
-	readonly root: string;
-	readonly scope: Scope;
-	/** Paths inside `root`, resolved against `root`. */
-	readonly paths?: readonly string[];
-}
+/** A run selects an absolute checked root, scope and optional label-free cases. */
+export interface RunOptions extends DeepReadonly<Contracts.RunRequest>, CallOptions {}
+export type CaseBinding = DeepReadonly<Contracts.CaseBinding>;
+export type CaseSubjectBinding = DeepReadonly<Contracts.CaseSubjectBinding>;
+export type CaseBindingStatus = DeepReadonly<Contracts.CaseBindingStatus>;
+export type CaseBindingResult = DeepReadonly<Contracts.CaseBindingResult>;
+export type CaseExecutionOwner = DeepReadonly<Contracts.CaseExecutionOwner>;
+export type CaseSelectionReport = DeepReadonly<Contracts.CaseSelectionReport>;
 
 /** Inspection status describes evidence acquisition and selection, never rule findings. */
 export type InspectionStatus = DeepReadonly<Contracts.InspectionStatus>;
@@ -96,6 +96,6 @@ export type SerializationOutcome =
 	  };
 
 /** Inspect one configured evidence kind, or all kinds when omitted. */
-export interface InspectOptions extends RunOptions {
+export interface InspectOptions extends Pick<RunOptions, 'root' | 'scope' | 'paths'>, CallOptions {
 	readonly evidence_kind?: string;
 }

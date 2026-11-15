@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.22.4
+
+- Bind selected rule pieces and filter folders before creating their execution
+  requests. `lint cases` applies its case file and `--set`; repeatable `--case`
+  IDs intersect that set and unknown IDs are refused. Different IDs may bind to
+  one owner without repeating its request. Selected gated rules retain their
+  filter dependencies, and explicit filter cases need no selected gated rule.
+- Report selected, excluded, unmatched, ambiguous, stale, pending, incomplete
+  and cancelled bindings explicitly. Shared evidence-selection prerequisites
+  keep their existing ownership; selected request contents and budgets retain
+  ordinary lint semantics.
+- Expose the same label-free `case_selection` through typed SDK `run`, with
+  exact integer transport and report readback at contract revision 19. Omitting
+  selection preserves ordinary behavior; an explicit empty list selects no
+  execution owners. Align the CLI, SDK and six addons to 0.22.4.
+
 ## 0.22.3
 
 - Measure HTML fields directly as HTML text content, preserving blank lines in
