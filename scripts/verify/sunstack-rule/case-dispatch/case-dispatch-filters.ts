@@ -1,0 +1,135 @@
+/** Standalone filter and gated-rule dependency controls using the established history fixture. */
+import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
+import filesystem from 'node:fs';
+import path from 'node:path';
+
+import { jsonSlice } from '../prepare/raw-json.ts';
+import {
+	casesConfigName,
+	prepareCasesFixture,
+	unrelatedDescription,
+	unrelatedFolder,
+} from '../rulebook/rulebook-case-fixtures.ts';
+import { includedFolder } from '../rulebook/rulebook-filters.ts';
+import {
+	arrayValue,
+	objectValue,
+	parseObject,
+	textValue,
+	writeJson,
+} from '../rulebook/rulebook-fixture-support.ts';
+import { responseBody, type RulebookProcess } from '../rulebook/rulebook-process.ts';
+import { attributeControlledCaptures, requireCaseAccounting } from './case-dispatch-checks.ts';
+
+export async function observeFilterDispatch(options: {
+	readonly observer: RulebookProcess;
+	readonly evidence: string;
+}): Promise<void> {
+	const root = path.join(options.evidence, 'filter-cases-fixture');
+	const fixture = prepareCasesFixture(root);
+	const rules = arrayValue(fixture['rule_cases']).map(objectValue);
+	const filters = arrayValue(fixture['filter_cases']).map(objectValue);
+	const selectedRule = rules.find((row) => row['id'] === 'pass');
+	const selectedFilter = filters.find((row) => row['id'] === 'filter-right');
+	assert.ok(selectedRule && selectedFilter);
+	const configFile = path.join(root, casesConfigName);
+	const config = parseObject(filesystem.readFileSync(configFile, 'utf8'));
+	objectValue(config['decision_model'])['endpoint'] = options.observer.endpoint;
+	writeJson(configFile, config);
+	const casesPath = path.join(options.evidence, 'filter-cases.json');
+	const unrelated = {
+		id: 'unrelated-filter',
+		kind: 'filter',
+		filter: 'category',
+		folder: unrelatedFolder,
+		reads_sha256: createHash('sha256')
+			.update(JSON.stringify({ description: unrelatedDescription, opening: 'Unrelated opening.' }))
+			.digest('hex'),
+		revision: selectedFilter['revision'],
+		expected_label: 'eligible',
+		set: 'development',
+		label_from: 'blind-agents',
+	};
+	writeJson(casesPath, {
+		repository: root,
+		cases: [selectedRule, selectedFilter, unrelated],
+		bars: [],
+	});
+	const history = textValue(selectedRule['revision']);
+	assert.equal(history, textValue(selectedFilter['revision']));
+	const saved = path.join(options.evidence, 'filter-standalone.json');
+	const result = await options.observer.run({
+		root,
+		name: 'filter-standalone',
+		arguments: [
+			'lint',
+			'--config',
+			casesConfigName,
+			'cases',
+			casesPath,
+			'--set',
+			'development',
+			'--case',
+			'filter-right',
+			'--prepare',
+			saved,
+		],
+		expectedExit: 6,
+	});
+	assert.equal(result.captures.length, 0);
+	const raw = filesystem.readFileSync(saved, 'utf8');
+	const report = parseObject(raw);
+	assert.deepEqual(report['not_selected'], ['pass', 'unrelated-filter']);
+	requireCaseAccounting({
+		selectedIds: ['filter-right'],
+		dispositions: arrayValue(report['cases'])
+			.map(objectValue)
+			.map((row) => ({
+				id: textValue(row['id']),
+				kind: textValue(objectValue(row['outcome'])['kind']),
+			})),
+		expectedKinds: new Map([['filter-right', 'prepared']]),
+	});
+	assert.equal(arrayValue(report['runs']).length, 1);
+	const nested = parseObject(jsonSlice(raw, ['runs', 0, 'report']));
+	const owners = arrayValue(nested['requests'])
+		.map(objectValue)
+		.map((request) => objectValue(request['owner']));
+	assert.deepEqual(
+		owners,
+		[{ kind: 'filter', filter: 'category', folder: includedFolder }],
+		'Standalone filter acquired unrelated execution owners',
+	);
+	const selectedRun = path.join(options.evidence, 'filter-selected-run.json');
+	options.observer.reply = (body) => responseBody(body, 0.95, 'reusable');
+	const run = await options.observer.run({
+		root,
+		name: 'filter-standalone-run',
+		arguments: [
+			'lint',
+			'--config',
+			casesConfigName,
+			'--report',
+			selectedRun,
+			'cases',
+			casesPath,
+			'--set',
+			'development',
+			'--case',
+			'filter-right',
+		],
+		credential: true,
+		expectedExit: 0,
+	});
+	const runRaw = filesystem.readFileSync(selectedRun, 'utf8');
+	const captures = attributeControlledCaptures(
+		jsonSlice(runRaw, ['runs', 0, 'report']),
+		run.captures.map((entry) => entry.raw.toString('utf8')),
+	);
+	assert.deepEqual(
+		captures.map((entry) => entry.owner),
+		[JSON.stringify(['filter', 'category', includedFolder])],
+		'Standalone filter did not dispatch exactly its selected owner',
+	);
+}

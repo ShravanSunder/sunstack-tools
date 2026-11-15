@@ -1,0 +1,151 @@
+/** Same-rule CLI selection control, composed with the existing owned process observer. */
+import assert from 'node:assert/strict';
+import filesystem from 'node:fs';
+import path from 'node:path';
+
+import { jsonSlice } from '../prepare/raw-json.ts';
+import {
+	arrayValue,
+	objectValue,
+	parseObject,
+	textValue,
+} from '../rulebook/rulebook-fixture-support.ts';
+import { type RulebookProcess } from '../rulebook/rulebook-process.ts';
+import {
+	attributeControlledCaptures,
+	requireCaseAccounting,
+	requireControlledDispatch,
+	requireSelectedRequestParity,
+} from './case-dispatch-checks.ts';
+import { createCaseDispatchFixture } from './case-dispatch-fixture.ts';
+
+/** Caller owns a started, target-pinned observer and a new external evidence directory. */
+export async function observeSameFileCaseDispatch(options: {
+	readonly observer: RulebookProcess;
+	readonly evidence: string;
+}): Promise<void> {
+	const root = path.join(options.evidence, 'case-dispatch-fixture');
+	const fixture = createCaseDispatchFixture(root, options.observer.endpoint);
+	const ordinaryPrepare = path.join(options.evidence, 'ordinary-prepared.json');
+	const selectedPrepare = path.join(options.evidence, 'selected-cases-prepared.json');
+	const ordinaryReport = path.join(options.evidence, 'ordinary-run.json');
+	const selectedReport = path.join(options.evidence, 'selected-cases-run.json');
+	const ordinary = ['lint', '--config', 'sunstack.lint.json', '--all'];
+	const selected = [
+		'lint',
+		'--config',
+		'sunstack.lint.json',
+		'cases',
+		fixture.casesPath,
+		'--set',
+		'development',
+		'--case',
+		'selected-a',
+		'--case',
+		'selected-b',
+	];
+	const selectedOwner = JSON.stringify(['rule', 'approval', 'docs/pieces.md', '1', '1']);
+	const excludedOwner = JSON.stringify(['rule', 'approval', 'docs/pieces.md', '3', '3']);
+	const preparedOrdinary = await options.observer.run({
+		root,
+		name: 'case-ordinary-prepare',
+		arguments: [...ordinary, '--prepare', ordinaryPrepare],
+		expectedExit: 6,
+	});
+	const preparedSelected = await options.observer.run({
+		root,
+		name: 'case-selected-prepare',
+		arguments: [...selected, '--prepare', selectedPrepare],
+		expectedExit: 6,
+	});
+	assert.equal(preparedOrdinary.captures.length, 0, 'Ordinary prepare sent HTTP');
+	assert.equal(preparedSelected.captures.length, 0, 'Selected prepare sent HTTP');
+	const baseline = filesystem.readFileSync(ordinaryPrepare, 'utf8');
+	const casesRaw = filesystem.readFileSync(selectedPrepare, 'utf8');
+	const casesReport = parseObject(casesRaw);
+	assert.equal(arrayValue(casesReport['runs']).length, 1, 'Expected one selected revision');
+	const selectedRaw = jsonSlice(casesRaw, ['runs', 0, 'report']);
+	requireCaseAccounting({
+		selectedIds: ['selected-a', 'selected-b'],
+		dispositions: arrayValue(casesReport['cases'])
+			.map(objectValue)
+			.map((row) => ({
+				id: textValue(row['id']),
+				kind: textValue(objectValue(row['outcome'])['kind']),
+			})),
+		expectedKinds: new Map([
+			['selected-a', 'prepared'],
+			['selected-b', 'prepared'],
+		]),
+	});
+	assert.deepEqual(arrayValue(casesReport['not_selected']), ['excluded']);
+	const caseRows = arrayValue(casesReport['cases']).map(objectValue);
+	const requestRows = arrayValue(parseObject(selectedRaw)['requests']).map(objectValue);
+	assert.equal(requestRows.length, 1, 'Shared owner generated multiple prepared requests');
+	for (const row of caseRows)
+		assert.equal(
+			row['result_id'],
+			requestRows[0]?.['id'],
+			'Case does not reference its shared request',
+		);
+	requireSelectedRequestParity({
+		ordinary: baseline,
+		selected: selectedRaw,
+		selectedOwners: [selectedOwner],
+		excludedOwners: [excludedOwner],
+		prerequisiteOwners: [],
+	});
+	const executedOrdinary = await options.observer.run({
+		root,
+		name: 'case-ordinary-run',
+		arguments: [...ordinary, '--report', ordinaryReport],
+		credential: true,
+		expectedExit: 0,
+	});
+	const executedSelected = await options.observer.run({
+		root,
+		name: 'case-selected-run',
+		arguments: [
+			'lint',
+			'--config',
+			'sunstack.lint.json',
+			'--report',
+			selectedReport,
+			...selected.slice(3),
+		],
+		credential: true,
+		expectedExit: 0,
+	});
+	const selectedRunRaw = filesystem.readFileSync(selectedReport, 'utf8');
+	assert.equal(
+		arrayValue(parseObject(selectedRunRaw)['runs']).length,
+		1,
+		'Expected one executed revision',
+	);
+	requireCaseAccounting({
+		selectedIds: ['selected-a', 'selected-b'],
+		dispositions: arrayValue(parseObject(selectedRunRaw)['cases'])
+			.map(objectValue)
+			.map((row) => ({
+				id: textValue(row['id']),
+				kind: textValue(objectValue(row['outcome'])['kind']),
+			})),
+		expectedKinds: new Map([
+			['selected-a', 'right'],
+			['selected-b', 'right'],
+		]),
+	});
+	requireControlledDispatch({
+		ordinary: attributeControlledCaptures(
+			filesystem.readFileSync(ordinaryReport, 'utf8'),
+			executedOrdinary.captures.map((capture) => capture.raw.toString('utf8')),
+		),
+		selected: attributeControlledCaptures(
+			jsonSlice(selectedRunRaw, ['runs', 0, 'report']),
+			executedSelected.captures.map((capture) => capture.raw.toString('utf8')),
+		),
+		selectedOwners: [selectedOwner],
+		excludedOwners: [excludedOwner],
+		prerequisiteOwners: [],
+	});
+}
