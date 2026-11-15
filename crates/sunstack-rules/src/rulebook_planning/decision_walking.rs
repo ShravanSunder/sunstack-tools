@@ -327,6 +327,21 @@ pub(crate) fn walk_decision_with_omissions(
                     answers_read,
                 });
             }
+            if reason == RulebookIncompleteReason::EvidenceUnavailable
+                && field.is_none()
+                && matches!(piece.model_view, ModelView::SelectionUnavailable)
+            {
+                return WalkOutcome::Settled(RulebookResult::Unavailable {
+                    reason: WorkUnavailableReason::SelectionUnavailable {
+                        evidence_kind: piece.kind.clone(),
+                        file: piece.location.file.clone(),
+                    },
+                    field: None,
+                    step,
+                    path_taken,
+                    answers_read,
+                });
+            }
             return WalkOutcome::Settled(RulebookResult::Incomplete {
                 reason,
                 field,
@@ -515,13 +530,23 @@ pub fn unavailable_question_field(
     questions: &sunstack_decisions::NamedQuestionMap,
     fields: &BTreeMap<FieldName, FieldValue>,
 ) -> Option<FieldName> {
-    crate::rulebook_planning::rulebook_admission::question_field_references(questions)
-        .into_iter()
+    let references =
+        crate::rulebook_planning::rulebook_admission::question_field_references(questions);
+    references
+        .iter()
         .find(|field| {
-            matches!(
-                fields.get(field),
-                Some(FieldValue::Unavailable { .. } | FieldValue::MissingDocument { .. })
-            )
+            fields
+                .get(*field)
+                .is_some_and(FieldValue::is_selection_unavailable)
+        })
+        .cloned()
+        .or_else(|| {
+            references.into_iter().find(|field| {
+                matches!(
+                    fields.get(field),
+                    Some(FieldValue::Unavailable { .. } | FieldValue::MissingDocument { .. })
+                )
+            })
         })
 }
 

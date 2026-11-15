@@ -67,7 +67,10 @@ pub(crate) fn walk_tree(request: TreeWalkRequest<'_>) -> TreeWalkOutcome {
             );
         }
         if !matches!(step, DecisionStep::Mechanical { .. })
-            && matches!(request.piece.model_view, ModelView::SelectionPending)
+            && matches!(
+                request.piece.model_view,
+                ModelView::SelectionPending | ModelView::SelectionUnavailable
+            )
         {
             return incomplete(
                 RulebookIncompleteReason::EvidenceUnavailable,

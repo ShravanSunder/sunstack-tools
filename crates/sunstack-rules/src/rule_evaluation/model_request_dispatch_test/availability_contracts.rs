@@ -3,6 +3,9 @@ use super::super::*;
 use crate::test_support::controlled_http::ControlledServer;
 use serde_json::json;
 
+#[path = "unavailable_consumers.rs"]
+mod unavailable_consumers;
+
 fn settings(endpoint: &str) -> RulebookRunSettings {
     RulebookRunSettings {
         backend: BackendSelection::JevOpenrouter {
