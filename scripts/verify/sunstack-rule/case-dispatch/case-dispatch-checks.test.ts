@@ -11,7 +11,7 @@ import {
 	attributeControlledCaptures,
 	indexRequestReport,
 	requireCaseAccounting,
-	requireCleanCaseRun,
+	requireCaseRunStatus,
 	requireControlledDispatch,
 	requireManifestSelection,
 	requirePreparedRuntimeParity,
@@ -77,10 +77,10 @@ describe('selected request parity observation', () => {
 					set_from: [],
 				},
 			],
-			runs: [{ report: { status: { kind: 'clean' } } }],
+			runs: [{ report: { status: { kind: 'clean' }, results: [{ id: 1 }] } }],
 		};
 		expect(() => requireUnassessedBars(casesReport)).not.toThrow();
-		expect(() => requireCleanCaseRun(casesReport)).not.toThrow();
+		expect(() => requireCaseRunStatus(casesReport, 'clean', 1)).not.toThrow();
 		expect(() => requireUnassessedBars({ ...casesReport, bars: [] })).toThrow(
 			'Expected authored thresholds',
 		);
@@ -97,11 +97,42 @@ describe('selected request parity observation', () => {
 			}),
 		).toThrow();
 		expect(() =>
-			requireCleanCaseRun({
-				...casesReport,
-				runs: [{ report: { status: { kind: 'incomplete' } } }],
-			}),
+			requireCaseRunStatus(
+				{
+					...casesReport,
+					runs: [{ report: { status: { kind: 'incomplete' }, results: [] } }],
+				},
+				'clean',
+				1,
+			),
 		).toThrow();
+		const filterOnly = {
+			...casesReport,
+			runs: [
+				{
+					report: {
+						status: { kind: 'nothing_selected' },
+						results: [],
+						filter_answers: [{ state: 'judged', label: 'eligible' }],
+					},
+				},
+			],
+		};
+		expect(() => requireCaseRunStatus(filterOnly, 'nothing_selected', 0)).not.toThrow();
+		expect(() => requireCaseRunStatus(filterOnly, 'clean', 1)).toThrow();
+		const rejectedStep = {
+			...casesReport,
+			runs: [{ report: { status: { kind: 'nothing_selected' }, results: [] } }],
+		};
+		expect(() => requireCaseRunStatus(rejectedStep, 'nothing_selected', 0)).not.toThrow();
+		expect(() => requireCaseRunStatus(rejectedStep, 'clean', 1)).toThrow();
+		expect(() =>
+			requireCaseRunStatus(
+				{ ...casesReport, runs: [{ report: { status: { kind: 'clean' }, results: [] } }] },
+				'clean',
+				1,
+			),
+		).toThrow('rule-result count');
 	});
 	test('indexed JSON slices preserve original tokens and existing duplicate refusals', () => {
 		const raw =

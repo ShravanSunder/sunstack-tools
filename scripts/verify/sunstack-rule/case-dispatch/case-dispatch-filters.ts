@@ -23,9 +23,21 @@ import { responseBody, type RulebookProcess } from '../rulebook/rulebook-process
 import {
 	attributeControlledCaptures,
 	requireCaseAccounting,
-	requireCleanCaseRun,
+	requireCaseRunStatus,
 	requireUnassessedBars,
 } from './case-dispatch-checks.ts';
+
+function requireEligibleFilter(report: ReturnType<typeof parseObject>, folder: string): void {
+	const runs = arrayValue(report['runs']).map(objectValue);
+	assert.equal(runs.length, 1);
+	const inner = objectValue(runs[0]?.['report']);
+	const answers = arrayValue(inner['filter_answers']).map(objectValue);
+	assert.equal(answers.length, 1, 'Expected one judged filter answer');
+	assert.equal(answers[0]?.['filter'], 'category');
+	assert.equal(answers[0]?.['folder'], folder);
+	assert.equal(answers[0]?.['state'], 'judged');
+	assert.equal(answers[0]?.['label'], 'eligible');
+}
 
 export async function observeFilterDispatch(options: {
 	readonly observer: RulebookProcess;
@@ -137,7 +149,8 @@ export async function observeFilterDispatch(options: {
 	const runRaw = filesystem.readFileSync(selectedRun, 'utf8');
 	const standaloneReport = parseObject(runRaw);
 	requireUnassessedBars(standaloneReport);
-	requireCleanCaseRun(standaloneReport);
+	requireCaseRunStatus(standaloneReport, 'nothing_selected', 0);
+	requireEligibleFilter(standaloneReport, includedFolder);
 	requireCaseAccounting({
 		selectedIds: ['filter-right'],
 		dispositions: arrayValue(standaloneReport['cases'])
@@ -180,7 +193,8 @@ export async function observeFilterDispatch(options: {
 	const gatedRaw = filesystem.readFileSync(gatedReport, 'utf8');
 	const gatedCases = parseObject(gatedRaw);
 	requireUnassessedBars(gatedCases);
-	requireCleanCaseRun(gatedCases);
+	requireCaseRunStatus(gatedCases, 'clean', 1);
+	requireEligibleFilter(gatedCases, includedFolder);
 	requireCaseAccounting({
 		selectedIds: ['pass'],
 		dispositions: arrayValue(gatedCases['cases'])
@@ -243,7 +257,8 @@ export async function observeFilterDispatch(options: {
 	const unrelatedRaw = filesystem.readFileSync(unrelatedReport, 'utf8');
 	const unrelatedCases = parseObject(unrelatedRaw);
 	requireUnassessedBars(unrelatedCases);
-	requireCleanCaseRun(unrelatedCases);
+	requireCaseRunStatus(unrelatedCases, 'nothing_selected', 0);
+	requireEligibleFilter(unrelatedCases, unrelatedFolder);
 	requireCaseAccounting({
 		selectedIds: ['unrelated-filter'],
 		dispositions: arrayValue(unrelatedCases['cases'])

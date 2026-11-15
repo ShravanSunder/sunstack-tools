@@ -21,7 +21,7 @@ import { scriptedSelectionReply } from '../selection/selection-reply.ts';
 import {
 	attributeControlledCaptures,
 	requireCaseAccounting,
-	requireCleanCaseRun,
+	requireCaseRunStatus,
 	requireUnassessedBars,
 } from './case-dispatch-checks.ts';
 
@@ -147,7 +147,11 @@ export async function observePendingCaseSelection(options: {
 			const selectedRaw = filesystem.readFileSync(selectedFile, 'utf8');
 			const selectedReport = parseObject(selectedRaw);
 			requireUnassessedBars(selectedReport);
-			requireCleanCaseRun(selectedReport);
+			requireCaseRunStatus(
+				selectedReport,
+				label === 'positive' ? 'clean' : 'nothing_selected',
+				label === 'positive' ? 1 : 0,
+			);
 			requireCaseAccounting({
 				selectedIds: ['pending-step'],
 				dispositions: arrayValue(selectedReport['cases'])

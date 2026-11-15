@@ -15,7 +15,7 @@ import { type RulebookProcess } from '../rulebook/rulebook-process.ts';
 import {
 	attributeControlledCaptures,
 	requireCaseAccounting,
-	requireCleanCaseRun,
+	requireCaseRunStatus,
 	requireControlledDispatch,
 	requirePreparedRuntimeParity,
 	requireSelectedRequestParity,
@@ -154,7 +154,7 @@ export async function observeSameFileCaseDispatch(options: {
 	});
 	const selectedRunRaw = filesystem.readFileSync(selectedReport, 'utf8');
 	requireUnassessedBars(parseObject(selectedRunRaw));
-	requireCleanCaseRun(parseObject(selectedRunRaw));
+	requireCaseRunStatus(parseObject(selectedRunRaw), 'clean', 1);
 	const ordinaryRunRaw = filesystem.readFileSync(ordinaryReport, 'utf8');
 	const selectedRuntime = jsonSlice(selectedRunRaw, ['runs', 0, 'report']);
 	requirePreparedRuntimeParity(baseline, ordinaryRunRaw, [selectedOwner, excludedOwner]);

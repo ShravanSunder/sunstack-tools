@@ -234,10 +234,20 @@ export function requireUnassessedBars(report: ReturnType<typeof parseObject>): v
 	}
 }
 
-export function requireCleanCaseRun(report: ReturnType<typeof parseObject>): void {
+export function requireCaseRunStatus(
+	report: ReturnType<typeof parseObject>,
+	expected: 'clean' | 'nothing_selected',
+	expectedRuleResults: number,
+): void {
 	const runs = arrayValue(report['runs']).map(objectValue);
 	assert.equal(runs.length, 1, 'Expected one historical run');
-	assert.equal(objectValue(objectValue(runs[0]?.['report'])['status'])['kind'], 'clean');
+	const inner = objectValue(runs[0]?.['report']);
+	assert.equal(objectValue(inner['status'])['kind'], expected, 'Inner run status differs');
+	assert.equal(
+		arrayValue(inner['results']).length,
+		expectedRuleResults,
+		'Inner rule-result count differs',
+	);
 }
 
 /** Keep every matched case ID even when multiple IDs share a single execution owner. */
