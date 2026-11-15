@@ -400,13 +400,14 @@ Every selected case is counted or listed, with per-rule and per-filter counts,
 result links and crossed bars. A changed or unrecorded bar is unassessed. The
 command writes no adoption state and changes no ordinary lint inputs.
 
-The decision model is always configured and enabled for asking rules; there is
-no model-off switch. Ordinary runs with asking rules require an OpenRouter
-credential before checked-file acquisition, even if a later mechanical branch
-would avoid an ask. A selected evidence kind also requires a credential, including
-for `--evidence`, even when the rules are mechanical. With neither selected kinds
-nor asking rules, no key is needed. Credential lookup and
-saving are described below under the native protocol.
+The decision model stays configured for asking rules; there is no model-off
+switch. Ordinary runs without an OpenRouter credential acquire checked files
+and evaluate independent mechanical paths. A graph that settles before an ask
+keeps its actual result. Reached model work and blocked dependents carry
+unavailable reasons; that work contributes to incomplete status while the report
+retains findings. An ordinary run with no model work needs no key. Model-selected
+`--evidence` listings still require a credential. Credential lookup and saving
+are described below under the native protocol.
 
 Lint exits 0 for clean or nothing selected, 1 for error findings or warnings over
 `--max-warnings`, 2 for invalid input, 3 for incomplete work, 4 for cancellation,
