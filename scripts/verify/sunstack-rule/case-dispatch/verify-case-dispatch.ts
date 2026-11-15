@@ -146,10 +146,11 @@ async function main(): Promise<void> {
 				'gated-rule dependency and separately selected other-folder HTTP witness',
 				'stale filter and selected-case cancellation accounting',
 				'pending selection prerequisite and case disposition',
+				'positive and negative selection settlement with ordinary request parity',
 				'incomplete selected-case accounting',
 				'installed positive and negative selection caller compiles',
 			],
-			gaps: ['real corpus prepare parity', 'pending selection positive and negative settlement'],
+			gaps: ['real corpus prepare parity'],
 		});
 		process.exitCode = 3;
 	} catch (error) {
