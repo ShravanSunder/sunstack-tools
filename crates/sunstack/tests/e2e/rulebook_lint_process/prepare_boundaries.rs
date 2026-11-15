@@ -151,6 +151,7 @@ async fn already_cancelled_prepare_retains_cancelled_precedence() {
             scope: sunstack_lint::ScopeChoice::All,
             max_warnings: None,
             evidence_listing: None,
+            case_selection: None,
         },
         cancellation,
         vec![],

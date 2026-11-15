@@ -328,5 +328,42 @@ async fn prepare_cases_reports_unavailable_field_without_request_or_dispatch() {
             .iter()
             .all(|request| request["status"] != "prepared")
     );
+    let results = report["runs"][0]["report"]["results"].as_array().unwrap();
+    let exact = results
+        .iter()
+        .filter(|result| {
+            result["name"] == "document_standard"
+                && result["file"] == "docs/one.md"
+                && result["first_line"] == 1
+                && result["last_line"] == 1
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(
+        exact.len(),
+        1,
+        "the selected owner must retain its actual incomplete result"
+    );
+    assert_eq!(exact[0]["outcome"], "incomplete");
+    assert_eq!(
+        report["cases"][0]["result_id"], exact[0]["id"],
+        "case readback must retain the existing result link"
+    );
+
+    let shown = support::prepared_cli::keyless(
+        root.path(),
+        &mut server,
+        &["show", "unavailable.json", "1"],
+    )
+    .await;
+    assert_eq!(
+        shown.status.code(),
+        Some(0),
+        "{}",
+        String::from_utf8_lossy(&shown.stderr)
+    );
+    let detail: Value = serde_json::from_slice(&shown.stdout).unwrap();
+    assert_eq!(detail["case"]["id"], "unavailable");
+    assert_eq!(detail["detail"]["result"], *exact[0]);
+    assert_eq!(detail["detail"]["evidence"]["piece"]["text"], source);
     assert_eq!(server.finish().await, 0);
 }

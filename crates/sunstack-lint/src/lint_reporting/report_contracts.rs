@@ -30,6 +30,8 @@ pub struct LintRequest {
     pub max_warnings: Option<u32>,
     #[serde(default)]
     pub evidence_listing: Option<Option<sunstack_evidence::EvidenceKindName>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub case_selection: Option<Vec<crate::CaseBinding>>,
 }
 #[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -258,6 +260,8 @@ pub struct EvidenceListing {
 }
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct LintReport {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub case_selection: Option<crate::CaseSelectionReport>,
     #[serde(default, flatten)]
     pub preparation: Option<PreparedReport>,
     pub piece_evidence: BTreeMap<usize, crate::SavedPieceEvidence>,
@@ -307,6 +311,7 @@ impl LintReport {
 
     pub(crate) fn empty(config: PathBuf, scope: ScopeChoice, limits: EffectiveLimits) -> Self {
         Self {
+            case_selection: None,
             preparation: None,
             piece_evidence: BTreeMap::new(),
             requests: vec![],

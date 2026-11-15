@@ -61,6 +61,7 @@ pub fn request(root: &Path) -> LintRequest {
         scope: ScopeChoice::All,
         max_warnings: None,
         evidence_listing: None,
+        case_selection: None,
     }
 }
 pub fn commit(root: &Path, message: &str) {

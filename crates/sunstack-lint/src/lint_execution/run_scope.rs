@@ -60,7 +60,7 @@ pub(super) async fn select_run_scope(
         )));
     }
     let keyless_empty_scope = model_work && !state.preparing && request.evidence_listing.is_none();
-    if keyless_empty_scope && selection.files.is_empty() {
+    if keyless_empty_scope && selection.files.is_empty() && request.case_selection.is_none() {
         report.status = if report.incomplete.is_empty() {
             LintStatus::NothingSelected
         } else {

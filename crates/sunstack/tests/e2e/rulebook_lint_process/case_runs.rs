@@ -454,3 +454,116 @@ async fn owner_ruling_case_origin_is_accepted_and_retained_distinct_from_a_text_
     assert_eq!(report["cases"][0]["outcome"]["kind"], "right");
     assert_eq!(report["cases"][0]["case"]["label_from"], "owner-ruling");
 }
+
+#[tokio::test]
+async fn repeated_case_ids_intersect_the_set_and_keep_duplicate_bindings_in_accounting() {
+    // Arrange: two development IDs identify one owner; held and unnamed IDs stay outside selection.
+    let root = limit_fixture(
+        json!({"body":{"from":"remainder"}}),
+        mechanical_graph(json!({"tool":"max_chars","field":"body","max":1})),
+    );
+    let source = "Selected historical paragraph.\n";
+    std::fs::write(root.path().join("docs/one.md"), source).unwrap();
+    let revision = commit_tree(root.path());
+    let case = |id: &str, set: &str| {
+        json!({
+            "id":id,"kind":"rule","rule":"document_standard","file":"docs/one.md",
+            "revision":revision,"lines":[1,1],
+            "text_sha256":sunstack_evidence::content_digest(source.as_bytes()),
+            "expected":"warn","set":set,"label_from":"blind-agents"
+        })
+    };
+    save(
+        &root.path().join("cases.json"),
+        &json!({"cases":[
+        case("selected", "development"), case("same-owner", "development"),
+        case("held", "held"), case("not-requested", "development")
+    ],"bars":[]}),
+    );
+
+    // Act: repeated flags are a union of IDs, intersected with the requested set.
+    let report = invoke(
+        root.path(),
+        &[
+            "cases",
+            "cases.json",
+            "--set",
+            "development",
+            "--case",
+            "selected",
+            "--case",
+            "same-owner",
+            "--case",
+            "held",
+            "--case",
+            "selected",
+        ],
+        0,
+    )
+    .await;
+
+    // Assert: execution is unique, while both case IDs keep their own outcome.
+    assert_eq!(report["not_selected"], json!(["held", "not-requested"]));
+    assert_eq!(report["counts"], json!({"right":2}));
+    assert_eq!(report["cases"].as_array().unwrap().len(), 2);
+    assert_eq!(report["cases"][0]["id"], "selected");
+    assert_eq!(report["cases"][1]["id"], "same-owner");
+    assert_eq!(
+        report["cases"][0]["result_id"],
+        report["cases"][1]["result_id"]
+    );
+    assert_eq!(
+        report["runs"][0]["report"]["results"]
+            .as_array()
+            .unwrap()
+            .len(),
+        1
+    );
+    let bindings = report["runs"][0]["report"]["case_selection"]["bindings"]
+        .as_array()
+        .unwrap();
+    assert_eq!(bindings.len(), 2);
+    for binding in bindings {
+        assert_eq!(binding["outcome"]["kind"], "selected");
+        assert!(binding["binding"].get("expected").is_none());
+        assert!(binding["binding"].get("label_from").is_none());
+    }
+}
+
+#[tokio::test]
+async fn unknown_case_id_is_rejected_before_set_intersection() {
+    // Arrange: a known ID exists only outside the selected set.
+    let root = limit_fixture(
+        json!({"body":{"from":"remainder"}}),
+        mechanical_graph(json!({"tool":"max_chars","field":"body","max":1})),
+    );
+    save(
+        &root.path().join("cases.json"),
+        &json!({"cases":[{
+        "id":"known","kind":"rule","rule":"document_standard","file":"docs/one.md",
+        "revision":"not-resolved","lines":[1,1],"text_sha256":"unused",
+        "expected":"pass","set":"held","label_from":"blind-agents"
+    }],"bars":[]}),
+    );
+
+    // Act: the unknown ID cannot disappear when the set selects no rows.
+    let output = command(root.path())
+        .args([
+            "cases",
+            "cases.json",
+            "--set",
+            "development",
+            "--case",
+            "known",
+            "--case",
+            "unknown",
+        ])
+        .output()
+        .await
+        .unwrap();
+
+    // Assert: identify invalid selection without attempting historical execution.
+    assert_eq!(output.status.code(), Some(2));
+    assert!(String::from_utf8_lossy(&output.stderr).contains("unknown case id: unknown"));
+    assert!(output.stdout.is_empty());
+}

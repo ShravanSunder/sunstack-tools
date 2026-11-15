@@ -10,7 +10,9 @@ export type DeepReadonly<TValue> = TValue extends
 	| undefined
 	? TValue
 	: TValue extends readonly (infer TItem)[]
-		? readonly DeepReadonly<TItem>[]
+		? number extends TValue['length']
+			? readonly DeepReadonly<TItem>[]
+			: { readonly [TKey in keyof TValue]: DeepReadonly<TValue[TKey]> }
 		: { readonly [TKey in keyof TValue]: DeepReadonly<TValue[TKey]> };
 
 /** Freeze a freshly decoded value so a held snapshot cannot be changed in place. */

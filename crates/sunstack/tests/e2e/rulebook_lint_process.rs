@@ -6,6 +6,8 @@ mod case_overlay;
 mod case_reports;
 #[path = "rulebook_lint_process/case_runs.rs"]
 mod case_runs;
+#[path = "rulebook_lint_process/case_snapshot_parity.rs"]
+mod case_snapshot_parity;
 #[path = "rulebook_lint_process/collected_state.rs"]
 mod collected_state;
 #[path = "rulebook_lint_process/json_evidence.rs"]

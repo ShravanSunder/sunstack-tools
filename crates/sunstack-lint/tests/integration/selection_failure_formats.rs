@@ -42,6 +42,7 @@ fn selection_fixture(root: &Path, endpoint: &str) -> LintRequest {
         scope: ScopeChoice::All,
         max_warnings: None,
         evidence_listing: None,
+        case_selection: None,
     }
 }
 fn assert_failure_formats(
@@ -361,6 +362,7 @@ fn a_stage_stopped_after_a_settled_selection_keeps_its_request_and_usage() {
         ScopeChoice::All,
         CancellationToken::new(),
         Some("SYNTHETIC_SELECTION_KEY".into()),
+        None,
     ));
     #[allow(
         clippy::async_yields_async,

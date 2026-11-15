@@ -195,3 +195,15 @@ await test('capture and attachment wrong shapes fail at their declared propertie
 	if (result.kind === 'diagnostics')
 		assert.deepEqual(sortDiagnostics(result.diagnostics), sortDiagnostics(expected));
 });
+
+await test('label-free rule and filter bindings and typed accounting compile', () => {
+	assert.deepEqual(compile('valid-case-dispatch.ts'), { kind: 'compiled' });
+});
+await test('case bindings reject labels, wrong widths, missing identity and inspection selection', () => {
+	const expected = expectedDiagnostics('invalid-case-dispatch.ts');
+	assert.equal(expected.length, 9);
+	const result = compile('invalid-case-dispatch.ts');
+	assert.equal(result.kind, 'diagnostics', result.kind === 'process_failure' ? result.detail : '');
+	if (result.kind === 'diagnostics')
+		assert.deepEqual(sortDiagnostics(result.diagnostics), sortDiagnostics(expected));
+});

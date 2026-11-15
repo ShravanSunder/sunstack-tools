@@ -12,7 +12,7 @@ use sunstack_rules::{FilterName, FilterWire, RuleEntryWire};
 use super::matcher_transport::{AstMatcher, AstUtility};
 
 /// The SDK contract revision; bumped whenever a generated declaration changes meaning.
-pub const CONTRACT_REVISION: u32 = 18;
+pub const CONTRACT_REVISION: u32 = 19;
 
 /// Which original decoder a captured source needs.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -399,6 +399,10 @@ pub struct RunRequest {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     #[cfg_attr(feature = "typescript", specta(optional))]
     pub paths: Vec<PathBuf>,
+    /// Label-free bindings to select before rule/filter execution; absent selects ordinarily.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "typescript", specta(optional))]
+    pub case_selection: Option<Vec<sunstack_lint::CaseBinding>>,
 }
 
 /// The literal `none` effects of a failure before dispatch.

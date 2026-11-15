@@ -127,6 +127,9 @@ pub struct SdkReport<TStatus> {
     pub configuration: DefinitionOrigin,
     /// Exact definition content this run used.
     pub sources: Vec<DefinitionSnapshot>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "typescript", specta(optional))]
+    pub case_selection: Option<sunstack_lint::CaseSelectionReport>,
     pub scope: ScopeReport,
     pub status: TStatus,
     pub findings: Vec<SdkFinding>,
@@ -294,6 +297,7 @@ fn project_report<TStatus>(
         version: report.version,
         configuration: configuration.clone(),
         sources: sources.to_vec(),
+        case_selection: report.case_selection,
         scope: report.scope,
         status,
         findings: report.findings.into_iter().map(project_finding).collect(),

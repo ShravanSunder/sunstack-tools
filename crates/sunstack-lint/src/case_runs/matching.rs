@@ -248,3 +248,100 @@ pub(super) fn prepare(
     };
     (outcome, id)
 }
+
+// Execution owns identity admission; scoring must not turn a refused binding into a match.
+pub(super) fn selection_outcome(
+    case: &LintCase,
+    report: &LintReport,
+) -> Option<(CaseOutcome, Option<usize>)> {
+    let Some(selection) = report.case_selection.as_ref() else {
+        return Some((incomplete("case selection accounting is unavailable"), None));
+    };
+    let Some(binding) = selection
+        .bindings
+        .iter()
+        .find(|entry| entry.binding.id == case.id)
+    else {
+        return Some((
+            incomplete("case binding is missing from selection accounting"),
+            None,
+        ));
+    };
+    let outcome = match &binding.outcome {
+        crate::CaseBindingStatus::Selected { .. } => return None,
+        crate::CaseBindingStatus::Unmatched => CaseOutcome::NoMatchingPiece,
+        crate::CaseBindingStatus::Ambiguous { .. } => CaseOutcome::MoreThanOneMatchingPiece,
+        crate::CaseBindingStatus::Stale => CaseOutcome::Stale,
+        crate::CaseBindingStatus::SelectionPending {
+            evidence_kind,
+            file,
+        } => CaseOutcome::SelectionPending {
+            evidence_kind: evidence_kind.clone(),
+            file: file.clone(),
+        },
+        crate::CaseBindingStatus::Incomplete { reason } => incomplete(format!("{reason:?}")),
+        crate::CaseBindingStatus::Cancelled => CaseOutcome::Cancelled,
+    };
+    let result_id = if matches!(
+        outcome,
+        CaseOutcome::Incomplete { .. }
+            | CaseOutcome::Cancelled
+            | CaseOutcome::SelectionPending { .. }
+    ) {
+        unique_result_id(case, report)
+    } else {
+        None
+    };
+    Some((outcome, result_id))
+}
+
+// A settled execution status can retain evidence, but only an actual unique result can supply its ID.
+fn unique_result_id(case: &LintCase, report: &LintReport) -> Option<usize> {
+    let mut matching_ids = match &case.subject {
+        CaseSubject::Rule {
+            rule, file, lines, ..
+        } => report
+            .results
+            .iter()
+            .filter(|result| {
+                &result.name == rule
+                    && &result.file == file
+                    && [result.first_line, result.last_line] == *lines
+            })
+            .map(|result| result.id)
+            .collect::<Vec<_>>(),
+        CaseSubject::Filter { filter, folder, .. } => report
+            .filter_answers
+            .iter()
+            .filter(|result| &result.filter == filter && &result.folder == folder)
+            .map(|result| result.id)
+            .collect::<Vec<_>>(),
+    }
+    .into_iter();
+    let result_id = matching_ids.next()?;
+    matching_ids.next().is_none().then_some(result_id)
+}
+
+pub(super) fn selected_result(
+    case: &LintCase,
+    snapshot: &super::snapshots::RevisionSnapshot,
+    report: &LintReport,
+    dependency: Option<&(sunstack_evidence::EvidenceKindName, std::path::PathBuf)>,
+    preparing: bool,
+) -> (CaseOutcome, Option<usize>) {
+    let (outcome, id) = if preparing {
+        prepare(case, snapshot, report, dependency)
+    } else {
+        score(case, snapshot, report)
+    };
+    // Binding uniqueness survives cancellation; an unfinished execution is not an unmatched case.
+    let unfinished = matches!(
+        outcome,
+        CaseOutcome::Incomplete { .. } | CaseOutcome::NoMatchingPiece
+    ) || (id.is_none() && matches!(outcome, CaseOutcome::NotJudged { .. }));
+    if report.status == crate::LintStatus::Cancelled && unfinished {
+        (CaseOutcome::Cancelled, id)
+    } else {
+        (outcome, id)
+    }
+}

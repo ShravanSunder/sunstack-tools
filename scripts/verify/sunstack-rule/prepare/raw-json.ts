@@ -34,8 +34,8 @@ export function compactJson(raw: string): string {
 	}
 	return compact;
 }
-/** Select original value slices; decoded values are never reserialized into the comparison. */
-export function jsonSlice(raw: string, selected: JsonPath): string {
+/** Index original spans once; decoded values are never reserialized into comparisons. */
+export function indexJson(raw: string): { slice: (selected: JsonPath) => string } {
 	jsonValueSchema.parse(JSON.parse(raw));
 	const spans = new Map<string, Span>();
 	let cursor = 0;
@@ -85,9 +85,17 @@ export function jsonSlice(raw: string, selected: JsonPath): string {
 	visit([]);
 	whitespace();
 	assert.equal(cursor, raw.length, 'Trailing JSON bytes');
-	const span = spans.get(JSON.stringify(selected));
-	assert.ok(span, `Missing JSON path ${JSON.stringify(selected)}`);
-	return raw.slice(span.start, span.end);
+	return Object.freeze({
+		slice(selected: JsonPath): string {
+			const span = spans.get(JSON.stringify(selected));
+			assert.ok(span, `Missing JSON path ${JSON.stringify(selected)}`);
+			return raw.slice(span.start, span.end);
+		},
+	});
+}
+/** Select original value slices; decoded values are never reserialized into the comparison. */
+export function jsonSlice(raw: string, selected: JsonPath): string {
+	return indexJson(raw).slice(selected);
 }
 export function requirePayloadBytes(options: {
 	left: string;

@@ -229,6 +229,7 @@ async fn held_selection_and_rule_replies_obey_the_same_concurrency_limit() {
                 &BTreeMap::new(),
                 &mut dispatcher,
                 &Default::default(),
+                None,
             )
             .await;
             (selected, rules, dispatcher.records)

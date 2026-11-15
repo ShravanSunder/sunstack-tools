@@ -21,13 +21,37 @@ pub(super) async fn evaluate_run(
     let cancellation = state.cancellation;
     let preparing = state.preparing;
     let mut report = state.report;
-    let folders = super::filter_folders::bind_reads_pieces(
+    let mut folders = super::filter_folders::bind_reads_pieces(
         &folder_plan,
         &checked.filters,
         &checked.assembly.rules,
         &pieces,
         &catalog,
     );
+    let selected_pairs = request.case_selection.as_ref().map(|bindings| {
+        let plan = crate::case_selection::plan_case_selection(
+            bindings,
+            crate::case_selection::CaseSelectionInputs {
+                rules: &checked.assembly.rules,
+                pieces: &pieces,
+                catalog: &catalog,
+                folders: &folders,
+                filters: &checked.filters,
+                needs_answer: report
+                    .preparation
+                    .as_ref()
+                    .map_or(&[], |value| value.needs_answer.as_slice()),
+                incomplete: &report.incomplete,
+                cancelled: cancellation.is_cancelled(),
+            },
+        );
+        folders.retain(|folder| {
+            plan.allowed_filters
+                .contains(&(folder.filter.clone(), folder.folder.clone()))
+        });
+        report.case_selection = Some(plan.report);
+        plan.allowed_rule_pieces
+    });
     let filter_answers = sunstack_rules::ask_filters(
         &checked.filters,
         &folders,
@@ -57,6 +81,7 @@ pub(super) async fn evaluate_run(
         &catalog.matches,
         &mut dispatcher,
         &filter_answers,
+        selected_pairs.as_ref(),
     )
     .await;
     crate::lint_reporting::saved_reports::capture_requests(
@@ -128,5 +153,10 @@ pub(super) async fn evaluate_run(
             .cloned();
     }
     report.usage = crate::lint_reporting::outcome::selection_usage(&dispatcher, acquired);
+    super::case_accounting::settle_case_accounting(
+        &mut report,
+        &checked.assembly.rules,
+        cancellation.is_cancelled(),
+    );
     report
 }

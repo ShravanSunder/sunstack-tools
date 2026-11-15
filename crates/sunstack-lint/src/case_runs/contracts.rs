@@ -51,6 +51,38 @@ pub struct LintCase {
     #[serde(flatten)]
     pub subject: CaseSubject,
 }
+impl LintCase {
+    pub(super) fn binding(&self) -> crate::CaseBinding {
+        let subject = match &self.subject {
+            CaseSubject::Rule {
+                rule,
+                file,
+                lines,
+                text_sha256,
+                ..
+            } => crate::CaseSubjectBinding::Rule {
+                rule: rule.clone(),
+                file: file.clone(),
+                lines: *lines,
+                text_sha256: text_sha256.clone(),
+            },
+            CaseSubject::Filter {
+                filter,
+                folder,
+                reads_sha256,
+                ..
+            } => crate::CaseSubjectBinding::Filter {
+                filter: filter.clone(),
+                folder: folder.clone(),
+                reads_sha256: reads_sha256.clone(),
+            },
+        };
+        crate::CaseBinding {
+            id: self.id.clone(),
+            subject,
+        }
+    }
+}
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum BarBound {
@@ -103,12 +135,21 @@ pub enum CaseOutcome {
     Missed,
     WrongLabel,
     Unsure,
-    Incomplete { reason: String },
-    NotJudged { reason: String },
+    Incomplete {
+        reason: String,
+    },
+    NotJudged {
+        reason: String,
+    },
     Stale,
     NoMatchingPiece,
     MoreThanOneMatchingPiece,
     FilterExcluded,
+    SelectionPending {
+        evidence_kind: sunstack_evidence::EvidenceKindName,
+        file: PathBuf,
+    },
+    Cancelled,
 }
 impl CaseOutcome {
     pub(super) fn key(&self) -> &'static str {
@@ -125,6 +166,8 @@ impl CaseOutcome {
             Self::NoMatchingPiece => "no_matching_piece",
             Self::MoreThanOneMatchingPiece => "more_than_one_matching_piece",
             Self::FilterExcluded => "filter_excluded",
+            Self::SelectionPending { .. } => "selection_pending",
+            Self::Cancelled => "cancelled",
         }
     }
 }
@@ -165,6 +208,13 @@ impl CasesReport {
     pub fn exit_code(&self) -> u8 {
         if let Some(preparation) = &self.preparation {
             return preparation.status.exit_code();
+        }
+        if self
+            .cases
+            .iter()
+            .any(|case| matches!(case.outcome, CaseOutcome::Cancelled))
+        {
+            return 4;
         }
         if self
             .cases

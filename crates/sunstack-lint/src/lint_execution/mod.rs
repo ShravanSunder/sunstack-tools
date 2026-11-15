@@ -5,6 +5,7 @@ mod scope_diagnostics;
 pub(crate) mod stopped_stages;
 pub mod targets;
 
+mod case_accounting;
 mod run_configuration;
 mod run_coverage;
 mod run_evaluation;

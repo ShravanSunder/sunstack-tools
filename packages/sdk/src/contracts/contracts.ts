@@ -116,6 +116,37 @@ export type CapturedValue<TDefinition> = {
 	original: CapturedSource;
 };
 
+export type CaseBinding = {
+	id: string;
+} & CaseSubjectBinding;
+
+export type CaseBindingResult = {
+	binding: CaseBinding;
+	outcome: CaseBindingStatus;
+};
+
+export type CaseBindingStatus =
+	| { kind: 'selected'; owner: CaseExecutionOwner }
+	| { kind: 'unmatched' }
+	| { kind: 'ambiguous'; owners: CaseExecutionOwner[] }
+	| { kind: 'stale' }
+	| { kind: 'selection_pending'; evidence_kind: EvidenceKindName; file: string }
+	| { kind: 'incomplete'; reason: IncompleteReason }
+	| { kind: 'cancelled' };
+
+export type CaseExecutionOwner =
+	| { kind: 'rule'; rule: RuleId; file: string; lines: [bigint, bigint] }
+	| { kind: 'filter'; filter: FilterName; folder: string };
+
+export type CaseSelectionReport = {
+	bindings: CaseBindingResult[];
+	excluded: CaseExecutionOwner[];
+};
+
+export type CaseSubjectBinding =
+	| { kind: 'rule'; rule: RuleId; file: string; lines: [bigint, bigint]; text_sha256: string }
+	| { kind: 'filter'; filter: FilterName; folder: string; reads_sha256: string };
+
 export type CheckOutcome =
 	| { kind: 'valid'; summary: CheckSummary; sources: DefinitionSnapshot[] }
 	| { kind: 'invalid'; diagnostics: Diagnostic[] }
@@ -1326,6 +1357,8 @@ export type RunRequest = {
 	root: string;
 	scope: Scope;
 	paths?: string[];
+	/**  Label-free bindings to select before rule/filter execution; absent selects ordinarily. */
+	case_selection?: CaseBinding[] | null;
 };
 
 export type SavedPieceEvidence = {
@@ -1449,6 +1482,7 @@ export type SdkReport<TStatus> = {
 	configuration: DefinitionOrigin;
 	/**  Exact definition content this run used. */
 	sources: DefinitionSnapshot[];
+	case_selection?: CaseSelectionReport | null;
 	scope: ScopeReport;
 	status: TStatus;
 	findings: SdkFinding[];

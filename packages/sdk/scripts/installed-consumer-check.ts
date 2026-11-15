@@ -207,6 +207,10 @@ copyFileSync(
 	join(consumer, 'markdown-islands.ts'),
 );
 copyFileSync(
+	join(packageDirectory, 'tests', 'installed-cases', 'case-dispatch.ts'),
+	join(consumer, 'case-dispatch.ts'),
+);
+copyFileSync(
 	join(packageDirectory, 'tests', 'installed-cases', 'load-receipt.ts'),
 	join(consumer, 'load-receipt.ts'),
 );
@@ -269,6 +273,7 @@ step({
 	args: ['markdown-islands.ts'],
 });
 step({ label: 'load-receipt', command: process.execPath, args: ['load-receipt.ts'] });
+step({ label: 'case-dispatch', command: process.execPath, args: ['case-dispatch.ts'] });
 
 // Heading pages: a non-ASCII setext heading and an ATX child keep their Markdown source; HTML
 // entities are decoded exactly once.

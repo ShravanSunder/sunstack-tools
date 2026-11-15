@@ -2,6 +2,24 @@ use super::*;
 use std::collections::BTreeSet;
 
 impl EvidenceBuild {
+    /// Hash a requested original line range from this build's existing captured text.
+    pub fn captured_range_digest(
+        &self,
+        file: &std::path::Path,
+        lines: [usize; 2],
+    ) -> Option<String> {
+        if lines[0] == 0 || lines[0] > lines[1] {
+            return None;
+        }
+        let text = &self.matched.get(file)?.text;
+        let captured = text.split_inclusive('\n').collect::<Vec<_>>();
+        if lines[1] > captured.len() {
+            return None;
+        }
+        Some(content_digest(
+            captured[lines[0] - 1..lines[1]].concat().as_bytes(),
+        ))
+    }
     pub(super) fn scan_files(&mut self, files: &[PathBuf], source: &mut dyn CheckedFileSource) {
         let mut paths = files.to_vec();
         paths.sort();
