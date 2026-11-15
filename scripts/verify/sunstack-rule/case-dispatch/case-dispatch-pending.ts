@@ -8,6 +8,7 @@ import { prepareConfig, prepareSelectionFixture } from '../prepare/prepare-fixtu
 import { compactJson, jsonSlice } from '../prepare/raw-json.ts';
 import {
 	arrayValue,
+	configureEndpoint,
 	gitCommand,
 	objectValue,
 	parseObject,
@@ -91,6 +92,7 @@ export async function observePendingCaseSelection(options: {
 }): Promise<void> {
 	const root = path.join(options.evidence, 'pending-case-fixture');
 	prepareSelectionFixture(root, options.sourceRoot);
+	configureEndpoint(root, options.observer.endpoint);
 	const source = filesystem.readFileSync(path.join(root, researchFile), 'utf8');
 	const row = oracleRows(root, 'step', researchFile)[0];
 	assert.ok(row, 'No independently recorded step candidate');
