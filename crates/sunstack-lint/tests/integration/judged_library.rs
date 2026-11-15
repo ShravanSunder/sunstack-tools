@@ -13,7 +13,7 @@ mod case_prerequisites;
 mod filters;
 use sunstack_rules::test_support::controlled_http as controlled;
 #[tokio::test]
-async fn reachable_models_require_a_key_and_reports_resolve_real_answers_evidence_and_optional_cost()
+async fn reached_models_are_unavailable_keyless_and_keyed_reports_keep_real_answers_evidence_and_cost()
  {
     for case in ["missing-key", "with-cost", "without-cost"] {
         let root = tempfile::tempdir().unwrap();
@@ -26,12 +26,31 @@ async fn reachable_models_require_a_key_and_reports_resolve_real_answers_evidenc
                 None,
             )
             .await;
-            assert_eq!(report.status, LintStatus::Invalid);
-            assert_eq!(
-                report.diagnostics[0].code,
-                LintInvalidCode::CredentialMissing
-            );
-            assert_eq!(report.usage.checked_files_acquired, 0);
+            assert_eq!(report.status, LintStatus::Incomplete);
+            assert_eq!(report.status.exit_code(), 3);
+            assert!(report.diagnostics.is_empty());
+            assert_eq!(report.usage.checked_files_acquired, 1);
+            assert_eq!(report.usage.model_requests, 0);
+            assert!(report.requests.is_empty());
+            assert!(report.findings.is_empty());
+            assert_eq!(report.results.len(), 1);
+            let result = &report.results[0];
+            assert!(matches!(
+                result.ending,
+                RulePieceEnding::Unavailable {
+                    reason: sunstack_rules::WorkUnavailableReason::CredentialUnavailable {}
+                }
+            ));
+            assert_eq!(result.name.as_str(), "description");
+            assert_eq!(result.file, std::path::Path::new("docs/one.md"));
+            assert_eq!((result.first_line, result.last_line), (1, 3));
+            assert!(result.text_sha256.is_some());
+            assert!(report.piece_evidence.contains_key(&result.id));
+            assert!(result.request_ids.is_empty());
+            assert_eq!(result.step.as_ref().unwrap().as_str(), "complies");
+            assert!(result.answers.is_empty());
+            assert!(result.basis.is_none());
+            assert_eq!(report.unavailable_counts().rule_pieces, 1);
             assert_eq!(server.finish().await, 0);
             continue;
         }

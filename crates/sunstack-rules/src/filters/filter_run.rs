@@ -40,6 +40,13 @@ pub enum FilterIncomplete {
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "state", rename_all = "snake_case")]
 pub enum FilterAnswerState {
+    Unavailable {
+        reason: crate::WorkUnavailableReason,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        field: Option<sunstack_evidence::FieldName>,
+        path: Vec<crate::StepName>,
+        answers: sunstack_decisions::NamedAnswerMap,
+    },
     Judged {
         label: ChoiceLabel,
         path: Vec<crate::StepName>,
@@ -249,7 +256,9 @@ fn request_failure(refusal: DispatchRefusal) -> FilterIncomplete {
                     limit: error.limit,
                 }
             }
-            DispatchRefusal::InvalidRequest => RulebookIncompleteReason::InvalidRequest,
+            DispatchRefusal::InvalidRequest | DispatchRefusal::Unavailable(_) => {
+                RulebookIncompleteReason::InvalidRequest
+            }
         },
     }
 }
@@ -268,56 +277,59 @@ fn walk_filter(
     plan: &FilterPlan,
     piece: &EvidencePiece,
     index: &sunstack_evidence::FileMatchIndex,
-    answers: &sunstack_decisions::NamedAnswerMap,
-) -> FilterAnswerState {
+    answers: Option<&sunstack_decisions::NamedAnswerMap>,
+) -> Result<FilterAnswerState, Vec<crate::StepName>> {
     use crate::rulebook_planning::tree_walking::{TreeWalkOutcome, TreeWalkRequest, walk_tree};
-    match walk_tree(TreeWalkRequest {
-        decision: &plan.decision,
-        questions: &plan.questions,
-        piece,
-        index,
-        answers: Some(answers),
-    }) {
-        TreeWalkOutcome::Ended {
-            route: crate::DecisionRoute::Label(label),
-            path_taken,
-            answers_read,
-            ..
-        } => FilterAnswerState::Judged {
-            label,
-            path: path_taken,
-            answers: answers_read,
-        },
-        TreeWalkOutcome::Ended {
-            route: crate::DecisionRoute::Uncertain,
-            step,
-            path_taken,
-            answers_read,
-            ..
-        } => FilterAnswerState::Unsure {
-            step,
-            path: path_taken,
-            answers: answers_read,
-        },
-        TreeWalkOutcome::Incomplete {
-            reason,
-            field,
-            path_taken,
-            answers_read,
-            ..
-        } => FilterAnswerState::Incomplete {
-            reason: FilterIncomplete::Request { reason },
-            field,
-            path: path_taken,
-            answers: answers_read,
-        },
-        _ => incomplete_state(
-            FilterIncomplete::Request {
-                reason: RulebookIncompleteReason::InvalidRequest,
+    Ok(
+        match walk_tree(TreeWalkRequest {
+            decision: &plan.decision,
+            questions: &plan.questions,
+            piece,
+            index,
+            answers,
+        }) {
+            TreeWalkOutcome::Ended {
+                route: crate::DecisionRoute::Label(label),
+                path_taken,
+                answers_read,
+                ..
+            } => FilterAnswerState::Judged {
+                label,
+                path: path_taken,
+                answers: answers_read,
             },
-            None,
-        ),
-    }
+            TreeWalkOutcome::Ended {
+                route: crate::DecisionRoute::Uncertain,
+                step,
+                path_taken,
+                answers_read,
+                ..
+            } => FilterAnswerState::Unsure {
+                step,
+                path: path_taken,
+                answers: answers_read,
+            },
+            TreeWalkOutcome::Incomplete {
+                reason,
+                field,
+                path_taken,
+                answers_read,
+                ..
+            } => FilterAnswerState::Incomplete {
+                reason: FilterIncomplete::Request { reason },
+                field,
+                path: path_taken,
+                answers: answers_read,
+            },
+            TreeWalkOutcome::NeedsAnswers { path_taken, .. } => return Err(path_taken),
+            _ => incomplete_state(
+                FilterIncomplete::Request {
+                    reason: RulebookIncompleteReason::InvalidRequest,
+                },
+                None,
+            ),
+        },
+    )
 }
 #[derive(Debug, Clone)]
 pub struct UnsentFilterRequest {
@@ -403,11 +415,51 @@ pub async fn ask_filters(
                 {
                     continue;
                 }
-                answer.state = incomplete_state(failure.reason, failure.field);
+                answer.state = if matches!(
+                    failure.reason,
+                    FilterIncomplete::ReadsUnavailable {
+                        reason: FieldUnavailable::SelectionUnavailable
+                    }
+                ) {
+                    FilterAnswerState::Unavailable {
+                        reason: failure.field.clone().map_or_else(
+                            || crate::WorkUnavailableReason::SelectionUnavailable {
+                                evidence_kind: plan.reads.kind.clone(),
+                                file: folder.folder.join(&plan.reads.file),
+                            },
+                            |field| crate::WorkUnavailableReason::SelectedFieldUnavailable {
+                                field,
+                            },
+                        ),
+                        field: failure.field,
+                        path: vec![],
+                        answers: Default::default(),
+                    }
+                } else {
+                    incomplete_state(failure.reason, failure.field)
+                };
             }
             Ok(prepared) => {
                 answer.reads_sha256 = Some(prepared.reads_sha256);
                 answer.input_cut = prepared.input_cut;
+                let empty = sunstack_evidence::FileMatchIndex::default();
+                let path = if dispatcher.is_preparing() {
+                    vec![]
+                } else {
+                    match walk_filter(
+                        plan,
+                        &prepared.piece,
+                        matches.get(&prepared.piece.location.file).unwrap_or(&empty),
+                        None,
+                    ) {
+                        Ok(ending) => {
+                            answer.state = ending;
+                            result.entries.push(answer);
+                            continue;
+                        }
+                        Err(path) => path,
+                    }
+                };
                 match dispatcher.submit(prepared.request.clone()).await {
                     Ok(id) => {
                         if dispatcher.is_preparing() {
@@ -420,6 +472,14 @@ pub async fn ask_filters(
                             continue;
                         }
                         pending.insert(id, (position, prepared.piece));
+                    }
+                    Err(DispatchRefusal::Unavailable(reason)) => {
+                        answer.state = FilterAnswerState::Unavailable {
+                            reason,
+                            field: None,
+                            path,
+                            answers: Default::default(),
+                        };
                     }
                     Err(refusal) => {
                         let reason = request_failure(refusal);
@@ -454,8 +514,16 @@ pub async fn ask_filters(
                     plan,
                     &piece,
                     matches.get(&piece.location.file).unwrap_or(&empty),
-                    answers,
+                    Some(answers),
                 )
+                .unwrap_or_else(|_| {
+                    incomplete_state(
+                        FilterIncomplete::Request {
+                            reason: RulebookIncompleteReason::InvalidResponse,
+                        },
+                        None,
+                    )
+                })
             }
             DecisionRunOutcome::ProviderFailure {
                 failure_class,

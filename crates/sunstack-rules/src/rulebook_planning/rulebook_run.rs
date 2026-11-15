@@ -77,7 +77,14 @@ pub async fn run_rulebook(
     backend: Option<Arc<dyn DecisionBackend>>,
     cancellation: CancellationToken,
 ) -> RulebookRun {
-    let mut dispatcher = ModelRequestDispatch::new(settings, backend, cancellation);
+    let mut dispatcher = ModelRequestDispatch::new(
+        settings,
+        match backend {
+            Some(backend) => crate::ModelDispatchPolicy::Execution { backend },
+            None => crate::ModelDispatchPolicy::LocalOnly,
+        },
+        cancellation,
+    );
     run_rulebook_with_dispatcher(
         rules,
         pieces,
@@ -125,6 +132,20 @@ pub async fn run_rulebook_with_dispatcher(
                 crate::gate_for(rule, filters, &piece.location.file)
             } {
                 crate::GateOutcome::Walk => {}
+                crate::GateOutcome::Unavailable(reason) => {
+                    run.results.push(RulebookPairResult {
+                        rule_index,
+                        piece_index,
+                        result: RulebookResult::Unavailable {
+                            reason,
+                            field: None,
+                            step: None,
+                            path_taken: vec![],
+                            answers_read: BTreeMap::new(),
+                        },
+                    });
+                    continue;
+                }
                 crate::GateOutcome::Exclude(reason) => {
                     run.results.push(RulebookPairResult {
                         rule_index,
@@ -204,6 +225,16 @@ pub async fn run_rulebook_with_dispatcher(
                 }
                 WalkOutcome::NeedsAnswers { step, path_taken } => (step, path_taken),
             };
+            if let Err(DispatchRefusal::Unavailable(reason)) = dispatcher.check_capability() {
+                run.results[pair_index].result = RulebookResult::Unavailable {
+                    reason,
+                    field: None,
+                    step: Some(step),
+                    path_taken,
+                    answers_read: BTreeMap::new(),
+                };
+                continue;
+            }
             run.results[pair_index].result = incomplete(
                 RulebookIncompleteReason::InvalidResponse,
                 Some(step.clone()),
@@ -249,6 +280,16 @@ pub async fn run_rulebook_with_dispatcher(
                     }
                 }
                 Err(refusal) => {
+                    if let DispatchRefusal::Unavailable(reason) = refusal {
+                        run.results[pair_index].result = RulebookResult::Unavailable {
+                            reason,
+                            field: None,
+                            step: Some(step),
+                            path_taken,
+                            answers_read: BTreeMap::new(),
+                        };
+                        continue;
+                    }
                     let reason = match refusal {
                         DispatchRefusal::ChoiceOptionsExceeded(error) => {
                             RulebookIncompleteReason::ChoiceOptionsExceeded {
@@ -263,7 +304,9 @@ pub async fn run_rulebook_with_dispatcher(
                         DispatchRefusal::RequestLimitReached => {
                             RulebookIncompleteReason::RequestLimitReached
                         }
-                        DispatchRefusal::InvalidRequest => RulebookIncompleteReason::InvalidRequest,
+                        DispatchRefusal::InvalidRequest | DispatchRefusal::Unavailable(_) => {
+                            RulebookIncompleteReason::InvalidRequest
+                        }
                     };
                     run.not_sent.push(UnsentRulebookRequest {
                         pair_index,

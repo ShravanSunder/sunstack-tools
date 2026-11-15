@@ -1,7 +1,7 @@
 use super::*;
 
 #[tokio::test]
-async fn clean_asking_cli_scopes_finish_keyless_and_named_files_still_refuse() {
+async fn clean_asking_cli_scopes_finish_keyless_and_named_files_keep_unavailable_subjects() {
     let root = tempfile::tempdir().unwrap();
     fixture::judged(root.path(), "http://127.0.0.1:1/v1/systemone");
     fixture::commit(root.path(), "clean asking project");
@@ -11,10 +11,39 @@ async fn clean_asking_cli_scopes_finish_keyless_and_named_files_still_refuse() {
         assert_eq!(value["usage"]["model_requests"], 0);
         assert_eq!(value["usage"]["checked_files_acquired"], 0);
     }
-    let named = report(root.path(), &["docs/one.md"], 2).await;
-    assert_eq!(named["diagnostics"][0]["code"], "credential_missing");
+    let named = report(root.path(), &["docs/one.md"], 3).await;
+    assert_eq!(named["status"]["kind"], "incomplete");
+    assert_eq!(named["diagnostics"], json!([]));
     assert_eq!(named["scope"]["kind"], "all");
     assert_eq!(named["usage"]["model_requests"], 0);
+    assert_eq!(named["usage"]["checked_files_acquired"], 1);
+    assert_eq!(named["requests"], json!([]));
+    assert_eq!(named["results"].as_array().unwrap().len(), 1);
+    let result = &named["results"][0];
+    assert_eq!(result["file"], "docs/one.md");
+    assert_eq!(result["marker"], "K001");
+    assert_eq!(result["outcome"], "unavailable");
+    assert_eq!(result["reason"], json!({"kind":"credential_unavailable"}));
+    assert_eq!(result["request_ids"], json!([]));
+    let result_id = result["id"].as_u64().unwrap();
+    assert!(result_id > 0);
+    assert_eq!(
+        named["piece_evidence"][result_id.to_string()]["piece"]["where"]["file"],
+        "docs/one.md"
+    );
+    assert_eq!(
+        named["file_counts"],
+        json!([{"file":"docs/one.md","kinds":{
+            "skill":{"matches":1,"pieces":1,"picked":1,"limited":false}
+        }}])
+    );
+    assert_eq!(
+        named["incomplete"],
+        json!([{
+            "rule":"description", "file":"docs/one.md",
+            "reason":{"kind":"unavailable","reason":{"kind":"credential_unavailable"}}
+        }])
+    );
 }
 
 #[tokio::test]

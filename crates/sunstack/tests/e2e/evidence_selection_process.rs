@@ -276,7 +276,7 @@ async fn equal_range_selection_is_asked_once_and_positive_answer_survives() {
     assert_eq!(count["pieces"], 1);
     assert_eq!(
         count["selection"],
-        json!({"candidates":1,"asked":1,"selected":1,"not_selected":0,"uncertain":0,"incomplete":0})
+        json!({"candidates":1,"asked":1,"selected":1,"not_selected":0,"uncertain":0,"incomplete":0,"unavailable":0})
     );
 }
 

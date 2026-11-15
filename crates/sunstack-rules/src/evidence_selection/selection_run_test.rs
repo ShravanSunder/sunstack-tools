@@ -219,7 +219,11 @@ fn selection_cut_fields_count_toward_the_existing_exact_request_size_limit() {
     let backend = Arc::new(
         JevOpenRouterBackend::new(settings.backend.clone(), "SYNTHETIC_SIZE_CONTROL").unwrap(),
     );
-    let dispatcher = ModelRequestDispatch::new(settings, Some(backend), CancellationToken::new());
+    let dispatcher = ModelRequestDispatch::new(
+        settings,
+        crate::ModelDispatchPolicy::Execution { backend },
+        CancellationToken::new(),
+    );
 
     assert!(dispatcher.assess_selection(&legacy).is_ok());
     assert!(matches!(
@@ -286,10 +290,11 @@ async fn selection_cut_fields_replay_only_matching_request_hashes_and_keep_uncut
         };
         let mut dispatch = ModelRequestDispatch::new(
             settings.clone(),
-            Some(backend.clone()),
+            crate::ModelDispatchPolicy::Preparation {
+                encoder: backend.clone(),
+            },
             CancellationToken::new(),
         )
-        .prepare_only()
         .with_recorded_selections(vec![record.clone()]);
 
         let outcomes = select_candidates(&input, &mut dispatch).await;
@@ -310,10 +315,12 @@ async fn selection_cut_fields_replay_only_matching_request_hashes_and_keep_uncut
                 input_sha256: crate::selection_input_hash(&current).unwrap(),
                 ..record
             };
-            let mut matching_dispatch =
-                ModelRequestDispatch::new(settings, Some(backend), CancellationToken::new())
-                    .prepare_only()
-                    .with_recorded_selections(vec![matching]);
+            let mut matching_dispatch = ModelRequestDispatch::new(
+                settings,
+                crate::ModelDispatchPolicy::Preparation { encoder: backend },
+                CancellationToken::new(),
+            )
+            .with_recorded_selections(vec![matching]);
             let matching_outcomes = select_candidates(&input, &mut matching_dispatch).await;
             assert!(matches!(matching_outcomes.values().next().unwrap(),
                 SelectionOutcome::Selected { yes } if *yes == 0.93));

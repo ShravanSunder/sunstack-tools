@@ -107,6 +107,28 @@ const outcome = await run(configuration, { root: '/abs/path/to/repo', scope: { k
 `examples/inline-configuration.ts` is the complete version with a filter, a choice
 question and a gated rule.
 
+Ordinary `run` continues independent local checks when the model credential is
+absent. Reached model work and blocked dependents remain `unavailable`, each with
+a required reason, and the run returns `incomplete` with its report. No request is
+created for unavailable work. A graph that settles before an ask keeps its actual
+ending. Model-backed `inspect` retains its existing credential requirement.
+
+```ts
+if (outcome.kind === 'incomplete') {
+	for (const result of outcome.report.results) {
+		if (result.outcome === 'unavailable') console.log(result.name, result.reason.kind);
+	}
+	console.log(outcome.report.unavailable_counts.rule_pieces); // readonly bigint
+}
+```
+
+`unavailable_counts` keeps rule pieces, filter folders, selection candidates and
+blocked evidence scopes separate. The Rust engine derives these counts from the
+report's retained facts. Contract revision 20 preserves those facts through
+`serialize`/`deserialize`; the native reader refuses a count snapshot that disagrees
+with them. A reportless `unavailable` outcome still means definitions could not be
+acquired, separately from incomplete evaluation.
+
 ## Load and edit an existing configuration
 
 `load` uses the CLI's discovery from an absolute directory, reads every referenced
@@ -394,7 +416,7 @@ Selection happens before rule/filter request construction and preserves selected
 request payloads. Multiple case ids may share one unique execution owner: it runs
 once, with every id retained in accounting. `case_selection` reports binding
 outcomes (`selected`, `unmatched`, `ambiguous`, `stale`, `selection_pending`,
-`incomplete`, `cancelled`) separately from excluded execution owners. Shared
+`incomplete`, `unavailable`, `cancelled`) separately from excluded execution owners. Shared
 model-backed evidence selection may still be needed before final pieces exist.
 Bindings contain no expected labels, and inspection keeps its existing options.
 

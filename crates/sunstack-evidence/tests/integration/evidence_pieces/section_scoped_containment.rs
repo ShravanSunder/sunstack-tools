@@ -86,71 +86,80 @@ fn section_scoped_containment_crosses_languages_and_excludes_earlier_headings() 
 }
 
 #[test]
-fn section_scoped_containment_keeps_unanswered_outline_and_picture_selection_pending() {
-    for selected_kind in ["outline", "picture"] {
-        let root = tempfile::tempdir().unwrap();
-        std::fs::create_dir(root.path().join("rules")).unwrap();
-        std::fs::write(root.path().join("sgconfig.yml"), "ruleDirs: [rules]\n").unwrap();
-        std::fs::write(root.path().join("rules/html.yml"),"id: choice\nlanguage: Html\nrule: {kind: element, regex: '^<ex-choice'}\n---\nid: image\nlanguage: Html\nrule: {kind: element, regex: '^<img'}\n").unwrap();
-        std::fs::write(
-            root.path().join("page.html"),
-            "<h2>Section</h2><img src='a'><ex-choice>Choose</ex-choice>",
-        )
-        .unwrap();
-        let project = load_evidence_project(
-            &root.path().join("sgconfig.yml"),
-            &[],
-            None,
-            &Default::default(),
-        )
-        .unwrap();
-        let mut wire = json!({
-            "outline":{"html_units":{"mode":"unit","units":["section"]},"fields":{"body":{"from":"section","text":"full"}}},
-            "picture":{"rule":"image","fields":{"body":{"from":"remainder"}}},
-            "choice":{"rule":"choice","fields":{"pictures":{"from":"inside","kind":"picture","scope":{"section_prefix":"outline"}},"body":{"from":"remainder"}}}
-        });
-        wire[selected_kind]["select"] = json!({"question":{"type":"noul","instructions":{"check":"body","task":"Select this candidate."}},"yes_at_or_above":0.7,"no_at_or_below":0.3});
-        let kinds = serde_json::from_value(wire).unwrap();
-        let mut source = RecordingSource::new(root.path());
-        let mut build = EvidenceBuild::start(
-            &project,
-            &kinds,
-            &["page.html".into()],
-            &mut source,
-            limits(),
-        )
-        .unwrap();
-        let BuildStep::NeedsSelection {
-            kind, candidates, ..
-        } = build.advance(ChosenCandidates::default(), &mut source)
-        else {
-            panic!("selection required")
-        };
-        assert_eq!(kind.as_str(), selected_kind);
-        build.defer_selection(
-            &candidates
-                .into_iter()
-                .map(|candidate| candidate.id)
-                .collect(),
-        );
-        let BuildStep::Done(catalog) = build.advance(ChosenCandidates::default(), &mut source)
-        else {
-            panic!("done required")
-        };
-        let choice = catalog
-            .pieces
-            .iter()
-            .find(|piece| piece.kind.as_str() == "choice")
+fn section_scoped_containment_preserves_pending_and_unavailable_selection_reasons() {
+    for (deferral, reason) in [
+        (
+            SelectionDeferral::Pending,
+            FieldUnavailable::SelectionPending,
+        ),
+        (
+            SelectionDeferral::Unavailable,
+            FieldUnavailable::SelectionUnavailable,
+        ),
+    ] {
+        for selected_kind in ["outline", "picture"] {
+            let root = tempfile::tempdir().unwrap();
+            std::fs::create_dir(root.path().join("rules")).unwrap();
+            std::fs::write(root.path().join("sgconfig.yml"), "ruleDirs: [rules]\n").unwrap();
+            std::fs::write(root.path().join("rules/html.yml"),"id: choice\nlanguage: Html\nrule: {kind: element, regex: '^<ex-choice'}\n---\nid: image\nlanguage: Html\nrule: {kind: element, regex: '^<img'}\n").unwrap();
+            std::fs::write(
+                root.path().join("page.html"),
+                "<h2>Section</h2><img src='a'><ex-choice>Choose</ex-choice>",
+            )
             .unwrap();
-        assert!(
-            matches!(
+            let project = load_evidence_project(
+                &root.path().join("sgconfig.yml"),
+                &[],
+                None,
+                &Default::default(),
+            )
+            .unwrap();
+            let mut wire = json!({
+                "outline":{"html_units":{"mode":"unit","units":["section"]},"fields":{"body":{"from":"section","text":"full"}}},
+                "picture":{"rule":"image","fields":{"body":{"from":"remainder"}}},
+                "choice":{"rule":"choice","fields":{"pictures":{"from":"inside","kind":"picture","scope":{"section_prefix":"outline"}},"body":{"from":"remainder"}}}
+            });
+            wire[selected_kind]["select"] = json!({"question":{"type":"noul","instructions":{"check":"body","task":"Select this candidate."}},"yes_at_or_above":0.7,"no_at_or_below":0.3});
+            let kinds = serde_json::from_value(wire).unwrap();
+            let mut source = RecordingSource::new(root.path());
+            let mut build = EvidenceBuild::start(
+                &project,
+                &kinds,
+                &["page.html".into()],
+                &mut source,
+                limits(),
+            )
+            .unwrap();
+            let BuildStep::NeedsSelection {
+                kind, candidates, ..
+            } = build.advance(ChosenCandidates::default(), &mut source)
+            else {
+                panic!("selection required")
+            };
+            assert_eq!(kind.as_str(), selected_kind);
+            build.defer_selection(
+                &candidates
+                    .into_iter()
+                    .map(|candidate| (candidate.id, deferral))
+                    .collect(),
+            );
+            let BuildStep::Done(catalog) = build.advance(ChosenCandidates::default(), &mut source)
+            else {
+                panic!("done required")
+            };
+            let choice = catalog
+                .pieces
+                .iter()
+                .find(|piece| piece.kind.as_str() == "choice")
+                .unwrap();
+            assert_eq!(
                 field(choice, "pictures"),
-                FieldValue::Unavailable {
-                    reason: FieldUnavailable::SelectionPending
-                }
-            ),
-            "{selected_kind}"
-        );
-        assert!(matches!(field(choice,"body"),FieldValue::Text{value,..} if value == &choice.text));
+                &FieldValue::Unavailable { reason },
+                "{selected_kind}: {deferral:?}"
+            );
+            assert!(
+                matches!(field(choice,"body"),FieldValue::Text{value,..} if value == &choice.text)
+            );
+        }
     }
 }

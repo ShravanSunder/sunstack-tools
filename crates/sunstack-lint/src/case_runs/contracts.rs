@@ -141,6 +141,9 @@ pub enum CaseOutcome {
     NotJudged {
         reason: String,
     },
+    Unavailable {
+        reason: sunstack_rules::WorkUnavailableReason,
+    },
     Stale,
     NoMatchingPiece,
     MoreThanOneMatchingPiece,
@@ -162,6 +165,7 @@ impl CaseOutcome {
             Self::Unsure => "unsure",
             Self::Incomplete { .. } => "incomplete",
             Self::NotJudged { .. } => "not_judged",
+            Self::Unavailable { .. } => "unavailable",
             Self::Stale => "stale",
             Self::NoMatchingPiece => "no_matching_piece",
             Self::MoreThanOneMatchingPiece => "more_than_one_matching_piece",

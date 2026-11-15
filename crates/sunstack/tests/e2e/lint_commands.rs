@@ -392,8 +392,38 @@ async fn no_key_sends_no_request_provider_failure_is_incomplete_and_real_signals
         let mut server = controlled::ControlledServer::start().await;
         judged(root.path(), &server.endpoint);
         if case == "missing-key" {
-            let missing = report(root.path(), &["--all"], 2).await;
-            assert_eq!(missing["diagnostics"][0]["code"], "credential_missing");
+            let missing = report(root.path(), &["--all"], 3).await;
+            assert_eq!(missing["status"]["kind"], "incomplete");
+            assert_eq!(missing["diagnostics"], json!([]));
+            assert_eq!(missing["requests"], json!([]));
+            assert_eq!(missing["usage"]["model_requests"], 0);
+            assert_eq!(missing["usage"]["checked_files_acquired"], 1);
+            assert_eq!(missing["counts"], json!({"error":0,"warn":0}));
+            assert_eq!(missing["findings"], json!([]));
+            assert_eq!(missing["results"].as_array().unwrap().len(), 1);
+            let result = &missing["results"][0];
+            assert_eq!(result["name"], "description");
+            assert_eq!(result["marker"], "K001");
+            assert_eq!(result["file"], "docs/one.md");
+            assert_eq!(result["outcome"], "unavailable");
+            assert_eq!(result["reason"], json!({"kind":"credential_unavailable"}));
+            assert_eq!(result["step"], "complies");
+            assert_eq!(result["path"], json!(["complies"]));
+            assert_eq!(result["request_ids"], json!([]));
+            let result_id = result["id"].as_u64().unwrap();
+            assert!(result_id > 0);
+            assert_eq!(
+                missing["piece_evidence"][result_id.to_string()]["piece"]["fields"]["description"]
+                    ["value"],
+                "Wrong opening"
+            );
+            assert_eq!(
+                missing["incomplete"],
+                json!([{
+                    "rule":"description", "file":"docs/one.md",
+                    "reason":{"kind":"unavailable","reason":{"kind":"credential_unavailable"}}
+                }])
+            );
             assert_eq!(server.finish().await, 0);
             continue;
         }

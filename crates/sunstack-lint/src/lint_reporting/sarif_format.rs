@@ -1,7 +1,8 @@
 use crate::{
     IncompleteReason, LintReport, LintStatus, ScopeReport,
-    lint_reporting::formats::{
-        incomplete_text, selection_incomplete_text, transport_level, uncertain_text,
+    lint_reporting::{
+        formats::{transport_level, uncertain_text},
+        incomplete_formats::{incomplete_text, selection_incomplete_text},
     },
 };
 use serde::Serialize;

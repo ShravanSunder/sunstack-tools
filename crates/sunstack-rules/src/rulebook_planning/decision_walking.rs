@@ -1,14 +1,31 @@
-use crate::{
-    BinaryRoutes, DecisionMechanicalTool, DecisionRoute, RulebookRule, Severity, StepName,
-};
+#[cfg(test)]
+use super::mechanical_checks::mechanical_check;
+#[cfg(test)]
+use crate::DecisionMechanicalTool;
+use crate::{BinaryRoutes, DecisionRoute, RulebookRule, Severity, StepName};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use sunstack_decisions::{JudgmentAnswer, NamedAnswerMap, NamedQuestionMap};
-use sunstack_evidence::{
-    EvidencePiece, FieldName, FieldValue, FileMatchIndex, MatchRange, ModelView,
-    contains_whole_token, match_within,
-};
+use sunstack_evidence::{EvidencePiece, FieldName, FieldValue, FileMatchIndex, ModelView};
+
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
+pub enum WorkUnavailableReason {
+    CredentialUnavailable {},
+    FilterUnavailable {
+        filter: crate::FilterName,
+        folder: std::path::PathBuf,
+    },
+    SelectionUnavailable {
+        evidence_kind: sunstack_evidence::EvidenceKindName,
+        file: std::path::PathBuf,
+    },
+    SelectedFieldUnavailable {
+        field: FieldName,
+    },
+}
 
 #[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
@@ -34,6 +51,13 @@ pub enum RulebookIncompleteReason {
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "result", rename_all = "snake_case")]
 pub enum RulebookResult {
+    Unavailable {
+        reason: WorkUnavailableReason,
+        field: Option<FieldName>,
+        step: Option<StepName>,
+        path_taken: Vec<StepName>,
+        answers_read: NamedAnswerMap,
+    },
     Pass {
         path_taken: Vec<StepName>,
         answers_read: NamedAnswerMap,
@@ -123,7 +147,8 @@ impl RulebookResult {
             | Self::Finding { path_taken, .. }
             | Self::NotApplicable { path_taken, .. }
             | Self::Uncertain { path_taken, .. }
-            | Self::Incomplete { path_taken, .. } => path_taken,
+            | Self::Incomplete { path_taken, .. }
+            | Self::Unavailable { path_taken, .. } => path_taken,
         }
     }
 
@@ -133,7 +158,8 @@ impl RulebookResult {
             | Self::Finding { answers_read, .. }
             | Self::NotApplicable { answers_read, .. }
             | Self::Uncertain { answers_read, .. }
-            | Self::Incomplete { answers_read, .. } => answers_read,
+            | Self::Incomplete { answers_read, .. }
+            | Self::Unavailable { answers_read, .. } => answers_read,
         }
     }
 
@@ -143,7 +169,7 @@ impl RulebookResult {
                 reason: NotApplicableReason::Filter { .. },
                 ..
             } => Some(Basis::Judged),
-            Self::Incomplete { .. } => None,
+            Self::Incomplete { .. } | Self::Unavailable { .. } => None,
             Self::Pass { .. }
             | Self::Finding { .. }
             | Self::NotApplicable { .. }
@@ -215,7 +241,9 @@ pub(super) fn piece_state_for_questions(
             })
             .map(|(name, value)| (name.clone(), value.clone()))
             .collect(),
-        ModelView::TooLarge { .. } | ModelView::SelectionPending => empty,
+        ModelView::TooLarge { .. }
+        | ModelView::SelectionPending
+        | ModelView::SelectionUnavailable => empty,
     };
     serde_json::from_value(serde_json::to_value(PieceState {
         standard: &rule.sentence.standard,
@@ -241,7 +269,9 @@ pub(super) fn piece_state_for_questions(
         fields: &available_fields,
         cut_fields: match &piece.model_view {
             ModelView::Bounded { cut, .. } => cut,
-            ModelView::TooLarge { .. } | ModelView::SelectionPending => &[],
+            ModelView::TooLarge { .. }
+            | ModelView::SelectionPending
+            | ModelView::SelectionUnavailable => &[],
         },
     })?)
 }
@@ -281,6 +311,37 @@ pub(crate) fn walk_decision_with_omissions(
             path_taken,
             answers_read,
         } => {
+            if let Some(field) = field.as_ref().filter(|field| {
+                piece
+                    .fields
+                    .get(*field)
+                    .is_some_and(FieldValue::is_selection_unavailable)
+            }) {
+                return WalkOutcome::Settled(RulebookResult::Unavailable {
+                    reason: WorkUnavailableReason::SelectedFieldUnavailable {
+                        field: field.clone(),
+                    },
+                    field: Some(field.clone()),
+                    step,
+                    path_taken,
+                    answers_read,
+                });
+            }
+            if reason == RulebookIncompleteReason::EvidenceUnavailable
+                && field.is_none()
+                && matches!(piece.model_view, ModelView::SelectionUnavailable)
+            {
+                return WalkOutcome::Settled(RulebookResult::Unavailable {
+                    reason: WorkUnavailableReason::SelectionUnavailable {
+                        evidence_kind: piece.kind.clone(),
+                        file: piece.location.file.clone(),
+                    },
+                    field: None,
+                    step,
+                    path_taken,
+                    answers_read,
+                });
+            }
             return WalkOutcome::Settled(RulebookResult::Incomplete {
                 reason,
                 field,
@@ -329,6 +390,22 @@ pub(crate) fn walk_decision_with_omissions(
             ) {
                 Ok(message) => message,
                 Err(field) => {
+                    if let Some(field) = field.as_ref().filter(|field| {
+                        piece
+                            .fields
+                            .get(*field)
+                            .is_some_and(FieldValue::is_selection_unavailable)
+                    }) {
+                        return WalkOutcome::Settled(RulebookResult::Unavailable {
+                            reason: WorkUnavailableReason::SelectedFieldUnavailable {
+                                field: field.clone(),
+                            },
+                            field: Some(field.clone()),
+                            step: Some(current),
+                            path_taken: path,
+                            answers_read,
+                        });
+                    }
                     return incomplete(
                         RulebookIncompleteReason::EvidenceUnavailable,
                         field,
@@ -448,153 +525,28 @@ pub(super) fn binary_route(value: f64, routes: &BinaryRoutes) -> Option<&Decisio
         None
     }
 }
-pub(super) fn mechanical_check(
-    tool: &DecisionMechanicalTool,
-    piece: &EvidencePiece,
-    index: &FileMatchIndex,
-    measurements: &crate::FieldMeasurementSettings,
-) -> Result<bool, FieldName> {
-    let field = match tool {
-        DecisionMechanicalTool::AstGrep { rule } => {
-            return Ok(index.by_rule.get(rule).into_iter().flatten().any(|span| {
-                match_within(
-                    span,
-                    &MatchRange {
-                        start: piece.location.span.byte_start,
-                        end: piece.location.span.byte_end,
-                    },
-                )
-            }));
-        }
-        DecisionMechanicalTool::Regex { field, .. }
-        | DecisionMechanicalTool::Contains { field, .. }
-        | DecisionMechanicalTool::MaxChars { field, .. }
-        | DecisionMechanicalTool::FileExists { field }
-        | DecisionMechanicalTool::AnchorExists { field }
-        | DecisionMechanicalTool::ContainsField { field, .. }
-        | DecisionMechanicalTool::Complete { field } => field,
-        DecisionMechanicalTool::WordCount { field, bound } => {
-            return super::field_measurement::FieldMeasure::Words
-                .read_fields(piece, field, measurements)
-                .map(|count| bound.matches(count));
-        }
-        DecisionMechanicalTool::PieceCount { field, bound } => {
-            return super::field_measurement::FieldMeasure::Pieces
-                .read_fields(piece, field, measurements)
-                .map(|count| bound.matches(count));
-        }
-    };
-    if matches!(tool, DecisionMechanicalTool::Complete { .. })
-        && matches!(piece.model_view, ModelView::SelectionPending)
-    {
-        return Err(field.clone());
-    }
-    let value = piece.fields.get(field);
-    if matches!(value, Some(FieldValue::MissingDocument { .. })) {
-        return if matches!(tool, DecisionMechanicalTool::Complete { .. }) {
-            Ok(false)
-        } else {
-            Err(field.clone())
-        };
-    }
-    if matches!(value, Some(FieldValue::Unavailable { .. })) {
-        return Err(field.clone());
-    }
-    if matches!(
-        tool,
-        DecisionMechanicalTool::AnchorExists { .. } | DecisionMechanicalTool::ContainsField { .. }
-    ) && matches!(value, None | Some(FieldValue::Absent))
-    {
-        return Err(field.clone());
-    }
-    let texts = match value {
-        Some(FieldValue::Text { value, .. }) => vec![value.as_str()],
-        Some(FieldValue::Texts { values, .. } | FieldValue::Document { values, .. }) => {
-            values.iter().map(String::as_str).collect()
-        }
-        _ => vec![],
-    };
-    Ok(match tool {
-        DecisionMechanicalTool::WordCount { .. } | DecisionMechanicalTool::PieceCount { .. } => {
-            false
-        }
-        DecisionMechanicalTool::Regex { pattern, .. } => regex::Regex::new(pattern)
-            .is_ok_and(|regex| texts.iter().any(|text| regex.is_match(text))),
-        DecisionMechanicalTool::Contains { text, .. } => {
-            texts.iter().any(|value| value.contains(text))
-        }
-        DecisionMechanicalTool::ContainsField { needle, .. } => {
-            let needle_value = match piece.fields.get(needle) {
-                Some(FieldValue::Text { value, .. }) if !value.is_empty() => value,
-                _ => return Err(needle.clone()),
-            };
-            texts
-                .iter()
-                .any(|text| contains_whole_token(text, needle_value))
-        }
-        DecisionMechanicalTool::AnchorExists { .. } => {
-            let Some(FieldValue::Targets { values }) = value else {
-                return Err(field.clone());
-            };
-            let mut found = !values.is_empty();
-            for target in values {
-                if !target.exists {
-                    found = false;
-                } else {
-                    match &target.anchor {
-                        None | Some(sunstack_evidence::TargetAnchor::Found { .. }) => {}
-                        Some(sunstack_evidence::TargetAnchor::Missing { .. }) => found = false,
-                        Some(sunstack_evidence::TargetAnchor::Unsupported { .. }) => {
-                            return Err(field.clone());
-                        }
-                    }
-                }
-            }
-            found
-        }
-        DecisionMechanicalTool::MaxChars { max, .. } => {
-            texts.first().map_or(0, |text| text.chars().count()) <= *max
-        }
-        DecisionMechanicalTool::FileExists { .. } => {
-            matches!(value, Some(FieldValue::Targets { values }) if !values.is_empty() && values.iter().all(|target| target.exists))
-        }
-        DecisionMechanicalTool::Complete { .. } => {
-            let bounded =
-                matches!(&piece.model_view, ModelView::Bounded {cut, ..} if !cut.contains(field));
-            bounded
-                && match value {
-                    Some(FieldValue::Targets { values }) => values.iter().all(|target| {
-                        target.exists
-                            && target.candidates.is_empty()
-                            && target.opening.is_some()
-                            && !target.opening_cut
-                    }),
-                    Some(
-                        FieldValue::Text { .. }
-                        | FieldValue::Texts { .. }
-                        | FieldValue::Document { .. }
-                        | FieldValue::Absent,
-                    ) => true,
-                    Some(FieldValue::Unavailable { .. } | FieldValue::MissingDocument { .. })
-                    | None => false,
-                }
-        }
-        DecisionMechanicalTool::AstGrep { .. } => false,
-    })
-}
-
 /// The shared referenced-field guard for rule and evidence-selection questions.
 pub fn unavailable_question_field(
     questions: &sunstack_decisions::NamedQuestionMap,
     fields: &BTreeMap<FieldName, FieldValue>,
 ) -> Option<FieldName> {
-    crate::rulebook_planning::rulebook_admission::question_field_references(questions)
-        .into_iter()
+    let references =
+        crate::rulebook_planning::rulebook_admission::question_field_references(questions);
+    references
+        .iter()
         .find(|field| {
-            matches!(
-                fields.get(field),
-                Some(FieldValue::Unavailable { .. } | FieldValue::MissingDocument { .. })
-            )
+            fields
+                .get(*field)
+                .is_some_and(FieldValue::is_selection_unavailable)
+        })
+        .cloned()
+        .or_else(|| {
+            references.into_iter().find(|field| {
+                matches!(
+                    fields.get(field),
+                    Some(FieldValue::Unavailable { .. } | FieldValue::MissingDocument { .. })
+                )
+            })
         })
 }
 

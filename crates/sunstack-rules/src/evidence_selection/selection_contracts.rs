@@ -125,12 +125,25 @@ pub enum SelectionIncompleteReason {
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum SelectionOutcome {
+    Unavailable {
+        reason: crate::WorkUnavailableReason,
+    },
     Deferred,
-    Prepared { request_id: usize },
-    Selected { yes: f64 },
-    NotSelected { yes: f64 },
-    Uncertain { yes: f64 },
-    Incomplete { reason: SelectionIncompleteReason },
+    Prepared {
+        request_id: usize,
+    },
+    Selected {
+        yes: f64,
+    },
+    NotSelected {
+        yes: f64,
+    },
+    Uncertain {
+        yes: f64,
+    },
+    Incomplete {
+        reason: SelectionIncompleteReason,
+    },
 }
 #[derive(Debug, Clone)]
 pub struct SelectionInput {

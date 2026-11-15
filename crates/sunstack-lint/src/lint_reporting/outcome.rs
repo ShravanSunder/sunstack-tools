@@ -23,6 +23,17 @@ pub(crate) fn project_outcome(
                     reason: reason.clone(),
                 },
             });
+        } else if let sunstack_rules::FilterAnswerState::Unavailable { reason, field, .. } =
+            &answer.state
+        {
+            report.incomplete.push(IncompletePart {
+                rule: None,
+                file: Some(answer.folder.clone()),
+                field: field.clone(),
+                reason: IncompleteReason::Unavailable {
+                    reason: reason.clone(),
+                },
+            });
         }
     }
     for skip in &run.skips {
@@ -62,18 +73,39 @@ pub(crate) fn project_outcome(
         else {
             continue;
         };
-        let (outcome, step) = match &pair.result {
+        let (ending, step) = match &pair.result {
             RulebookResult::Pass { path_taken, .. } => {
-                (PieceOutcome::Pass, path_taken.last().cloned())
+                (RulePieceEnding::Pass, path_taken.last().cloned())
             }
-            RulebookResult::NotApplicable { path_taken, .. } => {
-                (PieceOutcome::NotApplicable, path_taken.last().cloned())
-            }
+            RulebookResult::NotApplicable {
+                reason, path_taken, ..
+            } => (
+                RulePieceEnding::NotApplicable {
+                    reason: match reason {
+                        reason @ sunstack_rules::NotApplicableReason::Filter { .. } => {
+                            Some(reason.clone())
+                        }
+                        _ => None,
+                    },
+                },
+                path_taken.last().cloned(),
+            ),
             RulebookResult::Finding { path_taken, .. } => {
-                (PieceOutcome::Finding, path_taken.last().cloned())
+                (RulePieceEnding::Finding, path_taken.last().cloned())
             }
-            RulebookResult::Uncertain { step, .. } => (PieceOutcome::Uncertain, Some(step.clone())),
-            RulebookResult::Incomplete { step, .. } => (PieceOutcome::Incomplete, step.clone()),
+            RulebookResult::Uncertain { step, .. } => {
+                (RulePieceEnding::Uncertain, Some(step.clone()))
+            }
+            RulebookResult::Incomplete { reason, step, .. } => (
+                RulePieceEnding::Incomplete { gap: Some(*reason) },
+                step.clone(),
+            ),
+            RulebookResult::Unavailable { reason, step, .. } => (
+                RulePieceEnding::Unavailable {
+                    reason: reason.clone(),
+                },
+                step.clone(),
+            ),
         };
         let basis = pair.result.basis();
         let id = report.results.len() + 1;
@@ -108,21 +140,10 @@ pub(crate) fn project_outcome(
             text_sha256: None,
             id,
             request_ids,
-            gap: match &pair.result {
-                RulebookResult::Incomplete { reason, .. } => Some(*reason),
-                _ => None,
-            },
             locator_omitted: match &pair.result {
                 RulebookResult::Finding {
                     locator_omitted, ..
                 } => locator_omitted.clone(),
-                _ => None,
-            },
-            reason: match &pair.result {
-                RulebookResult::NotApplicable {
-                    reason: reason @ sunstack_rules::NotApplicableReason::Filter { .. },
-                    ..
-                } => Some(reason.clone()),
                 _ => None,
             },
             name: rule.name.clone(),
@@ -130,7 +151,7 @@ pub(crate) fn project_outcome(
             file: piece.location.file.clone(),
             first_line: piece.location.first_line,
             last_line: piece.location.last_line,
-            outcome,
+            ending,
             step,
             path: pair.result.path_taken().to_vec(),
             answers: pair.result.answers_read().clone(),
@@ -138,7 +159,8 @@ pub(crate) fn project_outcome(
             cut: match &piece.model_view {
                 sunstack_evidence::ModelView::Bounded { cut, .. } => cut.clone(),
                 sunstack_evidence::ModelView::TooLarge { .. }
-                | sunstack_evidence::ModelView::SelectionPending => vec![],
+                | sunstack_evidence::ModelView::SelectionPending
+                | sunstack_evidence::ModelView::SelectionUnavailable => vec![],
             },
         });
         match pair.result {
@@ -212,6 +234,14 @@ pub(crate) fn project_outcome(
                 state,
                 answers,
             }),
+            RulebookResult::Unavailable { reason, field, .. } => {
+                report.incomplete.push(IncompletePart {
+                    rule: Some(rule.name.clone()),
+                    file: Some(piece.location.file.clone()),
+                    field,
+                    reason: IncompleteReason::Unavailable { reason },
+                })
+            }
             RulebookResult::Incomplete { reason, field, .. } => {
                 report.incomplete.push(IncompletePart {
                     rule: Some(rule.name.clone()),
@@ -311,6 +341,10 @@ pub(crate) fn project_selections(
                 sunstack_rules::SelectionOutcome::Prepared { .. }
                 | sunstack_rules::SelectionOutcome::Deferred => {
                     count.asked -= 1;
+                }
+                sunstack_rules::SelectionOutcome::Unavailable { .. } => {
+                    count.asked -= 1;
+                    count.unavailable += 1;
                 }
                 sunstack_rules::SelectionOutcome::Selected { .. } => count.selected += 1,
                 sunstack_rules::SelectionOutcome::NotSelected { .. } => count.not_selected += 1,

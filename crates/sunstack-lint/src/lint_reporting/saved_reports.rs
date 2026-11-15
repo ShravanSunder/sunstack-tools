@@ -365,15 +365,18 @@ pub fn show(report: &LintReport, id: usize) -> Result<serde_json::Value, String>
     let (result, requests, finding, rewalkable, gap) =
         if let Some(result) = report.results.iter().find(|result| result.id == id) {
             let excluded = matches!(
-                result.reason,
-                Some(sunstack_rules::NotApplicableReason::Filter { .. })
+                result.ending,
+                RulePieceEnding::NotApplicable {
+                    reason: Some(sunstack_rules::NotApplicableReason::Filter { .. })
+                }
             );
             (
                 serde_json::to_value(result),
                 &result.request_ids,
                 report.findings.iter().find(|finding| finding.id == id),
                 !excluded
-                    && (result.gap.is_none()
+                    && !matches!(result.ending, RulePieceEnding::Unavailable { .. })
+                    && (!matches!(result.ending, RulePieceEnding::Incomplete { gap: Some(_) })
                         || result.request_ids.iter().any(|id| {
                             report.requests.iter().any(|request| {
                             request.id == *id

@@ -561,3 +561,6 @@ fn asking_separates_structural_error_tags_without_a_cut() {
 
 #[path = "kind_model_view_test/project_settings.rs"]
 mod project_settings;
+
+#[path = "kind_model_view_test/selection_unavailability.rs"]
+mod selection_unavailability;

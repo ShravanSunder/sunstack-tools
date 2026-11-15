@@ -181,7 +181,7 @@ fn cancelled_selected_case_keeps_completed_judgements_and_identifies_unfinished_
     ));
 
     // Incomplete result evidence stays available for readback, without claiming a finished judgement.
-    report.results[0].outcome = crate::PieceOutcome::Incomplete;
+    report.results[0].ending = crate::RulePieceEnding::Incomplete { gap: None };
     assert!(matches!(
         selected_result(&case, &snapshot, &report, None, false),
         (CaseOutcome::Cancelled, Some(7))
@@ -235,6 +235,9 @@ fn settled_case_status_keeps_only_unique_exact_result_links() {
                 reason: crate::IncompleteReason::EvidenceUnavailable,
             },
             crate::CaseBindingStatus::Cancelled,
+            crate::CaseBindingStatus::Unavailable {
+                reason: sunstack_rules::WorkUnavailableReason::CredentialUnavailable {},
+            },
             crate::CaseBindingStatus::SelectionPending {
                 evidence_kind: sunstack_evidence::EvidenceKindName::new("document").unwrap(),
                 file: "docs/one.md".into(),
@@ -255,6 +258,11 @@ fn settled_case_status_keeps_only_unique_exact_result_links() {
                 }
                 crate::CaseBindingStatus::Cancelled => {
                     assert!(matches!(outcome, CaseOutcome::Cancelled))
+                }
+                crate::CaseBindingStatus::Unavailable { reason } => {
+                    assert!(
+                        matches!(outcome, CaseOutcome::Unavailable { reason: actual } if actual == reason)
+                    )
                 }
                 _ => assert!(matches!(outcome, CaseOutcome::SelectionPending { .. })),
             }
@@ -291,6 +299,12 @@ fn refused_or_pending_identity_never_links_an_unrelated_prerequisite_request() {
     );
     report.requests.push(request);
     for status in [
+        crate::CaseBindingStatus::Unavailable {
+            reason: sunstack_rules::WorkUnavailableReason::SelectionUnavailable {
+                evidence_kind: sunstack_evidence::EvidenceKindName::new("document").unwrap(),
+                file: "docs/one.md".into(),
+            },
+        },
         crate::CaseBindingStatus::SelectionPending {
             evidence_kind: sunstack_evidence::EvidenceKindName::new("document").unwrap(),
             file: "docs/one.md".into(),

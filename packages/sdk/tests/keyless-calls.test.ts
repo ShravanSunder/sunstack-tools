@@ -252,15 +252,20 @@ await test('run endings keep the exact engine status, diagnostics and checked pa
 		const configuration = inlineConfiguration(base.path, backend.endpoint);
 
 		const missingKey = await run(configuration, { root: repository.path, scope: { kind: 'all' } });
-		assert.equal(missingKey.kind, 'invalid');
-		if (missingKey.kind === 'invalid') {
-			assert.equal(missingKey.diagnostics[0]?.code, 'credential_missing');
-			assert.equal(missingKey.report?.status.kind, 'invalid');
-			assert.deepEqual(missingKey.diagnostics[0]?.origin, {
-				kind: 'inline',
-				id: 'instruction-standards',
-				label: 'instruction-standards',
-			});
+		assert.equal(missingKey.kind, 'incomplete');
+		if (missingKey.kind === 'incomplete') {
+			assert.equal(missingKey.report.status.kind, 'incomplete');
+			assert.equal(missingKey.report.unavailable_counts.filter_folders, 2n);
+			assert.ok(missingKey.report.results.length > 0);
+			assert.ok(missingKey.report.results.every((result) => result.outcome === 'unavailable'));
+			assert.ok(
+				missingKey.report.filter_answers.every(
+					(answer) =>
+						answer.state === 'unavailable' && answer.reason.kind === 'credential_unavailable',
+				),
+			);
+			assert.deepEqual(missingKey.report.requests, []);
+			assert.equal(backend.received.length, 0);
 		}
 
 		const relative = await run(configuration, { root: 'relative/root', scope: { kind: 'all' } });

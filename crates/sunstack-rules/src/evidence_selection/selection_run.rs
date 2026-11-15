@@ -160,6 +160,16 @@ async fn send_group(
                     .collect(),
             );
         }
+        Err(DispatchRefusal::Unavailable(reason)) => {
+            for candidate in candidates {
+                outcomes.insert(
+                    candidate.id.clone(),
+                    SelectionOutcome::Unavailable {
+                        reason: reason.clone(),
+                    },
+                );
+            }
+        }
         Err(refusal) => {
             let reason = match refusal {
                 DispatchRefusal::Cancelled => SelectionIncompleteReason::Cancelled,
@@ -169,9 +179,9 @@ async fn send_group(
                 DispatchRefusal::RequestLimitReached => {
                     SelectionIncompleteReason::RequestLimitReached
                 }
-                DispatchRefusal::ChoiceOptionsExceeded(_) | DispatchRefusal::InvalidRequest => {
-                    SelectionIncompleteReason::InvalidRequest
-                }
+                DispatchRefusal::ChoiceOptionsExceeded(_)
+                | DispatchRefusal::InvalidRequest
+                | DispatchRefusal::Unavailable(_) => SelectionIncompleteReason::InvalidRequest,
             };
             for candidate in candidates {
                 outcomes.insert(candidate.id.clone(), incomplete(reason.clone()));
@@ -203,6 +213,22 @@ pub async fn select_candidates(
             );
             let mut fields = candidate.fields.clone();
             fields.extend(shared.fields.clone());
+            let unavailable_field = unavailable_question_field(&questions, &fields);
+            if let Some(field) = unavailable_field.as_ref().filter(|field| {
+                fields
+                    .get(*field)
+                    .is_some_and(sunstack_evidence::FieldValue::is_selection_unavailable)
+            }) {
+                outcomes.insert(
+                    candidate.id.clone(),
+                    SelectionOutcome::Unavailable {
+                        reason: crate::WorkUnavailableReason::SelectedFieldUnavailable {
+                            field: field.clone(),
+                        },
+                    },
+                );
+                continue;
+            }
             if dispatcher.is_preparing()
                 && fields
                     .values()
@@ -211,7 +237,7 @@ pub async fn select_candidates(
                 outcomes.insert(candidate.id.clone(), SelectionOutcome::Deferred);
                 continue;
             }
-            if let Some(field) = unavailable_question_field(&questions, &fields) {
+            if let Some(field) = unavailable_field {
                 outcomes.insert(
                     candidate.id.clone(),
                     incomplete(SelectionIncompleteReason::EvidenceUnavailable { field }),
@@ -225,6 +251,17 @@ pub async fn select_candidates(
                     candidate.id.clone(),
                     incomplete(SelectionIncompleteReason::EvidenceTooLarge),
                 );
+                continue;
+            }
+            if let Err(refusal) = dispatcher.check_capability() {
+                let outcome = match refusal {
+                    DispatchRefusal::Unavailable(reason) => {
+                        SelectionOutcome::Unavailable { reason }
+                    }
+                    DispatchRefusal::Cancelled => incomplete(SelectionIncompleteReason::Cancelled),
+                    _ => incomplete(SelectionIncompleteReason::InvalidRequest),
+                };
+                outcomes.insert(candidate.id.clone(), outcome);
                 continue;
             }
             let single = request_for(&input.selection, &[candidate], shared)

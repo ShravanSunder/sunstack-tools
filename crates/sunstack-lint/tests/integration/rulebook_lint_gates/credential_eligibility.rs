@@ -93,7 +93,7 @@ async fn named_empty_asking_targets_keep_the_keyless_incomplete_contract() {
 }
 
 #[tokio::test]
-async fn named_asking_file_refuses_before_the_unfrozen_checked_source() {
+async fn named_keyless_asking_file_acquires_unfrozen_evidence_and_keeps_its_unavailable_result() {
     let root = tempfile::tempdir().unwrap();
     fixture::judged(root.path(), "http://127.0.0.1:1/v1/systemone");
     let mut request = fixture::request(root.path());
@@ -103,13 +103,30 @@ async fn named_asking_file_refuses_before_the_unfrozen_checked_source() {
 
     let report = run_with_source(request, CancellationToken::new(), None, Some(reader)).await;
 
-    assert_eq!(report.status, LintStatus::Invalid);
-    assert_eq!(
-        report.diagnostics[0].code,
-        LintInvalidCode::CredentialMissing
-    );
+    assert_eq!(report.status, LintStatus::Incomplete, "{report:?}");
+    assert_eq!(report.status.exit_code(), 3);
+    assert!(report.diagnostics.is_empty());
     assert!(matches!(report.scope.kind, ScopeChoice::All));
-    assert_no_evidence(&report, &reads);
+    assert_eq!(*reads.lock().unwrap(), vec![PathBuf::from("docs/one.md")]);
+    assert_eq!(report.usage.checked_files_acquired, 1);
+    assert_eq!(report.usage.model_requests, 0);
+    assert!(report.requests.is_empty());
+    assert_eq!(report.results.len(), 1);
+    let result = &report.results[0];
+    assert_eq!(result.name.as_str(), "description");
+    assert_eq!(result.file, Path::new("docs/one.md"));
+    assert_eq!((result.first_line, result.last_line), (1, 3));
+    assert!(result.text_sha256.is_some());
+    assert!(matches!(
+        result.ending,
+        RulePieceEnding::Unavailable {
+            reason: sunstack_rules::WorkUnavailableReason::CredentialUnavailable {}
+        }
+    ));
+    assert_eq!(result.step.as_ref().unwrap().as_str(), "complies");
+    assert!(report.piece_evidence.contains_key(&result.id));
+    assert!(result.request_ids.is_empty());
+    assert_eq!(report.unavailable_counts().rule_pieces, 1);
 }
 
 #[tokio::test]
@@ -127,7 +144,8 @@ async fn named_path_scope_is_all_even_when_config_loading_fails() {
 }
 
 #[tokio::test]
-async fn changed_paths_and_rulebook_widening_keep_the_credential_refusal_before_evidence() {
+async fn keyless_change_scope_acquires_frozen_and_fallback_content_but_only_selected_rules_are_unavailable()
+ {
     for changed in ["docs/one.md", "target.md", "unrelated.txt", "rules.json"] {
         let root = tempfile::tempdir().unwrap();
         let mut config = fixture::judged(root.path(), "http://127.0.0.1:1/v1/systemone");
@@ -175,11 +193,74 @@ async fn changed_paths_and_rulebook_widening_keep_the_credential_refusal_before_
 
         let report = run_with_source(request, CancellationToken::new(), None, Some(reader)).await;
 
-        assert_eq!(report.status, LintStatus::Invalid, "{changed}: {report:?}");
-        assert_eq!(report.status.exit_code(), 2);
+        let selected_files = match changed {
+            "target.md" => vec![PathBuf::from("docs/one.md")],
+            "rules.json" => vec![PathBuf::from("docs/one.md"), PathBuf::from("docs/peer.md")],
+            // The appended newline is outside the frontmatter piece; unrelated files select no rule.
+            _ => vec![],
+        };
         assert_eq!(
-            report.diagnostics[0].code,
-            LintInvalidCode::CredentialMissing
+            report.status,
+            if selected_files.is_empty() {
+                LintStatus::NothingSelected
+            } else {
+                LintStatus::Incomplete
+            },
+            "{changed}: {report:?}"
+        );
+        assert_eq!(
+            report.status.exit_code(),
+            if selected_files.is_empty() { 0 } else { 3 }
+        );
+        assert!(report.diagnostics.is_empty());
+        assert_eq!(
+            report
+                .results
+                .iter()
+                .map(|result| result.file.clone())
+                .collect::<Vec<_>>(),
+            selected_files
+        );
+        for result in &report.results {
+            assert_eq!(result.name.as_str(), "description");
+            assert!(matches!(
+                result.ending,
+                RulePieceEnding::Unavailable {
+                    reason: sunstack_rules::WorkUnavailableReason::CredentialUnavailable {}
+                }
+            ));
+            assert_eq!(result.step.as_ref().unwrap().as_str(), "complies");
+            assert!(result.text_sha256.is_some());
+            assert!(report.piece_evidence.contains_key(&result.id));
+            assert!(result.request_ids.is_empty());
+        }
+        assert!(report.findings.is_empty());
+        assert_eq!(
+            report.unavailable_counts().rule_pieces,
+            selected_files.len()
+        );
+        assert_eq!(
+            report.exclusions.outside_change_scope,
+            u32::try_from(2 - selected_files.len()).unwrap()
+        );
+        assert_eq!(report.file_counts.len(), 2);
+        assert_eq!(report.usage.checked_files_acquired, 3);
+        assert_eq!(report.usage.model_requests, 0);
+        assert!(report.requests.is_empty());
+        let mut expected_reads = vec![
+            PathBuf::from("docs/one.md"),
+            PathBuf::from("docs/peer.md"),
+            PathBuf::from("target.md"),
+        ];
+        if changed == "docs/one.md" || changed == "target.md" {
+            expected_reads.retain(|path| path != Path::new(changed));
+        }
+        expected_reads.sort();
+        let mut actual_reads = reads.lock().unwrap().clone();
+        actual_reads.sort();
+        assert_eq!(
+            actual_reads, expected_reads,
+            "changed after text stays frozen; each uncaptured path uses fallback once"
         );
         if changed == "rules.json" {
             assert!(matches!(report.scope.kind, ScopeChoice::All));
@@ -187,7 +268,9 @@ async fn changed_paths_and_rulebook_widening_keep_the_credential_refusal_before_
                 report.scope.widened,
                 Some(WidenedReason::ConfigChanged)
             ));
+        } else {
+            assert!(matches!(report.scope.kind, ScopeChoice::Default));
+            assert!(report.scope.widened.is_none());
         }
-        assert_no_evidence(&report, &reads);
     }
 }

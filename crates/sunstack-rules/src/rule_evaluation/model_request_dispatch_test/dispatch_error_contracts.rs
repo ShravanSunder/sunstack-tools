@@ -46,8 +46,11 @@ async fn sdk_callers_propagate_dispatch_and_selection_errors_with_question_mark(
         serde_json::from_value(json!({"questions":{},"state":{}})).unwrap();
     let cancellation = CancellationToken::new();
     cancellation.cancel();
-    let mut dispatch =
-        ModelRequestDispatch::new(settings("http://127.0.0.1:1/unused"), None, cancellation);
+    let mut dispatch = ModelRequestDispatch::new(
+        settings("http://127.0.0.1:1/unused"),
+        crate::ModelDispatchPolicy::LocalOnly,
+        cancellation,
+    );
     let selection_error = assess(&dispatch, &request).unwrap_err();
     assert!(matches!(
         selection_error.downcast_ref::<SelectionIncompleteReason>(),
@@ -129,11 +132,17 @@ fn selection_byte_limit_names_the_backend_encoded_measure_that_exceeded_the_budg
     control_settings.request_budget.max_request_bytes = encoded_bytes;
     let control = ModelRequestDispatch::new(
         control_settings,
-        Some(backend.clone()),
+        crate::ModelDispatchPolicy::Execution {
+            backend: backend.clone(),
+        },
         CancellationToken::new(),
     );
     assert!(control.assess_selection(&request).is_ok());
-    let dispatcher = ModelRequestDispatch::new(settings, Some(backend), CancellationToken::new());
+    let dispatcher = ModelRequestDispatch::new(
+        settings,
+        crate::ModelDispatchPolicy::Execution { backend },
+        CancellationToken::new(),
+    );
     assert!(matches!(
         dispatcher.assess_selection(&request),
         Err(SelectionIncompleteReason::RequestTooLarge {

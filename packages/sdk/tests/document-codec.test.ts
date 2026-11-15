@@ -1,5 +1,7 @@
 // Real-addon codec coverage: typed roots, exact raw tokens and explicit refusals.
 import assert from 'node:assert/strict';
+import { unlinkSync } from 'node:fs';
+import { join } from 'node:path';
 import { test } from 'node:test';
 import { inspect as formatValue } from 'node:util';
 
@@ -299,6 +301,89 @@ await test('Unicode remains exact or is refused; writing refuses unsupported dat
 		'rejected',
 	);
 	assert.deepEqual(configuration, before);
+});
+
+await test('a real partial run keeps unavailable identities and reasons after checked-source deletion', async () => {
+	const original = configuration.rulebooks[0];
+	if (original?.kind !== 'inline') throw new Error('expected inline fixture');
+	const mixed = {
+		...configuration,
+		rulebooks: [
+			{
+				...original,
+				markdown: `${original.markdown}\nName an actor. <!-- K002 -->\n`,
+				entries: {
+					...original.entries,
+					K002: {
+						name: 'actor',
+						evidence: 'paragraph',
+						severity: 'error',
+						questions: {
+							actor: {
+								type: 'noul',
+								instructions: { check: 'body', task: 'Is an actor named?' },
+							},
+						},
+						decision: {
+							start: 'actor',
+							steps: {
+								actor: {
+									ask: 'actor',
+									yes_at_or_above: 0.8,
+									no_at_or_below: 0.2,
+									yes: 'pass',
+									no: { finding: 'Name an actor.' },
+									uncertain: 'uncertain',
+								},
+							},
+						},
+					},
+				},
+			},
+		],
+	} satisfies Configuration;
+	const outcome = await run(mixed, { root: fixture.path, scope: { kind: 'all' } });
+	assert.equal(outcome.kind, 'incomplete');
+	if (outcome.kind !== 'incomplete') throw new Error('expected partial evaluation');
+	assert.equal(outcome.report.status.kind, 'incomplete');
+	assert.deepEqual(
+		outcome.report.unavailable_counts,
+		{
+			rule_pieces: 1n,
+			filter_folders: 0n,
+			selection_candidates: 0n,
+			evidence_scopes: 0n,
+		},
+		formatValue(outcome, { depth: null }),
+	);
+	const unavailable = outcome.report.results.find((result) => result.outcome === 'unavailable');
+	assert.ok(unavailable !== undefined && unavailable.outcome === 'unavailable');
+	assert.deepEqual(unavailable.reason, { kind: 'credential_unavailable' });
+	assert.deepEqual(unavailable.request_ids, []);
+	assert.equal(typeof unavailable.id, 'bigint');
+	assert.equal(outcome.report.results.find((result) => result.name === 'body')?.outcome, 'pass');
+	assert.deepEqual(outcome.report.requests, []);
+	const outcomeDocument = saved({ kind: 'run_outcome', value: outcome });
+	const reportDocument = saved({ kind: 'report', value: outcome.report });
+	unlinkSync(join(fixture.path, 'docs/one.md'));
+	assert.deepEqual(await decoded(outcomeDocument), { kind: 'run_outcome', value: outcome });
+	assert.deepEqual(await decoded(reportDocument), { kind: 'report', value: outcome.report });
+	assert.ok(outcomeDocument.includes('"rule_pieces":1'));
+	const forged = await invalid(
+		outcomeDocument.replace('"rule_pieces":1', '"rule_pieces":0'),
+		'invalid_value',
+	);
+	if (forged.kind === 'invalid')
+		assert.deepEqual(forged.diagnostics[0]?.json_path, [
+			'payload',
+			'value',
+			'report',
+			'unavailable_counts',
+		]);
+	await invalid(
+		outcomeDocument.replace('"reason":{"kind":"credential_unavailable"}', '"reason":{}'),
+		'invalid_value',
+	);
 });
 
 fixture.remove();

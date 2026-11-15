@@ -71,6 +71,9 @@ pub enum CaseBindingStatus {
     Incomplete {
         reason: IncompleteReason,
     },
+    Unavailable {
+        reason: sunstack_rules::WorkUnavailableReason,
+    },
     Cancelled,
 }
 
@@ -164,6 +167,7 @@ fn file_kind_is_settled(
             !count.limited
                 && count.selection.as_ref().is_none_or(|selection| {
                     selection.incomplete == 0
+                        && selection.unavailable == 0
                         && selection.uncertain == 0
                         && selection.asked == selection.candidates
                         && selection.selected.checked_add(selection.not_selected)
@@ -179,6 +183,25 @@ fn missing_status(
     needs_answer: &[NeedsSelectionAnswer],
     incomplete: &[IncompletePart],
 ) -> CaseBindingStatus {
+    if let Some((evidence_kind, blocked_file)) =
+        incomplete.iter().find_map(|part| match &part.reason {
+            IncompleteReason::SelectionUnavailable {
+                evidence_kind,
+                file: blocked_file,
+                ..
+            } if blocked_file == file && kind.is_none_or(|kind| evidence_kind == kind) => {
+                Some((evidence_kind, blocked_file))
+            }
+            _ => None,
+        })
+    {
+        return CaseBindingStatus::Unavailable {
+            reason: sunstack_rules::WorkUnavailableReason::SelectionUnavailable {
+                evidence_kind: evidence_kind.clone(),
+                file: blocked_file.clone(),
+            },
+        };
+    }
     if let Some(wait) = needs_answer
         .iter()
         .find(|entry| &entry.file == file && kind.is_none_or(|kind| &entry.kind == kind))
@@ -188,10 +211,10 @@ fn missing_status(
             file: wait.file.clone(),
         };
     }
-    if let Some(part) = incomplete
-        .iter()
-        .find(|part| part.file.as_ref() == Some(file))
-    {
+    if let Some(part) = incomplete.iter().find(|part| {
+        part.file.as_ref() == Some(file)
+            && !matches!(part.reason, IncompleteReason::SelectionUnavailable { .. })
+    }) {
         return CaseBindingStatus::Incomplete {
             reason: part.reason.clone(),
         };
@@ -389,7 +412,9 @@ pub(crate) fn plan_case_selection(
                             Err(IncompleteReason::Filter {
                                 reason:
                                     FilterIncomplete::ReadsUnavailable {
-                                        reason: FieldUnavailable::SelectionPending,
+                                        reason:
+                                            FieldUnavailable::SelectionPending
+                                            | FieldUnavailable::SelectionUnavailable,
                                     },
                                 ..
                             }) => {

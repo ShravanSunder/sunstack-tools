@@ -24,6 +24,10 @@ export type InvalidReport = DeepReadonly<Contracts.SdkReport<Contracts.InvalidSt
 export type IncompleteReport = DeepReadonly<Contracts.SdkReport<Contracts.IncompleteStatus>>;
 export type CancelledReport = DeepReadonly<Contracts.SdkReport<Contracts.CancelledStatus>>;
 export type SdkReport = DeepReadonly<Contracts.SdkReport<Contracts.LintStatus>>;
+export type RulePieceResult = DeepReadonly<Contracts.RulePieceResult>;
+export type RulePieceEnding = DeepReadonly<Contracts.RulePieceEnding>;
+export type WorkUnavailableReason = DeepReadonly<Contracts.WorkUnavailableReason>;
+export type UnavailableCounts = DeepReadonly<Contracts.UnavailableCounts>;
 
 export type Diagnostic = DeepReadonly<Contracts.Diagnostic>;
 export type DiagnosticCode = Contracts.DiagnosticCode;

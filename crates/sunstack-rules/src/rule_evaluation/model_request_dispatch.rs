@@ -5,6 +5,8 @@ use tokio::{sync::Semaphore, task::JoinSet};
 
 #[derive(Debug, Clone, thiserror::Error)]
 pub enum DispatchRefusal {
+    #[error("model capability is unavailable")]
+    Unavailable(crate::WorkUnavailableReason),
     #[error(transparent)]
     ChoiceOptionsExceeded(#[from] ChoiceOptionsExceeded),
     #[error("request exceeds the configured size limit")]
@@ -56,22 +58,23 @@ pub fn selection_input_hash(
 ) -> Result<String, serde_json::Error> {
     serde_json::to_vec(request).map(|bytes| sunstack_evidence::content_digest(&bytes))
 }
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum DispatchMode {
-    Execute,
-    Prepare,
+#[derive(Clone)]
+pub enum ModelDispatchPolicy {
+    LocalOnly,
+    Preparation { encoder: Arc<dyn DecisionBackend> },
+    Execution { backend: Arc<dyn DecisionBackend> },
+    CredentialUnavailable,
 }
 /// One request allowance, concurrency owner and receipt list for selection and rule work.
 pub struct ModelRequestDispatch {
     pub settings: RulebookRunSettings,
-    backend: Option<Arc<dyn DecisionBackend>>,
+    policy: ModelDispatchPolicy,
     cancellation: CancellationToken,
     semaphore: Arc<Semaphore>,
     tasks: JoinSet<DispatchedRequest>,
     requested: usize,
     next_request_id: usize,
     pub records: Vec<DispatchedRequest>,
-    mode: DispatchMode,
     pub prepared: Vec<PreparedModelRequest>,
     pub selection_requests: Vec<SelectionRequestOwner>,
     recorded_selections: Vec<RecordedSelection>,
@@ -80,31 +83,48 @@ pub struct ModelRequestDispatch {
 impl ModelRequestDispatch {
     pub fn new(
         settings: RulebookRunSettings,
-        backend: Option<Arc<dyn DecisionBackend>>,
+        policy: ModelDispatchPolicy,
         cancellation: CancellationToken,
     ) -> Self {
         Self {
             semaphore: Arc::new(Semaphore::new(settings.max_concurrent_requests.max(1))),
             settings,
-            backend,
+            policy,
             cancellation,
             tasks: JoinSet::new(),
             requested: 0,
             next_request_id: 0,
             records: vec![],
-            mode: DispatchMode::Execute,
             prepared: vec![],
             selection_requests: vec![],
             recorded_selections: vec![],
             reused_selections: vec![],
         }
     }
-    pub fn prepare_only(mut self) -> Self {
-        self.mode = DispatchMode::Prepare;
-        self
-    }
     pub fn is_preparing(&self) -> bool {
-        self.mode == DispatchMode::Prepare
+        matches!(self.policy, ModelDispatchPolicy::Preparation { .. })
+    }
+    fn backend(&self) -> Option<&Arc<dyn DecisionBackend>> {
+        match &self.policy {
+            ModelDispatchPolicy::Preparation { encoder } => Some(encoder),
+            ModelDispatchPolicy::Execution { backend } => Some(backend),
+            ModelDispatchPolicy::LocalOnly | ModelDispatchPolicy::CredentialUnavailable => None,
+        }
+    }
+    /// Read the run's capability before building or reserving reached model work.
+    pub fn check_capability(&self) -> Result<(), DispatchRefusal> {
+        if self.is_cancelled() {
+            return Err(DispatchRefusal::Cancelled);
+        }
+        match self.policy {
+            ModelDispatchPolicy::CredentialUnavailable => Err(DispatchRefusal::Unavailable(
+                crate::WorkUnavailableReason::CredentialUnavailable {},
+            )),
+            ModelDispatchPolicy::LocalOnly => Err(DispatchRefusal::InvalidRequest),
+            ModelDispatchPolicy::Preparation { .. } | ModelDispatchPolicy::Execution { .. } => {
+                Ok(())
+            }
+        }
     }
     pub fn with_recorded_selections(mut self, records: Vec<RecordedSelection>) -> Self {
         self.recorded_selections = records;
@@ -165,7 +185,7 @@ impl ModelRequestDispatch {
             attempts: self.settings.attempts.clone(),
             request_budget: self.settings.request_budget.clone(),
         };
-        prepare_judgments(&input, self.backend.as_deref()?).ok()?;
+        prepare_judgments(&input, self.backend()?.as_ref()).ok()?;
         self.requested += 1;
         let id = self.next_request_id;
         self.next_request_id += 1;
@@ -202,7 +222,7 @@ impl ModelRequestDispatch {
             });
         }
         let budget = &self.settings.request_budget;
-        let Some(backend) = &self.backend else {
+        let Some(backend) = self.backend() else {
             return Err(Reason::InvalidRequest);
         };
         let encoded = backend
@@ -232,6 +252,11 @@ impl ModelRequestDispatch {
         if self.is_cancelled() {
             return Err(DispatchRefusal::Cancelled);
         }
+        match self.check_capability() {
+            // A local-only direct caller still observes existing request guards before the missing backend.
+            Err(DispatchRefusal::InvalidRequest) => {}
+            availability => availability?,
+        }
         validate_choice_options(&request.questions)?;
         let BackendSelection::JevOpenrouter { model, .. } = &self.settings.backend;
         let body =
@@ -247,8 +272,8 @@ impl ModelRequestDispatch {
             return Err(DispatchRefusal::RequestLimitReached);
         }
         let backend = self
-            .backend
-            .clone()
+            .backend()
+            .cloned()
             .ok_or(DispatchRefusal::InvalidRequest)?;
         let input = RunJudgmentsInput {
             request: request.clone(),

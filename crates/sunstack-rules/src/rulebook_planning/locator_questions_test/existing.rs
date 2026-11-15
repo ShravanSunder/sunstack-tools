@@ -153,8 +153,11 @@ async fn locators_fit_only_after_every_authored_question_and_respect_each_reques
         let backend = Arc::new(
             JevOpenRouterBackend::new(settings.backend.clone(), "SYNTHETIC_NO_DISPATCH").unwrap(),
         );
-        let dispatcher =
-            ModelRequestDispatch::new(settings, Some(backend), CancellationToken::new());
+        let dispatcher = ModelRequestDispatch::new(
+            settings,
+            crate::ModelDispatchPolicy::Execution { backend },
+            CancellationToken::new(),
+        );
         let authored = rule.questions.clone();
         assert_eq!(authored.len(), 3);
         let mut request = StructuredJudgmentRequest {

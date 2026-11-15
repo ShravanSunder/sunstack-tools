@@ -92,7 +92,11 @@ fn dispatcher(settings: RulebookRunSettings) -> ModelRequestDispatch {
     let backend = Arc::new(
         JevOpenRouterBackend::new(settings.backend.clone(), "SYNTHETIC_SELECTION_KEY").unwrap(),
     );
-    ModelRequestDispatch::new(settings, Some(backend), CancellationToken::new())
+    ModelRequestDispatch::new(
+        settings,
+        ModelDispatchPolicy::Execution { backend },
+        CancellationToken::new(),
+    )
 }
 #[tokio::test]
 async fn selection_thresholds_are_per_candidate_with_qualified_questions_and_no_raw_or_target_state()

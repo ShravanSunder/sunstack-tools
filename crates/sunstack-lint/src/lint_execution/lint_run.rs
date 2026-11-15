@@ -303,6 +303,7 @@ async fn execute_definitions(
         &bundle,
         model_work,
         state.preparing,
+        state.request.evidence_listing.is_some(),
         api_key.as_deref(),
     ) {
         Ok(backend) => backend,

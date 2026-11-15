@@ -336,7 +336,10 @@ async fn ungated_choice_exclusion_is_identical_with_filters_absent_or_declared()
     let (baseline, requests) = execute(root.path(), server, 0.2, "b").await;
     assert_eq!(requests.len(), 6);
     for result in &baseline.results {
-        assert!(matches!(result.outcome, PieceOutcome::NotApplicable));
+        assert!(matches!(
+            result.ending,
+            RulePieceEnding::NotApplicable { .. }
+        ));
         assert_eq!(result.basis, Some(sunstack_rules::Basis::Judged));
     }
     let server = ControlledServer::start().await;
