@@ -144,7 +144,7 @@ export function writeFixture(root: string, endpoint: string, mode: FixtureMode):
 		};
 		kinds['child'] = {
 			rule: 'paragraph',
-			within: 'selected',
+			within: ['selected'],
 			fields: { body: { from: 'remainder' } },
 		};
 		kinds['document'] = {
