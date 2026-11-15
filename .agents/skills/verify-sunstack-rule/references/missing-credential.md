@@ -2,7 +2,7 @@
 
 This lasting journey checks ordinary CLI and installed native SDK partial execution. Its oracle is the commission's adopted `docs/wip/2026-11-15-credential-availability/{requirements,specification,program-design,verification}.html`: U1–U5, R1–R9/V1–V9 and O1–O4. In particular, ordinary missing capability is incomplete/3 with local findings, while model-selected inspection retains its existing missing-key Invalid guard. Do not infer expected outcomes from the candidate or from old early-refusal tests.
 
-The route is **draft until exercised on a declared real target**. Passing apparatus checks only qualify comparators and the external-answer helper. The run receipt records the portions actually reached; a failed attempt is not a later pass, and an unrun portion stays unobserved.
+The controlled CLI/native route is **operable on macOS arm64**. Other cells require their own qualification. Qualify each declared target through its actual entries; prior runs and apparatus checks alone do not prove a new candidate. The run receipt records the portions actually reached and its independent joins; a failed attempt is not a later pass, and an unrun portion stays unobserved.
 
 ## Declare the target first
 
@@ -36,6 +36,8 @@ The entry refuses an inherited provider key. It disables credential-store resolu
 `missing-checks.ts` compares complete semantic payloads and multiplicity. Do not replace its multisets with sets, strip report fields to make parity pass, use candidate counts as the denominator oracle, or accept arbitrary compiler process failure as a negative type check. `missing-http.ts` replaces only external answers/statuses: actual Rust evidence, walking, dispatch, HTTP encoding, native decoding and report construction stay real.
 
 The SDK document is not a CLI saved-report input. Preserve F2's separate writer/artifact/reader paths; neither an SDK envelope nor an unwrapped SdkReport is adopted lint-show input. Preserve each invocation's own identities and compare equivalent facts across runs, without requiring globally identical IDs.
+
+Preparation keeps its actual status precedence: this fixture has mechanical findings, so modeprepare retains findings/exit1 alongside unsent Prepared request records. Do not demand unconditional exit6. The coordinator promotes Clean/NothingSelected/Uncertain to Prepared; findings, incomplete and cancellation keep their own outcomes.
 
 ## Required joins that the script cannot establish alone
 
