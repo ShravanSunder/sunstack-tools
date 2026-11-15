@@ -262,10 +262,21 @@ export async function observeMissingCli(
 		root,
 		name: 'explicit-prepare',
 		arguments: ['lint', '--config', 'sunstack.lint.json', '--all', '--prepare', prepared],
-		expectedExit: 6,
+		expectedExit: 1,
 	});
 	assert.equal(prepare.captures.length, 0);
-	assert.equal(record(JSON.parse(filesystem.readFileSync(prepared, 'utf8')))['mode'], 'prepare');
+	const preparedReport = record(JSON.parse(filesystem.readFileSync(prepared, 'utf8')));
+	assert.equal(preparedReport['mode'], 'prepare');
+	assert.equal(status(preparedReport), 'findings', 'Prepare must preserve mechanical findings');
+	assert.equal(rows(preparedReport['findings']).length, 3);
+	assert.equal(integer(record(preparedReport['usage'])['model_requests']), 0n);
+	const preparedRequests = rows(preparedReport['requests']);
+	assert.equal(preparedRequests.length, 2, 'Prepared model work disappeared');
+	for (const request of preparedRequests) {
+		assert.equal(request['state'], 'prepared');
+		assert.equal(request['status'], 'prepared');
+		assert.ok(!('outcome' in request), 'Preparation invented a provider result');
+	}
 	const listing = await observer.run({
 		root,
 		name: 'static-inspection',
