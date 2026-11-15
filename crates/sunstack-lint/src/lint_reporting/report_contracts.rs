@@ -165,6 +165,14 @@ pub enum IncompleteReason {
     },
     SelectionFailed,
     SelectionIncomplete,
+    SelectionUnavailable {
+        evidence_kind: EvidenceKindName,
+        file: PathBuf,
+        selection_kind: EvidenceKindName,
+    },
+    Unavailable {
+        reason: sunstack_rules::WorkUnavailableReason,
+    },
     EvaluationFailed,
     NotStarted,
     PreparationFailed,
@@ -290,6 +298,15 @@ pub struct LintReport {
     pub evidence_listing: Option<EvidenceListing>,
 }
 impl LintReport {
+    pub fn unavailable_counts(&self) -> UnavailableCounts {
+        UnavailableCounts::from_facts(
+            &self.results,
+            &self.filter_answers,
+            &self.selections,
+            &self.incomplete,
+        )
+    }
+
     /// The single writer of CLI listing facts, including early and partial endings.
     pub(crate) fn with_evidence_listing(mut self, pieces: Vec<EvidencePiece>) -> Self {
         self.evidence_listing = Some(EvidenceListing {
@@ -365,13 +382,68 @@ pub struct SelectionDependency {
 }
 #[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
-#[serde(rename_all = "snake_case")]
-pub enum PieceOutcome {
+#[serde(tag = "outcome", rename_all = "snake_case")]
+pub enum RulePieceEnding {
     Pass,
     Finding,
-    NotApplicable,
+    NotApplicable {
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        reason: Option<sunstack_rules::NotApplicableReason>,
+    },
     Uncertain,
-    Incomplete,
+    Incomplete {
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        gap: Option<sunstack_rules::RulebookIncompleteReason>,
+    },
+    Unavailable {
+        reason: sunstack_rules::WorkUnavailableReason,
+    },
+}
+
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
+pub struct UnavailableCounts {
+    pub rule_pieces: usize,
+    pub filter_folders: usize,
+    pub selection_candidates: usize,
+    pub evidence_scopes: usize,
+}
+impl UnavailableCounts {
+    pub fn from_facts(
+        results: &[RulePieceResult],
+        filter_answers: &[IdentifiedResult<sunstack_rules::FilterAnswer>],
+        selections: &[SelectionEntry],
+        incomplete: &[IncompletePart],
+    ) -> Self {
+        Self {
+            rule_pieces: results
+                .iter()
+                .filter(|result| matches!(result.ending, RulePieceEnding::Unavailable { .. }))
+                .count(),
+            filter_folders: filter_answers
+                .iter()
+                .filter(|answer| {
+                    matches!(
+                        answer.state,
+                        sunstack_rules::FilterAnswerState::Unavailable { .. }
+                    )
+                })
+                .count(),
+            selection_candidates: selections
+                .iter()
+                .filter(|entry| {
+                    matches!(
+                        entry.outcome,
+                        sunstack_rules::SelectionOutcome::Unavailable { .. }
+                    )
+                })
+                .count(),
+            evidence_scopes: incomplete
+                .iter()
+                .filter(|part| matches!(part.reason, IncompleteReason::SelectionUnavailable { .. }))
+                .count(),
+        }
+    }
 }
 
 #[cfg_attr(feature = "typescript", derive(specta::Type))]
@@ -380,18 +452,15 @@ pub struct RulePieceResult {
     pub text_sha256: Option<String>,
     pub id: usize,
     pub request_ids: Vec<usize>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub gap: Option<sunstack_rules::RulebookIncompleteReason>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub locator_omitted: Option<sunstack_rules::LocatorOmission>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub reason: Option<sunstack_rules::NotApplicableReason>,
     pub name: RuleId,
     pub marker: MarkerId,
     pub file: PathBuf,
     pub first_line: usize,
     pub last_line: usize,
-    pub outcome: PieceOutcome,
+    #[serde(flatten)]
+    pub ending: RulePieceEnding,
     pub step: Option<StepName>,
     pub path: Vec<StepName>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -456,3 +525,7 @@ pub struct KindListing {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub within: Option<sunstack_evidence::ContainingKinds>,
 }
+
+#[cfg(test)]
+#[path = "report_contracts_test.rs"]
+mod tests;

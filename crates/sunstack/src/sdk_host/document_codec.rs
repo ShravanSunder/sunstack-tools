@@ -9,8 +9,9 @@ use super::{
 };
 use serde::{Deserialize, Serialize, de};
 use serde_json::value::RawValue;
-use std::fmt;
-use sunstack_lint::LintStatus;
+use std::{collections::BTreeMap, fmt};
+use sunstack_evidence::FileCount;
+use sunstack_lint::{LintStatus, SelectionEntry, UnavailableCounts};
 
 /// The SDK owns framing; callers own any file containing this document.
 #[derive(Debug, Serialize, Deserialize)]
@@ -189,6 +190,133 @@ impl<'de> Deserialize<'de> for SupportedNumbers {
     }
 }
 
+fn validate_report_counts<TStatus>(
+    report: &SdkReport<TStatus>,
+    json_path: Vec<String>,
+) -> Result<(), SdkDocumentDiagnostic> {
+    let canonical = UnavailableCounts::from_facts(
+        &report.results,
+        &report.filter_answers,
+        &report.selections,
+        &report.incomplete,
+    );
+    if report.unavailable_counts != canonical {
+        let mut json_path = json_path;
+        json_path.push("unavailable_counts".into());
+        return Err(SdkDocumentDiagnostic {
+            json_path,
+            message: "unavailable counts disagree with retained assessment and coverage facts"
+                .into(),
+        });
+    }
+    validate_selection_counts(&report.file_counts, &report.selections, &json_path)?;
+    if let Some(listing) = &report.evidence_listing {
+        let mut listing_path = json_path;
+        listing_path.push("evidence_listing".into());
+        validate_selection_counts(&listing.file_counts, &listing.selections, &listing_path)?;
+    }
+    Ok(())
+}
+
+fn validate_selection_counts(
+    file_counts: &[FileCount],
+    selections: &[SelectionEntry],
+    json_path: &[String],
+) -> Result<(), SdkDocumentDiagnostic> {
+    let mut unavailable_by_scope = BTreeMap::new();
+    for entry in selections {
+        if matches!(
+            entry.outcome,
+            sunstack_rules::SelectionOutcome::Unavailable { .. }
+        ) {
+            *unavailable_by_scope
+                .entry((&entry.location.file, &entry.kind))
+                .or_insert(0usize) += 1;
+        }
+    }
+    for (file_index, file_count) in file_counts.iter().enumerate() {
+        for (kind, kind_count) in &file_count.kinds {
+            let Some(selection_count) = &kind_count.selection else {
+                continue;
+            };
+            let canonical = unavailable_by_scope
+                .get(&(&file_count.file, kind))
+                .copied()
+                .unwrap_or(0);
+            if selection_count.unavailable != canonical {
+                let mut json_path = json_path.to_vec();
+                json_path.extend([
+                    "file_counts".into(),
+                    file_index.to_string(),
+                    "kinds".into(),
+                    kind.as_str().to_owned(),
+                    "selection".into(),
+                    "unavailable".into(),
+                ]);
+                return Err(SdkDocumentDiagnostic {
+                    json_path,
+                    message:
+                        "unavailable selection count disagrees with retained kind/file entries"
+                            .into(),
+                });
+            }
+        }
+    }
+    Ok(())
+}
+
+fn validate_inspection_counts<TStatus>(
+    report: &InspectionReport<TStatus>,
+    json_path: Vec<String>,
+) -> Result<(), SdkDocumentDiagnostic> {
+    validate_selection_counts(&report.file_counts, &report.selections, &json_path)
+}
+
+fn validate_document_counts(value: &SdkDocumentValue) -> Result<(), SdkDocumentDiagnostic> {
+    let report_path = || vec!["payload".into(), "value".into(), "report".into()];
+    match value {
+        SdkDocumentValue::Report(report) => {
+            validate_report_counts(report, vec!["payload".into(), "value".into()])
+        }
+        SdkDocumentValue::RunOutcome(outcome) => match outcome {
+            RunOutcome::Completed { report } => validate_report_counts(report, report_path()),
+            RunOutcome::Incomplete { report } => validate_report_counts(report, report_path()),
+            RunOutcome::Invalid { report, .. } => report.as_ref().map_or(Ok(()), |report| {
+                validate_report_counts(report, report_path())
+            }),
+            RunOutcome::Cancelled { report } => report.as_ref().map_or(Ok(()), |report| {
+                validate_report_counts(report, report_path())
+            }),
+            RunOutcome::Failed { report, .. } => report.as_ref().map_or(Ok(()), |report| {
+                validate_report_counts(report, report_path())
+            }),
+            RunOutcome::Unavailable { .. } => Ok(()),
+        },
+        SdkDocumentValue::InspectionReport(report) => {
+            validate_inspection_counts(report, vec!["payload".into(), "value".into()])
+        }
+        SdkDocumentValue::InspectionOutcome(outcome) => match outcome {
+            InspectionOutcome::Inspected { report } => {
+                validate_inspection_counts(report, report_path())
+            }
+            InspectionOutcome::Incomplete { report } => {
+                validate_inspection_counts(report, report_path())
+            }
+            InspectionOutcome::Cancelled { report } => report.as_ref().map_or(Ok(()), |report| {
+                validate_inspection_counts(report, report_path())
+            }),
+            InspectionOutcome::Failed { report, .. } => report.as_ref().map_or(Ok(()), |report| {
+                validate_inspection_counts(report, report_path())
+            }),
+            InspectionOutcome::Invalid { .. } | InspectionOutcome::Unavailable { .. } => Ok(()),
+        },
+        SdkDocumentValue::Configuration(_)
+        | SdkDocumentValue::LoadedConfiguration(_)
+        | SdkDocumentValue::LoadOutcome(_)
+        | SdkDocumentValue::CheckOutcome(_) => Ok(()),
+    }
+}
+
 /// Restore a known SDK value under the current revision, with no file or engine work.
 pub fn deserialize_document(text: &str) -> DeserializationOutcome {
     // RawValue checks syntax without interpreting or rounding any number.
@@ -217,6 +345,9 @@ pub fn deserialize_document(text: &str) -> DeserializationOutcome {
             return invalid(DocumentInvalidReason::InvalidValue, error);
         }
     };
+    if let Err(error) = validate_document_counts(&value) {
+        return invalid(DocumentInvalidReason::InvalidValue, error);
+    }
     // Typed normalization may coerce an exact integer token into f64. Check its
     // resulting numeric representation too, before returning any typed value.
     let normalized = match serde_json::to_string(&value) {

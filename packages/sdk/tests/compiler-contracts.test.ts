@@ -199,6 +199,17 @@ await test('capture and attachment wrong shapes fail at their declared propertie
 await test('label-free rule and filter bindings and typed accounting compile', () => {
 	assert.deepEqual(compile('valid-case-dispatch.ts'), { kind: 'compiled' });
 });
+await test('unavailable reasons, result narrowing and exact category counts compile', () => {
+	assert.deepEqual(compile('valid-unavailable.ts'), { kind: 'compiled' });
+});
+await test('unavailable contracts reject missing payloads, numbers and mutation at intended lines', () => {
+	const expected = expectedDiagnostics('invalid-unavailable.ts');
+	assert.equal(expected.length, 10);
+	const result = compile('invalid-unavailable.ts');
+	assert.equal(result.kind, 'diagnostics', result.kind === 'process_failure' ? result.detail : '');
+	if (result.kind === 'diagnostics')
+		assert.deepEqual(sortDiagnostics(result.diagnostics), sortDiagnostics(expected));
+});
 await test('case bindings reject labels, wrong widths, missing identity and inspection selection', () => {
 	const expected = expectedDiagnostics('invalid-case-dispatch.ts');
 	assert.equal(expected.length, 9);

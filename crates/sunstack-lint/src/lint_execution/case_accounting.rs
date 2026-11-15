@@ -1,4 +1,4 @@
-use crate::{CaseBindingStatus, CaseExecutionOwner, IncompleteReason, LintReport, PieceOutcome};
+use crate::{CaseBindingStatus, CaseExecutionOwner, IncompleteReason, LintReport, RulePieceEnding};
 use sunstack_rules::{FilterAnswerState, RulebookRule};
 
 /// Binding remains independent of execution; unresolved walks keep their actual ending.
@@ -14,6 +14,35 @@ pub(super) fn settle_case_accounting(
         let CaseBindingStatus::Selected { owner } = &binding.outcome else {
             continue;
         };
+        let unavailable = match owner {
+            CaseExecutionOwner::Rule { rule, file, lines } => {
+                report.results.iter().find_map(|result| {
+                    if &result.name == rule
+                        && &result.file == file
+                        && [result.first_line, result.last_line] == *lines
+                        && let RulePieceEnding::Unavailable { reason } = &result.ending
+                    {
+                        return Some(reason.clone());
+                    }
+                    None
+                })
+            }
+            CaseExecutionOwner::Filter { filter, folder } => {
+                report.filter_answers.iter().find_map(|answer| {
+                    if &answer.filter == filter
+                        && &answer.folder == folder
+                        && let FilterAnswerState::Unavailable { reason, .. } = &answer.state
+                    {
+                        return Some(reason.clone());
+                    }
+                    None
+                })
+            }
+        };
+        if let Some(reason) = unavailable {
+            binding.outcome = CaseBindingStatus::Unavailable { reason };
+            continue;
+        }
         let (finished, incomplete, dependency) = match owner {
             CaseExecutionOwner::Rule { rule, file, lines } => {
                 let result = report.results.iter().find(|result| {
@@ -31,8 +60,13 @@ pub(super) fn settle_case_accounting(
                     ) && matches!(request.outcome, crate::SavedRequestOutcome::Prepared { .. })
                 });
                 let finished = prepared
-                    || result
-                        .is_some_and(|result| !matches!(result.outcome, PieceOutcome::Incomplete));
+                    || result.is_some_and(|result| {
+                        !matches!(
+                            result.ending,
+                            RulePieceEnding::Incomplete { .. }
+                                | RulePieceEnding::Unavailable { .. }
+                        )
+                    });
                 let dependency = rules
                     .iter()
                     .find(|candidate| &candidate.name == rule)
@@ -51,7 +85,11 @@ pub(super) fn settle_case_accounting(
                 (
                     prepared
                         || result.is_some_and(|answer| {
-                            !matches!(answer.state, FilterAnswerState::Incomplete { .. })
+                            !matches!(
+                                answer.state,
+                                FilterAnswerState::Incomplete { .. }
+                                    | FilterAnswerState::Unavailable { .. }
+                            )
                         }),
                     result.is_some(),
                     None,
@@ -85,3 +123,7 @@ pub(super) fn settle_case_accounting(
         }
     }
 }
+
+#[cfg(test)]
+#[path = "case_accounting_test.rs"]
+mod tests;

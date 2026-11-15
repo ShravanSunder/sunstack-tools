@@ -350,6 +350,11 @@ async fn run_cases_internal(
                                             answers,
                                             ..
                                         }
+                                        | sunstack_rules::FilterAnswerState::Unavailable {
+                                            path,
+                                            answers,
+                                            ..
+                                        }
                                         | sunstack_rules::FilterAnswerState::Incomplete {
                                             path,
                                             answers,
@@ -400,18 +405,31 @@ async fn run_cases_internal(
         let counts = match &case.subject {
             CaseSubject::Rule { rule, .. } => {
                 report.by_rule.entry(rule.clone()).or_insert_with(|| {
-                    ["right", "false_warning", "missed", "unsure", "incomplete"]
-                        .into_iter()
-                        .map(|name| (name.into(), 0))
-                        .collect()
+                    [
+                        "right",
+                        "false_warning",
+                        "missed",
+                        "unsure",
+                        "incomplete",
+                        "unavailable",
+                    ]
+                    .into_iter()
+                    .map(|name| (name.into(), 0))
+                    .collect()
                 })
             }
             CaseSubject::Filter { filter, .. } => {
                 report.by_filter.entry(filter.clone()).or_insert_with(|| {
-                    ["right", "wrong_label", "unsure", "incomplete"]
-                        .into_iter()
-                        .map(|name| (name.into(), 0))
-                        .collect()
+                    [
+                        "right",
+                        "wrong_label",
+                        "unsure",
+                        "incomplete",
+                        "unavailable",
+                    ]
+                    .into_iter()
+                    .map(|name| (name.into(), 0))
+                    .collect()
                 })
             }
         };

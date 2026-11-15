@@ -11,8 +11,7 @@ use crate::{
     },
     *,
 };
-use std::{collections::BTreeSet, ops::ControlFlow, path::PathBuf, sync::Arc};
-use sunstack_decisions::DecisionBackend;
+use std::{collections::BTreeSet, ops::ControlFlow, path::PathBuf};
 use sunstack_evidence::*;
 use sunstack_rules::{
     ModelRequestDispatch, RulebookRunSettings, SelectionInput, SelectionOutcome, select_candidates,
@@ -31,7 +30,7 @@ pub(super) async fn build_run_evidence(
     checked: &mut CheckedRulebook,
     scope: &mut ScopeInputs,
     source: Option<Box<dyn CheckedFileSource + Send>>,
-    backend: Option<Arc<dyn DecisionBackend>>,
+    policy: sunstack_rules::ModelDispatchPolicy,
 ) -> ControlFlow<RunEnd, (RunState, BuiltEvidence, FrozenCheckedSource)> {
     let request = &state.request;
     let cancellation = &state.cancellation;
@@ -118,11 +117,9 @@ pub(super) async fn build_run_evidence(
         max_locate_lines: report.limits.max_locate_lines as usize,
     };
 
-    let mut dispatcher = ModelRequestDispatch::new(settings, backend, cancellation.clone());
+    let mut dispatcher = ModelRequestDispatch::new(settings, policy, cancellation.clone());
     if preparing {
-        dispatcher = dispatcher
-            .prepare_only()
-            .with_recorded_selections(recorded_selections);
+        dispatcher = dispatcher.with_recorded_selections(recorded_selections);
     }
 
     let definitions = std::mem::take(&mut checked.selections);
@@ -250,18 +247,31 @@ pub(super) async fn build_run_evidence(
                     files,
                 };
                 let outcomes = select_candidates(&input, &mut dispatcher).await;
-                if preparing {
+                {
                     let unresolved = outcomes
                         .iter()
                         .filter_map(|(candidate, outcome)| {
-                            matches!(
-                                outcome,
+                            let reason = match outcome {
                                 SelectionOutcome::Prepared { .. } | SelectionOutcome::Deferred
-                            )
-                            .then_some(candidate.clone())
+                                    if preparing =>
+                                {
+                                    SelectionDeferral::Pending
+                                }
+                                SelectionOutcome::Unavailable { .. } => {
+                                    SelectionDeferral::Unavailable
+                                }
+                                _ => return None,
+                            };
+                            Some((candidate.clone(), reason))
                         })
                         .collect();
                     let deferred = build.defer_selection(&unresolved);
+                    for item in &deferred {
+                        if outcomes.iter().any(|(candidate, outcome)| candidate.file == item.file && matches!(outcome, SelectionOutcome::Unavailable { .. }))
+                            && !report.incomplete.iter().any(|part| matches!(&part.reason, IncompleteReason::SelectionUnavailable { evidence_kind, file, .. } if evidence_kind == &item.kind && file == &item.file)) {
+                            report.incomplete.push(IncompletePart { rule: None, file: Some(item.file.clone()), field: None, reason: IncompleteReason::SelectionUnavailable { evidence_kind: item.kind.clone(), file: item.file.clone(), selection_kind: kind.clone() } });
+                        }
+                    }
                     if let Some(preparation) = &mut report.preparation {
                         for item in deferred {
                             for request_id in outcomes

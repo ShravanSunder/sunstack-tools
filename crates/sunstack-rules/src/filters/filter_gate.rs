@@ -30,6 +30,7 @@ pub struct FilterSkip {
 }
 pub enum GateOutcome {
     Walk,
+    Unavailable(crate::WorkUnavailableReason),
     Exclude(NotApplicableReason),
     Skip(FilterSkip),
 }
@@ -65,6 +66,12 @@ pub fn gate_for(rule: &RulebookRule, answers: &FilterAnswers, file: &Path) -> Ga
                     label: label.clone(),
                 })
             }
+        }
+        Some(FilterAnswerState::Unavailable { .. }) => {
+            GateOutcome::Unavailable(crate::WorkUnavailableReason::FilterUnavailable {
+                filter: gate.filter.clone(),
+                folder: folder.clone(),
+            })
         }
         Some(FilterAnswerState::Unsure { path, answers, .. }) => {
             skip.why = FilterSkipReason::Unsure;

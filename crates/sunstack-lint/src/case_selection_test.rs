@@ -366,3 +366,78 @@ fn missing_rule_piece_with_pending_dependency_remains_pending() {
 
 #[path = "case_selection_scope_test.rs"]
 mod scope_tests;
+
+#[test]
+fn unavailable_selection_keeps_unknown_binding_and_real_staleness_distinct() {
+    // Arrange: the historical source is captured, but the selected kind has no final piece.
+    let (rule, piece, binding, mut catalog) = rule_piece_fixture();
+    let scope = IncompletePart {
+        field: None,
+        rule: None,
+        file: Some(piece.location.file.clone()),
+        reason: IncompleteReason::SelectionUnavailable {
+            evidence_kind: rule.kind.clone(),
+            file: piece.location.file.clone(),
+            selection_kind: EvidenceKindName::new("selector").unwrap(),
+        },
+    };
+    let filters = FilterRegistry::default();
+    // Act: unavailable coverage takes priority over absence, not over actual digest mismatch.
+    let plan = plan_case_selection(
+        std::slice::from_ref(&binding),
+        CaseSelectionInputs {
+            rules: std::slice::from_ref(&rule),
+            incomplete: std::slice::from_ref(&scope),
+            ..inputs(&catalog, &filters)
+        },
+    );
+    // Assert: retain the selected case ID without inventing a piece owner.
+    assert_eq!(plan.report.bindings[0].binding.id, binding.id);
+    assert!(
+        matches!(&plan.report.bindings[0].outcome, CaseBindingStatus::Unavailable {
+        reason: sunstack_rules::WorkUnavailableReason::SelectionUnavailable { evidence_kind, file }
+    } if evidence_kind == &rule.kind && file == &piece.location.file)
+    );
+    assert!(plan.allowed_rule_pieces.is_empty());
+    catalog
+        .piece_text_hashes
+        .insert((piece.location.file.clone(), 1, 1), "changed".into());
+    let stale = plan_case_selection(
+        &[binding],
+        CaseSelectionInputs {
+            rules: &[rule],
+            incomplete: &[scope],
+            ..inputs(&catalog, &filters)
+        },
+    );
+    assert!(matches!(
+        stale.report.bindings[0].outcome,
+        CaseBindingStatus::Stale
+    ));
+}
+
+#[test]
+fn unrelated_unavailable_kind_does_not_change_a_missing_binding_disposition() {
+    // Arrange: the same file has unavailable coverage for a different evidence kind.
+    let file = PathBuf::from("docs/one.md");
+    let kind = EvidenceKindName::new("known").unwrap();
+    let scope = IncompletePart {
+        field: None,
+        rule: None,
+        file: Some(file.clone()),
+        reason: IncompleteReason::SelectionUnavailable {
+            evidence_kind: EvidenceKindName::new("other").unwrap(),
+            file: file.clone(),
+            selection_kind: EvidenceKindName::new("selector").unwrap(),
+        },
+    };
+    // Act / Assert: availability follows kind/file identity, not only the file name.
+    let status = missing_status(
+        &file,
+        Some(&kind),
+        &EvidenceCatalog::default(),
+        &[],
+        &[scope],
+    );
+    assert!(matches!(status, CaseBindingStatus::Unmatched));
+}

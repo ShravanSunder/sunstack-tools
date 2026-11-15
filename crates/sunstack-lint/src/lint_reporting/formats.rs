@@ -1,3 +1,4 @@
+use super::incomplete_formats::{incomplete_text, selection_incomplete_text, unavailable_text};
 use crate::{InvalidConfigValue, *};
 use std::{fmt::Write, path::Path, str::FromStr};
 use sunstack_rules::{Anchor, Severity};
@@ -37,80 +38,6 @@ pub(crate) fn transport_level(severity: Severity) -> &'static str {
         Severity::Warn => "warning",
     }
 }
-pub(crate) fn incomplete_text(reason: &IncompleteReason) -> String {
-    match reason {
-        IncompleteReason::ChoiceOptionsExceeded { options, limit } => {
-            return format!("choice has {options} options; maximum is {limit}");
-        }
-        IncompleteReason::Filter { filter, reason } => {
-            return format!(
-                "filter {}: {}",
-                filter.as_str(),
-                serde_json::to_string(reason).unwrap_or_else(|_| "incomplete".into())
-            );
-        }
-        IncompleteReason::NoFilterFolder { filter } => {
-            return format!("filter {}: no folder", filter.as_str());
-        }
-        IncompleteReason::SelectionFailed => "selection failed",
-        IncompleteReason::SelectionIncomplete => "selection incomplete",
-        IncompleteReason::EvaluationFailed => "evaluation failed",
-        IncompleteReason::NotStarted => "not started",
-        IncompleteReason::PreparationFailed => "preparation failed",
-        IncompleteReason::CoveragePartial => "partial rule coverage",
-        IncompleteReason::CoverageNone => "no rule coverage",
-        IncompleteReason::ProviderFailure {
-            failure_class,
-            http_status,
-        } => {
-            let class = provider_failure_name(*failure_class);
-            return match http_status {
-                Some(status) => format!("provider failure ({class}, HTTP {status})"),
-                None => format!("provider failure ({class})"),
-            };
-        }
-        IncompleteReason::InvalidRequest => "invalid request",
-        IncompleteReason::InvalidResponse => "invalid response",
-        IncompleteReason::RequestLimitReached => "request limit reached",
-        IncompleteReason::EvidenceUnavailable => "evidence unavailable",
-        IncompleteReason::EvidenceTooLarge => "evidence too large",
-        IncompleteReason::RequestTooLarge => "request too large",
-    }
-    .into()
-}
-
-pub(crate) fn selection_incomplete_text(entry: &SelectionEntry) -> Option<String> {
-    use sunstack_rules::{SelectionIncompleteReason, SelectionOutcome};
-    let SelectionOutcome::Incomplete { reason } = &entry.outcome else {
-        return None;
-    };
-    let reason = match reason {
-        SelectionIncompleteReason::EvidenceUnavailable { .. } => {
-            IncompleteReason::EvidenceUnavailable
-        }
-        SelectionIncompleteReason::EvidenceTooLarge => IncompleteReason::EvidenceTooLarge,
-        SelectionIncompleteReason::RequestTooLarge { .. } => IncompleteReason::RequestTooLarge,
-        SelectionIncompleteReason::InvalidRequest => IncompleteReason::InvalidRequest,
-        SelectionIncompleteReason::ProviderFailure {
-            failure_class,
-            http_status,
-        } => IncompleteReason::ProviderFailure {
-            failure_class: *failure_class,
-            http_status: *http_status,
-        },
-        SelectionIncompleteReason::InvalidResponse => IncompleteReason::InvalidResponse,
-        SelectionIncompleteReason::RequestLimitReached => IncompleteReason::RequestLimitReached,
-        SelectionIncompleteReason::Cancelled => IncompleteReason::NotStarted,
-    };
-    Some(format!(
-        "{}:{} [{}]: selection incomplete ({})",
-        entry.location.file.display(),
-        entry.location.first_line,
-        entry.kind.as_str(),
-        incomplete_text(&reason)
-    ))
-}
-
 fn scope_text(scope: &ScopeReport) -> String {
     let scope_name = match &scope.kind {
         ScopeChoice::Default => "uncommitted (staged, unstaged and untracked)".into(),
@@ -151,6 +78,7 @@ fn human(report: &LintReport, prepare_file: Option<&Path>, max_warnings: Option<
         let mut labels = std::collections::BTreeMap::<String, usize>::new();
         let mut unsure = 0;
         let mut incomplete = 0;
+        let mut unavailable = 0;
         for answer in &report.filter_answers {
             match &answer.state {
                 sunstack_rules::FilterAnswerState::Judged { label, .. } => {
@@ -160,6 +88,7 @@ fn human(report: &LintReport, prepare_file: Option<&Path>, max_warnings: Option<
                 }
                 sunstack_rules::FilterAnswerState::Unsure { .. } => unsure += 1,
                 sunstack_rules::FilterAnswerState::Incomplete { .. } => incomplete += 1,
+                sunstack_rules::FilterAnswerState::Unavailable { .. } => unavailable += 1,
             }
         }
         let counts = labels
@@ -169,7 +98,7 @@ fn human(report: &LintReport, prepare_file: Option<&Path>, max_warnings: Option<
             .join(", ");
         let _ = writeln!(
             output,
-            "Filters: {counts}; {unsure} unsure, {incomplete} incomplete"
+            "Filters: {counts}; {unsure} unsure, {incomplete} incomplete, {unavailable} unavailable"
         );
     }
     for skip in &report.filter_skips {
@@ -220,7 +149,7 @@ fn human(report: &LintReport, prepare_file: Option<&Path>, max_warnings: Option<
             );
         }
     }
-    let mut totals = std::collections::BTreeMap::<String, [usize; 5]>::new();
+    let mut totals = std::collections::BTreeMap::<String, [usize; 6]>::new();
     for file in &report.file_counts {
         for (kind, count) in &file.kinds {
             if let Some(selection) = &count.selection {
@@ -230,14 +159,15 @@ fn human(report: &LintReport, prepare_file: Option<&Path>, max_warnings: Option<
                 total[2] += selection.not_selected;
                 total[3] += selection.uncertain;
                 total[4] += selection.incomplete;
+                total[5] += selection.unavailable;
             }
         }
     }
     for (kind, count) in totals {
         let _ = writeln!(
             output,
-            "Selection {kind}: {} candidates, {} selected, {} not_selected, {} uncertain, {} incomplete",
-            count[0], count[1], count[2], count[3], count[4]
+            "Selection {kind}: {} candidates, {} selected, {} not_selected, {} uncertain, {} incomplete, {} unavailable",
+            count[0], count[1], count[2], count[3], count[4], count[5]
         );
     }
     for file in &report.file_counts {
@@ -270,12 +200,13 @@ fn human(report: &LintReport, prepare_file: Option<&Path>, max_warnings: Option<
                 }
                 let _ = writeln!(
                     output,
-                    "{} [{kind}]: {} candidates, none selected; {} not_selected, {} uncertain, {} incomplete ({} asked)",
+                    "{} [{kind}]: {} candidates, none selected; {} not_selected, {} uncertain, {} incomplete, {} unavailable ({} asked)",
                     file.file.display(),
                     selection.candidates,
                     selection.not_selected,
                     selection.uncertain,
                     selection.incomplete,
+                    selection.unavailable,
                     selection.asked
                 );
             }
@@ -302,7 +233,7 @@ fn human(report: &LintReport, prepare_file: Option<&Path>, max_warnings: Option<
         );
     }
     for result in &report.results {
-        if let Some(gap) = &result.gap {
+        if let RulePieceEnding::Incomplete { gap: Some(gap) } = &result.ending {
             let reason = incomplete_text(
                 &crate::lint_reporting::outcome::rulebook_incomplete_reason(*gap),
             );
@@ -317,6 +248,31 @@ fn human(report: &LintReport, prepare_file: Option<&Path>, max_warnings: Option<
                 result.id
             );
         }
+    }
+    for result in &report.results {
+        if let RulePieceEnding::Unavailable { reason } = &result.ending {
+            let _ = writeln!(
+                output,
+                "{}:{}-{}: unavailable [{}] {} #{}",
+                result.file.display(),
+                result.first_line,
+                result.last_line,
+                result.name.as_str(),
+                unavailable_text(reason),
+                result.id
+            );
+        }
+    }
+    let unavailable = report.unavailable_counts();
+    if unavailable != UnavailableCounts::default() {
+        let _ = writeln!(
+            output,
+            "Unavailable: {} rule pieces, {} filter folders, {} selection candidates, {} evidence scopes",
+            unavailable.rule_pieces,
+            unavailable.filter_folders,
+            unavailable.selection_candidates,
+            unavailable.evidence_scopes
+        );
     }
     for diagnostic in &report.diagnostics {
         let _ = writeln!(
@@ -529,24 +485,6 @@ pub fn render_prepared(report: &LintReport, format: OutputFormat, prepare_file: 
     match format {
         OutputFormat::Default => human(report, Some(prepare_file), None),
         _ => render(report, format),
-    }
-}
-
-fn provider_failure_name(class: sunstack_decisions::ProviderFailureClass) -> &'static str {
-    use sunstack_decisions::ProviderFailureClass;
-    match class {
-        ProviderFailureClass::ProviderRejectedRequest => "provider_rejected_request",
-        ProviderFailureClass::Authentication => "authentication",
-        ProviderFailureClass::Authorization => "authorization",
-        ProviderFailureClass::InsufficientCredits => "insufficient_credits",
-        ProviderFailureClass::ProviderResourceUnavailable => "provider_resource_unavailable",
-        ProviderFailureClass::RequestTooLarge => "request_too_large",
-        ProviderFailureClass::RateLimit => "rate_limit",
-        ProviderFailureClass::ProviderUnavailable => "provider_unavailable",
-        ProviderFailureClass::Timeout => "timeout",
-        ProviderFailureClass::Connection => "connection",
-        ProviderFailureClass::HttpError => "http_error",
-        ProviderFailureClass::UnexpectedProviderError => "unexpected_provider_error",
     }
 }
 

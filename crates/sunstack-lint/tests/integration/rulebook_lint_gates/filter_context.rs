@@ -49,7 +49,7 @@ async fn clean_model_gated_mechanical_rule_finishes_before_evidence() {
 }
 
 #[tokio::test]
-async fn named_mechanical_gated_rule_requires_credentials_before_evidence_access() {
+async fn named_keyless_gated_rule_acquires_context_and_retains_filter_and_piece_unavailability() {
     let root = tempfile::tempdir().unwrap();
     configured(root.path());
     let (reader, reads) = source(root.path());
@@ -57,14 +57,56 @@ async fn named_mechanical_gated_rule_requires_credentials_before_evidence_access
     request.scope = ScopeChoice::Default;
     request.paths = vec![root.path().join("packages/one/references/member.md")];
     let report = run_with_source(request, CancellationToken::new(), None, Some(reader)).await;
-    assert_eq!(report.status, LintStatus::Invalid);
+    assert_eq!(report.status, LintStatus::Incomplete, "{report:?}");
+    assert_eq!(report.status.exit_code(), 3);
+    assert!(report.diagnostics.is_empty());
     assert_eq!(
-        report.diagnostics[0].code,
-        LintInvalidCode::CredentialMissing
+        reads
+            .lock()
+            .unwrap()
+            .iter()
+            .cloned()
+            .collect::<std::collections::BTreeSet<_>>(),
+        [
+            PathBuf::from("packages/one/references/member.md"),
+            PathBuf::from("packages/one/about.md")
+        ]
+        .into()
     );
-    assert!(reads.lock().unwrap().is_empty());
     assert!(!root.path().join(".git").exists());
-    assert_eq!(report.usage.checked_files_acquired, 0);
+    assert_eq!(report.usage.checked_files_acquired, 2);
+    assert_eq!(report.usage.model_requests, 0);
+    assert!(report.requests.is_empty());
+    assert_eq!(report.filter_answers.len(), 1);
+    let answer = &report.filter_answers[0];
+    assert_eq!(answer.folder, Path::new("packages/one"));
+    assert!(matches!(
+        answer.state,
+        sunstack_rules::FilterAnswerState::Unavailable {
+            reason: sunstack_rules::WorkUnavailableReason::CredentialUnavailable {},
+            ..
+        }
+    ));
+    assert!(answer.reads_sha256.is_some());
+    assert_eq!(report.results.len(), 1);
+    let result = &report.results[0];
+    assert!(matches!(&result.ending, RulePieceEnding::Unavailable {
+        reason: sunstack_rules::WorkUnavailableReason::FilterUnavailable { filter, folder }
+    } if filter.as_str() == "purpose" && folder == Path::new("packages/one")));
+    assert_eq!(result.file, Path::new("packages/one/references/member.md"));
+    assert_ne!(result.id, answer.id);
+    assert!(report.piece_evidence.contains_key(&result.id));
+    assert!(report.piece_evidence.contains_key(&answer.id));
+    assert!(report.filter_skips.is_empty());
+    assert!(report.findings.is_empty());
+    assert_eq!(
+        report.unavailable_counts(),
+        UnavailableCounts {
+            rule_pieces: 1,
+            filter_folders: 1,
+            ..Default::default()
+        }
+    );
 }
 
 #[tokio::test]

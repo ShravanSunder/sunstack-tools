@@ -4,8 +4,8 @@ use crate::{
     EvidencePiece, EvidenceProject, FieldName, FieldSource, FieldUnavailable, FieldValue,
     FileCount, FileMatchIndex, FrontmatterFieldContent, KindCount, LoadTarget, MatchRange,
     MatchSource, PieceLocation, RepositoryId, SelectionCandidate, SelectionContent, SelectionCount,
-    SharedView, SourceRef, SourceSpan, StructuredJson, content_digest, evidence_kind_language,
-    match_within,
+    SelectionDeferral, SharedView, SourceRef, SourceSpan, StructuredJson, content_digest,
+    evidence_kind_language, match_within,
 };
 use regex::Regex;
 use serde::{Deserialize, Serialize};
@@ -84,26 +84,30 @@ pub struct EvidenceBuild {
     limits: PieceBuildLimits,
     catalog: EvidenceCatalog,
     pending: Option<(EvidenceKindName, Vec<EvidencePiece>)>,
-    unresolved_selections: std::collections::BTreeSet<CandidateId>,
+    unresolved_selections: BTreeMap<CandidateId, SelectionDeferral>,
 }
 impl EvidenceBuild {
-    /// Keep unanswered candidates out of selection resolution while independent work advances.
+    /// Withhold deferred candidates while independent evidence work advances.
     pub fn defer_selection(
         &mut self,
-        unresolved: &std::collections::BTreeSet<CandidateId>,
+        unresolved: &BTreeMap<CandidateId, SelectionDeferral>,
     ) -> Vec<crate::DeferredEvidenceKind> {
         let Some((root, pending)) = &mut self.pending else {
             return vec![];
         };
         let root = root.clone();
-        self.unresolved_selections
-            .extend(unresolved.iter().cloned());
+        for (candidate, reason) in unresolved {
+            self.unresolved_selections
+                .entry(candidate.clone())
+                .and_modify(|existing| *existing = (*existing).max(*reason))
+                .or_insert(*reason);
+        }
         let files = unresolved
-            .iter()
+            .keys()
             .map(|candidate| candidate.file.clone())
             .collect::<std::collections::BTreeSet<_>>();
         pending.retain(|piece| {
-            !unresolved.contains(&CandidateId {
+            !unresolved.contains_key(&CandidateId {
                 kind: root.clone(),
                 file: piece.location.file.clone(),
                 span: piece.location.span.clone(),

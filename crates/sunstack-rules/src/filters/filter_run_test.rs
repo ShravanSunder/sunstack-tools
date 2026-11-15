@@ -76,7 +76,7 @@ fn filter_tree_has_distinct_root_and_second_level_unsure_routes_and_declared_lab
         (0.9, 0.5, None, vec!["reusable", "role"]),
     ] {
         let answers=serde_json::from_value(json!({"reusable":{"type":"noul","yes_probability":first},"role":{"type":"noul","yes_probability":second}})).unwrap();
-        let result = walk_filter(&plan(), &piece(), &Default::default(), &answers);
+        let result = walk_filter(&plan(), &piece(), &Default::default(), Some(&answers)).unwrap();
         match (result, label) {
             (
                 FilterAnswerState::Judged {
@@ -213,7 +213,7 @@ fn html_filter_prepared_request_projects_text_but_keeps_raw_mechanics_and_reads_
     assert_eq!(default_prepared.reads_sha256, expected_digest);
     let answers =
         serde_json::from_value(json!({"picture":{"type":"noul","yes_probability":1.0}})).unwrap();
-    let result = walk_filter(&plan, &collected, &Default::default(), &answers);
+    let result = walk_filter(&plan, &collected, &Default::default(), Some(&answers)).unwrap();
     assert!(
         matches!(result, FilterAnswerState::Judged { label, .. } if label.as_str() == "present")
     );

@@ -215,8 +215,11 @@ async fn runtime_filter_choice_boundary_preserves_typed_count_limit_through_repo
         let peer_piece = piece.clone();
         let peer_settings = settings.clone();
         let mut task = tokio::spawn(async move {
-            let mut dispatcher =
-                ModelRequestDispatch::new(settings, Some(backend), CancellationToken::new());
+            let mut dispatcher = ModelRequestDispatch::new(
+                settings,
+                sunstack_rules::ModelDispatchPolicy::Execution { backend },
+                CancellationToken::new(),
+            );
             ask_filters(
                 &BTreeMap::from([(name.clone(), plan)]),
                 &[FilterFolder {

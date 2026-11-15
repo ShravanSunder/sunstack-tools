@@ -20,6 +20,7 @@
 		"tests/compiler-cases/invalid-section-measures.ts",
 		"tests/compiler-cases/invalid-section-levels.ts",
 		"tests/compiler-cases/invalid-captures-attachment.ts",
+		"tests/compiler-cases/invalid-unavailable.ts",
 		"src/contracts/contracts.ts",
 		"src/contracts/ast-grep.ts",
 		"src/contracts/wide-integers.ts"

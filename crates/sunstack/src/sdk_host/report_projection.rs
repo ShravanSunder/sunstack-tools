@@ -10,7 +10,7 @@ use sunstack_lint::{
     EffectiveLimits, ExclusionCounts, Finding, IdentifiedResult, IncompletePart, JudgmentSummary,
     LintDiagnostic, LintReport, LintStatus, RelatedPlace, RulePieceResult, RunStage,
     RunStageStopped, SavedPieceEvidence, SavedRequest, ScopeReport, SelectionEntry, SettingOrigin,
-    SeverityCounts, UncertainResult, UsageSummary,
+    SeverityCounts, UnavailableCounts, UncertainResult, UsageSummary,
 };
 use sunstack_rules::{Anchor, Basis, RuleId, RulebookSkippedRule, Severity};
 
@@ -139,6 +139,8 @@ pub struct SdkReport<TStatus> {
     pub file_counts: Vec<sunstack_evidence::FileCount>,
     pub skipped_rules: Vec<SdkSkippedRule>,
     pub counts: SeverityCounts,
+    /// Derived category counts; canonical assessment and coverage facts remain authoritative.
+    pub unavailable_counts: UnavailableCounts,
     pub exclusions: ExclusionCounts,
     pub incomplete: Vec<IncompletePart>,
     pub usage: UsageSummary,
@@ -293,6 +295,7 @@ fn project_report<TStatus>(
     configuration: &DefinitionOrigin,
     sources: &[DefinitionSnapshot],
 ) -> SdkReport<TStatus> {
+    let unavailable_counts = report.unavailable_counts();
     SdkReport {
         version: report.version,
         configuration: configuration.clone(),
@@ -311,6 +314,7 @@ fn project_report<TStatus>(
             .map(project_skipped)
             .collect(),
         counts: report.counts,
+        unavailable_counts,
         exclusions: report.exclusions,
         incomplete: report.incomplete,
         usage: report.usage,

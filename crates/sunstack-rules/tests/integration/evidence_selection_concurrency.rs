@@ -208,8 +208,11 @@ async fn held_selection_and_rule_replies_obey_the_same_concurrency_limit() {
             active: active.clone(),
             peak: peak.clone(),
         });
-        let mut dispatcher =
-            ModelRequestDispatch::new(settings, Some(backend), CancellationToken::new());
+        let mut dispatcher = ModelRequestDispatch::new(
+            settings,
+            ModelDispatchPolicy::Execution { backend },
+            CancellationToken::new(),
+        );
         let mut rule = rule_fixture::rule("K003");
         rule.kind = EvidenceKindName::new("step").unwrap();
         let mut piece = rule_fixture::piece();

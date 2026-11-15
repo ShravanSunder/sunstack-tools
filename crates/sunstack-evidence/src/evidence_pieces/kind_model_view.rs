@@ -27,7 +27,17 @@ pub fn project_kind_model_view(
     fields: &BTreeMap<FieldName, FieldValue>,
     max_chars: usize,
 ) -> ModelView {
-    if fields.values().any(FieldValue::is_selection_pending) {
+    if fields.values().any(FieldValue::is_selection_unavailable) {
+        let has_independent_field = fields.values().any(|value| {
+            !matches!(
+                value,
+                FieldValue::Unavailable { .. } | FieldValue::MissingDocument { .. }
+            )
+        });
+        if !has_independent_field {
+            return ModelView::SelectionUnavailable;
+        }
+    } else if fields.values().any(FieldValue::is_selection_pending) {
         return ModelView::SelectionPending;
     }
     let html = evidence_kind_language(project, kind, definition) == Some(EvidenceLanguage::Html);

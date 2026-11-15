@@ -38,32 +38,36 @@ pub(crate) fn prepare_encoding_backend(
         })
 }
 
-/// Refuse missing credentials before any evidence acquisition begins.
+/// Select execution capability after admission and scope; listing retains its credential guard.
 pub(super) fn prepare_run_backend(
     bundle: &DefinitionBundle,
     model_work: bool,
     preparing: bool,
+    listing: bool,
     api_key: Option<&str>,
-) -> Result<Option<Arc<dyn DecisionBackend>>, LintInvalid> {
+) -> Result<sunstack_rules::ModelDispatchPolicy, LintInvalid> {
     let key = api_key.filter(|key| !key.trim().is_empty());
-    if model_work && !preparing && key.is_none() {
+    if listing && model_work && !preparing && key.is_none() {
         return Err(bundle.root.invalid(
             LintInvalidCode::CredentialMissing,
             "OpenRouter credential is missing. Set OPENROUTER_API_KEY or run sunstack credentials save first.",
         ));
     }
-    let backend = if model_work && preparing {
-        Some(prepare_encoding_backend(bundle)?)
-    } else if model_work {
-        match key.map(|key| prepare_backend(bundle, key)) {
-            Some(Ok(backend)) => Some(backend),
-            Some(Err(error)) => return Err(error),
-            None => None,
+    use sunstack_rules::ModelDispatchPolicy;
+    Ok(if !model_work {
+        ModelDispatchPolicy::LocalOnly
+    } else if preparing {
+        ModelDispatchPolicy::Preparation {
+            encoder: prepare_encoding_backend(bundle)?,
+        }
+    } else if let Some(key) = key {
+        ModelDispatchPolicy::Execution {
+            backend: prepare_backend(bundle, key)?,
         }
     } else {
-        None
-    };
-    Ok(backend)
+        let _validated = prepare_encoding_backend(bundle)?;
+        ModelDispatchPolicy::CredentialUnavailable
+    })
 }
 
 #[cfg(test)]

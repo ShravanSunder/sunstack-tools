@@ -1,0 +1,264 @@
+{
+  "version": 1,
+  "pages": [
+    {
+      "id": "home",
+      "title": "Useful checks without a credential",
+      "href": "index.html",
+      "icon": "book-open"
+    },
+    {
+      "id": "requirements",
+      "title": "Needs and boundaries",
+      "href": "requirements.html",
+      "icon": "user"
+    },
+    {
+      "id": "specification",
+      "title": "Observable contract",
+      "href": "specification.html",
+      "icon": "shield-check"
+    },
+    {
+      "id": "program",
+      "title": "Rust owners and contracts",
+      "href": "program-design.html",
+      "icon": "cpu"
+    },
+    {
+      "id": "verification",
+      "title": "How we will prove it",
+      "href": "verification.html",
+      "icon": "shield-check"
+    }
+  ],
+  "map": [
+    {
+      "title": "Retain useful findings",
+      "description": "Understand the interrupted agent job and the default partial result.",
+      "icon": "user",
+      "target": {
+        "page": "requirements",
+        "fragment": "agent-job"
+      },
+      "children": [
+        {
+          "title": "Independent mechanical checks",
+          "description": "U1 · Keep local findings through the ordinary command.",
+          "icon": "user",
+          "target": {
+            "page": "requirements",
+            "fragment": "U1"
+          }
+        },
+        {
+          "title": "Only reached work needs a credential",
+          "description": "R1–R5 · Follow actual evaluation and dependency availability.",
+          "icon": "path",
+          "target": {
+            "page": "specification",
+            "fragment": "execution"
+          }
+        },
+        {
+          "title": "Where availability is decided",
+          "description": "Shared dispatcher, graph walking and preserved provider boundary.",
+          "icon": "cpu",
+          "target": {
+            "page": "program",
+            "fragment": "owners"
+          }
+        }
+      ]
+    },
+    {
+      "title": "Keep gaps truthful",
+      "description": "Separate source identity, assessment and actual dispatch.",
+      "icon": "shield-check",
+      "target": {
+        "page": "specification",
+        "fragment": "entities"
+      },
+      "children": [
+        {
+          "title": "Know what was not judged",
+          "description": "U2 · Unavailable work remains a gap.",
+          "icon": "user",
+          "target": {
+            "page": "requirements",
+            "fragment": "U2"
+          }
+        },
+        {
+          "title": "Trust actual dispatch accounting",
+          "description": "U4 · Missing capability invents no provider attempt.",
+          "icon": "shield-check",
+          "target": {
+            "page": "requirements",
+            "fragment": "U4"
+          }
+        },
+        {
+          "title": "Typed unavailable endings",
+          "description": "Mandatory Rust reasons and generated SDK narrowing.",
+          "icon": "code",
+          "target": {
+            "page": "program",
+            "fragment": "result-shapes"
+          }
+        }
+      ]
+    },
+    {
+      "title": "Use the same facts in code",
+      "description": "Preserve typed partial results and saved readback.",
+      "icon": "database",
+      "target": {
+        "page": "requirements",
+        "fragment": "sdk-job"
+      },
+      "children": [
+        {
+          "title": "Typed code and saved facts",
+          "description": "U3 · Keep reasons, identities and exact values.",
+          "icon": "database",
+          "target": {
+            "page": "requirements",
+            "fragment": "U3"
+          }
+        },
+        {
+          "title": "Keep established run boundaries",
+          "description": "U5 · Static check and ordinary execution remain distinct.",
+          "icon": "shield-check",
+          "target": {
+            "page": "requirements",
+            "fragment": "U5"
+          }
+        },
+        {
+          "title": "CLI, SDK and readback contracts",
+          "description": "R6–R9 · Inspect visible outcomes and failure boundaries.",
+          "icon": "path",
+          "target": {
+            "page": "specification",
+            "fragment": "surfaces"
+          }
+        },
+        {
+          "title": "Caller audit",
+          "description": "Actual callers versus old early-refusal assertions.",
+          "icon": "users",
+          "target": {
+            "page": "program",
+            "fragment": "caller-audit"
+          }
+        }
+      ]
+    },
+    {
+      "title": "Prove useful partial execution",
+      "description": "See what will be run, which wrong build it catches and what stays unverified.",
+      "icon": "shield-check",
+      "target": {
+        "page": "verification",
+        "fragment": "owner-proof"
+      },
+      "children": [
+        {
+          "title": "Compare mixed and mechanical runs",
+          "description": "O1 · Retain findings and expose unavailable prerequisites.",
+          "icon": "path",
+          "target": {
+            "page": "verification",
+            "fragment": "mixed-run"
+          }
+        },
+        {
+          "title": "Observe actual dispatch and entry boundaries",
+          "description": "O2 · Keyless zero-attempt, real provider failure and inspection preservation.",
+          "icon": "cpu",
+          "target": {
+            "page": "verification",
+            "fragment": "dispatch-boundaries"
+          }
+        },
+        {
+          "title": "Compile and save exact typed facts",
+          "description": "O3 · Installed SDK narrowing, refusals and source-deleted readback.",
+          "icon": "database",
+          "target": {
+            "page": "verification",
+            "fragment": "typed-readback"
+          }
+        },
+        {
+          "title": "Check case and nudge callers",
+          "description": "O4 · Real selected denominators, result links and PR227 output.",
+          "icon": "users",
+          "target": {
+            "page": "verification",
+            "fragment": "cases-caller"
+          }
+        }
+      ]
+    }
+  ],
+  "walkthroughs": [
+    {
+      "id": "partial-run",
+      "title": "What happens when the model key is missing?",
+      "description": "Start with the agent job, then distinguish unavailable subjects and final caller outcomes.",
+      "steps": [
+        {
+          "target": {
+            "page": "requirements",
+            "fragment": "agent-job"
+          },
+          "narration": "Find which useful work today's whole-run refusal loses.",
+          "icon": "user"
+        },
+        {
+          "target": {
+            "page": "specification",
+            "fragment": "entities"
+          },
+          "narration": "Distinguish a known subject from a final piece that an unanswered selector has not established.",
+          "icon": "database"
+        },
+        {
+          "target": {
+            "page": "specification",
+            "fragment": "execution"
+          },
+          "narration": "Follow the unavailable branch and its effect on dependent work.",
+          "icon": "path"
+        },
+        {
+          "target": {
+            "page": "program",
+            "fragment": "call-change"
+          },
+          "narration": "Find the removed whole-run refusal and the new reached-step availability boundary.",
+          "icon": "path"
+        },
+        {
+          "target": {
+            "page": "specification",
+            "fragment": "surfaces"
+          },
+          "narration": "Check what the caller receives and what survives saving the report.",
+          "icon": "shield-check"
+        },
+        {
+          "target": {
+            "page": "verification",
+            "fragment": "owner-proof"
+          },
+          "narration": "See the real observations that will decide whether each need is met.",
+          "icon": "shield-check"
+        }
+      ]
+    }
+  ]
+}

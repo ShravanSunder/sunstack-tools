@@ -32,6 +32,24 @@ pub(super) fn apply_derived_fields(
         if !documents_ready && definition.field_needs_document(name) {
             continue;
         }
+        let deferral = fields
+            .get(name)
+            .and_then(FieldValue::selection_deferral)
+            .max(
+                definition.fields[name]
+                    .input_field()
+                    .and_then(|input| fields.get(input))
+                    .and_then(FieldValue::selection_deferral),
+            );
+        if let Some(reason) = deferral {
+            fields.insert(
+                name.clone(),
+                FieldValue::Unavailable {
+                    reason: reason.field_unavailable(),
+                },
+            );
+            continue;
+        }
         if let FieldSource::Captures { regex, of } = &definition.fields[name] {
             let value = super::regex_capture_fields::capture_list(
                 regex,
@@ -186,3 +204,7 @@ pub(super) fn apply_derived_fields(
         fields.insert(name.clone(), filtered);
     }
 }
+
+#[cfg(test)]
+#[path = "derived_fields_test.rs"]
+mod tests;

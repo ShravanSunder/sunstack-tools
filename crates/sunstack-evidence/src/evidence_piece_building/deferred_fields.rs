@@ -26,14 +26,25 @@ impl EvidenceBuild {
             .collect();
         crate::project_kind_model_view(&self.project, kind, definition, &available, max_chars)
     }
-    fn unresolved_ranges(&self, kind: &EvidenceKindName, file: &MatchedFile) -> Vec<MatchRange> {
+    fn unresolved_ranges(
+        &self,
+        kind: &EvidenceKindName,
+        file: &MatchedFile,
+    ) -> Vec<(MatchRange, SelectionDeferral)> {
         let mut ranges = self
             .unresolved_selections
             .iter()
-            .filter(|candidate| candidate.kind == *kind && candidate.span.source == file.source)
-            .map(|candidate| MatchRange {
-                start: candidate.span.byte_start,
-                end: candidate.span.byte_end,
+            .filter(|(candidate, _)| {
+                candidate.kind == *kind && candidate.span.source == file.source
+            })
+            .map(|(candidate, reason)| {
+                (
+                    MatchRange {
+                        start: candidate.span.byte_start,
+                        end: candidate.span.byte_end,
+                    },
+                    *reason,
+                )
             })
             .collect::<Vec<_>>();
         let definition = &self.kinds[kind];
@@ -55,8 +66,14 @@ impl EvidenceBuild {
                             },
                         )
                 });
-                if !exists && unknown.iter().any(|parent| match_within(range, parent)) {
-                    ranges.push(range.clone());
+                if !exists
+                    && let Some(reason) = unknown
+                        .iter()
+                        .filter(|(parent, _)| match_within(range, parent))
+                        .map(|(_, reason)| *reason)
+                        .max()
+                {
+                    ranges.push((range.clone(), reason));
                 }
             }
         }
@@ -72,7 +89,7 @@ impl EvidenceBuild {
         if self.unresolved_selections.is_empty() {
             return;
         }
-        let mut pending_inside = false;
+        let mut deferred_inside = None;
         for (name, source) in &definition.fields {
             if let FieldSource::ScopedInside { kind, scope } = source {
                 let scope_range = super::section_scoped_fields::scoped_range(
@@ -81,26 +98,35 @@ impl EvidenceBuild {
                     range,
                     &self.catalog.pieces,
                 );
-                let outline_pending = scope.kinds().iter().any(|kind| {
-                    self.unresolved_ranges(kind, file).iter().any(|unknown| {
-                        match_within(range, unknown)
-                            || (matches!(scope, crate::SectionScope::Own { .. })
-                                && scope_range.as_ref().is_ok_and(|scope_range| {
-                                    unknown.start > scope_range.start
-                                        && unknown.start < scope_range.end
-                                }))
+                let outline_deferral = scope
+                    .kinds()
+                    .iter()
+                    .flat_map(|kind| {
+                        self.unresolved_ranges(kind, file).into_iter().filter_map(
+                            |(unknown, reason)| {
+                                (match_within(range, &unknown)
+                                    || (matches!(scope, crate::SectionScope::Own { .. })
+                                        && scope_range.as_ref().is_ok_and(|scope_range| {
+                                            unknown.start > scope_range.start
+                                                && unknown.start < scope_range.end
+                                        })))
+                                .then_some(reason)
+                            },
+                        )
                     })
-                });
-                let piece_pending = scope_range.is_ok_and(|scope_range| {
+                    .max();
+                let piece_deferral = scope_range.ok().and_then(|scope_range| {
                     self.unresolved_ranges(kind, file)
-                        .iter()
-                        .any(|unknown| match_within(unknown, &scope_range))
+                        .into_iter()
+                        .filter(|(unknown, _)| match_within(unknown, &scope_range))
+                        .map(|(_, reason)| reason)
+                        .max()
                 });
-                if outline_pending || piece_pending {
+                if let Some(reason) = outline_deferral.max(piece_deferral) {
                     fields.insert(
                         name.clone(),
                         FieldValue::Unavailable {
-                            reason: FieldUnavailable::SelectionPending,
+                            reason: reason.field_unavailable(),
                         },
                     );
                 }
@@ -117,10 +143,10 @@ impl EvidenceBuild {
                 },
                 _ => continue,
             };
-            if self
+            if let Some(reason) = self
                 .unresolved_ranges(kind, file)
-                .iter()
-                .any(|unknown| match source {
+                .into_iter()
+                .filter(|(unknown, _)| match source {
                     FieldSource::Inside { .. } | FieldSource::Remainder { .. } => {
                         match_within(unknown, range)
                     }
@@ -129,24 +155,32 @@ impl EvidenceBuild {
                     }
                     _ => true,
                 })
+                .map(|(_, reason)| reason)
+                .max()
             {
                 fields.insert(
                     name.clone(),
                     FieldValue::Unavailable {
-                        reason: FieldUnavailable::SelectionPending,
+                        reason: reason.field_unavailable(),
                     },
                 );
-                pending_inside |= matches!(source, FieldSource::Inside { .. });
+                if matches!(source, FieldSource::Inside { .. }) {
+                    deferred_inside = deferred_inside.max(Some(reason));
+                }
             }
         }
         // Remainder subtracts every Inside field; an unknown subtraction is not empty text.
-        if pending_inside {
+        if let Some(reason) = deferred_inside {
             for (name, source) in &definition.fields {
                 if matches!(source, FieldSource::Remainder { .. }) {
+                    let reason = fields
+                        .get(name)
+                        .and_then(FieldValue::selection_deferral)
+                        .map_or(reason, |existing| existing.max(reason));
                     fields.insert(
                         name.clone(),
                         FieldValue::Unavailable {
-                            reason: FieldUnavailable::SelectionPending,
+                            reason: reason.field_unavailable(),
                         },
                     );
                 }
@@ -154,3 +188,7 @@ impl EvidenceBuild {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "deferred_fields_test.rs"]
+mod tests;

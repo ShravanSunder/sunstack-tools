@@ -282,8 +282,11 @@ async fn sdk_invalid_request_reaches_the_existing_lint_formatter_boundary() {
     let backend = Arc::new(
         JevOpenRouterBackend::new(settings.backend.clone(), "SYNTHETIC_SELECTION_KEY").unwrap(),
     );
-    let mut dispatcher =
-        ModelRequestDispatch::new(settings, Some(backend), CancellationToken::new());
+    let mut dispatcher = ModelRequestDispatch::new(
+        settings,
+        sunstack_rules::ModelDispatchPolicy::Execution { backend },
+        CancellationToken::new(),
+    );
     let outcomes = tokio::time::timeout(
         Duration::from_secs(3),
         select_candidates(&input, &mut dispatcher),

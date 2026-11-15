@@ -263,6 +263,14 @@ export const wideIntegerDefinitions = {
 						},
 					},
 				},
+				{
+					object: {
+						reason: {
+							arguments: {},
+							ref: 'WorkUnavailableReason',
+						},
+					},
+				},
 			],
 		},
 	},
@@ -1350,6 +1358,30 @@ export const wideIntegerDefinitions = {
 								ref: 'JudgmentAnswer',
 							},
 						},
+						field: {
+							arguments: {},
+							ref: 'FieldName',
+						},
+						path: {
+							list: {
+								arguments: {},
+								ref: 'StepName',
+							},
+						},
+						reason: {
+							arguments: {},
+							ref: 'WorkUnavailableReason',
+						},
+					},
+				},
+				{
+					object: {
+						answers: {
+							map: {
+								arguments: {},
+								ref: 'JudgmentAnswer',
+							},
+						},
 						label: {
 							arguments: {},
 							ref: 'ChoiceLabel',
@@ -1691,6 +1723,26 @@ export const wideIntegerDefinitions = {
 						filter: {
 							arguments: {},
 							ref: 'FilterName',
+						},
+					},
+				},
+				{
+					object: {
+						evidence_kind: {
+							arguments: {},
+							ref: 'EvidenceKindName',
+						},
+						selection_kind: {
+							arguments: {},
+							ref: 'EvidenceKindName',
+						},
+					},
+				},
+				{
+					object: {
+						reason: {
+							arguments: {},
+							ref: 'WorkUnavailableReason',
 						},
 					},
 				},
@@ -2618,67 +2670,94 @@ export const wideIntegerDefinitions = {
 			},
 		},
 	},
+	RulePieceEnding: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						reason: {
+							arguments: {},
+							ref: 'NotApplicableReason',
+						},
+					},
+				},
+				{
+					object: {
+						gap: {
+							arguments: {},
+							ref: 'RulebookIncompleteReason',
+						},
+					},
+				},
+				{
+					object: {
+						reason: {
+							arguments: {},
+							ref: 'WorkUnavailableReason',
+						},
+					},
+				},
+			],
+		},
+	},
 	RulePieceResult: {
 		generics: [],
 		shape: {
-			object: {
-				answers: {
-					map: {
-						arguments: {},
-						ref: 'JudgmentAnswer',
+			all: [
+				{
+					object: {
+						answers: {
+							map: {
+								arguments: {},
+								ref: 'JudgmentAnswer',
+							},
+						},
+						basis: {
+							arguments: {},
+							ref: 'Basis',
+						},
+						cut: {
+							list: {
+								arguments: {},
+								ref: 'FieldName',
+							},
+						},
+						first_line: 'bigint',
+						id: 'bigint',
+						last_line: 'bigint',
+						locator_omitted: {
+							arguments: {},
+							ref: 'LocatorOmission',
+						},
+						marker: {
+							arguments: {},
+							ref: 'MarkerId',
+						},
+						name: {
+							arguments: {},
+							ref: 'RuleId',
+						},
+						path: {
+							list: {
+								arguments: {},
+								ref: 'StepName',
+							},
+						},
+						request_ids: {
+							list: 'bigint',
+						},
+						step: {
+							arguments: {},
+							ref: 'StepName',
+						},
 					},
 				},
-				basis: {
+				{
 					arguments: {},
-					ref: 'Basis',
+					ref: 'RulePieceEnding',
 				},
-				cut: {
-					list: {
-						arguments: {},
-						ref: 'FieldName',
-					},
-				},
-				first_line: 'bigint',
-				gap: {
-					arguments: {},
-					ref: 'RulebookIncompleteReason',
-				},
-				id: 'bigint',
-				last_line: 'bigint',
-				locator_omitted: {
-					arguments: {},
-					ref: 'LocatorOmission',
-				},
-				marker: {
-					arguments: {},
-					ref: 'MarkerId',
-				},
-				name: {
-					arguments: {},
-					ref: 'RuleId',
-				},
-				outcome: {
-					arguments: {},
-					ref: 'PieceOutcome',
-				},
-				path: {
-					list: {
-						arguments: {},
-						ref: 'StepName',
-					},
-				},
-				reason: {
-					arguments: {},
-					ref: 'NotApplicableReason',
-				},
-				request_ids: {
-					list: 'bigint',
-				},
-				step: {
-					arguments: {},
-					ref: 'StepName',
-				},
-			},
+			],
 		},
 	},
 	RulebookDefinition: {
@@ -3353,6 +3432,10 @@ export const wideIntegerDefinitions = {
 				status: {
 					generic: 'TStatus',
 				},
+				unavailable_counts: {
+					arguments: {},
+					ref: 'UnavailableCounts',
+				},
 				uncertain: {
 					list: {
 						arguments: {},
@@ -3460,6 +3543,7 @@ export const wideIntegerDefinitions = {
 				incomplete: 'bigint',
 				not_selected: 'bigint',
 				selected: 'bigint',
+				unavailable: 'bigint',
 				uncertain: 'bigint',
 			},
 		},
@@ -3518,6 +3602,14 @@ export const wideIntegerDefinitions = {
 		generics: [],
 		shape: {
 			union: [
+				{
+					object: {
+						reason: {
+							arguments: {},
+							ref: 'WorkUnavailableReason',
+						},
+					},
+				},
 				{
 					object: {
 						request_id: 'bigint',
@@ -3823,6 +3915,17 @@ export const wideIntegerDefinitions = {
 			},
 		},
 	},
+	UnavailableCounts: {
+		generics: [],
+		shape: {
+			object: {
+				evidence_scopes: 'bigint',
+				filter_folders: 'bigint',
+				rule_pieces: 'bigint',
+				selection_candidates: 'bigint',
+			},
+		},
+	},
 	UncertainResult: {
 		generics: [],
 		shape: {
@@ -3884,6 +3987,37 @@ export const wideIntegerDefinitions = {
 					map: {
 						arguments: {},
 						ref: 'Value',
+					},
+				},
+			],
+		},
+	},
+	WorkUnavailableReason: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						filter: {
+							arguments: {},
+							ref: 'FilterName',
+						},
+					},
+				},
+				{
+					object: {
+						evidence_kind: {
+							arguments: {},
+							ref: 'EvidenceKindName',
+						},
+					},
+				},
+				{
+					object: {
+						field: {
+							arguments: {},
+							ref: 'FieldName',
+						},
 					},
 				},
 			],

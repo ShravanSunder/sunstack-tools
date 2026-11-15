@@ -1,5 +1,5 @@
 use super::contracts::*;
-use crate::{LintReport, PieceOutcome};
+use crate::{LintReport, RulePieceEnding};
 use std::path::Path;
 use sunstack_rules::{FilterAnswerState, FilterSkipReason};
 
@@ -88,21 +88,25 @@ pub(super) fn score(
                 [result] => *result,
                 _ => return (CaseOutcome::MoreThanOneMatchingPiece, None),
             };
-            let outcome = if result.reason.is_some() {
-                CaseOutcome::FilterExcluded
-            } else {
-                match (&result.outcome, expected) {
-                    (PieceOutcome::Finding, ExpectedRuleOutcome::Warn)
-                    | (PieceOutcome::Pass, ExpectedRuleOutcome::Pass) => CaseOutcome::Right,
-                    (PieceOutcome::Finding, ExpectedRuleOutcome::Pass) => CaseOutcome::FalseWarning,
-                    (
-                        PieceOutcome::Pass | PieceOutcome::NotApplicable,
-                        ExpectedRuleOutcome::Warn,
-                    ) => CaseOutcome::Missed,
-                    (PieceOutcome::NotApplicable, ExpectedRuleOutcome::Pass) => CaseOutcome::Right,
-                    (PieceOutcome::Uncertain, _) => CaseOutcome::Unsure,
-                    (PieceOutcome::Incomplete, _) => incomplete(format!("{:?}", result.gap)),
+            let outcome = match (&result.ending, expected) {
+                (RulePieceEnding::NotApplicable { reason: Some(_) }, _) => {
+                    CaseOutcome::FilterExcluded
                 }
+                (RulePieceEnding::Finding, ExpectedRuleOutcome::Warn)
+                | (RulePieceEnding::Pass, ExpectedRuleOutcome::Pass) => CaseOutcome::Right,
+                (RulePieceEnding::Finding, ExpectedRuleOutcome::Pass) => CaseOutcome::FalseWarning,
+                (
+                    RulePieceEnding::Pass | RulePieceEnding::NotApplicable { .. },
+                    ExpectedRuleOutcome::Warn,
+                ) => CaseOutcome::Missed,
+                (RulePieceEnding::NotApplicable { .. }, ExpectedRuleOutcome::Pass) => {
+                    CaseOutcome::Right
+                }
+                (RulePieceEnding::Uncertain, _) => CaseOutcome::Unsure,
+                (RulePieceEnding::Incomplete { gap }, _) => incomplete(format!("{gap:?}")),
+                (RulePieceEnding::Unavailable { reason }, _) => CaseOutcome::Unavailable {
+                    reason: reason.clone(),
+                },
             };
             (outcome, Some(result.id))
         }
@@ -132,6 +136,9 @@ pub(super) fn score(
                     }
                     FilterAnswerState::Judged { .. } => CaseOutcome::WrongLabel,
                     FilterAnswerState::Unsure { .. } => CaseOutcome::Unsure,
+                    FilterAnswerState::Unavailable { reason, .. } => CaseOutcome::Unavailable {
+                        reason: reason.clone(),
+                    },
                     FilterAnswerState::Incomplete { reason, .. } => {
                         incomplete(format!("{reason:?}"))
                     }
@@ -280,11 +287,15 @@ pub(super) fn selection_outcome(
             file: file.clone(),
         },
         crate::CaseBindingStatus::Incomplete { reason } => incomplete(format!("{reason:?}")),
+        crate::CaseBindingStatus::Unavailable { reason } => CaseOutcome::Unavailable {
+            reason: reason.clone(),
+        },
         crate::CaseBindingStatus::Cancelled => CaseOutcome::Cancelled,
     };
     let result_id = if matches!(
         outcome,
         CaseOutcome::Incomplete { .. }
+            | CaseOutcome::Unavailable { .. }
             | CaseOutcome::Cancelled
             | CaseOutcome::SelectionPending { .. }
     ) {

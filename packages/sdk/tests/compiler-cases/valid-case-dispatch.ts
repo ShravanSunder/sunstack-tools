@@ -46,6 +46,8 @@ export function statusKind(status: CaseBindingStatus): string {
 			return status.file;
 		case 'incomplete':
 			return JSON.stringify(status.reason);
+		case 'unavailable':
+			return status.reason.kind;
 		case 'unmatched':
 		case 'stale':
 		case 'cancelled':

@@ -103,6 +103,11 @@ pub(super) fn pick_run_pieces(
                 .keys()
                 .filter(|file| checked_files.contains(*file))
                 .filter(|file| {
+                    !report.incomplete.iter().any(|part| matches!(&part.reason,
+                        IncompleteReason::SelectionUnavailable { evidence_kind, file: blocked_file, .. }
+                            if evidence_kind == *kind && blocked_file == *file))
+                })
+                .filter(|file| {
                     !catalog
                         .pieces
                         .iter()

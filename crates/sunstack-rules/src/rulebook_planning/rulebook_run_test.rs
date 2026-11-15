@@ -37,7 +37,11 @@ async fn filter_gate_prevents_real_first_walk_and_deduplicates_skips() {
             max_model_requests: 10,
             max_locate_lines: 100,
         };
-        let mut dispatcher = ModelRequestDispatch::new(settings, None, CancellationToken::new());
+        let mut dispatcher = ModelRequestDispatch::new(
+            settings,
+            crate::ModelDispatchPolicy::LocalOnly,
+            CancellationToken::new(),
+        );
         let mut answers = FilterAnswers {
             prepared: vec![],
             pieces: Default::default(),

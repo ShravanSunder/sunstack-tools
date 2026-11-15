@@ -107,8 +107,97 @@ async fn real_cli_filter_answers_skips_status_schema_and_keyless_surfaces() {
         invoke(root.path(), &["--check"], 0).await;
         let listing = report(root.path(), &["--all", "--evidence"], 0).await;
         assert!(listing.get("pieces").is_some());
-        let no_key = report(root.path(), &["--all"], 2).await;
-        assert_eq!(no_key["usage"]["checked_files_acquired"], 0);
+        let no_key = report(root.path(), &["--all"], 3).await;
+        assert_eq!(no_key["status"]["kind"], "incomplete");
+        assert_eq!(no_key["diagnostics"], json!([]));
+        assert_eq!(no_key["usage"]["model_requests"], 0);
+        assert_eq!(no_key["requests"], json!([]));
+        assert_eq!(no_key["findings"], json!([]));
+        assert_eq!(
+            no_key["file_counts"],
+            json!([{
+                "file":"packages/one/references/member.md",
+                "kinds":{"skill":{"matches":1,"pieces":1,"picked":1,"limited":false}}
+            }])
+        );
+        if scenario == "no_folder" {
+            assert_eq!(no_key["usage"]["checked_files_acquired"], 1);
+            assert_eq!(no_key["results"], json!([]));
+            assert_eq!(no_key["filter_answers"], json!([]));
+            assert_eq!(no_key["filter_skips"].as_array().unwrap().len(), 1);
+            assert_eq!(no_key["filter_skips"][0]["why"], "no_folder");
+            assert_eq!(
+                no_key["incomplete"],
+                json!([{
+                    "rule":"description", "file":"packages/one/references/member.md",
+                    "reason":{"kind":"no_filter_folder","filter":"purpose"}
+                }])
+            );
+        } else if scenario == "missing" {
+            assert_eq!(no_key["usage"]["checked_files_acquired"], 2);
+            assert_eq!(no_key["results"], json!([]));
+            assert_eq!(no_key["filter_answers"].as_array().unwrap().len(), 1);
+            let answer = &no_key["filter_answers"][0];
+            assert_eq!(answer["state"], "incomplete");
+            assert_eq!(answer["reason"], json!({"kind":"reads_absent"}));
+            assert_eq!(answer["field"], "description");
+            assert_eq!(answer["request_ids"], json!([]));
+            assert_eq!(no_key["filter_skips"].as_array().unwrap().len(), 1);
+            assert_eq!(no_key["filter_skips"][0]["why"], "incomplete");
+            assert_eq!(
+                no_key["incomplete"],
+                json!([{
+                    "rule":null, "file":"packages/one",
+                    "reason":{"kind":"filter","filter":"purpose","reason":{"kind":"reads_absent"}}
+                }])
+            );
+        } else {
+            assert_eq!(no_key["usage"]["checked_files_acquired"], 2);
+            assert_eq!(no_key["filter_skips"], json!([]));
+            assert_eq!(no_key["filter_answers"].as_array().unwrap().len(), 1);
+            let answer = &no_key["filter_answers"][0];
+            assert_eq!(answer["filter"], "purpose");
+            assert_eq!(answer["folder"], "packages/one");
+            assert_eq!(answer["state"], "unavailable");
+            assert_eq!(answer["reason"], json!({"kind":"credential_unavailable"}));
+            assert_eq!(answer["path"], json!(["filter"]));
+            assert_eq!(answer["answers"], json!({}));
+            assert_eq!(answer["request_ids"], json!([]));
+            assert_eq!(no_key["results"].as_array().unwrap().len(), 1);
+            let result = &no_key["results"][0];
+            assert_eq!(result["marker"], "K001");
+            assert_eq!(result["file"], "packages/one/references/member.md");
+            assert_eq!(result["outcome"], "unavailable");
+            assert_eq!(
+                result["reason"],
+                json!({
+                    "kind":"filter_unavailable", "filter":"purpose", "folder":"packages/one"
+                })
+            );
+            assert_eq!(result["request_ids"], json!([]));
+            let result_id = result["id"].as_u64().unwrap();
+            let answer_id = answer["id"].as_u64().unwrap();
+            assert!(result_id > 0 && answer_id > 0);
+            assert_ne!(result_id, answer_id);
+            assert_eq!(
+                no_key["piece_evidence"][result_id.to_string()]["piece"]["fields"]["description"]["value"],
+                "Use when valid"
+            );
+            assert_eq!(
+                no_key["piece_evidence"][answer_id.to_string()]["piece"]["where"]["file"],
+                "packages/one/about.md"
+            );
+            let incomplete = no_key["incomplete"].as_array().unwrap();
+            assert_eq!(incomplete.len(), 2);
+            assert!(incomplete.contains(&json!({
+                "rule":null,"file":"packages/one",
+                "reason":{"kind":"unavailable","reason":{"kind":"credential_unavailable"}}
+            })));
+            assert!(incomplete.contains(&json!({
+                "rule":"description","file":"packages/one/references/member.md",
+                "reason":{"kind":"unavailable","reason":{"kind":"filter_unavailable","filter":"purpose","folder":"packages/one"}}
+            })));
+        }
         let child = command(root.path())
             .args(["--all", "--format", "json"])
             .env("OPENROUTER_API_KEY", "SYNTHETIC")

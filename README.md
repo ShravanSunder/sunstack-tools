@@ -151,7 +151,9 @@ for the current configuration shape, scope flags, `--check`, `--evidence` and re
 formats. Version 0.2.0 refuses the former `rule_sets` configuration. Kinds can also
 use model-based `select` and `within` containment; selection outcomes and per-file
 counts are visible in reports and `--evidence` listings. Selected kinds require a
-credential for evidence listings as well as ordinary runs.
+credential for evidence listings. Ordinary runs without a credential continue
+independent local checks and retain unavailable judged work and dependencies in an
+incomplete report (exit 3), with required reasons and actual source identities.
 
 Exit codes are 0 for clean or nothing selected, 1 for failing findings, 2 for
 invalid input, 3 for incomplete work, 4 for cancellation and 5 for uncertain

@@ -108,6 +108,35 @@ fn document_roots_keep_the_concrete_report_status_bindings() {
 }
 
 #[test]
+fn unavailable_count_widths_and_report_projection_are_derived_from_the_real_rust_contract() {
+    let exported = export().unwrap();
+    let definitions = &exported.wide_integers["definitions"];
+
+    assert_eq!(
+        definitions["UnavailableCounts"]["shape"],
+        json!({"object": {
+            "rule_pieces": "bigint", "filter_folders": "bigint",
+            "selection_candidates": "bigint", "evidence_scopes": "bigint"
+        }})
+    );
+    assert_eq!(
+        definitions["SdkReport"]["shape"]["object"]["unavailable_counts"]["ref"],
+        "UnavailableCounts"
+    );
+    assert!(
+        exported
+            .declarations
+            .contains("export type RulePieceEnding")
+    );
+    assert!(
+        exported
+            .declarations
+            .contains("export type WorkUnavailableReason")
+    );
+    assert!(!exported.declarations.contains("export enum "));
+}
+
+#[test]
 fn private_same_path_u64_and_u32_roots_have_distinct_widening_shapes() {
     let root = |primitive| {
         Struct::named()

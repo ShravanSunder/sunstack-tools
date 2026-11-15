@@ -1,0 +1,387 @@
+<!DOCTYPE html><html lang="en"><head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Useful checks without a model credential — Rust design</title>
+  <link rel="stylesheet" href="https://demistify.getagentstudio.dev/v1/theme.css">
+  <script type="module" src="https://demistify.getagentstudio.dev/v1/runtime.js"></script>
+</head>
+<body>
+<ex-nav for="content" src="./navigation.json"></ex-nav>
+<ex-document id="content">
+  <h1 id="heading-rust-stops-the-unavailable-work-not-the-whole-run">Rust stops the unavailable work, not the whole run</h1>
+  <p>The shared dispatcher owns whether a reached model step can execute. Graph walking still produces independent local results. A missing credential becomes a typed unavailable assessment or dependency gap, and the existing report projection retains findings while returning incomplete.</p>
+  <p>This realizes <a href="specification.html#execution">the execution contract</a>. The current source reference is released <code>4e40a05b</code>; its tree equals reviewed <code>af978771</code>. Shapes below are the proposed target, not compiled implementation.</p>
+
+  <section id="owners">
+    <h2 id="heading-keep-one-owner-for-each-decision">Keep one owner for each decision</h2>
+    <p>The host still resolves the credential once. Shared Rust owns admission, evidence, graph walking and model dispatch; the CLI and SDK remain consumers of that one execution. The change introduces no store, service, second runner or execution-policy flag.</p>
+    <ex-mermaid id="owner-map" label="Owners of availability, execution and reporting"><script type="text/plain">
+flowchart TD
+  host["Host credential resolver<br/>Owns secret lookup; returns one snapshot"] --> coordinator["Shared run coordinator<br/>Owns admission, scope and run lifetime"]
+  coordinator --> evidence["Evidence preparation<br/>Owns captured subjects and blocked coverage"]
+  evidence --> walks["Rule and filter walking<br/>Owns actual path and assessment ending"]
+  walks --> dispatch["Model dispatcher<br/>Owns availability, allowances and task submission"]
+  dispatch -->|available only| provider["Existing decision backend<br/>Owns actual provider exchange"]
+  walks --> report["Report projection<br/>Owns results, counts, status and case accounting"]
+  dispatch -->|typed unavailable; no submission| report
+  evidence -->|unavailable selection scopes| report
+  report --> adapters["CLI, SDK and saved readback<br/>Expose the same retained facts"]
+    </script></ex-mermaid>
+    <p>Availability is a dispatcher policy, not a provider failure. The unavailable branch returns before a permit, request allowance, request ID or background task is reserved. The existing backend keeps its encoding, budgets, retries and receipt semantics for work that really can run.</p>
+    <aside class="design-item" id="D3" data-design-item="decision" data-authority="author">
+      <p>Replace the dispatcher's separate mode and optional backend with one closed policy. Check that policy at a reached model boundary and again at the submission entry. Both use one policy owner; builders do not query the credential store.</p>
+      <p>This is the smaller realization of R1–R5: it preserves the existing host and provider boundaries. It costs explicit unavailable branches in rule, filter and selection handling. Revisit if a real caller requires the old acquisition order or credential resolution itself prevents independent work from progressing.</p>
+    </aside>
+    <div class="ex-table-scroll"><table>
+      <thead><tr><th>Owner and consumers</th><th>Home and reason to change</th><th>Boundary</th></tr></thead>
+      <tbody>
+        <tr><td>Host resolver → CLI/SDK run entry</td><td>Existing <code>sunstack::host_services</code>; changes with credential policy.</td><td>One optional secret snapshot; the value stays in Rust and never enters a report.</td></tr>
+        <tr><td>Run coordinator → evidence/walkers</td><td>Modified <code>sunstack-lint::lint_execution</code>; changes with run admission/lifetime.</td><td>Admitted definitions, checked scope, cancellation and closed dispatcher policy.</td></tr>
+        <tr><td>Evidence preparation → walkers/report</td><td>Modified <code>sunstack-evidence</code> build plus existing lint orchestration; changes with subject/field availability.</td><td>Real pieces/candidates; typed pending versus unavailable deferral and blocked kind/file coverage.</td></tr>
+        <tr><td>Graph walkers → dispatcher/report</td><td>Modified <code>sunstack-rules</code> rule/filter/selection owners; changes with graph semantics.</td><td>Mechanical settlement, reached model work, or typed unavailable ending with its path.</td></tr>
+        <tr><td>Model dispatcher → existing backend</td><td>Modified <code>ModelRequestDispatch</code>; changes with submission/accounting policy.</td><td>Unavailable makes no task or provider attempt; executable requests use the ordinary backend.</td></tr>
+        <tr><td>Report projection → CLI/SDK/readback</td><td>Modified lint reporting and existing SDK facade; changes with observable retained facts.</td><td>Canonical assessments and gaps; derived counts; incomplete status; exact generated/serialized values.</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="call-change">
+    <h2 id="heading-move-refusal-from-run-admission-to-the-reached-model-step">Move refusal from run admission to the reached model step</h2>
+    <p>Today the factory returns Invalid before EvidenceBuild when configured model work has no credential. For ordinary rule evaluation, the target keeps configuration admission and empty-scope checks, but produces an unavailable policy instead of refusing the run. Mechanical walking happens before capability is needed. Evidence listing and SDK inspection are different existing operations: model-selected inspection retains its credential/selection contract and its current missing-key refusal.</p>
+    <ex-mermaid id="entry-flow" data-width="canvas" label="Proposed call path with the removed whole-run refusal"><script type="text/plain">
+sequenceDiagram
+  participant Caller as CLI or SDK
+  participant Host as Host resolver
+  participant Run as Shared run
+  participant Walk as Evidence and graph walking
+  participant Dispatch as Model dispatcher
+  participant Provider as Existing backend
+  Caller->>Host: Resolve once, existing policy
+  Host-->>Caller: Credential snapshot or absence
+  Caller->>Run: Rule-evaluation definitions, scope, cancellation, snapshot
+  Note over Run: Ordinary rule evaluation removes the early missing-key refusal
+  Run->>Run: Admit definitions, select scope, validate needed backend settings
+  Run->>Dispatch: Construct one closed policy
+  Run->>Walk: Acquire real evidence and walk available work
+  alt Path settles mechanically
+    Walk-->>Run: Real pass, finding or exclusion
+  else Model step is reached
+    Walk->>Dispatch: Check model-step capability
+    alt Credential unavailable
+      Dispatch-->>Walk: Unavailable with typed reason, no reservation
+      Walk-->>Run: Actual subject/path, or unavailable selection scope
+    else Execution available
+      Walk->>Dispatch: Submit ordinary request
+      Dispatch->>Provider: Existing async exchange and budgets
+      Provider-->>Walk: Actual answer or failure evidence
+      Walk-->>Run: Ordinary assessment
+    end
+  end
+  Run-->>Caller: One report retaining completed work and gaps
+    </script></ex-mermaid>
+    <div class="ex-table-scroll"><table>
+      <thead><tr><th>Edge</th><th>Current source</th><th>Target delta and return</th></tr></thead>
+      <tbody>
+        <tr><td>Host → shared run</td><td><a href="https://github.com/ShravanSunder/sunstack-tools/blob/4e40a05b5ebd3a4aa0e165809fbdf2942defe264/crates/sunstack/src/sdk_host/mod.rs">SDK facade</a> and ordinary CLI resolve before running.</td><td>Intentionally unchanged: one snapshot, no TS secret or per-piece lookup.</td></tr>
+        <tr><td>Backend factory → coordinator</td><td><a href="https://github.com/ShravanSunder/sunstack-tools/blob/4e40a05b5ebd3a4aa0e165809fbdf2942defe264/crates/sunstack-lint/src/lint_execution/backend_factory.rs">Current early credential guard</a>.</td><td>Changed only for ordinary rule evaluation: missing credential produces the typed unavailable policy; malformed needed backend settings still return Invalid. Preserve the existing evidence-listing/inspection missing-key guard. The factory reads the existing LintRequest evidence_listing operation discriminator; no public policy flag is added. Reuse preparation-constructor validation for the ordinary unavailable branch without entering preparation execution.</td></tr>
+        <tr><td>SDK inspect → captured definitions → shared listing → factory</td><td><a href="https://github.com/ShravanSunder/sunstack-tools/blob/4e40a05b5ebd3a4aa0e165809fbdf2942defe264/crates/sunstack/src/sdk_host/inspection_projection.rs#L240">Inspection credential selection and projection</a> and <a href="https://github.com/ShravanSunder/sunstack-tools/blob/4e40a05b5ebd3a4aa0e165809fbdf2942defe264/crates/sunstack-lint/src/lint_execution/lint_run.rs#L189">inspect_definitions</a> use the same execution path with evidence_listing present.</td><td>Preservation-critical, unchanged observable behavior: no configured selector means no SDK credential lookup/provider work; any configured model selector retains the existing one host lookup and real selection path. Missing/blank credential at the factory remains CredentialMissing/Invalid, before EvidenceBuild, projected to InspectionOutcome::Invalid without an inspection report. A keyed selector still executes; rule questions/gates do not. The shared CLI evidence-listing path keeps its existing selection guard too.</td></tr>
+        <tr><td>Walker → dispatcher</td><td><a href="https://github.com/ShravanSunder/sunstack-tools/blob/4e40a05b5ebd3a4aa0e165809fbdf2942defe264/crates/sunstack-rules/src/rulebook_planning/tree_walking.rs">Tree walk</a> reaches NeedsAnswers only after local steps.</td><td>Added: capability check before constructing/reserving model work. Content errors detected by existing earlier guards retain their actual cause; unreferenced fields do not globally stop a piece.</td></tr>
+        <tr><td>Dispatcher → provider</td><td><a href="https://github.com/ShravanSunder/sunstack-tools/blob/4e40a05b5ebd3a4aa0e165809fbdf2942defe264/crates/sunstack-rules/src/rule_evaluation/model_request_dispatch.rs">Submit/account/drain owner</a>.</td><td>Changed: unavailable returns before mutation. Intentionally unchanged executable branch: payloads, allowance, semaphore, task drain, attempts and provider results.</td></tr>
+        <tr><td>Projection → callers/readback</td><td><a href="https://github.com/ShravanSunder/sunstack-tools/blob/4e40a05b5ebd3a4aa0e165809fbdf2942defe264/crates/sunstack-lint/src/lint_reporting/outcome.rs">Existing result/status projection</a>.</td><td>Extended: unavailable assessments and blocked coverage contribute incomplete, preserving findings and actual IDs; SDK projection remains the single native mapping.</td></tr>
+      </tbody>
+    </table></div>
+    <p>Calls into the facade and shared coordinator are async. Evidence construction retains its existing blocking-work boundary. No network edge is added. Static check bypasses execution; preparation remains its separate unsent path. Inspection acquires evidence and can execute model selection, so it does not bypass this path. Change capture may already read frozen source before evidence construction, as the Requirements explain.</p>
+    <ex-mermaid id="inspection-preservation" label="Preserve static and model-selected inspection through the shared factory"><script type="text/plain">
+flowchart TD
+  inspect["SDK inspect: existing pre-abort, root and capture guards"] --> configured{"Any configured model selector?"}
+  configured -->|no| static["Skip SDK credential lookup"]
+  configured -->|yes| resolve["Existing one-shot host or supplied credential"]
+  static --> listing["Shared inspection/listing operation<br/>Existing admission and checked-scope guards"]
+  resolve --> listing
+  listing --> factory["Same factory; listing discriminator retained"]
+  factory -->|model work and missing key| refused["Existing Invalid / CredentialMissing<br/>No EvidenceBuild or provider attempt"]
+  factory -->|static or keyed| evidence["Real evidence and any eligible model selection"]
+  evidence --> report["Existing inspection projection<br/>No rule questions or gates evaluated"]
+    </script></ex-mermaid>
+    <p>Inspection's existing pre-abort returns Cancelled with no report before capture/resolution; a relative root returns Invalid; capture unavailability remains reportless Unavailable. Supplied malformed definitions and unknown-kind requests retain their current admission/diagnostic ordering. Do not introduce a new promise that every invalid definition skips credential resolution: configured selectors are detected in the facade before shared admission. Valid static inspection may read checked files and returns its real pieces/counts; it never evaluates rules. Valid keyed model inspection retains actual selection requests and its existing inspected/incomplete/failure projection. This is preservation of existing operation boundaries, not a second ordinary-run policy.</p>
+  </section>
+
+  <section id="policy">
+    <h2 id="heading-make-unavailable-execution-different-from-preparation">Make unavailable execution different from preparation</h2>
+    <p>The policy owns mutually exclusive runtime states. An ordinary keyless run is never marked prepared and never receives a fake backend key. Needed endpoint/model settings are validated at the existing factory; a valid configuration with an unavailable credential can then acquire evidence.</p>
+    <ex-code id="dispatch-policy" title="Proposed private Rust policy" lang="rust"><script type="text/plain">
+enum ModelDispatchPolicy {
+    LocalOnly,
+    Preparation { encoder: Arc<dyn DecisionBackend> },
+    Execution { backend: Arc<dyn DecisionBackend> },
+    CredentialUnavailable,
+}
+    </script></ex-code>
+    <p>After existing admission and checked-scope guards, the factory retains the current missing-key refusal for model-backed evidence listing/inspection, identified by the existing request's evidence_listing field. Otherwise it selects LocalOnly for no configured model work, Preparation for explicit prepare, Execution for a valid supplied credential, or CredentialUnavailable for ordinary rule evaluation after validating needed backend settings. A refused inspection never constructs CredentialUnavailable. Availability checks are pure reads of the per-run policy. LocalOnly reaching a model operation is an invalid internal request, not a guessed credential failure. Cancellation is checked before availability and again before actual task submission.</p>
+    <ex-mermaid id="model-state" label="A reached model operation either executes or ends unavailable"><script type="text/plain">
+stateDiagram-v2
+  [*] --> Walking
+  Walking --> Settled: local path finishes
+  Walking --> NeedsModel: actual model operation reached
+  NeedsModel --> Cancelled: cancellation observed
+  NeedsModel --> Unavailable: ordinary credential-unavailable policy
+  NeedsModel --> Prepared: explicit preparation policy
+  NeedsModel --> Submitted: execution policy and existing guards pass
+  Submitted --> Completed: actual answer
+  Submitted --> Failed: actual transport or response failure
+  Submitted --> Cancelled: existing cancellation path
+  Unavailable --> [*]
+  Settled --> [*]
+  Prepared --> [*]
+  Completed --> [*]
+  Failed --> [*]
+  Cancelled --> [*]
+    </script></ex-mermaid>
+    <p>There is no transition from Unavailable to Submitted within the same run. Adding a credential requires a new ordinary invocation; no automatic retry, prompt, store write or resumption service is introduced. Existing keyed retries remain owned by the decision backend.</p>
+    <aside class="design-item" id="D8" data-design-item="decision" data-authority="author">
+      <p>Keep existing host credential resolution once at entry. A lazy credential factory at the first ask could avoid some store reads, but adds a new callback and concurrent initialization policy across the core/host boundary. That is unnecessary for the accepted result contract. The current host lookup latency remains a cost; an actual non-returning lookup that prevents local work would reopen this choice.</p>
+    </aside>
+  </section>
+
+  <section id="result-shapes">
+    <h2 id="heading-a-new-unavailable-result-must-carry-its-reason-in-rust">A new unavailable result must carry its reason in Rust</h2>
+    <p>Do not add an unavailable string and another optional reason to the current result bag. Keep common source/path/result identity fields, and flatten a closed ending tagged by the existing <code>outcome</code> wire key. The unavailable variant requires its reason; other valid existing JSON endings keep their current spelling and payload meaning.</p>
+    <ex-code id="ending-shape" title="Proposed Rust-owned result ending" lang="rust"><script type="text/plain">
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
+#[derive(Serialize, Deserialize, JsonSchema)]
+#[serde(tag = "outcome", rename_all = "snake_case")]
+pub enum RulePieceEnding {
+    Pass,
+    Finding,
+    NotApplicable { reason: Option<NotApplicableReason> },
+    Uncertain,
+    Incomplete { gap: Option<RulebookIncompleteReason> },
+    Unavailable { reason: WorkUnavailableReason },
+}
+
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
+#[derive(Serialize, Deserialize, JsonSchema)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum WorkUnavailableReason {
+    CredentialUnavailable,
+    FilterUnavailable { filter: FilterName, folder: PathBuf },
+    SelectionUnavailable { evidence_kind: EvidenceKindName, file: PathBuf },
+    SelectedFieldUnavailable { field: FieldName },
+}
+
+// RulePieceResult keeps its existing common identity/history fields:
+// id, request_ids, name, marker, file, first_line, last_line,
+// text_sha256, step, path, answers, basis, cut, locator_omitted.
+// Its single ending is #[serde(flatten)] pub ending: RulePieceEnding.
+    </script></ex-code>
+    <p>The existing optional fields of older endings are preserved; this change does not broaden them or make an unavailable reason optional. Internal RulebookResult gains its own Unavailable variant with mandatory reason, actual walked path, answers read, optional reached step and affected field. FilterAnswerState and SelectionOutcome gain mandatory-reason Unavailable variants under their existing tags. Unavailable work has no inferred judgment basis.</p>
+    <aside class="design-item" id="D4" data-design-item="decision" data-authority="author">
+      <p>Use a flattened ending to preserve valid existing CLI result JSON while strengthening construction of the new state. Rust callers switch on the ending and are updated in one cutover; no old Rust-field wrapper remains. The cost is explicit projection and exhaustive-match changes. A generated contract or serialization check that cannot preserve the selected shape reopens this structure before a build proceeds further.</p>
+    </aside>
+    <ex-code id="sdk-use" title="Planned SDK narrowing, with generated types" lang="typescript"><script type="text/plain">
+import { run, serialize, type Configuration } from '@sunstack/sdk';
+declare const configuration: Configuration;
+const outcome = await run(configuration, { root: '/checked/repository', scope: { kind: 'all' } });
+if (outcome.kind === 'incomplete') {
+  for (const result of outcome.report.results) {
+    if (result.outcome === 'unavailable') {
+      console.log(result.name, result.reason.kind);
+    }
+  }
+  // Existing typed serialization handles bigint and the selected report root.
+  const saved = serialize({ kind: 'report', value: outcome.report });
+  console.log(saved.kind);
+}
+    </script></ex-code>
+    <p>This illustrates the intended generated union; it is not a manually maintained SDK declaration or an executed example. The public readonly result permits <code>reason</code> on the unavailable branch without a cast. Location widths, tuple lengths and every existing exact-value codec path stay Rust-derived. No TypeScript enum or mandatory Zod layer is added.</p>
+  </section>
+
+  <section id="dependencies">
+    <h2 id="heading-unavailable-selection-blocks-unknown-pieces-without-inventing-them">Unavailable selection blocks unknown pieces without inventing them</h2>
+    <p>Use the existing deferral mechanism to withhold unresolved selected candidates and propagate affected kind/file scopes. Extend its reason from preparation-only pending to a closed pending/unavailable distinction. Evidence owns only that dependency fact; it does not learn about credentials or depend upward on the rules crate.</p>
+    <ex-mermaid id="dependency-flow" label="Keep unavailable prerequisites separate from decided exclusions"><script type="text/plain">
+flowchart TD
+  candidate["Real captured selector candidate"] --> unavailable["Selection Unavailable<br/>Mandatory credential reason; no request attempt"]
+  unavailable --> defer["Evidence deferral<br/>Withhold candidate and dependent kinds"]
+  defer --> scope["Typed kind/file incomplete scope<br/>Names the actual blocking selector"]
+  defer --> field["Existing piece depends on selected field<br/>SelectionUnavailable field marker"]
+  field --> walk["Walk needs that field's content"]
+  walk --> result["Unavailable result<br/>Field identity and actual path"]
+  scope --> report["Incomplete report; no fabricated child piece"]
+  result --> report
+  neighbor["Independent existing piece or field"] --> local["Normal mechanical result"]
+  local --> report
+    </script></ex-mermaid>
+    <p>EvidenceBuild keeps a per-candidate deferral reason, with Unavailable dominating Pending if both affect a derived field. FieldUnavailable gains SelectionUnavailable as a unit variant, preserving the existing Copy/value convention and lower-layer dependency direction. ModelView distinguishes SelectionUnavailable from SelectionPending. Walkers translate only a needed selected field into SelectedFieldUnavailable; a field not used by the path does not globally disable mechanical evaluation.</p>
+    <p>SelectionCount adds a full-width <code>unavailable: usize</code> count. Unavailable candidates do not increment <code>asked</code>, selected or not-selected. Per-file completeness explicitly requires zero unavailable candidates as well as the existing settled-accounting conditions, so missing child pieces cannot become conclusive absence. The counter is derived from actual selection entries, and new typed document validation checks its consistency.</p>
+    <p>Each affected kind/file is retained as a typed <code>IncompleteReason::SelectionUnavailable</code> carrying required <code>evidence_kind</code>, <code>file</code> and <code>selection_kind</code>. This is coverage identity, not a made-up final piece or provider request. Deduplicate each affected kind/file; retain all actual unavailable selection entries. A deterministic actual blocking selector supplies the scope's cause when several blockers exist.</p>
+    <ex-code title="Proposed dependency boundary additions" lang="rust"><script type="text/plain">
+// sunstack-evidence: per-candidate state supplied to the existing deferral API.
+pub enum SelectionDeferral {
+    Pending,
+    Unavailable,
+}
+
+// New variant in the existing sunstack-lint IncompleteReason enum;
+// its other variants remain unchanged.
+pub enum IncompleteReason {
+    SelectionUnavailable {
+        evidence_kind: EvidenceKindName,
+        file: PathBuf,
+        selection_kind: EvidenceKindName,
+    },
+    // Existing variants omitted from this excerpt.
+}
+    </script></ex-code>
+    <p>A known rule behind an unavailable filter receives its own Unavailable result with FilterUnavailable identity, and the filter retains its actual unavailable answer. A binding to a not-yet-established piece uses the matching kind/file unavailable scope, not Unmatched or Stale by absence. Actual captured mismatching source still proves Stale under the existing identity rule. Known unavailable cases retain actual result links; unknown pieces get no invented result ID.</p>
+    <aside class="design-item" id="D5" data-design-item="decision" data-authority="author">
+      <p>Keep dependency propagation in EvidenceBuild and report projection, extending their existing deferral and incomplete-scope structures. Do not create a second dependency graph, child-piece placeholder, pending request ID or inference receipt. This adds typed unavailable carriers, while existing configured kind dependencies remain authoritative.</p>
+    </aside>
+  </section>
+
+  <section id="homes">
+    <h2 id="heading-bind-the-existing-entities-to-their-existing-execution">Bind the existing entities to their existing execution</h2>
+    <p>The same entities defined by the Specification remain authoritative. New types carry availability and endings within these existing owners; they do not establish new persistent identities.</p>
+    <ex-mermaid id="entity-homes" data-width="canvas" label="Specification entities and their schema homes"><script type="text/plain">
+flowchart TD
+  e1["E1 Run"] --> run["Shared coordinator · modified<br/>sunstack-lint execution / RunState"]
+  e2["E2 Subject"] --> evidence["Evidence preparation · modified<br/>EvidencePiece, CandidateId, FilterFolder · existing schemas"]
+  e3["E3 Assessment"] --> result["Graph evaluation and projection · modified<br/>RulebookResult, RulePieceEnding, filter/selection endings"]
+  e4["E4 Model dispatch"] --> dispatch["Dispatcher · modified<br/>ModelDispatchPolicy / existing DecisionRunOutcome"]
+  e5["E5 Report"] --> report["Report projection · modified<br/>LintReport and generated SDK report"]
+    </script></ex-mermaid>
+    <div class="ex-table-scroll" data-width="canvas"><table>
+      <thead><tr><th>Entity and owner</th><th>Home / schema home</th><th>Boundary shape</th><th>Lifetime / persistence / convention</th></tr></thead>
+      <tbody>
+        <tr><td>E1 · shared run coordinator</td><td>Modified lint execution; existing RunState, SDK RunRequest and LintRequest.</td><td>Existing definitions/root/scope/cancellation; private closed ModelDispatchPolicy.</td><td>Derived per invocation; no new storage. Existing Rust enums and Result/Option conventions.</td></tr>
+        <tr><td>E2 · evidence preparation</td><td>Modified evidence build and lint orchestration; existing EvidencePiece/CandidateId schemas and filter FilterFolder.</td><td>Existing original source/range/hash identities; new pending/unavailable deferral and selected-field marker.</td><td>Captured/derived per run. No new driver. Evidence never imports rules or host credentials.</td></tr>
+        <tr><td>E3 · graph evaluation; report projection owns its public representation</td><td>Modified rules result/filter/selection schemas; new WorkUnavailableReason in rules and RulePieceEnding in lint reporting.</td><td>Existing identity/history plus mandatory-reason unavailable variant under existing outcome/state/kind tags.</td><td>Derived, then retained in reports. Rust owns Serde/Schemars/Specta; TS is generated readonly unions.</td></tr>
+        <tr><td>E4 · model dispatcher</td><td>Modified rules dispatcher policy; existing decisions request, attempt and receipt schemas.</td><td>Existing StructuredJudgmentRequest and DecisionRunOutcome only when submission is admitted.</td><td>Per-run task/allowance lifetime; zero attempt for unavailable. Existing backend I/O and cancellation.</td></tr>
+        <tr><td>E5 · report projection</td><td>Modified lint reporting and SDK facade projection/codec. Existing LintReport, SDK report and version handshake.</td><td>Canonical results/selections/filter answers/incomplete scopes; SDK-derived UnavailableCounts, exact encoded report.</td><td>Persisted by existing JSON/file I/O: Serde/serde_json and std::fs, existing. No DB, driver or in-place migration added.</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="reporting">
+    <h2 id="heading-project-one-truthful-partial-report-across-the-boundaries">Project one truthful partial report across the boundaries</h2>
+    <p>Unavailable rule results and filter answers, plus unavailable selection entries/scopes, add typed incomplete parts. Existing status precedence remains cancellation, incomplete, finding limits, uncertainty, empty selection, clean. Counts never turn a gap into a pass.</p>
+    <ex-mermaid id="report-flow" label="Canonical facts become CLI, SDK and saved report projections"><script type="text/plain">
+flowchart TD
+  facts["Canonical Rust assessments and coverage gaps"] --> projection["Report projection<br/>IDs, status and one availability-count calculation"]
+  projection --> cli["CLI human/JSON<br/>Existing findings plus explicit unavailable work; exit 3"]
+  projection --> sdk["SDK native report<br/>Incomplete with report; generated union and derived counts"]
+  cli --> file["Existing saved JSON file boundary"]
+  sdk --> codec["Existing exact SDK codec<br/>New contract revision"]
+  file --> readback["Readback without source files<br/>Actual identity and reasons; no new inference"]
+  codec --> readback
+    </script></ex-mermaid>
+    <p>UnavailableCounts has full-width <code>rule_pieces</code>, <code>filter_folders</code>, <code>selection_candidates</code> and <code>evidence_scopes</code>. One Rust counter derives them from canonical collections for the CLI summary and SDK projection; it does not add a new required root field to raw CLI reports. SDK reports expose <code>unavailable_counts</code> as a derived immutable snapshot. The SDK document decoder validates this new summary against those same facts; it never trusts a forged zero to erase unavailable work. Categories are separate units and are not summed into a misleading total.</p>
+    <ex-code title="Proposed derived SDK count shape" lang="rust"><script type="text/plain">
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
+#[derive(Serialize, Deserialize, JsonSchema)]
+pub struct UnavailableCounts {
+    pub rule_pieces: usize,
+    pub filter_folders: usize,
+    pub selection_candidates: usize,
+    pub evidence_scopes: usize,
+}
+// The SDK report imports this Rust type; generated TS fields are readonly bigint.
+// CaseBindingStatus and CaseOutcome each add:
+// Unavailable { reason: WorkUnavailableReason }
+    </script></ex-code>
+    <p>Unavailable model work creates no request/attempt/receipt record just to fill a log. Its assessment retains path and source evidence. Already existing incomplete/provider NotSent and Run records keep their actual meanings. A real HTTP401/400/503 remains an observed provider failure; a disappearing native reply remains the existing effects-unknown failure and is never retried transparently.</p>
+    <aside class="design-item" id="D6" data-design-item="decision" data-authority="author">
+      <p>Keep canonical ending collections authoritative and derive category counts in Rust. This gives SDK users direct typed counts without a TS classifier or duplicate mutable accounting. The new SDK summary's consistency check is part of its trusted document boundary; old counters are not redesigned.</p>
+    </aside>
+    <aside class="design-item" id="D7" data-design-item="decision" data-authority="author">
+      <p>Advance the SDK contract from19 to20 for new variants/fields, with the existing handshake and document mismatch refusal. Preserve valid existing CLI result encodings using the flattened ending. Do not add a legacy SDK decoder, dual execution mode or stored-report rewrite. Existing JSON/file storage remains the only persistence mechanism.</p>
+    </aside>
+    <p>CaseBindingStatus and CaseOutcome gain a mandatory-reason Unavailable variant. A known uniquely bound unavailable result supplies its real result ID; an unresolved selection scope supplies no fabricated ID. Unavailable remains in selected denominators and is a non-success case under the existing bar/outer-exit policy; this does not redefine case exit as ordinary lint exit3. Native and SDK exact integer metadata regenerate from Rust, including new counts and any case IDs.</p>
+  </section>
+
+  <section id="caller-audit">
+    <h2 id="heading-the-inspected-callers-do-not-require-the-old-early-refusal">Ordinary callers permit partial execution; inspection keeps its contract</h2>
+    <p>The audit separates executable dependencies from assertions about today's behavior. It covers the engine/SDK source at the released tree and ai-tools PR227 pin <code>809de0aa</code>. No inspected ordinary rule-evaluation caller needs credential absence to authorize filesystem access. Model-selected inspection is a real shared caller with an existing credential policy to preserve, as mapped above. External consumers are unaudited; a demonstrated required dependency on the ordinary run's old order returns to the commissioning Rules Lead before build.</p>
+    <div class="ex-table-scroll" data-width="canvas"><table>
+      <thead><tr><th>Caller or expectation</th><th>Observed reliance</th><th>Disposition</th></tr></thead>
+      <tbody>
+        <tr><td>Ordinary CLI and Rust run entry</td><td>CLI resolves then renders/saves shared run output. The core factory owns early Invalid; no separate caller authorization branch.</td><td>Change ordinary result handling to incomplete/unavailable; preserve global admission.</td></tr>
+        <tr><td>Historical case snapshot child</td><td>Reads archived source before child credential resolution and parses the child report independently of exit0.</td><td>Keep snapshots; extend actual unavailable disposition/result links and denominator.</td></tr>
+        <tr><td>SDK facade/native adapter/TS calls</td><td>One shared run; TS encodes/decodes/freezes closed outcomes without its own credential decision.</td><td>Extend Rust DTOs, generated decoder metadata and existing incomplete projection.</td></tr>
+        <tr><td>SDK static check</td><td>No credential/provider/checked-input effects; separate static admission entry.</td><td>Preserve that exact guarantee. It is not a blanket promise for inspect.</td></tr>
+        <tr><td>SDK static-kind inspection</td><td>With no configured model selectors, the facade skips credential resolution and acquires actual checked evidence. Rule questions/gates do not execute.</td><td>Preserve real pieces/counts and zero selection-provider requests, including empty-rulebook inspection admission. Do not apply check's no-checked-input promise.</td></tr>
+        <tr><td>SDK model-selected inspection and CLI evidence listing</td><td>Any configured kind.select triggers SDK credential resolution. inspect_definitions and the CLI listing path share the factory/evidence selection path. Missing key currently refuses before EvidenceBuild; a keyed selector can dispatch.</td><td>Preserve that operation's existing guard and result projection through the factory cutover: SDK Invalid/CredentialMissing without inspection report for missing key, actual keyed selection otherwise. Retain existing pre-abort/invalid/capture ordering, and CLI listing's own admission/host resolution behavior. No new inspection availability policy.</td></tr>
+        <tr><td>Engine regression expectations</td><td>judged_library, lint_library, credential_eligibility, filter_context and CLI missing-key/usability tests assert Invalid/CredentialMissing, empty lists or zero logical acquisition.</td><td>Replace only ordinary missing-key expectations with reached-work outcomes and real acquisition/zero-HTTP controls. Preserve static, empty-scope and invalid-definition guards.</td></tr>
+        <tr><td>SDK keyless tests/facade and examples</td><td>keyless-calls ordinary run expects invalid; inline example already handles incomplete and exits nonzero unless completed/clean/nonempty.</td><td>Update ordinary outcome assertions and explanatory text. The example's complete-run policy still fails partial work.</td></tr>
+        <tr><td>Verification rulebook/usability drivers</td><td>Rulebook runner and usability checks/probes encode early refusal; source-acquisition accounting is logical, not all physical reads.</td><td>Reconcile affected ordinary-run oracles; preserve actual refusal versus provider-failure and no fake green.</td></tr>
+        <tr><td>ai-tools direct launcher and active tests</td><td>sunstack-process returns captured status/stdout/stderr; keyed loopback, static and prepared tests are distinct callers. Shared engine is pinned0.9.0; presentation nudges0.22.1; coverage tests0.20.1.</td><td>No production early-refusal dependency found. Do not assume updating one pin proves all callers or rewrite rules to avoid the engine gap.</td></tr>
+        <tr><td>PR227 nudge reader and rule-reading references</td><td>README explicitly awaits engine mechanical continuation; reading policy reads every list and retains gaps. requests-and-reports documents old missing-key Invalid.</td><td>Actual new normal run must retain/display mechanical findings and judged gaps; caller owner updates its engine version and stale status prose.</td></tr>
+        <tr><td>External npm/Rust/CLI users</td><td>No exhaustive ecosystem inventory exists; no production dependence is asserted absent outside the inspected repositories.</td><td>Hard SDK revision boundary; document changed ordinary outcome. A discovered real early-order dependency is a stop, not a silent compatibility mode.</td></tr>
+      </tbody>
+    </table></div>
+    <details><summary>Exact source inventory behind the caller classifications</summary>
+      <p>Engine: <code>command_dispatch/lint_command</code>, <code>lint_execution/lint_run</code>, <code>backend_factory</code>, <code>run_configuration</code>, <code>run_scope</code>, <code>case_runs/snapshots</code>, <code>sdk_host/mod</code>, <code>inspection_projection</code> and <code>report_projection</code>. SDK: README's inspection contract, <code>sdk_inspection</code>, <code>sdk-calls</code>, <code>keyless-calls.test</code>, <code>inline-configuration</code> and <code>installed-consumer-check</code>. Ordinary refusal assertions include <code>rulebook_lint_gates</code>, <code>credential_eligibility</code>, <code>filter_context</code>, <code>judged_library</code>, <code>lint_library</code>, CLI <code>lint_commands</code>/<code>usability</code>, and verification <code>lint-runner-rulebook</code>/<code>rulebook-fixture-support.test</code>/<code>usability checks and probe</code>. Historical prompt/error-source fixtures are not executable consumers.</p>
+      <p>ai-tools: <code>tests/skills/tests/support/sunstack-process.ts</code>, <code>presentation-html-lint.ts</code>, active-rulebook/call-policy/kind-filter/call-evidence/mechanical-edge tests, picture-before-control and section-nudge tests, requirement-coverage tests, presentation rules README and the skill-rules-config running-rules/requests-and-reports references. The bounded source ledger retains exact pins and anchors; it is research evidence, not a second design source.</p>
+    </details>
+  </section>
+
+  <section id="failures-proof">
+    <h2 id="heading-contain-the-unavailable-branch-and-observe-real-effects">Contain the unavailable branch and observe real effects</h2>
+    <p>Availability is immutable within one invocation. Independent graph walks continue, and the existing task owner drains actual dispatched work. No background recovery task, lock, new retry queue or cross-run state is added. Unavailable work does not consume model allowance, so it cannot starve an otherwise executable neighbor through fictitious accounting.</p>
+    <ex-mermaid id="proof-path" label="Real entrypoints and the substituted provider boundary"><script type="text/plain">
+flowchart TD
+  driver["Independent verification fixture"] --> cli["Real CLI or installed SDK/native entry"]
+  cli --> core["Real coordinator, evidence, walking and projection"]
+  core -->|keyless reached work| noattempt["Unavailable assessment and incomplete report"]
+  core -->|synthetic credential positive control| dispatch["Real dispatcher and HTTP encoder"]
+  dispatch --> loopback["Owned loopback provider<br/>Only external answer boundary replaced"]
+  loopback --> capture["Raw requests, actual attempts and replies"]
+  noattempt --> observed["Report, source identities, counts and zero HTTP"]
+  capture --> keyed["Positive-control report and actual HTTP accounting"]
+    </script></ex-mermaid>
+    <aside class="design-item" id="A1" data-design-item="assumption" data-authority="author">
+      <p>The existing owned loopback protocol is sufficient to falsify unintended dispatch and keyed-path request changes. It replaces the external provider answer, not Rust execution, actual HTTP submission or installed SDK decoding.</p>
+      <p>Depends on it: R1–R9 proof seams below. Closure: actual CLI/native SDK controls with a nonempty keyed observer witness, unchanged request bytes, keyless zero HTTP, strict compile/codec and source-deleted readback. Hosted inference quality and live credential-store behavior remain outside this fixture claim.</p>
+    </aside>
+    <div class="ex-table-scroll"><table>
+      <thead><tr><th>Condition</th><th>Owning response</th><th>Proof seam / enforcement</th></tr></thead>
+      <tbody>
+        <tr><td>Missing credential at reached ask/selector</td><td>Dispatcher unavailable; no reservation or task. Retain known assessment or typed blocked coverage.</td><td>Real loopback capture with ordinary positive control; closed policy and mandatory-reason variants.</td></tr>
+        <tr><td>Malformed configuration or needed endpoint</td><td>Existing admission/factory returns Invalid before evaluation.</td><td>Actual static/ordinary entry; trusted validation guard, not a missing-capability fallback.</td></tr>
+        <tr><td>Inspection through the changed factory</td><td>Preserve static inspection's real acquisition and model-selected inspection's current missing-key Invalid/keyed selection policy. No rule evaluation.</td><td>Actual installed inspect plus CLI listing controls: static/keyless, configured-selector/keyless and configured-selector/keyed; exact diagnostic/outcome, piece and HTTP observations, plus existing pre-abort/invalid-root/capture boundaries.</td></tr>
+        <tr><td>Unavailable gate/selected content</td><td>Actual dependent result unavailable, or unresolved kind/file coverage; no fake label/child.</td><td>Real evidence and graph paths; lower-layer typed deferral plus report/case assertions.</td></tr>
+        <tr><td>Cancellation overlaps walking/submission</td><td>Existing cancellation precedence; dispatcher checks again before side effects and drains actual tasks.</td><td>Controlled interleaving at existing task boundary; no sleeps or invented completion.</td></tr>
+        <tr><td>Provider really rejects/fails</td><td>Keep actual attempts/failure class and existing retry ownership; independent local results survive.</td><td>Actual controlled HTTP401/400/503; distinguish from credential-unavailable zero-attempt result.</td></tr>
+        <tr><td>Corrupt/incompatible serialized SDK report</td><td>Existing codec/revision guard rejects; new unavailable counts are checked against retained facts.</td><td>Exact wide-value round trip and semantic tamper control; no decoder cast or legacy shim.</td></tr>
+      </tbody>
+    </table></div>
+    <p>Host secrets remain within the host/backend boundary; only non-secret availability reasons cross the native/report boundary. Checked-root confinement, untrusted-definition validation and exact integer decoding retain their current owners. Node/macOS/Linux native delivery remains the existing package system. No new platform, UI control, retention rule or latency target is introduced.</p>
+  </section>
+
+  <section id="trace">
+    <h2 id="heading-every-observable-rule-has-an-owner-and-a-deciding-seam">Every observable rule has an owner and a deciding seam</h2>
+    <div class="ex-table-scroll" data-width="canvas"><table>
+      <thead><tr><th>U</th><th>R / scenario</th><th>E</th><th>Owner</th><th>Interface</th><th>Shape and home</th><th>State</th><th>Failure</th><th>Proof</th></tr></thead>
+      <tbody>
+        <tr><td>U1</td><td><a href="specification.html#R1">R1 · mixed keyless run</a></td><td>E1,E2,E3,E5</td><td>Run coordinator / walking</td><td>Ordinary shared run</td><td>ModelDispatchPolicy; RulebookResult in rules</td><td>Local settlement continues</td><td>Unavailable branch contained</td><td>Mechanical baseline versus real mixed CLI/SDK</td></tr>
+        <tr><td>U1,U4</td><td><a href="specification.html#R2">R2 · unused authored ask</a></td><td>E2,E3,E4</td><td>Graph walker</td><td>Walk before capability check</td><td>RulebookResult path in rules</td><td>Settled before NeedsAnswers</td><td>No false unavailable or request</td><td>Real mechanically terminal path; request observer</td></tr>
+        <tr><td>U2,U3,U4</td><td><a href="specification.html#R3">R3 · known unavailable subject</a></td><td>E1,E2,E3,E5</td><td>Graph/report projection</td><td>Mandatory-reason ending</td><td>RulePieceEnding and WorkUnavailableReason; lint/rules</td><td>Unavailable, retained ID</td><td>Cannot omit reason or claim pass</td><td>Rust construction/decoder, generated compiler, actual result</td></tr>
+        <tr><td>U2,U4</td><td><a href="specification.html#R4">R4 · unavailable prerequisite</a></td><td>E1,E2,E3,E5</td><td>Evidence preparation / gate walk</td><td>Deferral and typed coverage</td><td>SelectionUnavailable marker/scope; evidence/lint</td><td>Blocked, not negatively selected</td><td>No fabricated child or label</td><td>Real selected-kind/gated neighbor and source identity</td></tr>
+        <tr><td>U4</td><td><a href="specification.html#R5">R5 · zero versus actual dispatch</a></td><td>E3,E4,E5</td><td>Model dispatcher</td><td>Check then guarded submit</td><td>ModelDispatchPolicy / existing DecisionRunOutcome; rules/decisions</td><td>Unavailable or actual attempt</td><td>Unavailable never becomes provider failure</td><td>Nonempty positive HTTP witness plus keyless/401/503 controls</td></tr>
+        <tr><td>U2,U5</td><td><a href="specification.html#R6">R6 · findings plus gaps</a></td><td>E1,E3,E5</td><td>Report projection</td><td>Existing status precedence</td><td>Typed incomplete parts and report status; lint</td><td>Incomplete/exit3 retains findings</td><td>No clean/Findings-only normalization</td><td>Actual human/JSON output and SDK incomplete report</td></tr>
+        <tr><td>U5</td><td><a href="specification.html#R7">R7 · entry boundaries</a></td><td>E1,E4,E5</td><td>Admission/run coordinator</td><td>Check, prepare, ordinary run and existing inspection/listing</td><td>Existing evidence_listing discriminator and inspection projection; explicit dispatcher policy</td><td>Static check, static inspection, model-selected inspection and ordinary evaluation stay distinct</td><td>Inspection's missing-key Invalid remains; existing invalid/cancelled ordering retained</td><td>Real entry acquisition/dispatch witnesses for static/keyless/model-keyed inspection as well as ordinary controls</td></tr>
+        <tr><td>U3,U4</td><td><a href="specification.html#R8">R8 · typed saved facts</a></td><td>E1,E2,E3,E4,E5</td><td>SDK projection/codec</td><td>Existing native call, inspection projection and exact document codec</td><td>Generated readonly report unions/counts; Rust SDK schemas</td><td>Evaluation Incomplete/report versus capture Unavailable; inspection retains its own existing tagged outcomes</td><td>Missing reason, overflow, mismatch refuse; no accidental inspection-policy extension</td><td>Installed consumer compilation, actual inspection outcomes and delete-safe round trip</td></tr>
+        <tr><td>U1,U2,U3</td><td><a href="specification.html#R9">R9 · cases and nudge caller</a></td><td>E1,E2,E3,E5</td><td>Case/report projection</td><td>Same shared run and actual result links</td><td>Unavailable case variants; case/rules schemas</td><td>IDs retained; gaps explicit</td><td>No dropped denominator or phantom ID</td><td>Real case path and PR227 normal mixed-rule invocation</td></tr>
+      </tbody>
+    </table></div>
+    <p>U1–U5, E1–E5 and R1–R9 remain covered by the linked owning passages; the default, all four reason variants, exact-width contracts and proof obligations V1–V9 are preserved. No accepted identity is superseded. Storage and compatibility use the existing file/codec boundary; no new storage or cross-run mechanism is proposed. The separate <a href="verification.html#coverage">Verification Design coverage rows</a> bind these seams to planned observations.</p>
+    <details><summary>Why the alternatives were not selected</summary>
+      <p>A lazy host credential factory at the first ask removes unnecessary lookups but adds an async host/core initialization boundary; D8 keeps that cost out. A backend that returns a synthetic failure after submission could avoid HTTP, but moves unavailable work through task/allowance/attempt accounting and broadens the decision protocol. D3 rejects that added coordination and keeps absence before submission. Retaining whole-run refusal or adding a policy flag does not satisfy the accepted default, so neither is a viable target under D1.</p>
+    </details>
+  </section>
+</ex-document>
+
+
+
+
+<script type="application/json" data-ex-search-index="">[{"kind":"page","title":"Useful checks without a model credential","pageTitle":"Useful checks without a model credential","ancestors":[],"href":"index.html#heading-useful-checks-without-a-model-credential"},{"kind":"heading","title":"Follow the need into its contract","pageTitle":"Useful checks without a model credential","ancestors":[],"href":"index.html#heading-follow-the-need-into-its-contract"},{"kind":"heading","title":"Load-bearing decisions","pageTitle":"Useful checks without a model credential","ancestors":[],"href":"index.html#heading-load-bearing-decisions"},{"kind":"page","title":"Useful checks without a model credential","pageTitle":"Useful checks without a model credential","ancestors":[],"href":"requirements.html#heading-useful-checks-without-a-model-credential"},{"kind":"heading","title":"Keep the useful part of an ordinary run","pageTitle":"Useful checks without a model credential","ancestors":[],"href":"requirements.html#heading-keep-the-useful-part-of-an-ordinary-run"},{"kind":"heading","title":"Read partial results without writing another runner","pageTitle":"Useful checks without a model credential","ancestors":[],"href":"requirements.html#heading-read-partial-results-without-writing-another-runner"},{"kind":"heading","title":"Default partial execution is the authorized direction","pageTitle":"Useful checks without a model credential","ancestors":[],"href":"requirements.html#heading-default-partial-execution-is-the-authorized-direction"},{"kind":"heading","title":"Change execution availability, preserve admission","pageTitle":"Useful checks without a model credential","ancestors":[],"href":"requirements.html#heading-change-execution-availability-preserve-admission"},{"kind":"page","title":"A partial run keeps findings and gaps together","pageTitle":"A partial run keeps findings and gaps together","ancestors":[],"href":"specification.html#heading-a-partial-run-keeps-findings-and-gaps-together"},{"kind":"heading","title":"The same run facts reach every caller","pageTitle":"A partial run keeps findings and gaps together","ancestors":[],"href":"specification.html#heading-the-same-run-facts-reach-every-caller"},{"kind":"heading","title":"Keep an unavailable judgment attached to its real subject","pageTitle":"A partial run keeps findings and gaps together","ancestors":[],"href":"specification.html#heading-keep-an-unavailable-judgment-attached-to-its-real-subject"},{"kind":"heading","title":"Continue only work whose prerequisites are satisfied","pageTitle":"A partial run keeps findings and gaps together","ancestors":[],"href":"specification.html#heading-continue-only-work-whose-prerequisites-are-satisfied"},{"kind":"heading","title":"Partial status must not hide useful findings","pageTitle":"A partial run keeps findings and gaps together","ancestors":[],"href":"specification.html#heading-partial-status-must-not-hide-useful-findings"},{"kind":"heading","title":"Each obligation has a deciding counterexample","pageTitle":"A partial run keeps findings and gaps together","ancestors":[],"href":"specification.html#heading-each-obligation-has-a-deciding-counterexample"},{"kind":"page","title":"Rust stops the unavailable work, not the whole run","pageTitle":"Rust stops the unavailable work, not the whole run","ancestors":[],"href":"program-design.html#heading-rust-stops-the-unavailable-work-not-the-whole-run"},{"kind":"heading","title":"Keep one owner for each decision","pageTitle":"Rust stops the unavailable work, not the whole run","ancestors":[],"href":"program-design.html#heading-keep-one-owner-for-each-decision"},{"kind":"heading","title":"Move refusal from run admission to the reached model step","pageTitle":"Rust stops the unavailable work, not the whole run","ancestors":[],"href":"program-design.html#heading-move-refusal-from-run-admission-to-the-reached-model-step"},{"kind":"heading","title":"Make unavailable execution different from preparation","pageTitle":"Rust stops the unavailable work, not the whole run","ancestors":[],"href":"program-design.html#heading-make-unavailable-execution-different-from-preparation"},{"kind":"heading","title":"A new unavailable result must carry its reason in Rust","pageTitle":"Rust stops the unavailable work, not the whole run","ancestors":[],"href":"program-design.html#heading-a-new-unavailable-result-must-carry-its-reason-in-rust"},{"kind":"heading","title":"Unavailable selection blocks unknown pieces without inventing them","pageTitle":"Rust stops the unavailable work, not the whole run","ancestors":[],"href":"program-design.html#heading-unavailable-selection-blocks-unknown-pieces-without-inventing-them"},{"kind":"heading","title":"Bind the existing entities to their existing execution","pageTitle":"Rust stops the unavailable work, not the whole run","ancestors":[],"href":"program-design.html#heading-bind-the-existing-entities-to-their-existing-execution"},{"kind":"heading","title":"Project one truthful partial report across the boundaries","pageTitle":"Rust stops the unavailable work, not the whole run","ancestors":[],"href":"program-design.html#heading-project-one-truthful-partial-report-across-the-boundaries"},{"kind":"heading","title":"Ordinary callers permit partial execution; inspection keeps its contract","pageTitle":"Rust stops the unavailable work, not the whole run","ancestors":[],"href":"program-design.html#heading-the-inspected-callers-do-not-require-the-old-early-refusal"},{"kind":"heading","title":"Contain the unavailable branch and observe real effects","pageTitle":"Rust stops the unavailable work, not the whole run","ancestors":[],"href":"program-design.html#heading-contain-the-unavailable-branch-and-observe-real-effects"},{"kind":"heading","title":"Every observable rule has an owner and a deciding seam","pageTitle":"Rust stops the unavailable work, not the whole run","ancestors":[],"href":"program-design.html#heading-every-observable-rule-has-an-owner-and-a-deciding-seam"},{"kind":"page","title":"Prove useful findings and honest gaps through the real entry","pageTitle":"Prove useful findings and honest gaps through the real entry","ancestors":[],"href":"verification.html#heading-prove-useful-findings-and-honest-gaps-through-the-real-entry"},{"kind":"heading","title":"What will show each need is met","pageTitle":"Prove useful findings and honest gaps through the real entry","ancestors":[],"href":"verification.html#heading-what-will-show-each-need-is-met"},{"kind":"heading","title":"Remove capability and compare the actual work","pageTitle":"Prove useful findings and honest gaps through the real entry","ancestors":[],"href":"verification.html#heading-remove-capability-and-compare-the-actual-work"},{"kind":"heading","title":"See the difference between no attempt and a failed attempt","pageTitle":"Prove useful findings and honest gaps through the real entry","ancestors":[],"href":"verification.html#heading-see-the-difference-between-no-attempt-and-a-failed-attempt"},{"kind":"heading","title":"Read the same partial report without its source files","pageTitle":"Prove useful findings and honest gaps through the real entry","ancestors":[],"href":"verification.html#heading-read-the-same-partial-report-without-its-source-files"},{"kind":"heading","title":"Count real cases and read the actual nudge command","pageTitle":"Prove useful findings and honest gaps through the real entry","ancestors":[],"href":"verification.html#heading-count-real-cases-and-read-the-actual-nudge-command"},{"kind":"heading","title":"The complete coverage rows","pageTitle":"Prove useful findings and honest gaps through the real entry","ancestors":[],"href":"verification.html#heading-the-complete-coverage-rows"},{"kind":"heading","title":"Bind results to the candidate that will ship","pageTitle":"Prove useful findings and honest gaps through the real entry","ancestors":[],"href":"verification.html#heading-bind-results-to-the-candidate-that-will-ship"}]</script></body></html>

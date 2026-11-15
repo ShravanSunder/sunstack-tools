@@ -211,7 +211,8 @@ async fn native_change_selection_keeps_named_clean_files_and_dependency_affected
 }
 
 #[tokio::test]
-async fn missing_named_path_default_outside_git_and_reachable_missing_backend_are_invalid() {
+async fn missing_path_and_default_outside_git_stay_invalid_while_reached_keyless_model_is_unavailable()
+ {
     let root = tempfile::tempdir().unwrap();
     fixture::write(root.path());
     let mut request = fixture::request(root.path());
@@ -227,13 +228,26 @@ async fn missing_named_path_default_outside_git_and_reachable_missing_backend_ar
     );
     fixture::judged(root.path(), "http://127.0.0.1:1/v1/systemone");
     let missing = run(fixture::request(root.path()), CancellationToken::new()).await;
-    assert_eq!(missing.status, LintStatus::Invalid, "{missing:?}");
-    assert_eq!(
-        missing.diagnostics[0].code,
-        LintInvalidCode::CredentialMissing,
-        "{missing:?}"
-    );
+    assert_eq!(missing.status, LintStatus::Incomplete, "{missing:?}");
+    assert_eq!(missing.status.exit_code(), 3);
+    assert!(missing.diagnostics.is_empty());
+    assert_eq!(missing.usage.checked_files_acquired, 1);
     assert_eq!(missing.usage.model_requests, 0);
+    assert!(missing.requests.is_empty());
+    assert!(missing.findings.is_empty());
+    assert_eq!(missing.results.len(), 1);
+    let result = &missing.results[0];
+    assert_eq!(result.name.as_str(), "description");
+    assert_eq!(result.file, std::path::Path::new("docs/one.md"));
+    assert!(matches!(
+        result.ending,
+        RulePieceEnding::Unavailable {
+            reason: sunstack_rules::WorkUnavailableReason::CredentialUnavailable {}
+        }
+    ));
+    assert!(missing.piece_evidence.contains_key(&result.id));
+    assert_eq!(result.step.as_ref().unwrap().as_str(), "complies");
+    assert_eq!(missing.unavailable_counts().rule_pieces, 1);
 }
 
 async fn run(request: LintRequest, cancellation: CancellationToken) -> LintReport {

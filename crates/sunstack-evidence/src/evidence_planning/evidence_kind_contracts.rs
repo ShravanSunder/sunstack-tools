@@ -411,6 +411,7 @@ pub enum FieldValue {
 #[serde(rename_all = "snake_case")]
 pub enum FieldUnavailable {
     SelectionPending,
+    SelectionUnavailable,
     EmptyTarget,
     OutsideRoot,
     FrontmatterMalformed,
@@ -436,6 +437,22 @@ impl FieldValue {
             }),
             _ => false,
         }
+    }
+
+    pub(crate) fn selection_deferral(&self) -> Option<SelectionDeferral> {
+        match self {
+            Self::Unavailable {
+                reason: FieldUnavailable::SelectionPending,
+            } => Some(SelectionDeferral::Pending),
+            Self::Unavailable {
+                reason: FieldUnavailable::SelectionUnavailable,
+            } => Some(SelectionDeferral::Unavailable),
+            _ => None,
+        }
+    }
+
+    pub fn is_selection_unavailable(&self) -> bool {
+        self.selection_deferral() == Some(SelectionDeferral::Unavailable)
     }
 
     pub fn is_selection_pending(&self) -> bool {
@@ -535,6 +552,7 @@ pub enum ModelFieldValue {
 #[serde(tag = "state", rename_all = "snake_case")]
 pub enum ModelView {
     SelectionPending,
+    SelectionUnavailable,
     Bounded {
         fields: BTreeMap<FieldName, ModelFieldValue>,
         cut: Vec<FieldName>,
@@ -655,6 +673,21 @@ pub struct SharedView {
     pub fields: BTreeMap<FieldName, FieldValue>,
     pub view: ModelView,
 }
+/// Unavailable selection dominates pending selection when both block the same field.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum SelectionDeferral {
+    Pending,
+    Unavailable,
+}
+impl SelectionDeferral {
+    pub(crate) const fn field_unavailable(self) -> FieldUnavailable {
+        match self {
+            Self::Pending => FieldUnavailable::SelectionPending,
+            Self::Unavailable => FieldUnavailable::SelectionUnavailable,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct ChosenCandidates(pub std::collections::BTreeSet<CandidateId>);
 #[derive(Debug, Clone)]
@@ -690,6 +723,7 @@ pub struct SelectionCount {
     pub not_selected: usize,
     pub uncertain: usize,
     pub incomplete: usize,
+    pub unavailable: usize,
 }
 #[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]

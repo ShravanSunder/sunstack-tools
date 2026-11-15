@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.23.0
+
+- Continue independent local checks during ordinary runs without a model
+  credential. Reached judged work, unavailable gates and blocked selected content
+  retain explicit unavailable reasons; partial evaluation exits 3 with its findings
+  and source identities. Unavailable work creates no provider attempt or request.
+- Keep model-backed evidence listing and SDK inspection's credential guard,
+  explicit preparation, admission, empty scopes and cancellation boundaries.
+  Selected cases retain unavailable dispositions and actual result links under
+  the existing case exit policy.
+- Align the CLI, SDK and six addons to 0.23.0 / SDK contract revision 20.
+  Generated readonly unavailable unions require their Rust-owned reasons and
+  expose separate full-width category counts. Native document decoding checks
+  the count snapshot against retained assessment and coverage facts.
+
 ## 0.22.4
 
 - Bind selected rule pieces and filter folders before creating their execution

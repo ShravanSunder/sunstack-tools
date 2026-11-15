@@ -1,4 +1,5 @@
-use super::decision_walking::{binary_route, mechanical_check, unavailable_question_field};
+use super::decision_walking::{binary_route, unavailable_question_field};
+use super::mechanical_checks::mechanical_check;
 use super::rulebook_admission::normalized_answer;
 use crate::{DecisionGraph, DecisionRoute, DecisionStep, RulebookIncompleteReason, StepName};
 use sunstack_decisions::{JudgmentAnswer, NamedAnswerMap, NamedQuestionMap};

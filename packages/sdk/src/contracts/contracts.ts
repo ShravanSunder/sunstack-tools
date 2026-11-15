@@ -132,6 +132,7 @@ export type CaseBindingStatus =
 	| { kind: 'stale' }
 	| { kind: 'selection_pending'; evidence_kind: EvidenceKindName; file: string }
 	| { kind: 'incomplete'; reason: IncompleteReason }
+	| { kind: 'unavailable'; reason: WorkUnavailableReason }
 	| { kind: 'cancelled' };
 
 export type CaseExecutionOwner =
@@ -745,6 +746,7 @@ export type FieldSource =
 
 export type FieldUnavailable =
 	| 'selection_pending'
+	| 'selection_unavailable'
 	| 'empty_target'
 	| 'outside_root'
 	| 'frontmatter_malformed'
@@ -779,6 +781,13 @@ export type FilterAnswer = {
 } & FilterAnswerState;
 
 export type FilterAnswerState =
+	| {
+			state: 'unavailable';
+			reason: WorkUnavailableReason;
+			field?: FieldName | null;
+			path: StepName[];
+			answers: { [key in QuestionName]: JudgmentAnswer };
+	  }
 	| {
 			state: 'judged';
 			label: ChoiceLabel;
@@ -900,6 +909,13 @@ export type IncompleteReason =
 	| { kind: 'no_filter_folder'; filter: FilterName }
 	| { kind: 'selection_failed' }
 	| { kind: 'selection_incomplete' }
+	| {
+			kind: 'selection_unavailable';
+			evidence_kind: EvidenceKindName;
+			file: string;
+			selection_kind: EvidenceKindName;
+	  }
+	| { kind: 'unavailable'; reason: WorkUnavailableReason }
 	| { kind: 'evaluation_failed' }
 	| { kind: 'not_started' }
 	| { kind: 'preparation_failed' }
@@ -1159,6 +1175,7 @@ export type ModelName = string;
 
 export type ModelView =
 	| { state: 'selection_pending' }
+	| { state: 'selection_unavailable' }
 	| { state: 'bounded'; fields: { [key in FieldName]: ModelFieldValue }; cut: FieldName[] }
 	| { state: 'too_large'; chars: bigint; limit: bigint };
 
@@ -1188,8 +1205,6 @@ export type PieceLocation = {
 	last_line: bigint;
 	span: SourceSpan;
 };
-
-export type PieceOutcome = 'pass' | 'finding' | 'not_applicable' | 'uncertain' | 'incomplete';
 
 /**  Where a related place is: a checked file, or a definition such as the standard. */
 export type PlaceLocation =
@@ -1286,25 +1301,30 @@ export type RuleEntryWire = {
 
 export type RuleId = string;
 
+export type RulePieceEnding =
+	| { outcome: 'pass' }
+	| { outcome: 'finding' }
+	| { outcome: 'not_applicable'; reason?: NotApplicableReason | null }
+	| { outcome: 'uncertain' }
+	| { outcome: 'incomplete'; gap?: RulebookIncompleteReason | null }
+	| { outcome: 'unavailable'; reason: WorkUnavailableReason };
+
 export type RulePieceResult = {
 	text_sha256: string | null;
 	id: bigint;
 	request_ids: bigint[];
-	gap?: RulebookIncompleteReason | null;
 	locator_omitted?: LocatorOmission | null;
-	reason?: NotApplicableReason | null;
 	name: RuleId;
 	marker: MarkerId;
 	file: string;
 	first_line: bigint;
 	last_line: bigint;
-	outcome: PieceOutcome;
 	step: StepName | null;
 	path: StepName[];
 	basis?: Basis | null;
 	answers?: { [key in QuestionName]: JudgmentAnswer };
 	cut?: FieldName[];
-};
+} & RulePieceEnding;
 
 /**
  *  One rulebook: referenced files, inline values, or values captured by `load`.
@@ -1492,6 +1512,8 @@ export type SdkReport<TStatus> = {
 	file_counts: FileCount[];
 	skipped_rules: SdkSkippedRule[];
 	counts: SeverityCounts;
+	/**  Derived category counts; canonical assessment and coverage facts remain authoritative. */
+	unavailable_counts: UnavailableCounts;
 	exclusions: ExclusionCounts;
 	incomplete: IncompletePart[];
 	usage: UsageSummary;
@@ -1537,6 +1559,7 @@ export type SelectionCount = {
 	not_selected: bigint;
 	uncertain: bigint;
 	incomplete: bigint;
+	unavailable: bigint;
 };
 
 export type SelectionEntry = {
@@ -1557,6 +1580,7 @@ export type SelectionIncompleteReason =
 	| { kind: 'cancelled' };
 
 export type SelectionOutcome =
+	| { kind: 'unavailable'; reason: WorkUnavailableReason }
 	| { kind: 'deferred' }
 	| { kind: 'prepared'; request_id: bigint }
 	| { kind: 'selected'; yes: number }
@@ -1697,6 +1721,13 @@ export type TargetExclude = {
 
 export type TranscriptFormatName = string;
 
+export type UnavailableCounts = {
+	rule_pieces: bigint;
+	filter_folders: bigint;
+	selection_candidates: bigint;
+	evidence_scopes: bigint;
+};
+
 export type UncertainResult = {
 	id: bigint;
 	rule: RuleId;
@@ -1736,3 +1767,9 @@ export type Value =
 export type WholeSourceFormat = 'markdown' | 'rule_entries_json';
 
 export type WidenedReason = { kind: 'config_changed' };
+
+export type WorkUnavailableReason =
+	| { kind: 'credential_unavailable' }
+	| { kind: 'filter_unavailable'; filter: FilterName; folder: string }
+	| { kind: 'selection_unavailable'; evidence_kind: EvidenceKindName; file: string }
+	| { kind: 'selected_field_unavailable'; field: FieldName };

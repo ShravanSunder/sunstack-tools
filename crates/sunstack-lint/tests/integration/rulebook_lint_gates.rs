@@ -10,6 +10,8 @@ use sunstack_lint::test_support::lint_fixture as fixture;
 use sunstack_lint::*;
 #[path = "rulebook_lint_gates/credential_eligibility.rs"]
 mod credential_eligibility;
+#[path = "rulebook_lint_gates/credential_partial.rs"]
+mod credential_partial;
 #[path = "rulebook_lint_gates/filter_context.rs"]
 mod filter_context;
 #[path = "rulebook_lint_gates/filter_context_demand.rs"]
@@ -41,8 +43,8 @@ fn source(root: &Path) -> (Box<dyn CheckedFileSource + Send>, Arc<Mutex<Vec<Path
     )
 }
 #[tokio::test]
-async fn missing_key_for_named_file_and_malformed_config_never_reach_the_checked_source_or_git_capture()
- {
+async fn named_keyless_asking_file_is_acquired_while_malformed_config_still_stops_before_evidence()
+{
     for malformed in [false, true] {
         let root = tempfile::tempdir().unwrap();
         fixture::judged(root.path(), "http://127.0.0.1:1/v1/systemone");
@@ -54,17 +56,30 @@ async fn missing_key_for_named_file_and_malformed_config_never_reach_the_checked
         request.scope = ScopeChoice::Default;
         request.paths = vec![root.path().join("docs/one.md")];
         let report = run_with_source(request, CancellationToken::new(), None, Some(source)).await;
-        assert_eq!(report.status, LintStatus::Invalid);
-        assert_eq!(
-            report.diagnostics[0].code,
-            if malformed {
-                LintInvalidCode::Syntax
-            } else {
-                LintInvalidCode::CredentialMissing
-            }
-        );
-        assert!(reads.lock().unwrap().is_empty());
-        assert_eq!(report.usage.checked_files_acquired, 0);
+        if malformed {
+            assert_eq!(report.status, LintStatus::Invalid);
+            assert_eq!(report.diagnostics[0].code, LintInvalidCode::Syntax);
+            assert!(reads.lock().unwrap().is_empty());
+            assert_eq!(report.usage.checked_files_acquired, 0);
+            assert!(report.results.is_empty());
+        } else {
+            assert_eq!(report.status, LintStatus::Incomplete);
+            assert_eq!(report.status.exit_code(), 3);
+            assert!(report.diagnostics.is_empty());
+            assert_eq!(*reads.lock().unwrap(), vec![PathBuf::from("docs/one.md")]);
+            assert_eq!(report.usage.checked_files_acquired, 1);
+            assert_eq!(report.results.len(), 1);
+            assert!(matches!(
+                report.results[0].ending,
+                RulePieceEnding::Unavailable {
+                    reason: sunstack_rules::WorkUnavailableReason::CredentialUnavailable {}
+                }
+            ));
+            assert_eq!(report.results[0].file, Path::new("docs/one.md"));
+            assert!(report.piece_evidence.contains_key(&report.results[0].id));
+        }
+        assert_eq!(report.usage.model_requests, 0);
+        assert!(report.requests.is_empty());
         assert!(!root.path().join(".git").exists());
     }
 }
