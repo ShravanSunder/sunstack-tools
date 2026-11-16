@@ -10,6 +10,10 @@ const consumerSource = `import { type CaseBinding, type CaseExecutionOwner } fro
 const selected: CaseBinding = { id: 'first', kind: 'rule', rule: 'approval', file: 'docs/pieces.html', lines: [1n, 1n], bytes: [0n, 16n], text_sha256: 'x' };
 const legacy: CaseBinding = { id: 'legacy', kind: 'rule', rule: 'approval', file: 'docs/pieces.html', lines: [1n, 1n], text_sha256: 'x' };
 const owner: CaseExecutionOwner = { kind: 'rule', rule: 'approval', file: 'docs/pieces.html', lines: [1n, 1n], bytes: [0n, 16n] };
+if (selected.kind === 'rule' && selected.bytes) {
+  // @ts-expect-error public byte tuples are readonly
+  selected.bytes[0] = 1n;
+}
 // @ts-expect-error offsets must be a two-element tuple
 const badLength: CaseBinding = { id: 'x', kind: 'rule', rule: 'approval', file: 'x', lines: [1n, 1n], bytes: [0n], text_sha256: 'x' };
 // @ts-expect-error numbers are not full-width offsets

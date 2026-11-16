@@ -9,6 +9,32 @@ import {
 } from '../rulebook/rulebook-fixture-support.ts';
 import { byteFixtureCases, byteFixturePath } from './byte-fixture.ts';
 
+export function requireByteCaseDetail(detail: unknown, id: string, revision: string): void {
+	const expected = byteFixtureCases.find((item) => item.id === id);
+	assert.ok(expected, `Unknown fixture case ${id}`);
+	const shown = jsonObjectSchema.parse(detail);
+	const caseRow = objectValue(shown['case']);
+	assert.equal(caseRow['id'], id);
+	assert.equal(shown['revision'], revision);
+	const saved = objectValue(shown['detail']);
+	const evidence = objectValue(saved['evidence']);
+	const piece = objectValue(evidence['piece']);
+	const location = objectValue(piece['where']);
+	assert.equal(location['file'], byteFixturePath);
+	const span = objectValue(location['span']);
+	assert.deepEqual(
+		[span['byte_start'], span['byte_end']],
+		expected.bytes,
+		`Wrong readback span for ${id}`,
+	);
+	assert.equal(
+		objectValue(span['source'])['content_identity'],
+		'0f0d416333509a1f132e311aac7aeab87886428bbce0b20b0538a1281582ab34',
+	);
+	const linked = objectValue(saved['request'] ?? saved['result']);
+	assert.equal(linked['id'], caseRow['result_id'], 'Readback borrowed another result');
+}
+
 export function requirePreparedByteLinks(report: unknown, selectedIds: readonly string[]): void {
 	const outer = jsonObjectSchema.parse(report);
 	const runs = arrayValue(outer['runs']);

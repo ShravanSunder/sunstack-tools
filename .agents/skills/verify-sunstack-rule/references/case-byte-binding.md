@@ -10,18 +10,19 @@ Use an explicitly commissioned, quiescent source/CLI/build and a freshly packed,
 
 ```sh
 node scripts/verify/sunstack-rule/case-byte-binding/verify-byte-cases.ts \
-  --target <absolute-target.json> --compiler <absolute-tsc> --evidence <new-absolute-directory>
+  --target <absolute-target.json> --compiler <absolute-tsc> \
+  --old20 <absolute-document> --old20-sha256 <sha256> \
+  --old21 <absolute-document> --old21-sha256 <sha256> \
+  --evidence <new-absolute-directory>
 ```
 
-The draft attempts a prepared run with two exact request-owner span links, confirms only the selected revision was archived, scores both paragraphs via owned deterministic replies, reads case selectors, and compiles a byte-binding consumer against the installed package. It records process outputs and HTTP captures through the existing rulebook observer. A source-only or synthetic helper test proves none of these operations. The driver has not been tried with a real artifact: fixture admission, backend payload and installed types remain unverified. Preserve failures and diagnose without weakening the oracle.
+The draft attempts prepared/scored and individual-selection joins, duplicate bindings, genuine equal-range ambiguity, CRLF, historical readback, archived negative ranges, direct CLI/SDK controls, SDK compilation/codec and old-document incompatibility. It records process outputs and HTTP captures through the existing rulebook observer. These E5 steps have not been tried with a candidate: fixture admission, backend payload and installed types remain unverified. Preserve failures and diagnose without weakening the oracle.
 
 ## Required joins still missing from the driver
 
-- Individual selection must prove excluded-request absence and complete prepared/real request payload parity. Duplicate binding IDs must remain distinct accounting rows while sharing one unique owner. Scored results and prepared/scored `lint show` must resolve the actual byte span, including colliding nested IDs from two real revisions.
-- O2 must drive all specified geometry, hash-order, adjacent-endpoint, partial-codepoint, CRLF, last-line, old-revision, malformed unselected, stale, off-range, legacy and filter cases. A valid earlier selected revision plus invalid later one must refuse before any child or request. Include a valid available unselected revision and unavailable/bad-bounds controls. Source-review the git2 selection edge separately.
-- On a model-selected evidence kind, valid calls must first witness the same loopback observer before all-stale and mixed stale-file negatives establish zero extra selection/rule requests. Cover direct SDK and direct CLI geometry, captured out-of-bounds, unacquired and valid stale paths. HTTP silence does not prove an unacquired file was not read; a non-invasive observation and its independent sensitivity control are still needed.
-- Real SDK `run` and codec roundtrip must retain exact native byte coordinates and disposition, including a full-width unacquired binding. The compiler probe is not native transport proof. Revision-20 and revision-21 documents must be produced by their genuine old writers from synthetic input and rejected as incompatible under revision 22 before payload decoding.
-- A genuine same-coordinate multi-occurrence ast-grep fixture remains unproved. A document/element `any` matcher is a source-supported candidate, not a runtime observation. Do not inject duplicated product results and call that real ambiguity proof.
+- Join the all-selected pre-dispatch child observation at the injected executable product-test seam. A late invalid range with HTTP silence alone cannot prove no earlier child started. Source-review the git2 selection edge separately.
+- Repeat the regular readable-sentinel acquisition comparison through both candidate CLI and installed SDK with the same valid demand. The baseline count only detects successful distinct acquisitions; pair it with the product's counting-source test for attempted reads. A FIFO cannot detect an attempted checked-source read rejected before open.
+- Drive the newly authored E5 routes on the frozen candidate before treating any as covered. In particular, source-only type checks cannot prove installed/native transport or old-document refusal. The real same-coordinate document/element fixture was observed on an unchanged baseline, but its E5 disposition remains unobserved.
 
 `old-specimen.ts` is a helper for a separately authorized old-codec probe; its `--help` lists the required pinned installed entry, synthetic root, revision and new output. It invokes the actual old public writer, checks the revision it produced, and does not rewrite an existing document. It does not itself establish that the new codec rejects that document. Never read unrelated frozen prototype inputs.
 
