@@ -8,6 +8,8 @@ use sunstack_decisions::CancellationToken;
 use sunstack_evidence::{CheckedFileSource, CheckedReadError, FilesystemCheckedSource};
 use sunstack_lint::test_support::lint_fixture as fixture;
 use sunstack_lint::*;
+#[path = "rulebook_lint_gates/byte_capture_attempts.rs"]
+mod byte_capture_attempts;
 #[path = "rulebook_lint_gates/credential_eligibility.rs"]
 mod credential_eligibility;
 #[path = "rulebook_lint_gates/credential_partial.rs"]
@@ -19,13 +21,19 @@ mod filter_context_demand;
 struct RecordingSource {
     inner: FilesystemCheckedSource,
     reads: Arc<Mutex<Vec<PathBuf>>>,
+    resolves: Arc<Mutex<Vec<PathBuf>>>,
+    fail_path: Option<PathBuf>,
 }
 impl CheckedFileSource for RecordingSource {
     fn resolve_file(&self, path: &Path) -> Result<PathBuf, CheckedReadError> {
+        self.resolves.lock().unwrap().push(path.into());
         self.inner.resolve_file(path)
     }
     fn read_file(&mut self, path: &Path, max_bytes: usize) -> Result<String, CheckedReadError> {
         self.reads.lock().unwrap().push(path.into());
+        if self.fail_path.as_deref() == Some(path) {
+            return Err(CheckedReadError::Unreadable);
+        }
         self.inner.read_file(path, max_bytes)
     }
     fn checked_files_acquired(&self) -> usize {
@@ -38,6 +46,8 @@ fn source(root: &Path) -> (Box<dyn CheckedFileSource + Send>, Arc<Mutex<Vec<Path
         Box::new(RecordingSource {
             inner: FilesystemCheckedSource::new(root).unwrap(),
             reads: reads.clone(),
+            resolves: Arc::new(Mutex::new(vec![])),
+            fail_path: None,
         }),
         reads,
     )

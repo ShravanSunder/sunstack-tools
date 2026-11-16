@@ -136,7 +136,7 @@ export type CaseBindingStatus =
 	| { kind: 'cancelled' };
 
 export type CaseExecutionOwner =
-	| { kind: 'rule'; rule: RuleId; file: string; lines: [bigint, bigint] }
+	| { kind: 'rule'; rule: RuleId; file: string; lines: [bigint, bigint]; bytes: [bigint, bigint] }
 	| { kind: 'filter'; filter: FilterName; folder: string };
 
 export type CaseSelectionReport = {
@@ -145,7 +145,14 @@ export type CaseSelectionReport = {
 };
 
 export type CaseSubjectBinding =
-	| { kind: 'rule'; rule: RuleId; file: string; lines: [bigint, bigint]; text_sha256: string }
+	| {
+			kind: 'rule';
+			rule: RuleId;
+			file: string;
+			lines: [bigint, bigint];
+			bytes?: [bigint, bigint] | null;
+			text_sha256: string;
+	  }
 	| { kind: 'filter'; filter: FilterName; folder: string; reads_sha256: string };
 
 export type CheckOutcome =

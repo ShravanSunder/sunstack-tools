@@ -25,6 +25,43 @@ fn archived_lines(
     }
     Ok(collected[lines[0] - 1..lines[1]].concat())
 }
+fn coordinates_match(
+    location: &sunstack_evidence::PieceLocation,
+    file: &Path,
+    lines: [usize; 2],
+    bytes: Option<[usize; 2]>,
+) -> bool {
+    location.file == file
+        && [location.first_line, location.last_line] == lines
+        && bytes.is_none_or(|range| [location.span.byte_start, location.span.byte_end] == range)
+}
+
+fn archived_digest_matches(
+    snapshot: &super::snapshots::RevisionSnapshot,
+    file: &Path,
+    lines: [usize; 2],
+    bytes: Option<[usize; 2]>,
+    expected: &str,
+) -> Result<bool, String> {
+    let digest = if let Some([start, end]) = bytes {
+        let source = snapshot
+            .sources
+            .get(file)
+            .ok_or_else(|| "case file was not captured".to_string())?
+            .as_ref()
+            .map_err(Clone::clone)?;
+        let range = source
+            .as_bytes()
+            .get(start..end)
+            .filter(|_| start < end)
+            .ok_or_else(|| "case bytes are outside archived source".to_string())?;
+        sunstack_evidence::content_digest(range)
+    } else {
+        sunstack_evidence::content_digest(archived_lines(snapshot, file, lines)?.as_bytes())
+    };
+    Ok(digest == expected)
+}
+
 pub(super) fn score(
     case: &LintCase,
     snapshot: &super::snapshots::RevisionSnapshot,
@@ -35,15 +72,22 @@ pub(super) fn score(
             rule,
             file,
             lines,
+            bytes,
             text_sha256,
             expected,
         } => {
-            let text = match archived_lines(snapshot, file, *lines) {
-                Ok(text) => text,
+            match archived_digest_matches(snapshot, file, *lines, *bytes, text_sha256) {
+                Ok(true) => {}
+                Ok(false) => return (CaseOutcome::Stale, None),
                 Err(error) => return (incomplete(error), None),
-            };
-            if sunstack_evidence::content_digest(text.as_bytes()) != *text_sha256 {
-                return (CaseOutcome::Stale, None);
+            }
+            if report.results.iter().any(|result| {
+                &result.name == rule
+                    && &result.file == file
+                    && [result.first_line, result.last_line] == *lines
+                    && !report.piece_evidence.contains_key(&result.id)
+            }) {
+                return (incomplete("result piece evidence is missing"), None);
             }
             let matches = report
                 .results
@@ -51,39 +95,37 @@ pub(super) fn score(
                 .filter(|result| {
                     &result.name == rule
                         && &result.file == file
-                        && result.first_line == lines[0]
-                        && result.last_line == lines[1]
+                        && report
+                            .piece_evidence
+                            .get(&result.id)
+                            .is_some_and(|evidence| {
+                                coordinates_match(&evidence.piece.location, file, *lines, *bytes)
+                            })
                 })
                 .collect::<Vec<_>>();
             let result = match matches.as_slice() {
                 [] => {
-                    if let Some(skip) = report
+                    let skips = report
                         .filter_skips
                         .iter()
-                        .find(|skip| &skip.rule == rule && &skip.file == file)
-                    {
-                        let exact_match_count = skip
-                            .locations
-                            .iter()
-                            .filter(|location| {
-                                location.first_line == lines[0] && location.last_line == lines[1]
+                        .filter(|skip| &skip.rule == rule && &skip.file == file)
+                        .flat_map(|skip| {
+                            skip.locations.iter().filter_map(move |location| {
+                                coordinates_match(location, file, *lines, *bytes).then_some(skip)
                             })
-                            .count();
-                        if exact_match_count == 0 {
-                            return (CaseOutcome::NoMatchingPiece, None);
-                        }
-                        if exact_match_count > 1 {
-                            return (CaseOutcome::MoreThanOneMatchingPiece, None);
-                        }
-                        return (
+                        })
+                        .collect::<Vec<_>>();
+                    return match skips.as_slice() {
+                        [] => (CaseOutcome::NoMatchingPiece, None),
+                        [skip] => (
                             match skip.why {
                                 FilterSkipReason::Unsure => CaseOutcome::Unsure,
                                 _ => incomplete("filter did not produce a label"),
                             },
                             Some(skip.id),
-                        );
-                    }
-                    return (CaseOutcome::NoMatchingPiece, None);
+                        ),
+                        _ => (CaseOutcome::MoreThanOneMatchingPiece, None),
+                    };
                 }
                 [result] => *result,
                 _ => return (CaseOutcome::MoreThanOneMatchingPiece, None),
@@ -163,16 +205,15 @@ pub(super) fn prepare(
     if let CaseSubject::Rule {
         file,
         lines,
+        bytes,
         text_sha256,
         ..
     } = &case.subject
     {
-        let text = match archived_lines(snapshot, file, *lines) {
-            Ok(text) => text,
+        match archived_digest_matches(snapshot, file, *lines, *bytes, text_sha256) {
+            Ok(true) => {}
+            Ok(false) => return (CaseOutcome::Stale, None),
             Err(error) => return (incomplete(error), None),
-        };
-        if sunstack_evidence::content_digest(text.as_bytes()) != *text_sha256 {
-            return (CaseOutcome::Stale, None);
         }
     }
     let prepared = report
@@ -182,18 +223,17 @@ pub(super) fn prepare(
         .filter(|request| match (&case.subject, &request.owner) {
             (
                 CaseSubject::Rule {
-                    rule, file, lines, ..
+                    rule,
+                    file,
+                    lines,
+                    bytes,
+                    ..
                 },
                 RequestOwner::Rule {
                     rule: actual,
                     piece,
                 },
-            ) => {
-                rule == actual
-                    && file == &piece.file
-                    && lines[0] == piece.first_line
-                    && lines[1] == piece.last_line
-            }
+            ) => rule == actual && coordinates_match(piece, file, *lines, *bytes),
             (
                 CaseSubject::Filter { filter, folder, .. },
                 RequestOwner::Filter {
@@ -308,16 +348,37 @@ pub(super) fn selection_outcome(
 
 // A settled execution status can retain evidence, but only an actual unique result can supply its ID.
 fn unique_result_id(case: &LintCase, report: &LintReport) -> Option<usize> {
+    if let CaseSubject::Rule {
+        rule, file, lines, ..
+    } = &case.subject
+        && report.results.iter().any(|result| {
+            &result.name == rule
+                && &result.file == file
+                && [result.first_line, result.last_line] == *lines
+                && !report.piece_evidence.contains_key(&result.id)
+        })
+    {
+        return None;
+    }
     let mut matching_ids = match &case.subject {
         CaseSubject::Rule {
-            rule, file, lines, ..
+            rule,
+            file,
+            lines,
+            bytes,
+            ..
         } => report
             .results
             .iter()
             .filter(|result| {
                 &result.name == rule
                     && &result.file == file
-                    && [result.first_line, result.last_line] == *lines
+                    && report
+                        .piece_evidence
+                        .get(&result.id)
+                        .is_some_and(|evidence| {
+                            coordinates_match(&evidence.piece.location, file, *lines, *bytes)
+                        })
             })
             .map(|result| result.id)
             .collect::<Vec<_>>(),

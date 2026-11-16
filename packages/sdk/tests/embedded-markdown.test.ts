@@ -170,7 +170,7 @@ await test('omitted, empty and nonmatching selectors acquire no Markdown and pre
 		assert.equal(contract.kind, 'ready');
 		if (contract.kind !== 'ready') throw new Error('addon unavailable');
 		assert.equal(contract.contract.sdk_release, '0.23.0');
-		assert.equal(contract.contract.contract_revision, 20);
+		assert.equal(contract.contract.contract_revision, 22);
 		const previous = await deserialize(
 			'{"contract_revision":13,"payload":{"kind":"configuration","value":{}}}',
 		);

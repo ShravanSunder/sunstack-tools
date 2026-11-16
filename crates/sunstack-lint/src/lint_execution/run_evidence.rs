@@ -11,7 +11,11 @@ use crate::{
     },
     *,
 };
-use std::{collections::BTreeSet, ops::ControlFlow, path::PathBuf};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    ops::ControlFlow,
+    path::PathBuf,
+};
 use sunstack_evidence::*;
 use sunstack_rules::{
     ModelRequestDispatch, RulebookRunSettings, SelectionInput, SelectionOutcome, select_candidates,
@@ -145,6 +149,42 @@ pub(super) async fn build_run_evidence(
             )));
         }
     };
+    // Original captured bytes decide geometry and stale demand before any model selection.
+    let mut byte_digests = BTreeMap::new();
+    let mut stale_byte_ids = BTreeSet::new();
+    for binding in request.case_selection.iter().flatten() {
+        let CaseSubjectBinding::Rule {
+            file,
+            bytes: Some(bytes),
+            text_sha256,
+            ..
+        } = &binding.subject
+        else {
+            continue;
+        };
+        match build.captured_byte_range_digest(file, *bytes) {
+            CapturedByteRange::Captured { digest } => {
+                if &digest != text_sha256 {
+                    stale_byte_ids.insert(binding.id.clone());
+                }
+                byte_digests.insert((file.clone(), bytes[0], bytes[1]), digest);
+            }
+            CapturedByteRange::OutOfBounds => {
+                report.usage.checked_files_acquired = source.checked_files_acquired();
+                return ControlFlow::Break(Ok(invalid(
+                    report,
+                    bundle.root.invalid(
+                        LintInvalidCode::UnsupportedInputs,
+                        format!(
+                            "case selection {} byte range is outside captured source",
+                            binding.id
+                        ),
+                    ),
+                )));
+            }
+            CapturedByteRange::Unacquired => {}
+        }
+    }
     let scope_changes = changes.clone();
     let repository_root = selection.root.clone();
     let dependencies = folder_plan.dependencies.clone();
@@ -214,6 +254,9 @@ pub(super) async fn build_run_evidence(
                 if let Some(bindings) = &request.case_selection {
                     let mut relevant = BTreeSet::new();
                     for binding in bindings {
+                        if stale_byte_ids.contains(&binding.id) {
+                            continue;
+                        }
                         match &binding.subject {
                             CaseSubjectBinding::Rule { rule, file, .. } => {
                                 if let Some(rule) = checked
@@ -369,6 +412,7 @@ pub(super) async fn build_run_evidence(
                 .insert((file.clone(), lines[0], lines[1]), digest);
         }
     }
+    catalog.piece_byte_hashes.extend(byte_digests);
     state.report = report;
     ControlFlow::Continue((
         state,

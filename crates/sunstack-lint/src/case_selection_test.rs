@@ -121,6 +121,7 @@ fn acquired_range_digest_distinguishes_unmatched_from_stale() {
     let binding = CaseBinding {
         id: "rule-case".into(),
         subject: CaseSubjectBinding::Rule {
+            bytes: None,
             rule: RuleId::new("rule").unwrap(),
             file: file.clone(),
             lines: [2, 3],
@@ -249,6 +250,7 @@ fn rule_piece_fixture() -> (RulebookRule, EvidencePiece, CaseBinding, EvidenceCa
     let binding = CaseBinding {
         id: "one".into(),
         subject: CaseSubjectBinding::Rule {
+            bytes: None,
             rule: rule.name.clone(),
             file: file.clone(),
             lines: [1, 1],

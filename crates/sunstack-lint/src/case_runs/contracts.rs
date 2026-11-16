@@ -32,6 +32,8 @@ pub enum CaseSubject {
         rule: RuleId,
         file: PathBuf,
         lines: [usize; 2],
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        bytes: Option<[usize; 2]>,
         text_sha256: String,
         expected: ExpectedRuleOutcome,
     },
@@ -58,12 +60,14 @@ impl LintCase {
                 rule,
                 file,
                 lines,
+                bytes,
                 text_sha256,
                 ..
             } => crate::CaseSubjectBinding::Rule {
                 rule: rule.clone(),
                 file: file.clone(),
                 lines: *lines,
+                bytes: *bytes,
                 text_sha256: text_sha256.clone(),
             },
             CaseSubject::Filter {
