@@ -185,6 +185,10 @@ export async function observeByteSdkAcquisition(options: {
 		assert.equal(backend.errors.length, 0);
 	} finally {
 		if (started) await backend.close();
+		saveSdkEvidence(path.join(options.evidence, 'sdk-acquisition-http.json'), {
+			captures: backend.captures,
+			errors: backend.errors,
+		});
 		if (priorKey === undefined) delete process.env['OPENROUTER_API_KEY'];
 		else process.env['OPENROUTER_API_KEY'] = priorKey;
 		if (priorStore === undefined) delete process.env['SUNSTACK_CREDENTIAL_STORE'];

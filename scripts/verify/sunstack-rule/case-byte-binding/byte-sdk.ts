@@ -89,6 +89,17 @@ export async function observeInstalledByteSdk(options: {
 		};
 		await requireInvalid('reversed', [16n, 0n]);
 		await requireInvalid('out-of-file', [0n, 9999n]);
+		const unsafe = await run('unsafe-number', {
+			...binding,
+			id: 'unsafe',
+			bytes: [0, 9007199254740992],
+		});
+		assert.equal(unsafe.captures, 0);
+		assert.equal(unsafe.outcome['kind'], 'failed');
+		const failure = recordSchema.parse(unsafe.outcome['failure']);
+		assert.equal(failure['phase'], 'before_dispatch');
+		assert.equal(failure['effects'], 'none');
+		assert.equal(failure['reason'], 'encoding_rejected');
 		const stale = await run('stale', { ...binding, id: 'stale', text_sha256: '0'.repeat(64) });
 		assert.equal(stale.captures, 0);
 		assert.equal(stale.outcome['kind'], 'completed');
@@ -204,6 +215,10 @@ export async function observeInstalledByteSdk(options: {
 		assert.equal(backend.errors.length, 0);
 	} finally {
 		if (started) await backend.close();
+		saveSdkEvidence(path.join(options.evidence, 'sdk-byte-http.json'), {
+			captures: backend.captures,
+			errors: backend.errors,
+		});
 		if (previousKey === undefined) delete process.env['OPENROUTER_API_KEY'];
 		else process.env['OPENROUTER_API_KEY'] = previousKey;
 		if (previousStore === undefined) delete process.env['SUNSTACK_CREDENTIAL_STORE'];
