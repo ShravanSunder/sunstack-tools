@@ -339,7 +339,7 @@ async function main(): Promise<void> {
 				'legacy line-bound rule and filter case controls',
 			],
 			gaps: [
-				'O2 matrix and archive observation',
+				'git2 selection-before-resolution requires a separate source join; archive forwarding observes external Git only',
 				'actual child-process absence on selected-bounds refusal',
 				'counting-source proof of failed acquisition attempts',
 			],
