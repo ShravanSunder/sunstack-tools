@@ -4,9 +4,11 @@
 
 - Rule cases can select an exact original-source byte range with optional
   `bytes: [start, end]`, using an inclusive start and exclusive end. Required
-  line coordinates remain part of the identity, so adjacent ast-grep matches
-  on one line can be selected independently. Cases without `bytes` keep their
-  whole-line hashes and matching behavior.
+  reported first and last lines remain part of the identity, so adjacent ast-grep matches
+  on one line can be selected independently. Offsets count bytes in the original
+  UTF-8 source. With `bytes`, `text_sha256` hashes exactly those archived bytes;
+  omitting `bytes` keeps whole-line hashes, including line endings, and the
+  existing matching behavior.
 - Validate every selected archived range before dispatch, retain stale cases
   without creating model demand, and preserve byte identity through prepared
   and scored reports and revision-local saved-result readback. Invalid geometry

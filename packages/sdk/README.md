@@ -377,8 +377,11 @@ values are refused before dispatch.
   `{ kind: 'since', rev }` or `{ kind: 'all' }`.
 - `case_selection`: optional label-free rule/filter bindings. Omit it for ordinary
   execution; `[]` selects no execution owners. Each binding names an id and either
-  a rule/file/exact line range/text digest, or a filter/folder/read digest. Line
-  locations retain Rust's full width as `bigint`. Current checked content must match.
+  a rule/file/exact line range/text digest, or a filter/folder/read digest. Rule
+  bindings may also supply `bytes`, an exact readonly bigint pair `[start, end]`
+  for a nonempty half-open range in the original UTF-8 source. Required `lines`
+  must still match the piece's reported first and last lines; both pairs retain
+  Rust's full width as `bigint`. Current checked content must match.
 - `signal`: an `AbortSignal` that cancels only this call. An already-aborted signal
   starts no work.
 
@@ -411,7 +414,11 @@ if (selected.kind === 'completed') {
 }
 ```
 
-The digest covers the original inclusive source lines, including their line endings.
+The line-only example above remains valid: without `bytes`, `text_sha256` hashes
+original inclusive source lines, including their line endings. With `bytes`, it
+hashes exactly the original source bytes in `[start, end)`, using the archived
+source when running a revision-bound case file. Invalid geometry and known
+captured out-of-bounds ranges are refused; a captured digest mismatch is `stale`.
 Selection happens before rule/filter request construction and preserves selected
 request payloads. Multiple case ids may share one unique execution owner: it runs
 once, with every id retained in accounting. `case_selection` reports binding

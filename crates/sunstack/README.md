@@ -375,8 +375,14 @@ and `label_from` (`owner-fix`, `owner-ruling` or `blind-agents`).
 `owner-fix` names a real text fix; `owner-ruling` names an explicit owner label
 decision, whose ruling is kept beside the cases. Rule cases add `kind: "rule"`,
 `rule`, `file`, `lines: [first, last]`, `text_sha256`, and `expected: "warn" |
-"pass"`. Filter cases add `kind: "filter"`, `filter`, `folder`, `reads_sha256`
-and `expected_label`. Line hashes retain line endings. Filter hashes cover
+"pass"`. An optional `bytes: [start, end]` selects a nonempty half-open range
+in the original UTF-8 source, with an inclusive start and exclusive end. Required
+`lines` must still match the piece's reported first and last lines. With `bytes`,
+`text_sha256` is the SHA-256 of exactly the original archived bytes in that range.
+Omitting `bytes` keeps the inclusive whole-line hash, including line endings.
+Selected archived ranges outside the source bounds are invalid input; a valid
+range with a different digest is stale. Filter cases add `kind: "filter"`,
+`filter`, `folder`, `reads_sha256` and `expected_label`. Filter hashes cover
 compact JSON of the declared unprojected field values in lexical key order,
 without reference, cut metadata or folder location; normal filter results expose
 the hash. Each recorded bar names `{for, step, bound, value, set_from: [case ids]}`,
@@ -393,9 +399,10 @@ never deletes that historical source or falls back to a partial directory.
 A selected file or folder that is or traverses a historical symlink is listed as
 `not_judged` with reason `selected path is a symlink`, no result link and no crossed
 bars. It never selects the link's target. Context loads retain their usual behavior.
-Rule cases match the exact first and last lines of one piece after checking the
-case's own archived line hash. Partial or spanning ranges do not match; nested
-sections remain distinct. The same exact-range rule applies to filter skips.
+Rule cases match the exact reported first and last lines of one piece and, when
+present, its exact byte range, after checking the case's archived digest. Partial
+or spanning ranges do not match; nested sections remain distinct. The same
+identity rule applies to filter skips.
 Every selected case is counted or listed, with per-rule and per-filter counts,
 result links and crossed bars. A changed or unrecorded bar is unassessed. The
 command writes no adoption state and changes no ordinary lint inputs.
