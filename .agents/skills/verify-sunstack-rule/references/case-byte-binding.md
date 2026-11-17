@@ -18,6 +18,20 @@ node scripts/verify/sunstack-rule/case-byte-binding/verify-byte-cases.ts \
 
 At the cited candidate the route observed prepared/scored and individual-selection joins, duplicate bindings, genuine equal-range ambiguity, CRLF, historical readback, archived negative ranges, direct CLI/SDK controls, installed SDK compilation/codec and old-document incompatibility. It recorded process outputs and HTTP captures through the existing rulebook observer. Recheck these on the declared target, preserving failures and diagnosing without weakening the oracle.
 
+## CLI-only released binary route
+
+For a separately commissioned released-CLI check, use the same literal fixture and case/readback comparators without an SDK. Pin the existing clean source commit, the actual released or installed binary and its SHA256, and a new evidence directory outside the source checkout:
+
+```sh
+node scripts/verify/sunstack-rule/case-byte-binding/verify-byte-cli.ts \
+  --source <absolute-source-root> --commit <full-source-commit> \
+  --binary <absolute-cli> --sha256 <binary-sha256> --evidence <new-absolute-directory>
+```
+
+This exercises adjacent cases through real prepare, score, individual selection, exact request parity and original-span readback with controlled loopback answers. It does not establish that the binary came from a release channel: separately authenticate the tag/archive and compare the installed binary SHA to the archive member. Its CLI-only result does not replace the native child/read-attempt and git2 source joins, SDK observations, hosted judgment, other platform checks or O4. A new release needs a declared target and separate observation grant.
+
+The composed CLI-only route was exercised on the retained `e695af9e`-built CLI using the clean `7554f141` source whose product/build inputs were checked equivalent. That capability run does not establish behavior of the later 0.24.0 release.
+
 ## Required separate joins
 
 - Join the all-selected pre-dispatch child observation at the injected executable product-test seam. A late invalid range with HTTP silence alone cannot prove no earlier child started. Source-review the git2 selection edge separately.
