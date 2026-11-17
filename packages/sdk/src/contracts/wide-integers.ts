@@ -280,6 +280,9 @@ export const wideIntegerDefinitions = {
 			union: [
 				{
 					object: {
+						bytes: {
+							list: 'bigint',
+						},
 						lines: {
 							list: 'bigint',
 						},
@@ -325,6 +328,9 @@ export const wideIntegerDefinitions = {
 			union: [
 				{
 					object: {
+						bytes: {
+							list: 'bigint',
+						},
 						lines: {
 							list: 'bigint',
 						},

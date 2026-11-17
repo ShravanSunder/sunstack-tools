@@ -22,10 +22,17 @@ pub struct EvidenceFileFailure {
 #[derive(Debug, Clone, Default)]
 pub struct EvidenceCatalog {
     pub piece_text_hashes: BTreeMap<(PathBuf, usize, usize), String>,
+    pub piece_byte_hashes: BTreeMap<(PathBuf, usize, usize), String>,
     pub pieces: Vec<EvidencePiece>,
     pub matches: BTreeMap<PathBuf, FileMatchIndex>,
     pub failures: Vec<EvidenceFileFailure>,
     pub file_counts: Vec<FileCount>,
+}
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CapturedByteRange {
+    Captured { digest: String },
+    OutOfBounds,
+    Unacquired,
 }
 #[derive(Debug, Clone, Copy)]
 pub struct PieceBuildLimits {

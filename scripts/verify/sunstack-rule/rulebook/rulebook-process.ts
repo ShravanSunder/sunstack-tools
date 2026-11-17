@@ -56,6 +56,8 @@ export interface ControlledReply {
 export interface RunCase {
 	readonly target?: ProcessTarget;
 	readonly timeoutMilliseconds?: number;
+	/** An owned executable directory used to observe subprocess boundaries. */
+	readonly executableDirectory?: string;
 	root: string;
 	name: string;
 	arguments: string[];
@@ -279,7 +281,9 @@ export class RulebookProcess {
 		const home = path.join(directory, 'home');
 		filesystem.mkdirSync(home);
 		const environment: NodeJS.ProcessEnv = {
-			PATH: '/usr/bin:/bin',
+			PATH: options.executableDirectory
+				? `${options.executableDirectory}:/usr/bin:/bin`
+				: '/usr/bin:/bin',
 			HOME: home,
 			LANG: 'C.UTF-8',
 			GIT_CONFIG_NOSYSTEM: '1',
@@ -288,6 +292,11 @@ export class RulebookProcess {
 		};
 		if (options.credential) environment['OPENROUTER_API_KEY'] = 'SYNTHETIC_RULEBOOK_LOOPBACK_ONLY';
 		const before = this.captures.length;
+		if (options.executableDirectory)
+			requireCondition(
+				path.isAbsolute(options.executableDirectory),
+				'Executable directory must be absolute',
+			);
 		const snapshot = fixtureSnapshot(options.root);
 		this.cancelOnRequest = options.cancel ?? false;
 		const command = [target.binary, ...options.arguments];
@@ -326,6 +335,7 @@ export class RulebookProcess {
 		filesystem.writeFileSync(path.join(directory, 'stderr.log'), errors);
 		writeJson(path.join(directory, 'process.json'), {
 			command,
+			executable_directory: options.executableDirectory ?? null,
 			cwd: options.root,
 			pid: child.pid ?? null,
 			...('release' in target ? { artifact_release: target.release } : { commit: target.commit }),

@@ -196,7 +196,7 @@ await test('capture and attachment wrong shapes fail at their declared propertie
 		assert.deepEqual(sortDiagnostics(result.diagnostics), sortDiagnostics(expected));
 });
 
-await test('label-free rule and filter bindings and typed accounting compile', () => {
+await test('line and byte bindings, exact owner tuples and typed accounting compile', () => {
 	assert.deepEqual(compile('valid-case-dispatch.ts'), { kind: 'compiled' });
 });
 await test('unavailable reasons, result narrowing and exact category counts compile', () => {
@@ -210,9 +210,9 @@ await test('unavailable contracts reject missing payloads, numbers and mutation 
 	if (result.kind === 'diagnostics')
 		assert.deepEqual(sortDiagnostics(result.diagnostics), sortDiagnostics(expected));
 });
-await test('case bindings reject labels, wrong widths, missing identity and inspection selection', () => {
+await test('case bindings reject labels, wrong tuples, missing owner identity, mutation and inspection selection', () => {
 	const expected = expectedDiagnostics('invalid-case-dispatch.ts');
-	assert.equal(expected.length, 9);
+	assert.equal(expected.length, 22);
 	const result = compile('invalid-case-dispatch.ts');
 	assert.equal(result.kind, 'diagnostics', result.kind === 'process_failure' ? result.detail : '');
 	if (result.kind === 'diagnostics')

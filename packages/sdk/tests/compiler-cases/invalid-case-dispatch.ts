@@ -1,7 +1,7 @@
-import type { CaseBinding, RunOptions } from '../../src/index.ts';
+import type { CaseBinding, CaseExecutionOwner, RunOptions } from '../../src/index.ts';
 import { inspect } from '../../src/index.ts';
 import { configuration } from './valid-caller.ts';
-import { filterCase, ruleCase } from './valid-case-dispatch.ts';
+import { byteOwner, filterCase, ruleCase } from './valid-case-dispatch.ts';
 export const wrongWidth = {
 	...ruleCase,
 	// expect TS2322
@@ -53,3 +53,68 @@ export const leakedFilterLabel = {
 	// expect TS2353
 	expected_label: 'eligible',
 } satisfies CaseBinding;
+
+export const numberBinding = {
+	...ruleCase,
+	// expect TS2322
+	bytes: [0, 12n],
+} satisfies CaseBinding;
+export const stringBinding = {
+	...ruleCase,
+	// expect TS2322
+	bytes: ['0', 12n],
+} satisfies CaseBinding;
+export const shortBinding = {
+	...ruleCase,
+	// expect TS2322
+	bytes: [0n],
+} satisfies CaseBinding;
+export const longBinding = {
+	...ruleCase,
+	// expect TS2322
+	bytes: [0n, 12n, 24n],
+} satisfies CaseBinding;
+export const numberOwner = {
+	...byteOwner,
+	// expect TS2322
+	bytes: [0n, 12],
+} satisfies CaseExecutionOwner;
+export const stringOwner = {
+	...byteOwner,
+	// expect TS2322
+	bytes: [0n, '12'],
+} satisfies CaseExecutionOwner;
+export const shortOwner = {
+	...byteOwner,
+	// expect TS2322
+	bytes: [0n],
+} satisfies CaseExecutionOwner;
+export const longOwner = {
+	...byteOwner,
+	// expect TS2322
+	bytes: [0n, 12n, 24n],
+} satisfies CaseExecutionOwner;
+// expect TS2322
+export const missingOwnerBytes: CaseExecutionOwner = {
+	kind: 'rule',
+	rule: 'body',
+	file: 'docs/one.md',
+	lines: [3n, 3n],
+};
+
+export function mutateBindingBytes(binding: CaseBinding): void {
+	if (binding.kind === 'rule' && binding.bytes !== undefined && binding.bytes !== null) {
+		// expect TS2540
+		binding.bytes[0] = 1n;
+		// expect TS2540
+		binding.bytes = [0n, 12n];
+	}
+}
+export function mutateOwnerBytes(owner: CaseExecutionOwner): void {
+	if (owner.kind === 'rule') {
+		// expect TS2540
+		owner.bytes[1] = 12n;
+		// expect TS2540
+		owner.bytes = [0n, 12n];
+	}
+}

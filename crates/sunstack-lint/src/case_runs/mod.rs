@@ -19,6 +19,14 @@ fn validate(file: &CaseFile) -> Result<(), String> {
         if case.id.trim().is_empty() || !ids.insert(case.id.clone()) {
             return Err("case ids must be nonempty and unique".into());
         }
+        if let CaseSubject::Rule {
+            bytes: Some([start, end]),
+            ..
+        } = &case.subject
+            && start >= end
+        {
+            return Err(format!("case {} has invalid byte range", case.id));
+        }
         let path = match &case.subject {
             CaseSubject::Rule { file, .. } => file,
             CaseSubject::Filter { folder, .. } => folder,
@@ -194,65 +202,96 @@ async fn run_cases_internal(
             &selected_paths,
         ) {
             Ok(snapshot) => {
-                let input_paths = selected
-                    .iter()
-                    .filter(|case| case.revision == revision)
-                    .filter_map(|case| {
-                        let selected_path = match &case.subject {
-                            CaseSubject::Rule { file, .. } => file,
-                            CaseSubject::Filter { folder, .. } => folder,
-                        };
-                        if snapshot.symlink_paths.contains(selected_path) {
-                            return None;
-                        }
-                        let path = match &case.subject {
-                            CaseSubject::Rule { file, .. }
-                                if snapshot.tree.join(file).is_file() =>
-                            {
-                                file
-                            }
-                            CaseSubject::Filter { folder, .. }
-                                if snapshot.tree.join(folder).is_dir() =>
-                            {
-                                folder
-                            }
-                            _ => return None,
-                        };
-                        Some(path.clone())
-                    })
-                    .collect::<BTreeSet<_>>()
-                    .into_iter()
-                    .collect::<Vec<_>>();
-                let bindings = selected
-                    .iter()
-                    .filter(|case| case.revision == revision)
-                    .map(|case| case.binding())
-                    .collect::<Vec<_>>();
-                match snapshots::lint(
-                    executable,
-                    &snapshot,
-                    &input_paths,
-                    &bindings,
-                    &cancellation,
-                    &mode,
-                )
-                .await
-                {
-                    Ok(report) => {
-                        runs.push(RevisionRun {
-                            revision: revision.clone(),
-                            resolved_revision: snapshot.resolved_revision.clone(),
-                            report,
-                        });
-                    }
-                    Err(error) => {
-                        errors.insert(revision.clone(), error);
-                    }
-                }
                 snapshots.insert(revision, snapshot);
             }
             Err(error) => {
                 errors.insert(revision, error);
+            }
+        }
+    }
+    // Admit every available selected range before any child can run.
+    let mut stale = BTreeSet::new();
+    for case in &selected {
+        let CaseSubject::Rule {
+            file,
+            bytes: Some([start, end]),
+            text_sha256,
+            ..
+        } = &case.subject
+        else {
+            continue;
+        };
+        let Some(snapshot) = snapshots.get(&case.revision) else {
+            continue;
+        };
+        let Some(Ok(source)) = snapshot.sources.get(file) else {
+            continue;
+        };
+        let Some(range) = source.as_bytes().get(*start..*end) else {
+            return Err(format!(
+                "case {} byte range is outside archived source",
+                case.id
+            ));
+        };
+        if sunstack_evidence::content_digest(range) != *text_sha256 {
+            stale.insert(case.id.clone());
+        }
+    }
+    for (revision, snapshot) in &snapshots {
+        if cancellation.is_cancelled() {
+            break;
+        }
+        let eligible = selected
+            .iter()
+            .filter(|case| case.revision == *revision && !stale.contains(&case.id))
+            .collect::<Vec<_>>();
+        if eligible.is_empty() {
+            continue;
+        }
+        let input_paths = eligible
+            .iter()
+            .filter_map(|case| {
+                let path = match &case.subject {
+                    CaseSubject::Rule { file, .. } => file,
+                    CaseSubject::Filter { folder, .. } => folder,
+                };
+                if snapshot.symlink_paths.contains(path) {
+                    return None;
+                }
+                match &case.subject {
+                    CaseSubject::Rule { .. } if snapshot.tree.join(path).is_file() => {
+                        Some(path.clone())
+                    }
+                    CaseSubject::Filter { .. } if snapshot.tree.join(path).is_dir() => {
+                        Some(path.clone())
+                    }
+                    _ => None,
+                }
+            })
+            .collect::<BTreeSet<_>>()
+            .into_iter()
+            .collect::<Vec<_>>();
+        let bindings = eligible
+            .iter()
+            .map(|case| case.binding())
+            .collect::<Vec<_>>();
+        match snapshots::lint(
+            executable,
+            snapshot,
+            &input_paths,
+            &bindings,
+            &cancellation,
+            &mode,
+        )
+        .await
+        {
+            Ok(report) => runs.push(RevisionRun {
+                revision: revision.clone(),
+                resolved_revision: snapshot.resolved_revision.clone(),
+                report,
+            }),
+            Err(error) => {
+                errors.insert(revision.clone(), error);
             }
         }
     }
@@ -292,6 +331,8 @@ async fn run_cases_internal(
                 None,
                 vec![],
             )
+        } else if stale.contains(&case.id) {
+            (CaseOutcome::Stale, None, vec![])
         } else if let (Some(snapshot), Some(run)) = (snapshot, run) {
             let dependency = match &case.subject {
                 CaseSubject::Rule { rule, file, .. } => checked

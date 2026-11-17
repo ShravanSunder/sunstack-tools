@@ -14,19 +14,43 @@ pub(super) fn settle_case_accounting(
         let CaseBindingStatus::Selected { owner } = &binding.outcome else {
             continue;
         };
+        if let CaseExecutionOwner::Rule {
+            rule, file, lines, ..
+        } = owner
+            && report.results.iter().any(|result| {
+                &result.name == rule
+                    && &result.file == file
+                    && [result.first_line, result.last_line] == *lines
+                    && !report.piece_evidence.contains_key(&result.id)
+            })
+        {
+            binding.outcome = CaseBindingStatus::Incomplete {
+                reason: IncompleteReason::EvidenceUnavailable,
+            };
+            continue;
+        }
         let unavailable = match owner {
-            CaseExecutionOwner::Rule { rule, file, lines } => {
-                report.results.iter().find_map(|result| {
-                    if &result.name == rule
-                        && &result.file == file
-                        && [result.first_line, result.last_line] == *lines
-                        && let RulePieceEnding::Unavailable { reason } = &result.ending
-                    {
-                        return Some(reason.clone());
-                    }
-                    None
-                })
-            }
+            CaseExecutionOwner::Rule {
+                rule,
+                file,
+                lines,
+                bytes,
+            } => report.results.iter().find_map(|result| {
+                if &result.name == rule
+                    && &result.file == file
+                    && [result.first_line, result.last_line] == *lines
+                    && report.piece_evidence.get(&result.id).is_some_and(|saved| {
+                        [
+                            saved.piece.location.span.byte_start,
+                            saved.piece.location.span.byte_end,
+                        ] == *bytes
+                    })
+                    && let RulePieceEnding::Unavailable { reason } = &result.ending
+                {
+                    return Some(reason.clone());
+                }
+                None
+            }),
             CaseExecutionOwner::Filter { filter, folder } => {
                 report.filter_answers.iter().find_map(|answer| {
                     if &answer.filter == filter
@@ -44,12 +68,23 @@ pub(super) fn settle_case_accounting(
             continue;
         }
         let (finished, incomplete, dependency) = match owner {
-            CaseExecutionOwner::Rule { rule, file, lines } => {
+            CaseExecutionOwner::Rule {
+                rule,
+                file,
+                lines,
+                bytes,
+            } => {
                 let result = report.results.iter().find(|result| {
                     &result.name == rule
                         && &result.file == file
                         && result.first_line == lines[0]
                         && result.last_line == lines[1]
+                        && report.piece_evidence.get(&result.id).is_some_and(|saved| {
+                            [
+                                saved.piece.location.span.byte_start,
+                                saved.piece.location.span.byte_end,
+                            ] == *bytes
+                        })
                 });
                 let prepared = report.requests.iter().any(|request| {
                     matches!(
@@ -57,6 +92,7 @@ pub(super) fn settle_case_accounting(
                         crate::RequestOwner::Rule { rule: actual, piece }
                             if actual == rule && &piece.file == file
                                 && [piece.first_line, piece.last_line] == *lines
+                                && [piece.span.byte_start, piece.span.byte_end] == *bytes
                     ) && matches!(request.outcome, crate::SavedRequestOutcome::Prepared { .. })
                 });
                 let finished = prepared

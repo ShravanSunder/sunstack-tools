@@ -4,6 +4,22 @@ use crate::{EffectiveLimits, LintReport, RulePieceResult, ScopeChoice};
 use serde_json::json;
 use std::collections::BTreeMap;
 
+fn attach_result_evidence(report: &mut LintReport) {
+    for result in &report.results {
+        let piece = json!({
+            "kind":"document", "where": {
+                "file":result.file, "first_line":result.first_line, "last_line":result.last_line,
+                "span":{"source":{"kind":"document","repository":"fixture","path":result.file,"content_identity":"fixture"},
+                    "byte_start":0,"byte_end":12,"start_line":1,"start_column":1,"end_line":1,"end_column":12}
+            }, "text":"First line.", "fields":{}, "model_view":{"state":"bounded","fields":{},"cut":[]}
+        });
+        report.piece_evidence.insert(
+            result.id,
+            serde_json::from_value(json!({"piece":piece,"matches":{}})).unwrap(),
+        );
+    }
+}
+
 #[test]
 fn exact_range_matching_keeps_duplicate_exact_results_ambiguous() {
     let source = "First line.\nSecond line.\n";
@@ -24,6 +40,7 @@ fn exact_range_matching_keeps_duplicate_exact_results_ambiguous() {
         EffectiveLimits::default(),
     );
     report.results = vec![exact.clone(), parent];
+    attach_result_evidence(&mut report);
 
     let (outcome, id) = score(&case, &snapshot, &report);
 
@@ -32,6 +49,7 @@ fn exact_range_matching_keeps_duplicate_exact_results_ambiguous() {
     let mut duplicate = exact;
     duplicate.id = 9;
     report.results[1] = duplicate;
+    attach_result_evidence(&mut report);
     let (outcome, id) = score(&case, &snapshot, &report);
     assert!(matches!(outcome, CaseOutcome::MoreThanOneMatchingPiece));
     assert_eq!(id, None);
@@ -83,6 +101,7 @@ fn prepared_matching_keeps_duplicate_exact_requests_ambiguous_and_known_exclusio
     report.results = vec![serde_json::from_value(json!({"text_sha256":null,"id":7,"request_ids":[],
         "name":"known","marker":"K001","file":file,"first_line":1,"last_line":1,
         "outcome":"not_applicable","step":null,"path":[],"reason":{"kind":"filter","filter":"purpose","label":"excluded"}})).unwrap()];
+    attach_result_evidence(&mut report);
     assert!(matches!(
         prepare(&case, &snapshot, &report, None),
         (CaseOutcome::FilterExcluded, Some(7))
@@ -104,6 +123,7 @@ fn selection_dependency_does_not_hide_a_known_result_on_an_independent_field() {
         EffectiveLimits::default(),
     );
     report.results.push(serde_json::from_value(json!({"text_sha256":null,"id":7,"request_ids":[],"name":"known","marker":"K001","file":file,"first_line":1,"last_line":1,"outcome":"pass","step":null,"path":[]})).unwrap());
+    attach_result_evidence(&mut report);
     let kind = sunstack_evidence::EvidenceKindName::new("document").unwrap();
     report.preparation = Some(crate::PreparedReport {
         mode: crate::PrepareMode::Prepare,
@@ -127,6 +147,7 @@ fn selection_dependency_does_not_hide_a_known_result_on_an_independent_field() {
     let mut duplicate = report.results[0].clone();
     duplicate.id = 8;
     report.results.push(duplicate);
+    attach_result_evidence(&mut report);
     assert!(matches!(
         prepare(&case, &snapshot, &report, Some(&dependency)),
         (CaseOutcome::MoreThanOneMatchingPiece, None)
@@ -171,6 +192,7 @@ fn cancelled_selected_case_keeps_completed_judgements_and_identifies_unfinished_
         (CaseOutcome::Cancelled, None)
     ));
     report.results.push(completed);
+    attach_result_evidence(&mut report);
     assert!(matches!(
         selected_result(&case, &snapshot, &report, None, false),
         (CaseOutcome::Right, Some(7))
@@ -226,6 +248,7 @@ fn settled_case_status_keeps_only_unique_exact_result_links() {
     );
     report.results.push(rule_result.clone());
     report.filter_answers.push(filter_result.clone());
+    attach_result_evidence(&mut report);
 
     // Act / Assert: each settled typed status preserves the actual unique result ID.
     for case in [&rule_case, &filter_case] {
@@ -272,6 +295,7 @@ fn settled_case_status_keeps_only_unique_exact_result_links() {
     // Duplicate exact owners remain ambiguous to the result-link selector.
     report.results.push(rule_result);
     report.filter_answers.push(filter_result);
+    attach_result_evidence(&mut report);
     assert_eq!(unique_result_id(&rule_case, &report), None);
     assert_eq!(unique_result_id(&filter_case, &report), None);
     report.results.clear();
@@ -337,4 +361,46 @@ fn refused_or_pending_identity_never_links_an_unrelated_prerequisite_request() {
         report.case_selection.as_mut().unwrap().bindings[0].outcome = status;
         assert_eq!(selection_outcome(&case, &report).unwrap().1, None);
     }
+}
+
+#[test]
+fn missing_same_line_piece_evidence_never_borrows_a_unique_result() {
+    let file = std::path::PathBuf::from("docs/one.md");
+    let snapshot = super::super::snapshots::snapshot_for_matching_tests(BTreeMap::from([(
+        file,
+        Ok("First line.\n".into()),
+    )]))
+    .unwrap();
+    let case: LintCase = serde_json::from_value(json!({"id":"one","kind":"rule","rule":"known",
+        "file":"docs/one.md","revision":"fixture","lines":[1,1],"bytes":[0,5],
+        "text_sha256":sunstack_evidence::content_digest(b"First"),"expected":"pass",
+        "set":"development","label_from":"blind-agents"}))
+    .unwrap();
+    let mut report = LintReport::empty(
+        Default::default(),
+        ScopeChoice::All,
+        EffectiveLimits::default(),
+    );
+    let result: RulePieceResult = serde_json::from_value(json!({"text_sha256":null,"id":7,
+        "request_ids":[],"name":"known","marker":"K001","file":"docs/one.md",
+        "first_line":1,"last_line":1,"outcome":"pass","step":null,"path":[]}))
+    .unwrap();
+    report.results.push(result.clone());
+    attach_result_evidence(&mut report);
+    report
+        .piece_evidence
+        .get_mut(&7)
+        .unwrap()
+        .piece
+        .location
+        .span
+        .byte_end = 5;
+    let mut unknown = result;
+    unknown.id = 8;
+    report.results.push(unknown);
+    assert!(matches!(
+        score(&case, &snapshot, &report),
+        (CaseOutcome::Incomplete { .. }, None)
+    ));
+    assert_eq!(unique_result_id(&case, &report), None);
 }

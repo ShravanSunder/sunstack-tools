@@ -1,5 +1,7 @@
 import type {
 	CaseBinding,
+	CaseExecutionOwner,
+	CaseSubjectBinding,
 	CaseBindingStatus,
 	CaseSelectionReport,
 	RunOptions,
@@ -66,3 +68,27 @@ export const ordinaryArrayRun = run(configuration, {
 	scope: { kind: 'all' },
 	paths: ordinaryPaths,
 });
+
+export const exactBytes = [9007199254740993n, 9007199254740994n] as const;
+export const byteBinding = { ...ruleCase, bytes: exactBytes } as const satisfies CaseBinding;
+export const byteSubject: CaseSubjectBinding = byteBinding;
+export const legacyBinding: CaseBinding = ruleCase;
+export const byteOwner = {
+	kind: 'rule',
+	rule: 'body',
+	file: 'docs/one.md',
+	lines: [3n, 3n],
+	bytes: exactBytes,
+} as const satisfies CaseExecutionOwner;
+export const byteOptions = {
+	root: '/abs/root',
+	scope: { kind: 'all' },
+	case_selection: [byteBinding, legacyBinding],
+} as const satisfies RunOptions;
+
+export function ownerBytes(owner: CaseExecutionOwner): readonly [bigint, bigint] | undefined {
+	return owner.kind === 'rule' ? owner.bytes : undefined;
+}
+export function bindingBytes(binding: CaseBinding): readonly [bigint, bigint] | null | undefined {
+	return binding.kind === 'rule' ? binding.bytes : undefined;
+}

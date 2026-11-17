@@ -2,6 +2,28 @@ use super::*;
 use std::collections::BTreeSet;
 
 impl EvidenceBuild {
+    /// Query original bytes already captured by this build without resolving or reading a file.
+    pub fn captured_byte_range_digest(&self, file: &Path, bytes: [usize; 2]) -> CapturedByteRange {
+        let text = self
+            .matched
+            .get(file)
+            .map(|matched| &matched.text)
+            .or_else(|| {
+                self.contents
+                    .get(file)
+                    .and_then(|content| content.as_ref().ok())
+            });
+        let Some(text) = text else {
+            return CapturedByteRange::Unacquired;
+        };
+        if bytes[0] >= bytes[1] || bytes[1] > text.len() {
+            return CapturedByteRange::OutOfBounds;
+        }
+        CapturedByteRange::Captured {
+            digest: content_digest(&text.as_bytes()[bytes[0]..bytes[1]]),
+        }
+    }
+
     /// Hash a requested original line range from this build's existing captured text.
     pub fn captured_range_digest(
         &self,
@@ -319,3 +341,7 @@ impl EvidenceBuild {
         self.finished_catalog()
     }
 }
+
+#[cfg(test)]
+#[path = "context_loading_test.rs"]
+mod tests;

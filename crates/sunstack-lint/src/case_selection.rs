@@ -28,6 +28,8 @@ pub enum CaseSubjectBinding {
         rule: RuleId,
         file: PathBuf,
         lines: [usize; 2],
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        bytes: Option<[usize; 2]>,
         text_sha256: String,
     },
     Filter {
@@ -45,6 +47,7 @@ pub enum CaseExecutionOwner {
         rule: RuleId,
         file: PathBuf,
         lines: [usize; 2],
+        bytes: [usize; 2],
     },
     Filter {
         filter: FilterName,
@@ -122,6 +125,17 @@ pub(crate) fn validate_case_bindings(bindings: &[CaseBinding]) -> Result<(), Str
                 "case selection path must be repository-relative: {path:?}"
             ));
         }
+        if let CaseSubjectBinding::Rule {
+            bytes: Some([start, end]),
+            ..
+        } = &binding.subject
+            && start >= end
+        {
+            return Err(format!(
+                "case selection {} needs byte_start < byte_end",
+                binding.id
+            ));
+        }
     }
     Ok(())
 }
@@ -131,6 +145,7 @@ fn rule_owner(rule: &RulebookRule, piece: &EvidencePiece) -> CaseExecutionOwner 
         rule: rule.name.clone(),
         file: piece.location.file.clone(),
         lines: [piece.location.first_line, piece.location.last_line],
+        bytes: [piece.location.span.byte_start, piece.location.span.byte_end],
     }
 }
 
@@ -323,6 +338,7 @@ pub(crate) fn plan_case_selection(
                     rule,
                     file,
                     lines,
+                    bytes,
                     text_sha256,
                 } => {
                     let matches = rules
@@ -338,14 +354,25 @@ pub(crate) fn plan_case_selection(
                                         && &piece.location.file == file
                                         && piece.location.first_line == lines[0]
                                         && piece.location.last_line == lines[1]
+                                        && bytes.is_none_or(|bytes| {
+                                            bytes
+                                                == [
+                                                    piece.location.span.byte_start,
+                                                    piece.location.span.byte_end,
+                                                ]
+                                        })
                                 })
                                 .map(move |(pi, piece)| (ri, pi, rule_owner(candidate, piece)))
                         })
                         .collect::<Vec<_>>();
-                    let captured_hash =
-                        catalog
+                    let captured_hash = match bytes {
+                        Some([start, end]) => {
+                            catalog.piece_byte_hashes.get(&(file.clone(), *start, *end))
+                        }
+                        None => catalog
                             .piece_text_hashes
-                            .get(&(file.clone(), lines[0], lines[1]));
+                            .get(&(file.clone(), lines[0], lines[1])),
+                    };
                     // Captured source mismatch settles identity despite later scan/selection gaps.
                     if captured_hash.is_some_and(|hash| hash != text_sha256) {
                         CaseBindingStatus::Stale
@@ -359,7 +386,7 @@ pub(crate) fn plan_case_selection(
                             missing
                         } else {
                             match captured_hash {
-                                None if catalog.matches.contains_key(file) => {
+                                None if bytes.is_none() && catalog.matches.contains_key(file) => {
                                     CaseBindingStatus::Stale
                                 }
                                 None => CaseBindingStatus::Unmatched,
