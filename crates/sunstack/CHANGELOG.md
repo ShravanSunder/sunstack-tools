@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.24.0
+
+- Rule cases can select an exact original-source byte range with optional
+  `bytes: [start, end]`, using an inclusive start and exclusive end. Required
+  reported first and last lines remain part of the identity, so adjacent ast-grep matches
+  on one line can be selected independently. Offsets count bytes in the original
+  UTF-8 source. With `bytes`, `text_sha256` hashes exactly those archived bytes;
+  omitting `bytes` keeps whole-line hashes, including line endings, and the
+  existing matching behavior.
+- Validate every selected archived range before dispatch, retain stale cases
+  without creating model demand, and preserve byte identity through prepared
+  and scored reports and revision-local saved-result readback. Invalid geometry
+  and known captured bounds are refused before direct model dispatch.
+- Align the CLI, SDK wrapper and six addon packages to 0.24.0. SDK contract
+  revision 22 adds required actual execution-owner byte tuples and optional
+  binding tuples as readonly bigint pairs. Saved revision-20 and revision-21
+  SDK documents are incompatible and refused before payload decoding; use
+  matching wrapper and addon versions. SDK npm publication remains separate
+  from this CLI release.
+
 ## 0.23.0
 
 - Continue independent local checks during ordinary runs without a model
