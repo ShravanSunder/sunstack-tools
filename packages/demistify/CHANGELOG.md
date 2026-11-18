@@ -1,5 +1,11 @@
 # @sunstack/demistify
 
+## 1.24.0
+
+### Minor Changes
+
+- 3cc0776: Draw a page or collection mind map from the same navigation JSON as the reader Map. Shared Trees have open branches, linked titles, descriptions and optional same-page Details.
+
 ## 1.23.0
 
 ### Minor Changes
