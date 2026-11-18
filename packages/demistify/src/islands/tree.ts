@@ -2,8 +2,16 @@ import { classifyDocumentLink } from '../core/document-links.ts';
 import { createHead, readIcon } from '../core/head.ts';
 import { createPhosphorIcon } from '../core/icons.ts';
 import { reportIssue } from '../core/issues.ts';
+import type { SharedMapNode } from '../core/shared-navigation.ts';
 import { readIslandSource } from '../core/source-text.ts';
 import { createToneIcon, isTone, readTone, type Tone } from '../core/tones.ts';
+import type { LoadedNavigation } from '../layout/shared-navigation.ts';
+import {
+	sharedTreeEntries,
+	sharedTreeHref,
+	subscribeToSharedTreeSource,
+} from '../layout/shared-tree-source.ts';
+import { openIsland } from './inspector.ts';
 
 /**
  * A tree written as a Markdown list: a status report, a checklist, a breakdown or a map of a page.
@@ -14,9 +22,16 @@ import { createToneIcon, isTone, readTone, type Tone } from '../core/tones.ts';
 export class TreeIsland extends HTMLElement {
 	private rendering = false;
 	private bound = false;
+	private unsubscribeSharedSource: (() => void) | undefined;
+	private renderedSource: LoadedNavigation | undefined;
+	private detailTargets: ReadonlyMap<string, string> | undefined;
 
 	connectedCallback(): void {
 		if (this.hasAttribute('data-inspector-content')) return;
+		if (this.hasAttribute('navigation') && !this.hasAttribute('data-inspector-copy')) {
+			this.connectSharedTree();
+			return;
+		}
 		if (this.hasAttribute('prepared')) {
 			this.bindControls();
 			return;
@@ -24,6 +39,146 @@ export class TreeIsland extends HTMLElement {
 		if (this.rendering) return;
 		this.rendering = true;
 		void this.render();
+	}
+
+	disconnectedCallback(): void {
+		this.unsubscribeSharedSource?.();
+		this.unsubscribeSharedSource = undefined;
+	}
+
+	private connectSharedTree(): void {
+		const mode = this.getAttribute('navigation');
+		if (mode !== 'page' && mode !== 'collection') {
+			this.showSharedState('Shared Trees need navigation="page" or navigation="collection".');
+			return;
+		}
+		const hasIndependentSource = Array.from(this.childNodes).some(
+			(node): boolean =>
+				(node instanceof Text && Boolean(node.data.trim())) ||
+				(node instanceof Element && !node.matches('a[slot="details"][hidden]')),
+		);
+		if (
+			!this.hasAttribute('prepared') &&
+			!this.querySelector('.ex-tree-state') &&
+			hasIndependentSource
+		) {
+			this.showSharedState('A shared Tree accepts only hidden, local Details links.');
+			return;
+		}
+		this.unsubscribeSharedSource = subscribeToSharedTreeSource(this, (result): void => {
+			if (result.kind === 'unavailable') {
+				this.showSharedState(result.message);
+				return;
+			}
+			if (result.source === this.renderedSource) return;
+			const entries = sharedTreeEntries(result.source, mode);
+			if (!entries) {
+				this.showSharedState('This page needs exactly one address in the navigation registry.');
+				return;
+			}
+			if (!entries.length) {
+				this.showSharedState('No map entries for this view.', false);
+				return;
+			}
+			this.detailTargets ??= this.readSharedDetails();
+			this.renderedSource = result.source;
+			this.classList.add('ex-tree-shared');
+			this.showBranches(this.renderSharedBranches(entries, result.source));
+		});
+	}
+
+	private showSharedState(message: string, issue = true): void {
+		if (issue) reportIssue(this, message);
+		const state = this.querySelector(':scope > .ex-tree-state') ?? document.createElement('p');
+		state.className = 'ex-tree-state';
+		state.textContent = message;
+		if (!state.parentElement) this.append(state);
+	}
+
+	private readSharedDetails(): ReadonlyMap<string, string> {
+		const targets = new Map<string, string>();
+		const duplicates = new Set<string>();
+		const here = new URL(document.URL);
+		for (const declaration of this.querySelectorAll(':scope > a[slot="details"]')) {
+			const from = declaration.getAttribute('data-for') ?? '';
+			const href = declaration.getAttribute('href') ?? '';
+			const source = classifyDocumentLink(from, here);
+			const detail = classifyDocumentLink(href, here);
+			if (
+				!from.startsWith('#') ||
+				!href.startsWith('#') ||
+				source.kind !== 'local' ||
+				detail.kind !== 'local'
+			) {
+				reportIssue(this, 'Tree Details require local fragments in data-for and href.');
+				continue;
+			}
+			if (targets.has(source.reference) || duplicates.has(source.reference)) {
+				reportIssue(this, `Duplicate Tree Details for "#${source.reference}".`);
+				targets.delete(source.reference);
+				duplicates.add(source.reference);
+				continue;
+			}
+			const target = document.getElementById(detail.reference);
+			if (
+				!document.getElementById(source.reference) ||
+				!target ||
+				this.contains(target) ||
+				target.contains(this)
+			) {
+				reportIssue(
+					this,
+					`Tree Details need existing, independent sections: "${from}" and "${href}".`,
+				);
+				continue;
+			}
+			targets.set(source.reference, detail.reference);
+		}
+		return targets;
+	}
+
+	private renderSharedBranches(
+		nodes: readonly SharedMapNode[],
+		source: LoadedNavigation,
+	): HTMLUListElement {
+		const list = document.createElement('ul');
+		for (const node of nodes) {
+			const item = document.createElement('li');
+			const row = document.createElement('div');
+			row.className = 'ex-tree-node';
+			const titleRow = document.createElement('div');
+			titleRow.className = 'ex-tree-title-row';
+			const icon = createPhosphorIcon(node.icon);
+			icon.classList.add('ex-tone-icon', 'ex-tree-subject');
+			const title = document.createElement(node.target ? 'a' : 'strong');
+			title.textContent = node.title;
+			titleRow.append(icon, title);
+			if (node.target && title instanceof HTMLAnchorElement) {
+				const href = sharedTreeHref(source, node.target);
+				title.setAttribute('href', href);
+				const detail =
+					href.startsWith('#') && node.target.fragment
+						? this.detailTargets?.get(node.target.fragment)
+						: undefined;
+				if (detail) {
+					const button = document.createElement('button');
+					button.type = 'button';
+					button.className = 'ex-icon-button ex-tree-details-button';
+					button.dataset['exTreeDetail'] = detail;
+					button.setAttribute('aria-label', `Open details for ${node.title}`);
+					button.append(createPhosphorIcon('article'), 'Details');
+					titleRow.append(button);
+				}
+			}
+			const description = document.createElement('p');
+			description.className = 'ex-tree-description';
+			description.textContent = node.description;
+			row.append(titleRow, description);
+			item.append(row);
+			if (node.children.length) item.append(this.renderSharedBranches(node.children, source));
+			list.append(item);
+		}
+		return list;
 	}
 
 	private async render(): Promise<void> {
@@ -35,7 +190,10 @@ export class TreeIsland extends HTMLElement {
 			reportIssue(this, 'ex-tree needs a Markdown list: "- item", children indented under it.');
 			return;
 		}
-		const branches = convertList(list);
+		this.showBranches(convertList(list));
+	}
+
+	private showBranches(branches: HTMLUListElement): void {
 		const title = this.getAttribute('title');
 		const body = document.createElement('div');
 		body.className = 'ex-tree-body';
@@ -58,7 +216,9 @@ export class TreeIsland extends HTMLElement {
 		} else body.append(branches);
 		const hasIcons = Boolean(body.querySelector('.ex-tone-icon'));
 		this.classList.toggle('ex-tree-icons', hasIcons);
-		for (const row of body.querySelectorAll('.ex-tree-node')) {
+		for (const row of this.classList.contains('ex-tree-shared')
+			? []
+			: body.querySelectorAll('.ex-tree-node')) {
 			const branch = Boolean(row.parentElement?.querySelector(':scope > ul'));
 			if (hasIcons && !row.querySelector('.ex-tone-icon')) {
 				const icon = createPhosphorIcon(branch ? 'folder' : 'file');
@@ -86,7 +246,14 @@ export class TreeIsland extends HTMLElement {
 
 	private handleClick(event: MouseEvent): void {
 		if (!(event.target instanceof Element)) return;
-		if (event.target.closest('a')) return;
+		if (event.target.closest('a') || event.target.closest('ex-tree') !== this) return;
+		const detailsButton = event.target.closest<HTMLButtonElement>('button[data-ex-tree-detail]');
+		if (detailsButton) {
+			const target = document.getElementById(detailsButton.dataset['exTreeDetail'] ?? '');
+			if (target && !this.contains(target) && !target.contains(this)) openIsland(target, 'sidebar');
+			else reportIssue(this, 'Tree Details section is unavailable.');
+			return;
+		}
 		const node = event.target.closest('button.ex-tree-disclosure');
 		if (node instanceof HTMLElement && this.contains(node)) toggle(node);
 	}

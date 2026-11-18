@@ -285,6 +285,10 @@ export const vocabulary: Readonly<Record<string, ElementSpec>> = {
 			tone,
 			icon,
 			layout: oneOf('outline (default) or a left-to-right mind map.', ['outline', 'map']),
+			navigation: oneOf('Use shared navigation for this page or the entire collection.', [
+				'page',
+				'collection',
+			]),
 			label,
 		},
 	},

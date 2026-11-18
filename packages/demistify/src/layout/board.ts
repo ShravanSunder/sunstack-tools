@@ -194,8 +194,8 @@ export class BoardIsland extends HTMLElement {
 		const canvas = this.canvas;
 		if (!canvas) return;
 		const view = this.getBoundingClientRect();
-		const width = canvas.offsetWidth;
-		const height = canvas.offsetHeight;
+		const width = canvas.scrollWidth;
+		const height = canvas.scrollHeight;
 		if (width === 0 || height === 0) return;
 		// Fit the whole board when it stays readable; otherwise fit the width at a readable
 		// floor and start at the top, leaving the rest to pan or drill into.

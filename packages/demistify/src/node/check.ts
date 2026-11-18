@@ -25,7 +25,7 @@ import { renderChoiceTitle, renderMarkdownContent } from '../render/markdown-con
 import { checkAttributes, closest, taughtElements, vocabulary } from '../vocabulary.ts';
 import { checkDesignMarkup } from './design-markup.ts';
 import { checkMapMarkup } from './map-markup.ts';
-import { checkSharedNavigation } from './shared-navigation-markup.ts';
+import { checkSharedNavigation, checkSharedTreeMarkup } from './shared-navigation-markup.ts';
 import { checkStoryMarkup } from './story-markup.ts';
 
 type Element = DefaultTreeAdapterMap['element'];
@@ -360,6 +360,8 @@ export async function checkHtml(source: string, options: CheckOptions = {}): Pro
 		}
 		return targets;
 	};
+	for (const problem of checkSharedTreeMarkup(elements, ids, inertTemplateElements))
+		report(problem.element, problem.severity, 'shared-navigation', problem.message);
 	let loadsTheme = false;
 	let loadsRuntime = false;
 	const sharedChecks = new Map(
