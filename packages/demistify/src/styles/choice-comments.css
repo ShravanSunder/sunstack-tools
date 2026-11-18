@@ -85,6 +85,19 @@ ex-option.ex-choice-option > input {
 	font: 600 var(--text-lg)/1.35 var(--font-body);
 	color: var(--ink);
 }
+ex-option .ex-choice-title-row:has(> .ex-choice-details-button) {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	align-items: start;
+	gap: var(--space-2);
+}
+ex-option .ex-choice-title-row > .ex-choice-label {
+	overflow-wrap: anywhere;
+}
+ex-option .ex-choice-title-row > .ex-choice-details-button {
+	margin-inline-start: 0;
+	white-space: nowrap;
+}
 .ex-choice-label {
 	display: inline;
 	font: inherit;
@@ -96,7 +109,7 @@ ex-option.ex-choice-option > input {
 	gap: var(--space-1);
 	width: auto;
 	height: var(--space-8);
-	margin-left: var(--space-2);
+	margin-inline-start: var(--space-2);
 	padding: 0 var(--space-2);
 	border-radius: var(--radius-md);
 	vertical-align: middle;
@@ -110,6 +123,81 @@ ex-option.ex-choice-option > input {
 .ex-choice-details-button:hover {
 	color: var(--ink);
 	border-color: var(--ink-soft);
+}
+.ex-choice-beside-fieldset {
+	container-type: inline-size;
+}
+.ex-choice-detail-layout {
+	display: grid;
+	gap: var(--space-3);
+	align-items: start;
+	margin-block: var(--space-3);
+}
+.ex-choice-detail-options {
+	display: grid;
+	gap: var(--space-3);
+	min-inline-size: 0;
+}
+.ex-choice-detail-options > ex-option.ex-choice-option {
+	margin: 0;
+}
+.ex-choice-detail-options > ex-option.ex-choice-option:has(.ex-choice-details-button[aria-expanded='true']) {
+	border-color: var(--ink-soft);
+}
+.ex-choice-detail-panels {
+	min-inline-size: 0;
+}
+.ex-choice-detail-panels:not(:has(> :not([hidden]))) {
+	display: none;
+}
+.ex-choice-detail-panel {
+	padding: var(--space-4);
+	border: 1px solid var(--rule);
+	border-radius: var(--radius-md);
+	background: var(--surface-document-card);
+}
+.ex-choice-detail-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--space-3);
+	margin-block-end: var(--space-2);
+}
+.ex-choice-detail-header > strong {
+	overflow-wrap: anywhere;
+}
+.ex-choice-detail-close {
+	flex: none;
+}
+@container (min-width: 64rem) {
+	.ex-choice-detail-layout:has(.ex-choice-detail-panel:not([hidden])) {
+		grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+	}
+	.ex-choice-detail-layout {
+		--choice-detail-enter-x: -8px;
+		--choice-detail-enter-y: 0px;
+	}
+}
+@media (pointer: coarse) {
+	.ex-choice-detail-close {
+		width: 44px;
+		height: 44px;
+	}
+}
+@media (prefers-reduced-motion: no-preference) {
+	.ex-choice-detail-panel:not([hidden]) {
+		animation: ex-choice-detail-enter var(--motion-base) ease-out;
+	}
+}
+@keyframes ex-choice-detail-enter {
+	from {
+		opacity: 0;
+		transform: translate(var(--choice-detail-enter-x, 0px), var(--choice-detail-enter-y, 8px));
+	}
+	to {
+		opacity: 1;
+		transform: translate(0, 0);
+	}
 }
 .ex-choice-summary {
 	margin-top: var(--space-1);

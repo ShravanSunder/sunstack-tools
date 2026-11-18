@@ -164,8 +164,9 @@ export function captureCommentAnchor(
 	const explicitOwner = ancestor?.closest(
 		'[data-comment-label][id],.ex-choice-option[id],ex-choice[id],ex-code[id],ex-pre[id],ex-mermaid g.node[id],ex-mermaid[id]',
 	);
-	const startChoice = startElement?.closest('.ex-choice-option[id],ex-choice[id]');
-	const endChoice = endElement?.closest('.ex-choice-option[id],ex-choice[id]');
+	const choiceBlock = '.ex-choice-detail-panel[id],.ex-choice-option[id],ex-choice[id]';
+	const startChoice = startElement?.closest(choiceBlock);
+	const endChoice = endElement?.closest(choiceBlock);
 	const choiceOwner = startChoice === endChoice ? startChoice : undefined;
 	const componentOwner = ancestor?.closest(
 		'td[id],th[id],tr[id],table[id],ex-code[id],ex-pre[id],ex-mermaid[id]',

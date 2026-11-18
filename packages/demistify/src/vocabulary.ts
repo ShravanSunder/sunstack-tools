@@ -101,8 +101,9 @@ export const vocabulary: Readonly<Record<string, ElementSpec>> = {
 				'cards',
 				'table',
 			]),
-			details: oneOf('Extra content opens in the native sidebar, or an inline disclosure.', [
+			details: oneOf('Extra content opens in the sidebar, beside cards, or in a disclosure.', [
 				'sidebar',
+				'beside',
 				'inline',
 			]),
 		},
