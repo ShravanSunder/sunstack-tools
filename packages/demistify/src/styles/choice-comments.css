@@ -141,7 +141,8 @@ ex-option .ex-choice-title-row > .ex-choice-details-button {
 .ex-choice-detail-options > ex-option.ex-choice-option {
 	margin: 0;
 }
-.ex-choice-detail-options > ex-option.ex-choice-option:has(.ex-choice-details-button[aria-expanded='true']) {
+.ex-choice-detail-options
+	> ex-option.ex-choice-option:has(.ex-choice-details-button[aria-expanded='true']) {
 	border-color: var(--ink-soft);
 }
 .ex-choice-detail-panels {
