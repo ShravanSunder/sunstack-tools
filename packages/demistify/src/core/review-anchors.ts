@@ -13,15 +13,21 @@ const excludedText =
 	'button,input,textarea,select,script,style,template,.ex-inspect-controls,.ex-choice-inline > summary,[data-comment-control],[data-inspector-copy],[data-inspector-content]';
 const automaticallyLabeledHeadings = new WeakSet<HTMLElement>();
 
-function fragmentText(fragment: DocumentFragment): string {
-	for (const control of fragment.querySelectorAll(excludedText)) control.remove();
+function textExclusions(element: Element): string {
+	// A panel's prose offsets must survive the lazy renderer adding diagram labels.
+	return element.matches('.ex-choice-detail-panel') ? `${excludedText},ex-mermaid` : excludedText;
+}
+
+function fragmentText(fragment: DocumentFragment, exclusions: string): string {
+	for (const control of fragment.querySelectorAll(exclusions)) control.remove();
 	return fragment.textContent ?? '';
 }
 
 export function reviewTextNodes(element: Element): Text[] {
+	const exclusions = textExclusions(element);
 	const walker = element.ownerDocument.createTreeWalker(element, NodeFilter.SHOW_TEXT, {
 		acceptNode(node): number {
-			return node.parentElement?.closest(excludedText)
+			return node.parentElement?.closest(exclusions)
 				? NodeFilter.FILTER_REJECT
 				: NodeFilter.FILTER_ACCEPT;
 		},
@@ -115,7 +121,7 @@ function offsetBefore(element: Element, container: Node, offset: number): number
 	const prefix = element.ownerDocument.createRange();
 	prefix.selectNodeContents(element);
 	prefix.setEnd(container, offset);
-	return fragmentText(prefix.cloneContents()).length;
+	return fragmentText(prefix.cloneContents(), textExclusions(element)).length;
 }
 
 /** A cross-block selection falls back to the original document target. */
@@ -164,8 +170,9 @@ export function captureCommentAnchor(
 	const explicitOwner = ancestor?.closest(
 		'[data-comment-label][id],.ex-choice-option[id],ex-choice[id],ex-code[id],ex-pre[id],ex-mermaid g.node[id],ex-mermaid[id]',
 	);
-	const startChoice = startElement?.closest('.ex-choice-option[id],ex-choice[id]');
-	const endChoice = endElement?.closest('.ex-choice-option[id],ex-choice[id]');
+	const choiceBlock = '.ex-choice-detail-panel[id],.ex-choice-option[id],ex-choice[id]';
+	const startChoice = startElement?.closest(choiceBlock);
+	const endChoice = endElement?.closest(choiceBlock);
 	const choiceOwner = startChoice === endChoice ? startChoice : undefined;
 	const componentOwner = ancestor?.closest(
 		'td[id],th[id],tr[id],table[id],ex-code[id],ex-pre[id],ex-mermaid[id]',

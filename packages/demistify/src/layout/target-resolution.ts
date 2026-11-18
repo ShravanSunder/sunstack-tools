@@ -14,6 +14,8 @@ export function revealElement(target: Element): void {
 	) {
 		if (ancestor.classList.contains('ex-comparison-option'))
 			ancestor.dispatchEvent(new Event('comparison-reveal', { bubbles: true }));
+		if (ancestor.matches('.ex-choice-detail-panel[hidden]'))
+			ancestor.dispatchEvent(new Event('choice-detail-reveal'));
 		// An alternative may itself be the destination; the other actions reveal its containers.
 		if (ancestor === target) {
 			if (target instanceof HTMLDetailsElement && target.closest('ex-story')) target.open = true;

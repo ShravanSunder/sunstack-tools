@@ -32,6 +32,17 @@ Document --> Choice
 Document --> Comments</script></ex-mermaid></div>
   </ex-option>
 </ex-choice>
+<h2>Details beside the cards</h2>
+<ex-choice id="next-review" title="What should the next review cover?" details="beside">
+  <ex-option id="review-sources" title="Check links and source material">
+    <template slot="summary">Follow the links from the proposal to the source.</template>
+    <div slot="details"><p>Open the linked source and check that it supports the claim.</p></div>
+  </ex-option>
+  <ex-option id="review-layout" title="Compare how the complete review page reads at desktop and phone widths">
+    <template slot="summary">Try the same review journey at both widths.</template>
+    <div slot="details"><p>Check that the page and its comments stay usable on a phone.</p></div>
+  </ex-option>
+</ex-choice>
 <h2>Checks</h2>
 <ex-choice id="checks-question" title="Which checks?" multiple>
   <ex-option id="desktop-check" title="Desktop"><template slot="summary">Check the wide reader.</template></ex-option>

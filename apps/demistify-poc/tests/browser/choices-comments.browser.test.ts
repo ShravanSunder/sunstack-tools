@@ -110,7 +110,7 @@ test('body, native controls and repainted Comment SVG keep answer and action sem
 	).toEqual(['desktop-check', 'phone-check']);
 });
 
-test('choice typography and title-adjacent Details use the real native inspector and preserve the outline', async (): Promise<void> => {
+test('right-aligned card Details uses the native inspector and preserves the outline', async (): Promise<void> => {
 	const { document: fixture, frame } = await openReviewFixture();
 	const target = requiredElement(fixture, '#technical');
 	const label = requiredElement(target, '.ex-choice-label');
@@ -124,6 +124,10 @@ test('choice typography and title-adjacent Details use the real native inspector
 	expect(button.querySelector('.ph-article')).not.toBeNull();
 	expect(button.getBoundingClientRect().width).toBeGreaterThan(32);
 	expect(button.getBoundingClientRect().height).toBe(32);
+	expect(button.getBoundingClientRect().right).toBeCloseTo(
+		requiredElement(target, '.ex-choice-title-row').getBoundingClientRect().right,
+		0,
+	);
 	expect(button.getBoundingClientRect().left - label.getBoundingClientRect().right).toBeCloseTo(
 		8,
 		0,
@@ -149,6 +153,59 @@ test('choice typography and title-adjacent Details use the real native inspector
 	expect(fixture.activeElement?.getAttribute('aria-label')).toBe(
 		'Open details for Technical scope',
 	);
+});
+
+test('beside-card Details closes back to the same trigger and leaves selection unchanged', async (): Promise<void> => {
+	const { document: fixture, frame } = await openReviewFixture('beside.html');
+	const trigger = frame.getByRole('button', {
+		name: 'Open details for Technical scope',
+		exact: true,
+	});
+	const close = frame.getByRole('button', { name: 'Close details', exact: true });
+	await frame.getByRole('radio', { name: 'Layout only', exact: true }).click();
+	await trigger.click();
+	await expect.element(close).toBeVisible();
+	expect(
+		requiredElement(fixture, '#technical .ex-choice-details-button').getAttribute('aria-expanded'),
+	).toBe('true');
+	await close.click();
+	expect(requiredElement(fixture, '#technical--choice-details').hasAttribute('hidden')).toBe(true);
+	expect(fixture.activeElement?.getAttribute('aria-label')).toBe(
+		'Open details for Technical scope',
+	);
+	expect(
+		readChoiceResponse(requiredElement(fixture, '#scope-question')).selected[0]?.optionId,
+	).toBe('layout');
+	const view = fixture.defaultView;
+	if (!view) throw new Error('Choice frame has no window.');
+	view.location.hash = 'scope-diagram';
+	await expect.element(close).toBeVisible();
+	await expect
+		.poll((): boolean => Boolean(fixture.querySelector('#scope-diagram > svg')))
+		.toBe(true);
+	const paragraph = requiredElement(fixture, '#technical--choice-details p');
+	const quote = fixture.createRange();
+	quote.selectNodeContents(paragraph);
+	view.getSelection()?.addRange(quote);
+	await frame.getByRole('button', { name: 'Comment on selected text', exact: true }).click();
+	await frame.getByRole('textbox', { name: 'Your comment', exact: true }).fill('Detail quote.');
+	await frame.getByRole('button', { name: 'Add comment', exact: true }).click();
+	expect(readCurrentReview(fixture).comments[0]?.anchor).toMatchObject({
+		kind: 'text',
+		targetId: 'technical--choice-details',
+	});
+	document.body.replaceChildren();
+	const reopened = await openReviewFixture('beside.html');
+	expect(reopened.document.querySelector('#scope-diagram > svg')).toBeNull();
+	await reopened.frame.getByRole('button', { name: 'Comments (1)', exact: true }).click();
+	await reopened.frame
+		.getByRole('button', { name: 'Show anchor: Details for Technical scope', exact: true })
+		.click();
+	expect(
+		requiredElement(reopened.document, '#technical--choice-details').classList.contains(
+			'ex-comment-active',
+		),
+	).toBe(true);
 });
 
 test('selectable table and inline details retain their authored views at phone width', async (): Promise<void> => {

@@ -70,7 +70,7 @@ Clicking noninteractive title, Markdown body or card background selects or toggl
 
 ## Choose the response view and optional detail
 
-Cards use Reading width by default. Supporting extras open through the native inspector: a compact button with the shared document icon and visible **Details** label follows the title and flows beside wrapped title text. Opening it marks the complete source card, leaves its answer unchanged and returns focus on close. Use the existing inspector; no page script or second detail viewer is needed.
+Cards use Reading width by default. A compact **Details** button sits at the right edge of each card's title row. Supporting extras open in the native sidebar by default. Use `details="beside"` on a card choice to give the options and their details a shared Canvas-width layout. The panel opens beside the cards where space allows and below them on narrow screens. Close or Escape returns focus to the opening Details button. Opening or switching panels leaves the selected answer unchanged.
 
 Use `view="table"` on the choice when short corresponding option bodies benefit from aligned selectable rows. The same option declarations become a Canvas-width native table; narrow scrolling stays inside the table boundary. Do not invent extra column or criteria attributes. Use `details="inline"` when extras should expand locally beneath an option, accepting that they move later content down. Both variations retain separate selection, detail and feedback actions.
 

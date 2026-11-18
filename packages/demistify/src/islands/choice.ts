@@ -2,6 +2,7 @@ import { createIconButton } from '../core/icons.ts';
 import { reportIssue } from '../core/issues.ts';
 import { type ChoiceResponse, choiceResponseSchema } from '../core/review-model.ts';
 import { checkAttributes } from '../vocabulary.ts';
+import { ChoiceDetailPanel } from './choice-detail-panel.ts';
 import { copyInspectionContent, registerInspectionCopy } from './inspection-copy.ts';
 import { installIslandInspector, openIsland } from './inspector.ts';
 
@@ -105,7 +106,14 @@ export class ChoiceIsland extends HTMLElement {
 		legend.textContent = this.question;
 		fieldset.append(legend);
 		const tableView = this.getAttribute('view') === 'table';
-		this.dataset['width'] = this.getAttribute('data-width') ?? (tableView ? 'canvas' : 'reading');
+		const detailsMode = this.getAttribute('details');
+		const beside = detailsMode === 'beside' && !tableView ? new ChoiceDetailPanel() : undefined;
+		this.dataset['width'] =
+			this.getAttribute('data-width') ?? (tableView || beside ? 'canvas' : 'reading');
+		if (beside) {
+			fieldset.classList.add('ex-choice-beside-fieldset');
+			fieldset.append(beside.layout);
+		}
 		const table = document.createElement('table');
 		const tableBody = table.createTBody();
 		if (tableView) {
@@ -179,13 +187,25 @@ export class ChoiceIsland extends HTMLElement {
 					: detailsSource?.cloneNode(true);
 			let depth: HTMLElement | undefined;
 			if (details instanceof HTMLElement) {
-				if (this.getAttribute('details') === 'inline') {
+				if (detailsMode === 'inline') {
 					depth = document.createElement('details');
 					depth.className = 'ex-choice-inline';
 					const toggle = document.createElement('summary');
 					toggle.textContent = 'Details';
 					details.removeAttribute('slot');
 					depth.append(toggle, details);
+				} else if (beside) {
+					let panelId = `${target.id}--choice-details`;
+					while (
+						this.ownerDocument.getElementById(panelId) ||
+						this.source.content.getElementById(panelId)
+					) {
+						panelId += '-panel';
+					}
+					const button = beside.add(details, optionLabel, panelId);
+					button.classList.add('ex-choice-details-button');
+					button.append('Details');
+					titleRow.append(button);
 				} else {
 					depth = document.createElement('div');
 					depth.className = 'ex-choice-depth';
@@ -218,14 +238,14 @@ export class ChoiceIsland extends HTMLElement {
 				body.append(titleRow, summary);
 				if (depth) body.append(depth);
 				target.append(input, body);
-				fieldset.append(target);
+				(beside?.options ?? fieldset).append(target);
 			}
 			rendered.push({ optionId, label: optionLabel, input, target });
 		}
 		this.options = rendered;
 		this.replaceChildren(this.source, fieldset);
 		this.initialized = true;
-		this.normalizeInlineHeadings();
+		this.normalizeDetailHeadings();
 		if (this.isConnected) this.connectControls();
 		registerInspectionCopy(this, (): HTMLElement => this.inspectionCopy());
 		this.setAttribute('label', this.question);
@@ -233,8 +253,10 @@ export class ChoiceIsland extends HTMLElement {
 		this.dispatchEvent(new Event('island-ready', { bubbles: true }));
 	}
 
-	private normalizeInlineHeadings(): void {
-		for (const heading of this.querySelectorAll('.ex-choice-inline :is(h1,h2,h3,h4,h5,h6)')) {
+	private normalizeDetailHeadings(): void {
+		for (const heading of this.querySelectorAll(
+			':is(.ex-choice-inline, .ex-choice-detail-panel) :is(h1,h2,h3,h4,h5,h6)',
+		)) {
 			const local = document.createElement('div');
 			local.className = 'ex-choice-local-heading';
 			local.setAttribute('role', 'heading');
@@ -249,7 +271,7 @@ export class ChoiceIsland extends HTMLElement {
 		this.events.abort();
 		this.events = new AbortController();
 		const { signal } = this.events;
-		this.addEventListener('island-ready', (): void => this.normalizeInlineHeadings(), { signal });
+		this.addEventListener('island-ready', (): void => this.normalizeDetailHeadings(), { signal });
 		if (this.copiedResponse) return;
 		for (const option of this.options)
 			option.target.addEventListener(

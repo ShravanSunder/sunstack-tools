@@ -270,6 +270,8 @@ export class CommentsIsland extends HTMLElement {
 				this.controls.delete(element);
 			}
 		for (const target of this.targets.values()) {
+			// Details can receive selected-text feedback through their stable panel anchor.
+			if (target.element.matches('.ex-choice-detail-panel')) continue;
 			// Table selections have local targets without inserting controls into table structure.
 			if (
 				target.element.matches('table,tr,td,th') &&
