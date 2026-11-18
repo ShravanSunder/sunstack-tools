@@ -14,6 +14,7 @@ import {
 	sharedWalkthroughDestinations,
 	type LoadedNavigation,
 } from './shared-navigation.ts';
+import { navigationContentRoot, publishSharedTreeSource } from './shared-tree-source.ts';
 
 export class HeadingNavigation extends HTMLElement {
 	private contentObserver: MutationObserver | undefined;
@@ -124,6 +125,7 @@ export class HeadingNavigation extends HTMLElement {
 							'Shared navigation cannot also own authored page lists, Map or Walkthrough declarations.',
 						);
 					this.sharedSource = source;
+					publishSharedTreeSource(this, { kind: 'ready', source });
 					this.removeAttribute('aria-busy');
 					this.connectNavigation();
 				})
@@ -136,6 +138,10 @@ export class HeadingNavigation extends HTMLElement {
 					notice.className = 'ex-navigation-error';
 					notice.setAttribute('role', 'alert');
 					notice.textContent = `Navigation unavailable: ${message}`;
+					publishSharedTreeSource(this, {
+						kind: 'unavailable',
+						message: 'Shared map unavailable.',
+					});
 					this.after(notice);
 					this.connectNavigation();
 				});
@@ -161,10 +167,7 @@ export class HeadingNavigation extends HTMLElement {
 			this.connectObservers();
 			return;
 		}
-		this.contentRoot =
-			(this.getAttribute('for') ? document.getElementById(this.getAttribute('for') ?? '') : null) ??
-			document.querySelector<HTMLElement>('ex-document, main') ??
-			document.body;
+		this.contentRoot = navigationContentRoot(this);
 		this.pageLinks = this.hasAttribute('src')
 			? this.sharedSource
 				? sharedPageLinks(this.sharedSource)

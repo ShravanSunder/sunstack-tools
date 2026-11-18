@@ -79,6 +79,70 @@ test.each([
 	},
 );
 
+test.each([
+	{ width: 1600, theme: 'light' },
+	{ width: 1600, theme: 'dark' },
+	{ width: 390, theme: 'light' },
+	{ width: 390, theme: 'dark' },
+])(
+	'shared Trees show page and collection destinations at $width in $theme',
+	async ({ width, theme }): Promise<void> => {
+		await page.viewport(width, 1000);
+		const { document: fixture, frame } = await openFixture('shared-navigation', '', 'state.html');
+		fixture.documentElement.dataset['theme'] = theme;
+		const pageTree = requiredElement(fixture, '#page-tree');
+		const collectionTree = requiredElement(fixture, '#collection-tree');
+		const localTitle = 'Stored custody survives the nap';
+		const title = frame.getByRole('link', { name: localTitle, exact: true });
+		await expect
+			.poll((): Element | null => pageTree.querySelector('a[href="#stored-custody"]'))
+			.not.toBeNull();
+		expect(pageTree.querySelector('a[href$="#hibernate"]')).not.toBeNull();
+		expect(pageTree.querySelector('a[href$="#seq-retry"]')).toBeNull();
+		expect(collectionTree.querySelector('a[href$="how-work-runs.html#seq-retry"]')).not.toBeNull();
+		expect(pageTree.querySelectorAll('.ex-tree-disclosure')).toHaveLength(0);
+		const description = requiredElement(fixture, '#page-tree .ex-tree-description');
+		expect(description.closest('a')).toBeNull();
+		const row = requiredElement(fixture, '#page-tree .ex-tree-node:has(button)');
+		const style = fixture.defaultView?.getComputedStyle(row);
+		expect([style?.paddingBlockStart, style?.paddingInlineStart]).toEqual(['12px', '12px']);
+		expect(fixture.documentElement.scrollWidth).toBeLessThanOrEqual(width);
+		await page.screenshot({ path: browserScreenshotPath(`shared-trees-${width}-${theme}.png`) });
+		const board = requiredElement(fixture, '#custody-board');
+		const mapView = frame.getByRole('button', { name: 'Map view', exact: true });
+		await mapView.click();
+		await expect.poll((): string | null => board.getAttribute('data-mode')).toBe('map');
+		expect(fixture.documentElement.scrollWidth).toBeLessThanOrEqual(width);
+		const treeBody = requiredElement(pageTree, '.ex-tree-body');
+		expect(fixture.defaultView?.getComputedStyle(treeBody).overflowX).toBe('visible');
+		if (width > 1000)
+			await expect
+				.poll(
+					(): boolean =>
+						requiredElement(pageTree, 'a[href="#stored-custody"]').getBoundingClientRect().right <=
+						board.getBoundingClientRect().right,
+				)
+				.toBe(true);
+		await page.screenshot({
+			path: browserScreenshotPath(`shared-trees-board-${width}-${theme}.png`),
+		});
+		await frame.getByRole('button', { name: 'Read view', exact: true }).click();
+		const details = frame.getByRole('button', { name: `Open details for ${localTitle}` });
+		await details.click();
+		const drawer = fixtureLocator(
+			frame,
+			requiredElement(fixture, '[data-presentation="standard"][aria-label="Custody evidence"]'),
+		);
+		await expect
+			.element(drawer.getByText('Acknowledgment follows the durable write.'))
+			.toBeVisible();
+		await userEvent.keyboard('{Escape}');
+		await expect.element(details).toHaveFocus();
+		await title.first().click();
+		await expect.poll((): string => fixture.location.hash).toBe('#stored-custody');
+	},
+);
+
 test('keyboard search cancellation restores the reading location while pointer search restores its button', async (): Promise<void> => {
 	const { document: fixture, frame } = await openFixture('shared-navigation', '', 'state.html');
 	const heading = fixture.querySelector<HTMLElement>('h1');

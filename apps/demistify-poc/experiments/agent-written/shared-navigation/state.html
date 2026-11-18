@@ -12,8 +12,17 @@
   <ex-document id="content">
     <h1>Where delivery state lives</h1>
     <p>The execution design lets the object sleep between events because the facts needed by the next event have an owner outside disposable object memory.</p>
+    <ex-board id="custody-board" mode="read">
+      <div data-width="reading">
+        <ex-tree id="page-tree" navigation="page" layout="map" label="Custody topics">
+          <a slot="details" data-for="#stored-custody" href="#custody-evidence" hidden>Custody evidence</a>
+        </ex-tree>
+      </div>
+    </ex-board>
+    <ex-tree id="collection-tree" navigation="collection" layout="map" label="All delivery topics"></ex-tree>
     <h2 id="stored-custody">Stored custody survives the nap</h2>
     <p>The custody row is stored before central answers Accepted. A push records its send identity and retry time. Its answer arrives as a separate event and matches the connection and send identity before advancing custody.</p>
+    <section id="custody-evidence" label="Custody evidence"><p>Acknowledgment follows the durable write.</p></section>
     <h2 id="disposable-memory">The object instance is disposable</h2>
     <p>A new instance reads storage and socket attachments. It does not depend on an in-memory reply waiter surviving from the sending event.</p>
     <p>This is a reading example of the existing central execution design, not a report that the design has shipped or passed verification.</p>
