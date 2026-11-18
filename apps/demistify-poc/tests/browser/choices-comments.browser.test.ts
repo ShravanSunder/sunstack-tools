@@ -194,6 +194,18 @@ test('beside-card Details closes back to the same trigger and leaves selection u
 		kind: 'text',
 		targetId: 'technical--choice-details',
 	});
+	document.body.replaceChildren();
+	const reopened = await openReviewFixture('beside.html');
+	expect(reopened.document.querySelector('#scope-diagram > svg')).toBeNull();
+	await reopened.frame.getByRole('button', { name: 'Comments (1)', exact: true }).click();
+	await reopened.frame
+		.getByRole('button', { name: 'Show anchor: Details for Technical scope', exact: true })
+		.click();
+	expect(
+		requiredElement(reopened.document, '#technical--choice-details').classList.contains(
+			'ex-comment-active',
+		),
+	).toBe(true);
 });
 
 test('selectable table and inline details retain their authored views at phone width', async (): Promise<void> => {
