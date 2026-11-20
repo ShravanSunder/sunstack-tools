@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { lstat, readFile, realpath, rename, unlink, writeFile } from 'node:fs/promises';
+import { lstat, open, readFile, realpath, rename, unlink, writeFile } from 'node:fs/promises';
 import { dirname, extname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
 
@@ -353,35 +353,48 @@ export async function checkDesignSet(directory: string, siteRoot?: string): Prom
 			`${destination.page}#${destination.fragment}`,
 		]),
 	);
-	// Check successful input reads again before publishing either derived file.
-	await Promise.all(
-		[...inputFiles].map(async ([path, original]) => {
-			const content = await original.catch((error: unknown): undefined => {
-				if (!missing(error)) throw error;
-				return undefined;
+	const lockPath = join(setDirectory, '.demistify-design.lock');
+	const lock = await open(lockPath, 'wx').catch((error: unknown) => {
+		if (error instanceof Error && 'code' in error && error.code === 'EEXIST')
+			throw new Error(`Another design check has the output lock: ${label(lockPath)}`, {
+				cause: error,
 			});
-			if (
-				content !== undefined &&
-				(await readFile(await resolveSiteFile(path), 'utf8')) !== content
-			)
-				throw new Error(`Input changed during design check: ${label(path)}`);
-		}),
-	);
-	const outputs = await Promise.all([
-		planGeneratedJson(join(setDirectory, 'design.json'), {
-			version: 1,
-			pages: design.pages,
-			records: design.records,
-			recordDestinations,
-		}),
-		planGeneratedJson(navigationFile, navigation, (current): boolean => {
-			const parsed = sharedNavigationSchema.safeParse(current);
-			return parsed.success && isDeepStrictEqual(parsed.data, validatedNavigation);
-		}),
-	]);
-	await writeGeneratedFiles(
-		outputs.filter((output): output is GeneratedFile => output !== undefined),
-	);
+		throw error;
+	});
+	try {
+		// Check successful input reads again while holding the output lock.
+		await Promise.all(
+			[...inputFiles].map(async ([path, original]) => {
+				const content = await original.catch((error: unknown): undefined => {
+					if (!missing(error)) throw error;
+					return undefined;
+				});
+				if (
+					content !== undefined &&
+					(await readFile(await resolveSiteFile(path), 'utf8')) !== content
+				)
+					throw new Error(`Input changed during design check: ${label(path)}`);
+			}),
+		);
+		const outputs = await Promise.all([
+			planGeneratedJson(join(setDirectory, 'design.json'), {
+				version: 1,
+				pages: design.pages,
+				records: design.records,
+				recordDestinations,
+			}),
+			planGeneratedJson(navigationFile, navigation, (current): boolean => {
+				const parsed = sharedNavigationSchema.safeParse(current);
+				return parsed.success && isDeepStrictEqual(parsed.data, validatedNavigation);
+			}),
+		]);
+		await writeGeneratedFiles(
+			outputs.filter((output): output is GeneratedFile => output !== undefined),
+		);
+	} finally {
+		await lock.close();
+		await unlink(lockPath);
+	}
 	return [
 		details,
 		`Checked ${ownedPages.size} authored page(s), ${pages.length} navigation page(s), and ${design.records.length} design record(s).`,

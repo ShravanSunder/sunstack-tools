@@ -15,3 +15,5 @@ Use the CLI from the selected Demistify binding. With a local npm installation, 
 4. Run `check` to validate the data, local targets, and Demistify markup. The outputs are `design.json` for record lookup and `navigation.json` for the browser. Edit `design.ts` to change those outputs.
 
 An HTML fragment check verifies that the authored ID exists. Source excerpts and whether a planned check actually proves its rule still need engineering review.
+
+If a check is forcibly interrupted while writing, remove the leftover `.demistify-design.lock` only after the checking process has ended, then rerun the check to regenerate both outputs.

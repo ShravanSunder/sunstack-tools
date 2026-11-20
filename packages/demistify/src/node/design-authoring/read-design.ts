@@ -61,6 +61,7 @@ export function readDesign(
 		strict: true,
 		skipLibCheck: true,
 		allowImportingTsExtensions: true,
+		libReplacement: false,
 		target: typescript.ScriptTarget.ES2022,
 		module: typescript.ModuleKind.ESNext,
 		moduleResolution: typescript.ModuleResolutionKind.Bundler,

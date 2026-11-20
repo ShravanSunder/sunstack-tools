@@ -7,7 +7,7 @@ import { dirname, join } from 'node:path';
 
 import { type DefaultTreeAdapterMap, parse } from 'parse5';
 
-import { headingSlug } from '../core/heading-fragments.ts';
+import { availableHeadingFragment, headingSlug } from '../core/heading-fragments.ts';
 import { parseMarkdownSource } from '../core/markdown-source.ts';
 import {
 	parseBreakdownValue,
@@ -95,6 +95,17 @@ export async function documentFragmentIds(
 		const id = attributeMap(element).get('id');
 		if (id && !element.namespaceURI.endsWith('svg') && !hasAncestor(element, ['svg']))
 			targets.add(id);
+	}
+	const scope =
+		elements.find((element): boolean => element.tagName === 'ex-document') ??
+		elements.find((element): boolean => element.tagName === 'main') ??
+		elements.find((element): boolean => element.tagName === 'body');
+	if (scope) {
+		for (const heading of walk(scope)) {
+			if (!/^h[1-6]$/.test(heading.tagName) || attributeMap(heading).get('id')) continue;
+			const base = `heading-${headingSlug(textOf(heading))}`;
+			targets.add(availableHeadingFragment(base, (id): boolean => targets.has(id)));
+		}
 	}
 	return targets;
 }

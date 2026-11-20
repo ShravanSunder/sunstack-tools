@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process';
-import { mkdir, mkdtemp, readFile, rename, rm, symlink, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rename, rm, symlink, unlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -16,7 +16,7 @@ const page = `<!doctype html><html lang="en">
 <h1>Design</h1><h2 id="NeedOverview">Read the overview</h2><p><a href="../overview.html#scope">Overview</a> and <a href="../overview.html#details--from-markdown">details</a></p>
 </ex-document></body></html>`;
 const overview =
-	'<h1>Overview</h1><h2 id="scope">Site scope</h2><ex-markdown id="details"><script type="text/markdown">## From Markdown</script></ex-markdown>';
+	'<h1>Overview</h1><h2 id="scope">Site scope</h2><h2>Example</h2><h2>Example</h2><ex-markdown id="details"><script type="text/markdown">## From Markdown</script></ex-markdown>';
 
 it('checks a real adjacent page and source inside an explicitly selected site root', async (): Promise<void> => {
 	const directory = await mkdtemp(join(tmpdir(), 'demistify-design-check-'));
@@ -35,6 +35,12 @@ it('checks a real adjacent page and source inside an explicitly selected site ro
 				{ id: 'overview', title: 'Overview', href: '../overview.html', icon: 'file' },
 			],
 			map: [
+				{
+					title: 'Second example',
+					description: 'Open a generated fragment for an HTML heading.',
+					icon: 'file',
+					target: { page: 'overview', fragment: 'heading-example-2' },
+				},
 				{
 					title: 'Markdown details',
 					description: 'Open the generated heading.',
@@ -112,6 +118,13 @@ it('checks a real adjacent page and source inside an explicitly selected site ro
 		expect(await readFile(navigationPath, 'utf8')).toBe(originalNavigation);
 		expect(await readFile(join(deliverable, 'design.json'), 'utf8')).toBe(output);
 		await writeFile(definition, withRecord.replace("'Shared scope'", "'Updated shared scope'"));
+		const lock = join(deliverable, '.demistify-design.lock');
+		await writeFile(lock, '');
+		await expect(run(process.execPath, check)).rejects.toThrow(
+			'Another design check has the output lock',
+		);
+		expect(await readFile(join(deliverable, 'design.json'), 'utf8')).toBe(output);
+		await unlink(lock);
 		await rename(navigationPath, join(deliverable, 'navigation.saved'));
 		await mkdir(navigationPath);
 		await expect(run(process.execPath, check)).rejects.toThrow('Expected a generated file');
