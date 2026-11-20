@@ -175,11 +175,13 @@ test('beside-card Details closes back to the same trigger and leaves selection u
 	await trigger.click();
 	await expect.element(close).toBeVisible();
 	expect(choice.getBoundingClientRect().width).toBeGreaterThan(761);
+	const panel = requiredElement(fixture, '#technical--choice-details');
+	expect(marker.getBoundingClientRect().right).toBeLessThan(panel.getBoundingClientRect().left);
 	expect(
 		requiredElement(fixture, '#technical .ex-choice-details-button').getAttribute('aria-expanded'),
 	).toBe('true');
 	await close.click();
-	expect(requiredElement(fixture, '#technical--choice-details').hasAttribute('hidden')).toBe(true);
+	expect(panel.hasAttribute('hidden')).toBe(true);
 	expect(choice.getBoundingClientRect().width).toBeLessThanOrEqual(761);
 	expect(fixture.activeElement?.getAttribute('aria-label')).toBe(
 		'Open details for Technical scope',

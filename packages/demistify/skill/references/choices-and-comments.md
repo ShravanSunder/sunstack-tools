@@ -66,7 +66,7 @@ The title is one compact inline-Markdown paragraph, supporting emphasis, strong 
 
 Write the secondary text in `<template slot="summary">` using the same Markdown as Walkthrough cards. It supports paragraphs, emphasis, lists, blockquotes, links and inline code. Headings become bold lead paragraphs without page-outline sections. Images become their text labels, fenced code remains readable code text, and tables remain text; authored HTML stays literal. Put actual diagrams, images, full tables and long code in `slot="details"`, using existing library components. Preserve the supplied Markdown and its line structure; do not flatten it into a sentence to fit a card. `content.md` owns exact-source and literal-delimiter handling.
 
-Clicking noninteractive title, Markdown body or card background selects or toggles the option. Native inputs retain their radio/checkbox keyboard behavior. Links, Details, Comments, other buttons and form controls keep their own actions without changing the answer. Dragging to select text selects no answer.
+With a pointer, clicking the title, Markdown body or card background selects or toggles the option. On touch, tap the title or native input to answer. Tapping the card body reveals its comment button and leaves the answer alone. Native inputs retain their radio/checkbox keyboard behavior. Links, Details, Comments, other buttons and form controls keep their own actions without changing the answer. Dragging to select text selects no answer.
 
 ## Choose the response view and optional detail
 

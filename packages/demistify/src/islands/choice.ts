@@ -299,8 +299,10 @@ export class ChoiceIsland extends HTMLElement {
 						window.getSelection()?.toString()
 					)
 						return;
-					if (event instanceof PointerEvent && event.pointerType === 'touch')
+					if (event instanceof PointerEvent && event.pointerType === 'touch') {
 						option.input.focus({ preventScroll: true });
+						return;
+					}
 					option.input.click();
 				},
 				{ signal },

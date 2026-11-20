@@ -180,6 +180,10 @@ ex-choice.ex-choice-default-width:has(> .ex-choice-beside-fieldset):not(
 	.ex-choice-detail-layout:has(.ex-choice-detail-panel:not([hidden])) {
 		grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
 	}
+	.ex-choice-detail-layout:has(> .ex-choice-detail-panels > :not([hidden]))
+		> .ex-choice-detail-options {
+		padding-inline-end: var(--choice-comment-gutter);
+	}
 	.ex-choice-detail-layout {
 		--choice-detail-enter-x: -8px;
 		--choice-detail-enter-y: 0px;
