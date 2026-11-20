@@ -86,6 +86,6 @@ flowchart TD
 
 Good: the node retains its identity and responsibility on meaningful lines, while the document explains the complete validation rules. Bad: one paragraph-wide node label, or missing constraints after shortening it. This example establishes flowchart label syntax; other families follow their own supported grammar.
 
-Shared text uses readable colors and a 16px rendered floor; a view that needs more room scrolls locally. Use Canvas for a rich view and the shared inspector for closer reading. Avoid fixed heights/hidden overflow that crop nodes, legends or labels.
+Entity–relationship diagrams fit the page width so the reader can see the whole schema. In Fullscreen, **Read labels** jumps to readable text size and **Reset zoom** returns to the full diagram. Other diagrams retain the 16px text floor and scroll locally when needed. Use Canvas for a rich view and avoid fixed heights or clipping that hide nodes, legends or labels.
 
 The source checker catches supported syntax and selected render errors. Browser inspection is reserved for a requested visual review or a reported rendering defect, not every authored diagram.
