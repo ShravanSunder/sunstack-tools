@@ -60,6 +60,7 @@ test('detached Markdown finishes with local duplicate and connected heading coll
 
 test('a live comment draft and focused editor survive both sidebar presentation thresholds', async (): Promise<void> => {
 	const { document: fixture, frame } = await openBoundaryReviewFixture();
+	await fixtureLocator(frame, requiredElement(fixture, '#technical')).hover();
 	await fixtureLocator(
 		frame,
 		requiredElement(fixture, '#technical > [data-comment-control]'),
@@ -246,6 +247,7 @@ test('dragging actual card body text creates an option anchor without selecting 
 	expect(readCurrentReview(fixture).answers).toEqual([]);
 	const original = readCurrentReview(fixture).comments[0];
 	await frame.getByRole('button', { name: 'Close comments', exact: true }).click();
+	await fixtureLocator(frame, requiredElement(fixture, '#layout')).hover();
 	await fixtureLocator(frame, requiredElement(fixture, '#layout > [data-comment-control]')).click();
 	expect(
 		fixture.querySelector<HTMLTextAreaElement>('textarea[aria-label="Your comment"]')?.value,
@@ -378,6 +380,7 @@ test('editable shortcuts keep native newlines and unified manual-copy/export con
 		'false',
 	);
 	await fixtureLocator(frame, requiredElement(fixture, '#layout .ex-choice-summary li')).click();
+	await fixtureLocator(frame, requiredElement(fixture, '#technical')).hover();
 	await fixtureLocator(
 		frame,
 		requiredElement(fixture, '#technical > [data-comment-control]'),
@@ -527,6 +530,7 @@ test('malformed declarations reject visibly without another Comments authority',
 
 test('reconnecting one Comments instance under another revision rejects scope mixing', async (): Promise<void> => {
 	const { document: fixture, frame } = await openBoundaryReviewFixture();
+	await fixtureLocator(frame, requiredElement(fixture, '#technical')).hover();
 	await fixtureLocator(
 		frame,
 		requiredElement(fixture, '#technical > [data-comment-control]'),
@@ -566,6 +570,7 @@ test.each(['dark', 'light'])(
 		if (fixture.documentElement.dataset['theme'] !== theme)
 			await frame.getByRole('button', { name: 'Switch light or dark theme', exact: true }).click();
 		await fixtureLocator(frame, requiredElement(fixture, '#layout .ex-choice-summary li')).click();
+		await fixtureLocator(frame, requiredElement(fixture, '#technical')).hover();
 		await fixtureLocator(
 			frame,
 			requiredElement(fixture, '#technical > [data-comment-control]'),

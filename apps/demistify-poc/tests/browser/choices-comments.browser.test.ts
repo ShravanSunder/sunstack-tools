@@ -18,6 +18,7 @@ afterEach(async (): Promise<void> => {
 test('a selected option and its comment share one title in the review rail', async (): Promise<void> => {
 	const { document: fixture, frame } = await openReviewFixture();
 	await frame.getByRole('radio', { name: 'Layout only', exact: true }).click();
+	await fixtureLocator(frame, requiredElement(fixture, '#layout')).hover();
 	await fixtureLocator(frame, requiredElement(fixture, '#layout > [data-comment-control]')).click();
 	await frame
 		.getByRole('textbox', { name: 'Your comment', exact: true })
@@ -34,6 +35,7 @@ test('a selected option and its comment share one title in the review rail', asy
 test('reopening a node edits its saved comment instead of adding another', async (): Promise<void> => {
 	const { document: fixture, frame } = await openReviewFixture();
 	const node = requiredElement(fixture, '#layout > [data-comment-control]');
+	await fixtureLocator(frame, requiredElement(fixture, '#layout')).hover();
 	await fixtureLocator(frame, node).click();
 	await frame.getByRole('textbox', { name: 'Your comment', exact: true }).fill('First note');
 	await frame.getByRole('button', { name: 'Add comment', exact: true }).click();
@@ -77,6 +79,7 @@ test('body, native controls and repainted Comment SVG keep answer and action sem
 	expect(readChoiceResponse(choice).selected).toEqual([
 		{ optionId: 'layout', label: 'Layout only' },
 	]);
+	await fixtureLocator(frame, requiredElement(fixture, '#technical')).hover();
 	await fixtureLocator(
 		frame,
 		requiredElement(fixture, '#technical > [data-comment-control] svg'),
@@ -157,6 +160,12 @@ test('right-aligned card Details uses the native inspector and preserves the out
 
 test('beside-card Details closes back to the same trigger and leaves selection unchanged', async (): Promise<void> => {
 	const { document: fixture, frame } = await openReviewFixture('beside.html');
+	const choice = requiredElement(fixture, '#scope-question');
+	const option = requiredElement(choice, '#technical');
+	const marker = requiredElement(option, ':scope > .ex-entity-comment');
+	expect(choice.getBoundingClientRect().width).toBeLessThanOrEqual(761);
+	expect(marker.getBoundingClientRect().left).toBeGreaterThan(option.getBoundingClientRect().right);
+	expect(fixture.defaultView?.getComputedStyle(marker).opacity).toBe('0');
 	const trigger = frame.getByRole('button', {
 		name: 'Open details for Technical scope',
 		exact: true,
@@ -165,11 +174,13 @@ test('beside-card Details closes back to the same trigger and leaves selection u
 	await frame.getByRole('radio', { name: 'Layout only', exact: true }).click();
 	await trigger.click();
 	await expect.element(close).toBeVisible();
+	expect(choice.getBoundingClientRect().width).toBeGreaterThan(761);
 	expect(
 		requiredElement(fixture, '#technical .ex-choice-details-button').getAttribute('aria-expanded'),
 	).toBe('true');
 	await close.click();
 	expect(requiredElement(fixture, '#technical--choice-details').hasAttribute('hidden')).toBe(true);
+	expect(choice.getBoundingClientRect().width).toBeLessThanOrEqual(761);
 	expect(fixture.activeElement?.getAttribute('aria-label')).toBe(
 		'Open details for Technical scope',
 	);
@@ -303,6 +314,7 @@ test.each([1600, 390])(
 
 test('same-revision reload retains comment identities and bodies while answers remain current page inputs', async (): Promise<void> => {
 	const { document: fixture, frame } = await openReviewFixture();
+	await fixtureLocator(frame, requiredElement(fixture, '#technical')).hover();
 	await fixtureLocator(
 		frame,
 		requiredElement(fixture, '#technical > [data-comment-control]'),
@@ -323,6 +335,7 @@ test('invalid stored data stays untouched and is visibly unsaved after a new com
 	const key = commentStorageKey(identity);
 	localStorage.setItem(key, '{broken');
 	const { document: fixture, frame } = await openReviewFixture();
+	await fixtureLocator(frame, requiredElement(fixture, '#layout')).hover();
 	await fixtureLocator(frame, requiredElement(fixture, '#layout > [data-comment-control]')).click();
 	await frame.getByRole('textbox', { name: 'Your comment', exact: true }).fill('Memory feedback');
 	await frame.getByRole('button', { name: 'Add comment', exact: true }).click();
