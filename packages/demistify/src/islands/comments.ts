@@ -21,6 +21,7 @@ import { readChoiceResponses } from './choice.ts';
 import { CommentsView } from './comments-view.ts';
 
 const boundDocuments = new WeakMap<HTMLElement, CommentsIsland>();
+const compactComments = '(max-width: 760px), (hover: none)';
 
 /** One original document owns feedback; inspector copies never bind another controller. */
 export class CommentsIsland extends HTMLElement {
@@ -34,7 +35,10 @@ export class CommentsIsland extends HTMLElement {
 	private events = new AbortController();
 	private observer: MutationObserver | undefined;
 	private frame: number | undefined;
+	private gutterFrame: number | undefined;
+	private readonly diagramResize = new ResizeObserver((): void => this.placeDiagramGutters());
 	private candidate: ReturnType<typeof captureCommentAnchor>;
+	private tappedTarget: HTMLElement | undefined;
 	private composing: CommentAnchor | undefined;
 	private active: PageComment | undefined;
 	private readonly highlightName = `ex-comments-${crypto.randomUUID()}`;
@@ -86,6 +90,7 @@ export class CommentsIsland extends HTMLElement {
 				'A Comments instance cannot change document identity or revision. Use a new Comments surface.',
 			);
 		this.root = root;
+		root.classList.add('ex-review-document');
 		this.store ??= createCommentStore(identity);
 		boundDocuments.set(root, this);
 		this.events.abort();
@@ -118,6 +123,11 @@ export class CommentsIsland extends HTMLElement {
 			},
 			visibility: (open): void => {
 				this.trigger?.setAttribute('aria-expanded', String(open));
+				if (open) this.clearTappedTarget();
+			},
+			markersVisible: (): boolean => root.hasAttribute('data-show-comment-markers'),
+			showMarkers: (visible): void => {
+				this.root?.toggleAttribute('data-show-comment-markers', visible);
 			},
 		});
 		this.trigger.addEventListener('click', (): void => this.view?.toggle(), { signal });
@@ -128,10 +138,26 @@ export class CommentsIsland extends HTMLElement {
 			'click',
 			(): void => {
 				if (this.candidate) this.view?.compose(this.candidate.anchor);
+				else if (this.tappedTarget) this.controls.get(this.tappedTarget)?.click();
 			},
 			{ signal },
 		);
 		document.addEventListener('selectionchange', (): void => this.captureSelection(), { signal });
+		document.addEventListener('click', (event): void => this.captureTouchTarget(event), { signal });
+		window.addEventListener(
+			'resize',
+			(): void => {
+				if (!matchMedia(compactComments).matches) this.clearTappedTarget();
+				this.placeDiagramGutters();
+			},
+			{ signal },
+		);
+		window.addEventListener('scroll', (): void => this.placeDiagramGutters(), {
+			capture: true,
+			passive: true,
+			signal,
+		});
+		this.diagramResize.observe(root);
 		document.addEventListener(
 			'keydown',
 			(event: KeyboardEvent): void => {
@@ -155,6 +181,16 @@ export class CommentsIsland extends HTMLElement {
 			{ signal },
 		);
 		root.addEventListener('island-ready', (): void => this.refreshTargets(), { signal });
+		root.addEventListener(
+			'focusin',
+			(event): void => {
+				if (!(event.target instanceof HTMLElement) || !event.target.matches(':focus-visible'))
+					return;
+				const diagram = event.target.closest('ex-mermaid[data-comment-gutter-offscreen]');
+				diagram?.scrollIntoView({ block: 'center', inline: 'nearest' });
+			},
+			{ signal },
+		);
 		root.addEventListener(
 			'choice-change',
 			(): void => {
@@ -201,10 +237,15 @@ export class CommentsIsland extends HTMLElement {
 		this.observer?.disconnect();
 		if (this.frame !== undefined) cancelAnimationFrame(this.frame);
 		this.frame = undefined;
+		this.diagramResize.disconnect();
+		if (this.gutterFrame !== undefined) cancelAnimationFrame(this.gutterFrame);
+		this.gutterFrame = undefined;
 		this.view?.close();
 		this.unregisterControl?.();
 		this.unregisterControl = undefined;
 		this.selectionButton?.remove();
+		this.clearTappedTarget();
+		this.root?.classList.remove('ex-review-document');
 		this.highlightStyle.remove();
 		for (const [element, control] of this.controls) {
 			control.remove();
@@ -232,6 +273,7 @@ export class CommentsIsland extends HTMLElement {
 		const button = document.createElement('button');
 		button.type = 'button';
 		button.className = 'ex-selection-comment';
+		button.dataset['commentControl'] = '';
 		button.append(createCommentIcon(), 'Comment');
 		button.setAttribute('aria-label', 'Comment on selected text');
 		button.hidden = true;
@@ -265,6 +307,7 @@ export class CommentsIsland extends HTMLElement {
 		);
 		for (const [element, control] of this.controls)
 			if (!originalNodes.has(element)) {
+				this.diagramResize.unobserve(element);
 				control.remove();
 				element.classList.remove('ex-comment-target');
 				this.controls.delete(element);
@@ -306,8 +349,79 @@ export class CommentsIsland extends HTMLElement {
 				button,
 			);
 			this.controls.set(target.element, button);
+			if (target.element.matches('ex-mermaid')) this.diagramResize.observe(target.element);
 		}
+		this.placeDiagramGutters();
 		this.repaint();
+	}
+
+	private placeDiagramGutters(): void {
+		if (this.gutterFrame !== undefined) return;
+		this.gutterFrame = requestAnimationFrame((): void => {
+			this.gutterFrame = undefined;
+			if (matchMedia(compactComments).matches) return;
+			// The Mermaid host scrolls its SVG. Fixed positioning keeps both actions outside that clip.
+			for (const element of this.controls.keys()) {
+				if (!(element instanceof HTMLElement) || !element.matches('ex-mermaid')) continue;
+				const bounds = element.getBoundingClientRect();
+				const start =
+					getComputedStyle(element).direction === 'rtl' ? innerWidth - bounds.left : bounds.right;
+				element.style.setProperty('--comment-gutter-start', `${start}px`);
+				element.style.setProperty('--comment-gutter-top', `${Math.max(56, bounds.top)}px`);
+				element.toggleAttribute(
+					'data-comment-gutter-offscreen',
+					bounds.bottom <= 0 || bounds.top >= innerHeight,
+				);
+			}
+		});
+	}
+
+	private clearTappedTarget(): void {
+		if (!this.tappedTarget) return;
+		this.tappedTarget.removeAttribute('data-comment-tapped');
+		this.tappedTarget = undefined;
+		const button = this.selectionButton;
+		if (!button) return;
+		button.hidden = true;
+		button.classList.remove('ex-block-comment-action');
+		if (button.isConnected) document.body.append(button);
+	}
+
+	private captureTouchTarget(event: PointerEvent): void {
+		if (!(event.target instanceof Element) || this.selectionButton?.contains(event.target)) return;
+		this.clearTappedTarget();
+		if (
+			event.pointerType !== 'touch' ||
+			!matchMedia(compactComments).matches ||
+			!this.root?.contains(event.target) ||
+			this.root.hasAttribute('data-show-comment-markers') ||
+			!window.getSelection()?.isCollapsed ||
+			event.target.closest(
+				'a,button,input,label,summary,textarea,select,[role="button"],[contenteditable]',
+			)
+		)
+			return;
+		const target = event.target.closest<HTMLElement>('.ex-comment-target');
+		const button = this.selectionButton;
+		if (!target || !this.controls.has(target) || !button) return;
+		this.tappedTarget = target;
+		target.dataset['commentTapped'] = '';
+		button.replaceChildren(createCommentIcon(), 'Comment on this block');
+		button.setAttribute('aria-label', 'Comment on this block');
+		button.classList.add('ex-block-comment-action');
+		// Put the action after a list or table as a whole when the target is a list item or row.
+		const block = target.matches('li, tr')
+			? target.closest('ul, ol, .ex-table-scroll, table')
+			: target;
+		(block ?? target).after(button);
+		button.hidden = false;
+	}
+
+	private positionCommentAction(bounds: DOMRect): void {
+		if (!this.selectionButton) return;
+		this.selectionButton.hidden = false;
+		this.selectionButton.style.left = `${Math.max(8, Math.min(bounds.left, innerWidth - this.selectionButton.offsetWidth - 8))}px`;
+		this.selectionButton.style.top = `${Math.max(52, Math.min(bounds.bottom + 8, innerHeight - 52))}px`;
 	}
 
 	private captureSelection(): void {
@@ -321,11 +435,13 @@ export class CommentsIsland extends HTMLElement {
 		this.candidate = selection
 			? captureCommentAnchor(selection, this.targets, this.root)
 			: undefined;
+		if (this.candidate) this.clearTappedTarget();
+		if (this.tappedTarget) return;
 		this.selectionButton.hidden = !this.candidate;
 		if (!this.candidate) return;
-		const bounds = this.candidate.range.getBoundingClientRect();
-		this.selectionButton.style.left = `${Math.max(8, Math.min(bounds.left, innerWidth - 140))}px`;
-		this.selectionButton.style.top = `${Math.max(52, Math.min(bounds.bottom + 8, innerHeight - 52))}px`;
+		this.selectionButton.replaceChildren(createCommentIcon(), 'Comment');
+		this.selectionButton.setAttribute('aria-label', 'Comment on selected text');
+		this.positionCommentAction(this.candidate.range.getBoundingClientRect());
 	}
 
 	private reveal(comment: PageComment): string | undefined {

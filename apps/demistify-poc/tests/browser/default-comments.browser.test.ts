@@ -1,5 +1,5 @@
 import { afterEach, expect, test } from 'vitest';
-import { page } from 'vitest/browser';
+import { page, userEvent } from 'vitest/browser';
 import * as Zod from 'zod';
 
 import { fixtureLocator, openFixture, requiredElement } from './fixture-page.ts';
@@ -248,10 +248,19 @@ test.each([1600, 390])(
 		const range = fixture.createRange();
 		range.selectNodeContents(text);
 		const button = requiredElement(paragraph, ':scope > .ex-entity-comment');
-		for (const rectangle of range.getClientRects())
-			expect(rectangle.right).toBeLessThanOrEqual(button.getBoundingClientRect().left + 1);
-		await fixtureLocator(frame, requiredElement(root, 'h1')).hover();
-		await fixtureLocator(frame, requiredElement(root, 'h1 > .ex-entity-comment')).click();
+		if (width === 1600) {
+			for (const rectangle of range.getClientRects())
+				expect(rectangle.right).toBeLessThanOrEqual(button.getBoundingClientRect().left + 1);
+			await fixtureLocator(frame, requiredElement(root, 'h1')).hover();
+			await fixtureLocator(frame, requiredElement(root, 'h1 > .ex-entity-comment')).click();
+		} else {
+			expect(fixture.defaultView?.getComputedStyle(button).opacity).toBe('0');
+			expect(fixture.defaultView?.getComputedStyle(paragraph).paddingInlineEnd).toBe('0px');
+			const headingMarker = root.querySelector<HTMLButtonElement>('h1 > .ex-entity-comment');
+			if (!headingMarker) throw new Error('Missing heading comment button');
+			headingMarker.focus();
+			await userEvent.keyboard('{Enter}');
+		}
 		await expect
 			.element(frame.getByRole('textbox', { name: 'Your comment', exact: true }))
 			.toBeVisible();
@@ -266,6 +275,7 @@ test('an authored named target inside an interactive island survives generated-U
 	const intro = requiredElement(fixture, '#graph-intro');
 	expect(intro.querySelectorAll(':scope > .ex-entity-comment')).toHaveLength(1);
 	expect(fixture.querySelector('ex-explorer h1 .ex-entity-comment')).toBeNull();
+	await fixtureLocator(frame, intro).hover();
 	await fixtureLocator(frame, requiredElement(intro, ':scope > .ex-entity-comment')).click();
 	await frame.getByRole('textbox', { name: 'Your comment', exact: true }).fill('Graph is checked.');
 	await frame.getByRole('button', { name: 'Add comment', exact: true }).click();

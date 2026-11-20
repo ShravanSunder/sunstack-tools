@@ -28,6 +28,7 @@ declare module 'vitest/browser' {
 		clickInspectionBackdrop: () => Promise<void>;
 		setReducedMotion: (preference: 'reduce' | 'no-preference') => Promise<void>;
 		wheelLocalContent: (selector: string, deltaX: number) => Promise<void>;
+		tapReviewTarget: (selector: string) => Promise<void>;
 		dragReviewSelection: (coordinates: {
 			readonly startX: number;
 			readonly startY: number;
@@ -36,6 +37,23 @@ declare module 'vitest/browser' {
 		}) => Promise<void>;
 	}
 }
+
+/** Chromium converts touch input into the same pointer events as a tap on the reader. */
+export const tapReviewTarget: BrowserCommand<[string], void> = async (context, selector) => {
+	if (context.provider.name !== 'playwright') throw new Error('Touch input needs Chromium.');
+	const target = context.iframe.getByTestId('explainer').contentFrame().locator(selector);
+	await target.scrollIntoViewIfNeeded();
+	const bounds = await target.boundingBox();
+	if (!bounds) throw new Error('Touch target is not visible.');
+	const session = await context.page.context().newCDPSession(context.page);
+	try {
+		const touchPoints = [{ x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 }];
+		await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints });
+		await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+	} finally {
+		await session.detach();
+	}
+};
 
 /** Native wheel input decides local horizontal reachability; no DOM scroll offset is assigned. */
 export const wheelLocalContent: BrowserCommand<[string, number], void> = async (

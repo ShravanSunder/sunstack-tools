@@ -438,7 +438,11 @@ test('phone anchor reveal dismisses Comments, missing targets stay honest, and o
 	const { document: fixture, frame } = await openBoundaryReviewFixture();
 	const context = requiredElement(fixture, '#context');
 	context.scrollIntoView({ block: 'center' });
-	await fixtureLocator(frame, requiredElement(context, ':scope > [data-comment-control]')).click();
+	// On a compact reader the exact section action is revealed by keyboard focus.
+	const marker = context.querySelector<HTMLButtonElement>(':scope > button[data-comment-control]');
+	if (!marker) throw new Error('Missing comment button');
+	marker.focus();
+	await userEvent.keyboard('{Enter}');
 	await frame.getByRole('textbox', { name: 'Your comment', exact: true }).fill('Context feedback');
 	await frame.getByRole('button', { name: 'Add comment', exact: true }).click();
 	await frame.getByRole('button', { name: 'Show anchor: Review context', exact: true }).click();

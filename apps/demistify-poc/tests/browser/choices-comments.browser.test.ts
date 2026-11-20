@@ -2,6 +2,7 @@ import { afterEach, beforeEach, expect, test } from 'vitest';
 import { commands, page, userEvent } from 'vitest/browser';
 
 import { commentStorageKey } from '../../../../packages/demistify/src/core/comment-store.ts';
+import { browserScreenshotPath } from './browser-evidence.ts';
 import { fixtureLocator, requiredElement } from './fixture-page.ts';
 import { readChoiceResponse, readCurrentReview, openReviewFixture } from './review-fixture.ts';
 
@@ -31,6 +32,102 @@ test('a selected option and its comment share one title in the review rail', asy
 	expect(requiredElement(fixture, '.ex-comments-body').textContent).toContain('Keep the boundary.');
 	expect(readCurrentReview(fixture).comments).toHaveLength(1);
 });
+
+test.each(['dark', 'light'])(
+	'desktop %s review keeps the two diagram controls outside and reveals only the hovered target',
+	async (theme): Promise<void> => {
+		const { document: fixture, frame } = await openReviewFixture();
+		fixture.documentElement.dataset['theme'] = theme;
+		const paragraph = requiredElement(fixture, '#first-passage');
+		const diagram = fixture.createElement('ex-mermaid');
+		diagram.setAttribute('label', 'Review diagram');
+		diagram.innerHTML = '<script type="text/plain">flowchart LR\nA[Start] --> B[Finish]</script>';
+		paragraph.after(diagram);
+		diagram.scrollIntoView({ block: 'center' });
+		await expect.poll(() => diagram.querySelector(':scope > svg') !== null).toBe(true);
+		const marker = requiredElement(diagram, ':scope > .ex-entity-comment');
+		const fullscreen = requiredElement(diagram, ':scope > .ex-inspect-controls');
+		const paragraphMarker = requiredElement(paragraph, ':scope > .ex-entity-comment');
+		const opacity = (element: Element): string =>
+			fixture.defaultView?.getComputedStyle(element).opacity ?? '';
+
+		await frame.getByRole('button', { name: 'Comments (0)', exact: true }).hover();
+		await expect.poll(() => opacity(marker)).toBe('0');
+		await expect.poll(() => opacity(fullscreen)).toBe('0');
+		await fixtureLocator(frame, diagram).hover();
+		await expect.poll(() => opacity(marker)).toBe('1');
+		await expect.poll(() => opacity(fullscreen)).toBe('1');
+		expect(opacity(paragraphMarker)).toBe('0');
+		const edge = diagram.getBoundingClientRect().right;
+		expect(marker.getBoundingClientRect().left).toBeGreaterThan(edge);
+		expect(fullscreen.getBoundingClientRect().left).toBeGreaterThan(edge);
+		await page.screenshot({
+			path: browserScreenshotPath(`reader-comment-gutter-desktop-${theme}.png`),
+		});
+
+		await fixtureLocator(frame, marker).click();
+		await frame.getByRole('textbox', { name: 'Your comment', exact: true }).fill('A diagram note.');
+		await frame.getByRole('button', { name: 'Add comment', exact: true }).click();
+		await frame.getByRole('button', { name: 'Close comments', exact: true }).click();
+		await fixtureLocator(frame, paragraph).click();
+		await expect.poll(() => opacity(marker)).toBe('1');
+		await expect.poll(() => opacity(fullscreen)).toBe('0');
+		expect(readCurrentReview(fixture).comments[0]?.anchor.targetId).toBe(diagram.id);
+	},
+);
+
+test.each(['dark', 'light'])(
+	'phone-width %s review hides markers until requested and can compose from a tapped paragraph',
+	async (theme): Promise<void> => {
+		await page.viewport(390, 850);
+		const { document: fixture, frame } = await openReviewFixture();
+		fixture.documentElement.dataset['theme'] = theme;
+		const paragraph = requiredElement(fixture, '#first-passage');
+		const paragraphMarker = requiredElement(paragraph, ':scope > .ex-entity-comment');
+		const choiceMarker = requiredElement(fixture, '#technical > .ex-entity-comment');
+		const opacity = (element: Element): string =>
+			fixture.defaultView?.getComputedStyle(element).opacity ?? '';
+		expect(opacity(paragraphMarker)).toBe('0');
+		expect(opacity(choiceMarker)).toBe('0');
+		expect(fixture.defaultView?.getComputedStyle(paragraph).paddingInlineEnd).toBe('0px');
+
+		await frame.getByRole('button', { name: 'Comments (0)', exact: true }).click();
+		await frame
+			.getByRole('checkbox', { name: 'Show comment markers on the page', exact: true })
+			.click();
+		await expect.poll(() => opacity(paragraphMarker)).toBe('1');
+		await expect.poll(() => opacity(choiceMarker)).toBe('1');
+		await frame.getByRole('button', { name: 'Comments (0)', exact: true }).click();
+		await frame
+			.getByRole('checkbox', { name: 'Show comment markers on the page', exact: true })
+			.click();
+		await expect.poll(() => opacity(paragraphMarker)).toBe('0');
+		expect(fixture.documentElement.scrollWidth).toBeLessThanOrEqual(
+			fixture.documentElement.clientWidth,
+		);
+		await page.screenshot({
+			path: browserScreenshotPath(`reader-comment-markers-phone-${theme}.png`),
+		});
+
+		await commands.tapReviewTarget('#first-passage');
+		const tapAction = frame.getByRole('button', { name: 'Comment on this block', exact: true });
+		await expect.element(tapAction).toBeVisible();
+		const button = requiredElement(fixture, '.ex-block-comment-action');
+		expect(button.getBoundingClientRect().bottom).toBeLessThanOrEqual(
+			requiredElement(fixture, '#second-passage').getBoundingClientRect().top,
+		);
+		await page.screenshot({ path: browserScreenshotPath(`reader-comment-tap-phone-${theme}.png`) });
+		await tapAction.click();
+		await frame
+			.getByRole('textbox', { name: 'Your comment', exact: true })
+			.fill('A paragraph note.');
+		await frame.getByRole('button', { name: 'Add comment', exact: true }).click();
+		expect(readCurrentReview(fixture).comments[0]?.anchor.targetId).toBe(paragraph.id);
+		await frame.getByRole('button', { name: 'Close comments', exact: true }).click();
+		await fixtureLocator(frame, requiredElement(fixture, 'h1')).hover();
+		await expect.poll(() => opacity(paragraphMarker)).toBe('0');
+	},
+);
 
 test('reopening a node edits its saved comment instead of adding another', async (): Promise<void> => {
 	const { document: fixture, frame } = await openReviewFixture();
@@ -436,10 +533,12 @@ test.each([1600, 390])(
 		await expect
 			.poll((): boolean => !!workspace.querySelector('#workspace-rule > [data-comment-control]'))
 			.toBe(true);
-		await fixtureLocator(
-			frame,
-			requiredElement(workspace, '#workspace-rule > [data-comment-control]'),
-		).click();
+		const workspaceMarker = workspace.querySelector<HTMLButtonElement>(
+			'#workspace-rule > button[data-comment-control]',
+		);
+		if (!workspaceMarker) throw new Error('Missing workspace comment button');
+		workspaceMarker.focus();
+		await userEvent.keyboard('{Enter}');
 		await frame
 			.getByRole('textbox', { name: 'Your comment', exact: true })
 			.fill('Check the pointer path.');
