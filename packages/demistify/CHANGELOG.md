@@ -1,5 +1,11 @@
 # @sunstack/demistify
 
+## 1.25.1
+
+### Patch Changes
+
+- c3e2693: Keep Choice cards at reading width until beside-card Details opens. Place card comment buttons outside the border and reveal them on hover or focus. Keep saved comment markers visible.
+
 ## 1.25.0
 
 ### Minor Changes
