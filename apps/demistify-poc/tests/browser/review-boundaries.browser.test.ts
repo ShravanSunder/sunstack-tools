@@ -575,10 +575,11 @@ test.each(['dark', 'light'])(
 			await frame.getByRole('button', { name: 'Switch light or dark theme', exact: true }).click();
 		await fixtureLocator(frame, requiredElement(fixture, '#layout .ex-choice-summary li')).click();
 		await fixtureLocator(frame, requiredElement(fixture, '#technical')).hover();
-		await fixtureLocator(
-			frame,
-			requiredElement(fixture, '#technical > [data-comment-control]'),
-		).click();
+		const marker = fixture.querySelector<HTMLButtonElement>('#technical > [data-comment-control]');
+		if (!marker) throw new Error('Missing option comment button');
+		expect(fixture.defaultView?.getComputedStyle(marker).opacity).toBe('0');
+		marker.focus();
+		await userEvent.keyboard('{Enter}');
 		await frame.getByRole('textbox', { name: 'Your comment', exact: true }).fill('Theme feedback');
 		await frame.getByRole('button', { name: 'Add comment', exact: true }).click();
 		const panel = requiredElement(fixture, 'dialog[open]');
