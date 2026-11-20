@@ -9,6 +9,7 @@
  */
 import { readFile, writeFile } from 'node:fs/promises';
 import { dirname, relative, resolve } from 'node:path';
+import { parseArgs } from 'node:util';
 
 import { applyEdits, type CheckOptions, checkHtml, formatFindings } from '../src/node/check.ts';
 import { indexCollectionSearch, type SearchPageSource } from '../src/node/collection-search.ts';
@@ -41,6 +42,37 @@ async function readHookFile(): Promise<string | undefined> {
 
 async function main(): Promise<number> {
 	const [command, ...rest] = process.argv.slice(2);
+	if (command === 'design') {
+		const [action, ...args] = rest;
+		const usage =
+			'Usage: demistify design init [directory]\n       demistify design check [directory] [--site-root <directory>]';
+		if (!action || action === '--help') {
+			write(usage);
+			return 0;
+		}
+		const { values, positionals } = parseArgs({
+			args,
+			allowPositionals: true,
+			options: { 'site-root': { type: 'string' }, help: { type: 'boolean' } },
+		});
+		if (values.help) {
+			write(usage);
+			return 0;
+		}
+		const [directory = '.'] = positionals;
+		if (positionals.length <= 1 && action === 'init' && values['site-root'] === undefined) {
+			const { initDesignSet } = await import('../src/node/design-authoring/init-design.ts');
+			write(await initDesignSet(directory));
+			return 0;
+		}
+		if (positionals.length <= 1 && action === 'check') {
+			const { checkDesignSet } = await import('../src/node/design-authoring/check-design.ts');
+			write(await checkDesignSet(directory, values['site-root']));
+			return 0;
+		}
+		write(usage);
+		return 1;
+	}
 	if (command === 'prepare') {
 		const [directory] = rest;
 		if (!directory || rest.length !== 1) {
@@ -109,7 +141,7 @@ async function main(): Promise<number> {
 	}
 	if (command !== 'check') {
 		write(
-			'Usage: demistify check [--fix] [--render] [--no-diagrams] <page.html …>\n       demistify check --hook',
+			'Usage: demistify check [--fix] [--render] [--no-diagrams] <page.html …>\n       demistify check --hook\n       demistify design --help',
 		);
 		return command ? 1 : 0;
 	}
