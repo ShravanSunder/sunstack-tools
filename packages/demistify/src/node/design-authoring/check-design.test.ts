@@ -15,8 +15,14 @@ const page = `<!doctype html><html lang="en">
 <body><ex-nav for="content" src="./navigation.json"></ex-nav><ex-document id="content">
 <h1>Design</h1><h2 id="NeedOverview">Read the overview</h2><p><a href="../overview.html#scope">Overview</a> and <a href="../overview.html#details--from-markdown">details</a></p>
 </ex-document></body></html>`;
-const overview =
-	'<h1>Overview</h1><h2 id="scope">Site scope</h2><h2>Example</h2><h2>Example</h2><ex-markdown id="details"><script type="text/markdown">## From Markdown</script></ex-markdown>';
+const overview = `<!doctype html><html lang="en">
+<head><title>Overview</title><script type="module" src="https://demistify.getagentstudio.dev/v1/runtime.js"></script></head>
+<body><ex-nav for="overview-details"></ex-nav>
+<ex-document id="overview"><h1>Overview</h1><h2 id="scope">Site scope</h2></ex-document>
+<main id="overview-details"><h2>Example</h2><h2>Example</h2>
+<template><h2 id="heading-example-2">Inert template</h2></template>
+<ex-markdown id="details"><script type="text/markdown">## From Markdown</script></ex-markdown>
+</main></body></html>`;
 
 it('checks a real adjacent page and source inside an explicitly selected site root', async (): Promise<void> => {
 	const directory = await mkdtemp(join(tmpdir(), 'demistify-design-check-'));

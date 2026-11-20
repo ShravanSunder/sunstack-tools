@@ -89,20 +89,41 @@ export async function documentFragmentIds(
 	html: string,
 	readSource?: CheckOptions['readSource'],
 ): Promise<ReadonlySet<string>> {
-	const elements = Array.from(walk(parse(html)));
+	const elements = Array.from(walk(parse(html), false));
+	const bindsRuntime = elements.some(
+		(element): boolean =>
+			element.tagName === 'script' && runtimeSource.test(attributeMap(element).get('src') ?? ''),
+	);
 	const targets = new Set(await markdownTargets(elements, readSource));
 	for (const element of elements) {
 		const id = attributeMap(element).get('id');
 		if (id && !element.namespaceURI.endsWith('svg') && !hasAncestor(element, ['svg']))
 			targets.add(id);
 	}
-	const scope =
-		elements.find((element): boolean => element.tagName === 'ex-document') ??
-		elements.find((element): boolean => element.tagName === 'main') ??
+	if (!bindsRuntime) return targets;
+	const owners = elements.filter((element): boolean => element.tagName === 'ex-nav');
+	const defaultScope =
+		elements.find((element): boolean => ['ex-document', 'main'].includes(element.tagName)) ??
 		elements.find((element): boolean => element.tagName === 'body');
-	if (scope) {
-		for (const heading of walk(scope)) {
+	const scopes = new Set(
+		owners.map((owner): Element | undefined => {
+			const reference = attributeMap(owner).get('for');
+			return (
+				(reference
+					? elements.find((element): boolean => attributeMap(element).get('id') === reference)
+					: undefined) ?? defaultScope
+			);
+		}),
+	);
+	if (!owners.length)
+		scopes.add(elements.find((element): boolean => element.tagName === 'ex-document'));
+	const assigned = new Set<Element>();
+	for (const scope of scopes) {
+		if (!scope) continue;
+		for (const heading of walk(scope, false)) {
 			if (!/^h[1-6]$/.test(heading.tagName) || attributeMap(heading).get('id')) continue;
+			if (assigned.has(heading)) continue;
+			assigned.add(heading);
 			const base = `heading-${headingSlug(textOf(heading))}`;
 			targets.add(availableHeadingFragment(base, (id): boolean => targets.has(id)));
 		}
@@ -151,17 +172,19 @@ const markdownHosts = new Set([
 /** CSS the author may write: layout only; the library owns colour, borders, type and shadows. */
 const layoutProperty =
 	/^(display|grid|gap|row-gap|column-gap|flex|order|align|justify|place|position|inset|top|right|bottom|left|width|height|min-|max-|margin|padding|overflow|z-index|aspect-ratio|box-sizing|container)/;
+const runtimeSource = /runtime\.js(\?|$)/;
 
 function isElement(node: DefaultTreeAdapterMap['node']): node is Element {
 	return 'tagName' in node;
 }
 
-function* walk(parent: ParentNode): Generator<Element> {
+function* walk(parent: ParentNode, includeTemplates = true): Generator<Element> {
 	for (const child of parent.childNodes) {
 		if (!isElement(child)) continue;
 		yield child;
-		if (child.tagName === 'template' && 'content' in child) yield* walk(child.content);
-		else yield* walk(child);
+		if (child.tagName === 'template' && 'content' in child) {
+			if (includeTemplates) yield* walk(child.content, includeTemplates);
+		} else yield* walk(child, includeTemplates);
 	}
 }
 
@@ -429,8 +452,7 @@ export async function checkHtml(source: string, options: CheckOptions = {}): Pro
 				'A Gallery needs a dedicated page: one <ex-gallery> directly in <ex-document>, with only an optional preceding <h1>. Move prose to another page and link here; use an ordinary <figure> for an inline picture.',
 			);
 		if (name === 'link' && /theme\.css(\?|$)/.test(attributes.get('href') ?? '')) loadsTheme = true;
-		if (name === 'script' && /runtime\.js(\?|$)/.test(attributes.get('src') ?? ''))
-			loadsRuntime = true;
+		if (name === 'script' && runtimeSource.test(attributes.get('src') ?? '')) loadsRuntime = true;
 		if (name === 'style')
 			for (const property of new Set(cssProblems(textOf(element))))
 				report(
