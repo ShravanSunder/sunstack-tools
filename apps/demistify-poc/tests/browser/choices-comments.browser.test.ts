@@ -7,6 +7,10 @@ import { fixtureLocator, requiredElement } from './fixture-page.ts';
 import { readChoiceResponse, readCurrentReview, openReviewFixture } from './review-fixture.ts';
 
 const identity = { documentId: 'demistify-choice-fixture', documentRevision: 'r1' };
+function controlCenter(control: Element): { x: number; y: number } {
+	const bounds = control.getBoundingClientRect();
+	return { x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2 };
+}
 beforeEach((): void => {
 	localStorage.removeItem(commentStorageKey(identity));
 });
@@ -34,7 +38,7 @@ test('a selected option and its comment share one title in the review rail', asy
 });
 
 test.each(['dark', 'light'])(
-	'desktop %s review keeps the two diagram controls outside and reveals only the hovered target',
+	'desktop %s review centers diagram controls on the boundary and reveals only the hovered target',
 	async (theme): Promise<void> => {
 		const { document: fixture, frame } = await openReviewFixture();
 		fixture.documentElement.dataset['theme'] = theme;
@@ -58,9 +62,16 @@ test.each(['dark', 'light'])(
 		await expect.poll(() => opacity(marker)).toBe('1');
 		await expect.poll(() => opacity(fullscreen)).toBe('1');
 		expect(opacity(paragraphMarker)).toBe('0');
-		const edge = diagram.getBoundingClientRect().right;
-		expect(marker.getBoundingClientRect().left).toBeGreaterThan(edge);
-		expect(fullscreen.getBoundingClientRect().left).toBeGreaterThan(edge);
+		const edge = diagram.getBoundingClientRect();
+		expect(controlCenter(marker).x).toBeCloseTo(edge.right, 0);
+		expect(controlCenter(marker).y).toBeCloseTo(edge.top, 0);
+		expect(controlCenter(fullscreen).x).toBeCloseTo(edge.right, 0);
+		expect(controlCenter(fullscreen).y).toBeGreaterThan(controlCenter(marker).y);
+		expect(controlCenter(paragraphMarker).x).toBeCloseTo(
+			paragraph.getBoundingClientRect().right,
+			0,
+		);
+		expect(controlCenter(paragraphMarker).y).toBeCloseTo(paragraph.getBoundingClientRect().top, 0);
 		await page.screenshot({
 			path: browserScreenshotPath(`reader-comment-gutter-desktop-${theme}.png`),
 		});
@@ -72,6 +83,9 @@ test.each(['dark', 'light'])(
 		await fixtureLocator(frame, paragraph).click();
 		await expect.poll(() => opacity(marker)).toBe('1');
 		await expect.poll(() => opacity(fullscreen)).toBe('0');
+		await expect
+			.poll(() => Math.abs(controlCenter(marker).x - diagram.getBoundingClientRect().right))
+			.toBeLessThan(1);
 		expect(readCurrentReview(fixture).comments[0]?.anchor.targetId).toBe(diagram.id);
 	},
 );
@@ -261,7 +275,9 @@ test('beside-card Details closes back to the same trigger and leaves selection u
 	const option = requiredElement(choice, '#technical');
 	const marker = requiredElement(option, ':scope > .ex-entity-comment');
 	expect(choice.getBoundingClientRect().width).toBeLessThanOrEqual(761);
-	expect(marker.getBoundingClientRect().left).toBeGreaterThan(option.getBoundingClientRect().right);
+	const card = option.getBoundingClientRect();
+	expect(Math.abs(controlCenter(marker).x - card.right)).toBeLessThan(2);
+	expect(Math.abs(controlCenter(marker).y - card.top)).toBeLessThan(2);
 	expect(fixture.defaultView?.getComputedStyle(marker).opacity).toBe('0');
 	const trigger = frame.getByRole('button', {
 		name: 'Open details for Technical scope',

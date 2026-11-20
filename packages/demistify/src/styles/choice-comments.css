@@ -536,35 +536,35 @@ ex-choice.ex-choice-default-width:has(> .ex-choice-beside-fieldset):not(
 	ex-mermaid.ex-comment-target > .ex-inspect-controls:not(.ex-inspect-more) {
 		inset: auto;
 		inset-block-start: 0;
-		inset-inline-start: calc(100% + var(--space-2));
+		inset-inline-start: 100%;
+		translate: -50% -50%;
 		z-index: 11;
+	}
+	.ex-comment-target:is(p, li, h1, h2, h3, h4, h5, h6) {
+		padding-inline-end: var(--space-5);
 	}
 	.ex-comment-target:not(ex-choice, .ex-choice-option) > .ex-entity-comment {
 		border-color: var(--rule);
 		background: var(--surface-content);
 	}
 	ex-mermaid.ex-comment-target > .ex-inspect-controls:not(.ex-inspect-more) {
-		inset-block-start: calc(var(--space-8) + var(--space-1));
 		flex-direction: column;
 		align-items: center;
 		inline-size: var(--space-8);
-	}
-	.ex-comment-target:not(ex-choice, .ex-choice-option) > .ex-entity-comment::before,
-	ex-mermaid.ex-comment-target > .ex-inspect-controls:not(.ex-inspect-more)::before {
-		position: absolute;
-		inset-block: 0;
-		inset-inline-end: 100%;
-		inline-size: var(--space-2);
-		content: '';
+		margin: 0;
 	}
 	ex-mermaid.ex-comment-target
 		> :is(.ex-entity-comment, .ex-inspect-controls:not(.ex-inspect-more)) {
+		--diagram-gutter-visible-top: max(
+			var(--comment-gutter-top, -100px),
+			calc(var(--ex-document-toolbar-height, 0px) + var(--space-4))
+		);
 		position: fixed;
-		inset-inline-start: calc(var(--comment-gutter-start, -100px) + var(--space-2));
-		inset-block-start: var(--comment-gutter-top, -100px);
+		inset-inline-start: var(--comment-gutter-start, -100px);
+		inset-block-start: var(--diagram-gutter-visible-top);
 	}
 	ex-mermaid.ex-comment-target > .ex-inspect-controls:not(.ex-inspect-more) {
-		inset-block-start: calc(var(--comment-gutter-top, -100px) + var(--space-8) + var(--space-1));
+		inset-block-start: calc(var(--diagram-gutter-visible-top) + var(--space-8) + var(--space-1));
 	}
 	ex-mermaid.ex-comment-target:not(:hover):not(:has(:focus-visible)) > .ex-inspect-controls {
 		opacity: 0;
@@ -578,6 +578,16 @@ ex-choice.ex-choice-default-width:has(> .ex-choice-beside-fieldset):not(
 	:is(ex-drawer, [data-inspector-content], ex-explorer) .ex-comment-target > .ex-entity-comment {
 		inset-inline-start: auto;
 		inset-inline-end: var(--space-1);
+		translate: none;
+	}
+	.ex-comment-target:not(ex-choice, .ex-choice-option) > .ex-entity-comment:dir(rtl),
+	ex-mermaid.ex-comment-target > .ex-inspect-controls:not(.ex-inspect-more):dir(rtl) {
+		translate: 50% -50%;
+	}
+	:is(ex-drawer, [data-inspector-content], ex-explorer)
+		.ex-comment-target
+		> .ex-entity-comment:dir(rtl) {
+		translate: none;
 	}
 }
 
@@ -618,6 +628,25 @@ ex-choice.ex-choice-cards ex-option > .ex-entity-comment::before {
 	inset-inline-end: 100%;
 	inline-size: var(--space-2);
 	content: '';
+}
+@media (hover: hover) and (min-width: 761px) {
+	ex-choice.ex-choice-cards > .ex-entity-comment,
+	ex-choice.ex-choice-cards ex-option.ex-choice-option > .ex-entity-comment {
+		inset-inline-end: auto;
+		inset-inline-start: 100%;
+		translate: -50% -50%;
+	}
+	ex-choice.ex-choice-cards > .ex-entity-comment {
+		inset-inline-start: calc(100% - var(--choice-comment-gutter));
+	}
+	ex-choice.ex-choice-cards > .ex-entity-comment:dir(rtl),
+	ex-choice.ex-choice-cards ex-option.ex-choice-option > .ex-entity-comment:dir(rtl) {
+		translate: 50% -50%;
+	}
+	ex-choice.ex-choice-cards > .ex-entity-comment::before,
+	ex-choice.ex-choice-cards ex-option > .ex-entity-comment::before {
+		content: none;
+	}
 }
 ex-choice.ex-choice-cards > .ex-entity-comment[data-comment-count='0'],
 ex-choice.ex-choice-cards ex-option > .ex-entity-comment[data-comment-count='0'] {
