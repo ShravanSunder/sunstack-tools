@@ -227,7 +227,6 @@ ex-design-hidden-calls summary:focus-visible {
 }
 .ex-design-call-comments > .ex-entity-comment {
 	position: static;
-	opacity: 1;
 }
 .ex-design-call-card .ex-design-branch-note {
 	display: grid;

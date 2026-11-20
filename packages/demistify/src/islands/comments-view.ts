@@ -16,6 +16,8 @@ interface CommentsViewOptions {
 	readonly reveal: (comment: PageComment) => string | undefined;
 	readonly composing: (anchor: CommentAnchor | undefined) => void;
 	readonly visibility: (open: boolean) => void;
+	readonly markersVisible: () => boolean;
+	readonly showMarkers: (visible: boolean) => void;
 }
 
 function textElement<TTag extends keyof HTMLElementTagNameMap>(
@@ -57,6 +59,16 @@ export class CommentsView {
 			createIconButton('x', 'Close comments', (): void => this.closePanel?.()),
 		);
 		this.body.className = 'ex-inspect-body ex-comments-body';
+		const markerLabel = textElement('label', '', 'ex-comment-marker-setting');
+		const markerToggle = document.createElement('input');
+		markerToggle.type = 'checkbox';
+		markerToggle.checked = this.options.markersVisible();
+		markerToggle.addEventListener('change', (): void => {
+			this.options.showMarkers(markerToggle.checked);
+			// The narrow drawer covers the document. Return to the page to show the markers.
+			this.close();
+		});
+		markerLabel.append(markerToggle, 'Show comment markers on the page');
 		this.status.setAttribute('role', 'status');
 		this.composer.className = 'ex-comment-composer';
 		this.composer.hidden = true;
@@ -105,6 +117,7 @@ export class CommentsView {
 		exportButton.addEventListener('click', (): void => this.export());
 		this.transfer.append(copy, exportButton);
 		this.body.append(
+			markerLabel,
 			this.composer,
 			this.answers,
 			this.list,

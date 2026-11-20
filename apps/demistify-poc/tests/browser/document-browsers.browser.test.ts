@@ -111,10 +111,12 @@ test.each([1600, 390].flatMap((width) => ['light', 'dark'].map((theme) => ({ wid
 			'true',
 		);
 		expect(new URL(fixture.URL).searchParams.get('call')).toBe('input-owner-route');
-		await fixtureLocator(
-			frame,
-			requiredElement(owner, '[data-call-index="1"] [data-comment-control]'),
-		).click();
+		const callMarker = owner.querySelector<HTMLButtonElement>(
+			'[data-call-index="1"] button[data-comment-control]',
+		);
+		if (!callMarker) throw new Error('Missing call comment button');
+		callMarker.focus();
+		await userEvent.keyboard('{Enter}');
 		await frame
 			.getByRole('textbox', { name: 'Your comment', exact: true })
 			.fill('Inspect this routing boundary.');

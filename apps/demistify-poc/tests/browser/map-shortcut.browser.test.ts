@@ -125,6 +125,7 @@ test('M retains the existing C policy while a fullscreen non-editing control has
 	const diagram = requiredElement(fixture, '#story-diagram');
 	diagram.scrollIntoView({ block: 'center', behavior: 'instant' });
 	await expect.poll((): boolean => diagram.hasAttribute('prepared')).toBe(true);
+	await fixtureLocator(frame, diagram).hover();
 	await frame.getByRole('button', { name: 'Expand Supplied record path', exact: true }).click();
 	const dialog = requiredElement(fixture, 'dialog:modal');
 	await userEvent.keyboard('m');

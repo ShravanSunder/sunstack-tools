@@ -8,6 +8,7 @@ import {
 	dragReviewSelection,
 	panInspection,
 	setReducedMotion,
+	tapReviewTarget,
 	wheelLocalContent,
 } from './tests/browser/gesture-commands.ts';
 
@@ -24,6 +25,7 @@ export default defineConfig({
 				dragReviewSelection,
 				panInspection,
 				setReducedMotion,
+				tapReviewTarget,
 				wheelLocalContent,
 			},
 			enabled: true,

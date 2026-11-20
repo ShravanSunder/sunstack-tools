@@ -117,7 +117,12 @@ test.each([1600, 390])(
 			.poll((): number => fixture.querySelectorAll('.ex-comments-trigger').length)
 			.toBe(1);
 		const paragraph = requiredElement(fixture, '#after-views');
-		await fixtureLocator(frame, paragraph).hover();
+		if (width === 390) {
+			await frame.getByRole('button', { name: 'Comments (0)', exact: true }).click();
+			await frame
+				.getByRole('checkbox', { name: 'Show comment markers on the page', exact: true })
+				.click();
+		} else await fixtureLocator(frame, paragraph).hover();
 		await fixtureLocator(frame, requiredElement(paragraph, '[data-comment-control]')).click();
 		await frame.getByRole('textbox', { name: 'Your comment', exact: true }).fill('Original body');
 		await frame.getByRole('button', { name: 'Add comment', exact: true }).click();

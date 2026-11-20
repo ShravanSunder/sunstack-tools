@@ -30,15 +30,6 @@ ex-document[document-id],
 [data-comment-label] {
 	position: relative;
 }
-.ex-comment-target:is(p, li, h1, h2, h3, h4, h5, h6) {
-	padding-inline-end: var(--space-10);
-	min-height: var(--space-8);
-}
-
-/* Component rails float above the band; prose keeps its existing local gutter. */
-.ex-comment-target > .ex-inspect-controls:not(.ex-inspect-more) {
-	right: var(--space-10);
-}
 ex-option.ex-choice-option {
 	display: grid;
 	grid-template-columns: 20px minmax(0, 1fr);
@@ -312,21 +303,33 @@ ex-choice.ex-choice-default-width:has(> .ex-choice-beside-fieldset):not(
 	min-width: var(--space-8);
 	height: var(--space-8);
 	padding: var(--space-1);
-	border: 1px solid transparent;
+	border: 1px solid var(--rule);
 	border-radius: 50%;
-	background: transparent;
+	background: var(--surface-content);
 	color: var(--annotation-color);
 	opacity: 0;
+	pointer-events: none;
 	transition: opacity var(--motion-fast);
 }
-:is(ex-choice, .ex-choice-option, ex-document, [data-comment-label], .ex-comment-target):is(
-		:hover,
-		:focus-within
-	)
+.ex-entity-comment:focus-visible,
+.ex-comment-target:not(ex-choice):has(:focus-visible):not(:has(.ex-comment-target :focus-visible))
 	> .ex-entity-comment,
-.ex-choice-table tr:is(:hover, :focus-within) > td > .ex-entity-comment,
-.ex-entity-comment:not([data-comment-count='0']) {
+.ex-comment-target:has(:focus-visible) > [data-comment-slot] > .ex-entity-comment {
 	opacity: 1;
+	pointer-events: auto;
+}
+@media (hover: hover) and (min-width: 761px) {
+	.ex-comment-target:not(ex-choice):hover:not(:has(.ex-comment-target:hover)) > .ex-entity-comment,
+	.ex-comment-target:hover > [data-comment-slot] > .ex-entity-comment {
+		opacity: 1;
+		pointer-events: auto;
+	}
+}
+@media (hover: hover) and (min-width: 761px) {
+	.ex-entity-comment[data-comment-count]:not([data-comment-count='0']) {
+		opacity: 1;
+		pointer-events: auto;
+	}
 }
 .ex-entity-comment:not([data-comment-count='0'])::after {
 	content: attr(data-comment-count);
@@ -341,6 +344,11 @@ ex-choice.ex-choice-default-width:has(> .ex-choice-beside-fieldset):not(
 	background: var(--annotation-color);
 	color: var(--surface-page);
 	box-shadow: var(--shadow-float);
+}
+.ex-selection-comment.ex-block-comment-action {
+	position: static;
+	min-height: 44px;
+	margin-block: var(--space-2) var(--space-3);
 }
 .ex-comment-active {
 	outline: 1px solid var(--annotation-color);
@@ -464,14 +472,56 @@ ex-choice.ex-choice-default-width:has(> .ex-choice-beside-fieldset):not(
 .ex-comments-body > div:has(.ex-review-question) {
 	margin-bottom: var(--space-5);
 }
-@media (hover: none) {
-	.ex-entity-comment {
+.ex-comment-marker-setting {
+	display: none;
+}
+@media (max-width: 760px), (hover: none) {
+	.ex-comment-marker-setting {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		min-height: 44px;
+		margin-bottom: var(--space-3);
+	}
+	.ex-review-document[data-show-comment-markers] .ex-entity-comment[data-comment-count] {
 		opacity: 1;
+		pointer-events: auto;
+	}
+	.ex-review-document[data-show-comment-markers]
+		.ex-comment-target:is(p, li, h1, h2, h3, h4, h5, h6) {
+		padding-inline-end: var(--space-10);
+	}
+	.ex-review-document[data-show-comment-markers] ex-tree.ex-comment-target {
+		padding-block-start: var(--space-10);
+	}
+	.ex-review-document:not([data-show-comment-markers]) ex-choice.ex-choice-cards > fieldset {
+		padding-inline-end: 0;
+	}
+	.ex-review-document:not([data-show-comment-markers])
+		ex-choice.ex-choice-cards
+		ex-option
+		> .ex-entity-comment {
+		inset-inline-start: auto;
+		inset-inline-end: var(--space-2);
+	}
+	.ex-review-document ex-mermaid.ex-inspectable.ex-comment-target > .ex-inspect-controls {
+		opacity: 0;
+		pointer-events: none;
+	}
+	.ex-review-document
+		ex-mermaid.ex-inspectable.ex-comment-target[data-comment-tapped]
+		> .ex-inspect-controls,
+	.ex-review-document
+		ex-mermaid.ex-inspectable.ex-comment-target
+		> .ex-inspect-controls:has(:focus-visible) {
+		opacity: 1;
+		pointer-events: auto;
 	}
 }
-@media (max-width: 760px) {
-	.ex-entity-comment {
+@media (hover: hover) and (max-width: 760px) {
+	.ex-review-document ex-mermaid.ex-inspectable.ex-comment-target:hover > .ex-inspect-controls {
 		opacity: 1;
+		pointer-events: auto;
 	}
 }
 @media (prefers-reduced-motion: reduce) {
@@ -481,40 +531,72 @@ ex-choice.ex-choice-default-width:has(> .ex-choice-beside-fieldset):not(
 	}
 }
 
-ex-card.ex-comment-target {
-	padding-inline-end: var(--space-5);
-}
-ex-region[prepared] > .ex-region-head.ex-comment-target {
-	padding-inline-end: var(--space-5);
-}
-:is(
-		ex-card,
-		ex-callout,
-		ex-code,
-		ex-file-tree,
-		ex-tree,
-		ex-compare,
-		ex-tabs,
-		ex-zoom
-	).ex-comment-target
-	> .ex-entity-comment,
-ex-region > .ex-region-head.ex-comment-target > .ex-entity-comment {
-	top: -14px;
-	right: var(--space-1);
-	width: 28px;
-	min-width: 28px;
-	height: 28px;
-	background: var(--surface-content);
-	border-color: var(--rule);
-	z-index: 11;
-}
-ex-mermaid.ex-comment-target > .ex-entity-comment {
-	top: var(--space-1);
-}
-
-/* Tree rows have no heading band inset; preserve full label width below the rail. */
-ex-tree.ex-comment-target {
-	padding-block-start: var(--space-4);
+@media (hover: hover) and (min-width: 761px) {
+	.ex-review-document {
+		max-width: min(var(--width-canvas), calc(100% - var(--space-10)));
+		margin-inline-end: max(var(--space-10), calc((100% - var(--width-canvas)) / 2));
+	}
+	.ex-comment-target:not(ex-choice, .ex-choice-option) > .ex-entity-comment,
+	ex-mermaid.ex-comment-target > .ex-inspect-controls:not(.ex-inspect-more) {
+		inset: auto;
+		inset-block-start: 0;
+		inset-inline-start: 100%;
+		translate: -50% -50%;
+		z-index: 11;
+	}
+	.ex-comment-target:is(p, li, h1, h2, h3, h4, h5, h6) {
+		padding-inline-end: var(--space-5);
+	}
+	.ex-comment-target:not(ex-mermaid, ex-choice, .ex-choice-option)
+		> .ex-inspect-controls:not(.ex-inspect-more) {
+		inset-inline-end: var(--space-8);
+	}
+	ex-mermaid.ex-comment-target > .ex-inspect-controls:not(.ex-inspect-more) {
+		flex-direction: column;
+		align-items: center;
+		inline-size: var(--space-8);
+		margin: 0;
+	}
+	ex-mermaid.ex-comment-target > .ex-inspect-controls > .ex-inspect-trigger {
+		inline-size: var(--space-8);
+		block-size: var(--space-8);
+	}
+	ex-mermaid.ex-comment-target
+		> :is(.ex-entity-comment, .ex-inspect-controls:not(.ex-inspect-more)) {
+		--diagram-gutter-visible-top: max(
+			var(--comment-gutter-top, -100px),
+			calc(var(--ex-document-toolbar-height, 0px) + var(--space-4))
+		);
+		position: fixed;
+		inset-inline-start: var(--comment-gutter-start, -100px);
+		inset-block-start: var(--diagram-gutter-visible-top);
+	}
+	ex-mermaid.ex-comment-target > .ex-inspect-controls:not(.ex-inspect-more) {
+		inset-block-start: calc(var(--diagram-gutter-visible-top) + var(--space-8) + var(--space-1));
+	}
+	ex-mermaid.ex-comment-target:not(:hover):not(:has(:focus-visible)) > .ex-inspect-controls {
+		opacity: 0;
+		pointer-events: none;
+	}
+	ex-mermaid.ex-comment-target[data-comment-gutter-offscreen]
+		> :is(.ex-entity-comment, .ex-inspect-controls:not(.ex-inspect-more)) {
+		opacity: 0;
+		pointer-events: none;
+	}
+	:is(ex-drawer, [data-inspector-content], ex-explorer) .ex-comment-target > .ex-entity-comment {
+		inset-inline-start: auto;
+		inset-inline-end: var(--space-1);
+		translate: none;
+	}
+	.ex-comment-target:not(ex-choice, .ex-choice-option) > .ex-entity-comment:dir(rtl),
+	ex-mermaid.ex-comment-target > .ex-inspect-controls:not(.ex-inspect-more):dir(rtl) {
+		translate: 50% -50%;
+	}
+	:is(ex-drawer, [data-inspector-content], ex-explorer)
+		.ex-comment-target
+		> .ex-entity-comment:dir(rtl) {
+		translate: none;
+	}
 }
 
 /* Keep comment controls outside the card without changing their DOM or review target. */
@@ -540,8 +622,6 @@ ex-choice.ex-choice-cards ex-option.ex-choice-option > .ex-entity-comment {
 	box-sizing: border-box;
 	min-inline-size: 0;
 	inline-size: var(--space-8);
-	border-color: var(--rule);
-	background: var(--surface-content);
 }
 ex-choice.ex-choice-cards > .ex-entity-comment {
 	inset-inline-start: auto;
@@ -555,20 +635,39 @@ ex-choice.ex-choice-cards ex-option > .ex-entity-comment::before {
 	inline-size: var(--space-2);
 	content: '';
 }
+@media (hover: hover) and (min-width: 761px) {
+	ex-choice.ex-choice-cards > .ex-entity-comment,
+	ex-choice.ex-choice-cards ex-option.ex-choice-option > .ex-entity-comment {
+		inset-inline-end: auto;
+		inset-inline-start: 100%;
+		translate: -50% -50%;
+	}
+	ex-choice.ex-choice-cards > .ex-entity-comment {
+		inset-inline-start: calc(100% - var(--choice-comment-gutter));
+	}
+	ex-choice.ex-choice-cards > .ex-entity-comment:dir(rtl),
+	ex-choice.ex-choice-cards ex-option.ex-choice-option > .ex-entity-comment:dir(rtl) {
+		translate: 50% -50%;
+	}
+	ex-choice.ex-choice-cards > .ex-entity-comment::before,
+	ex-choice.ex-choice-cards ex-option > .ex-entity-comment::before {
+		content: none;
+	}
+}
 ex-choice.ex-choice-cards > .ex-entity-comment[data-comment-count='0'],
 ex-choice.ex-choice-cards ex-option > .ex-entity-comment[data-comment-count='0'] {
 	opacity: 0;
 	pointer-events: none;
 }
-ex-choice.ex-choice-cards:has(> fieldset > legend:hover) > .ex-entity-comment,
-ex-choice.ex-choice-cards > .ex-entity-comment:is(:hover, :focus-visible),
-ex-choice.ex-choice-cards ex-option:is(:hover, :has(:focus-visible)) > .ex-entity-comment {
+ex-choice.ex-choice-cards > .ex-entity-comment:focus-visible,
+ex-choice.ex-choice-cards ex-option:has(:focus-visible) > .ex-entity-comment {
 	opacity: 1;
 	pointer-events: auto;
 }
-@media (hover: none) {
-	ex-choice.ex-choice-cards:has(> fieldset > legend:focus) > .ex-entity-comment,
-	ex-choice.ex-choice-cards ex-option:focus-within > .ex-entity-comment {
+@media (hover: hover) and (min-width: 761px) {
+	ex-choice.ex-choice-cards:has(> fieldset > legend:hover) > .ex-entity-comment,
+	ex-choice.ex-choice-cards > .ex-entity-comment:hover,
+	ex-choice.ex-choice-cards ex-option:hover > .ex-entity-comment {
 		opacity: 1;
 		pointer-events: auto;
 	}
