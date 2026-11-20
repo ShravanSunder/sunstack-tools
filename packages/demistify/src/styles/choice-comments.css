@@ -299,8 +299,7 @@ ex-choice.ex-choice-default-width:has(> .ex-choice-beside-fieldset):not(
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	gap: var(--space-1);
-	min-width: var(--space-8);
+	inline-size: var(--space-8);
 	height: var(--space-8);
 	padding: var(--space-1);
 	border: 1px solid var(--rule);
@@ -331,9 +330,17 @@ ex-choice.ex-choice-default-width:has(> .ex-choice-beside-fieldset):not(
 		pointer-events: auto;
 	}
 }
-.ex-entity-comment:not([data-comment-count='0'])::after {
-	content: attr(data-comment-count);
-	font-size: var(--text-xs);
+.ex-entity-comment:has(> .ex-entity-comment-count) {
+	padding: 0;
+	gap: 1px;
+}
+.ex-entity-comment:has(> .ex-entity-comment-count) > .ex-comment-symbol {
+	inline-size: 14px;
+	block-size: 14px;
+}
+.ex-entity-comment-count {
+	font: 600 var(--text-2xs) / 1 var(--font-body);
+	white-space: nowrap;
 }
 .ex-selection-comment {
 	position: fixed;
