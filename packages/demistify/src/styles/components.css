@@ -20,6 +20,11 @@ ex-mermaid > svg {
 	height: auto;
 	margin-inline: auto;
 }
+/* Schema diagrams give an overview of all tables inline. Fullscreen can zoom to the labels. */
+ex-mermaid > svg:where(:has(> .entity[data-id])) {
+	width: auto;
+	min-width: 0;
+}
 /* SVG geometry is measured in the renderer's font sizes; HTML's .mono size must not override it. */
 ex-mermaid svg text.mono {
 	font-family: var(--font-mono);
@@ -205,6 +210,10 @@ ex-mermaid > .ex-inspect-controls {
 	min-width: 0;
 	overflow: hidden;
 	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.ex-inspect-read-labels {
+	min-height: var(--space-8);
 	white-space: nowrap;
 }
 .ex-inspect-body {
@@ -522,6 +531,9 @@ ex-layer.band > :first-child {
 }
 
 @media (max-width: 760px) {
+	.ex-inspect-header:has(> .ex-inspect-read-labels) strong {
+		flex-basis: 100%;
+	}
 	.ex-inspect-controls > .ex-inspect-sidebar {
 		display: none;
 	}

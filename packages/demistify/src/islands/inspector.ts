@@ -121,7 +121,8 @@ function takeContent(
 	const originalStyle = owner.getAttribute('style');
 	const bounds = owner.getBoundingClientRect();
 	const contentNodes = Array.from(contentOwner.childNodes).filter(
-		(node): boolean => node !== controls,
+		(node): boolean =>
+			node !== controls && !(node instanceof Element && node.matches('[data-comment-control]')),
 	);
 	const detailStates = Array.from(
 		contentOwner.querySelectorAll<HTMLElement>(':scope > [slot="details"]'),
@@ -152,6 +153,13 @@ function takeContent(
 	title.textContent = label;
 	const body = document.createElement('div');
 	body.className = 'ex-inspect-body';
+	const diagram =
+		reserveWidth && owner.matches('ex-mermaid')
+			? owner.querySelector<SVGSVGElement>(':scope > svg')
+			: null;
+	const readableWidth = Number.parseFloat(
+		diagram?.style.getPropertyValue('--diagram-readable-width') ?? '',
+	);
 	let scale = 1;
 	const magnification = document.createElement('span');
 	magnification.textContent = '100%';
@@ -164,8 +172,14 @@ function takeContent(
 		header.append(button);
 		return button;
 	};
+	const readableScale = (): number => {
+		const displayedWidth = diagram?.getBoundingClientRect().width ?? 0;
+		return displayedWidth > 0 && readableWidth > 0
+			? Math.max(1, (readableWidth * scale) / displayedWidth)
+			: 1;
+	};
 	const updateScale = (nextScale: number): void => {
-		scale = Math.max(0.5, Math.min(2.5, nextScale));
+		scale = Math.max(0.5, Math.min(Math.max(2.5, readableScale()), nextScale));
 		content.style.zoom = String(scale);
 		// Pictures fit the view at 100%; zooming lets them grow past it.
 		content.style.setProperty('--inspect-scale', String(scale));
@@ -175,6 +189,14 @@ function takeContent(
 	addButton('magnifying-glass-minus', 'Zoom out', (): void => updateScale(scale - 0.25));
 	header.append(magnification);
 	addButton('magnifying-glass-plus', 'Zoom in', (): void => updateScale(scale + 0.25));
+	if (readableWidth > 0) {
+		const readLabels = document.createElement('button');
+		readLabels.type = 'button';
+		readLabels.className = 'ex-inspect-read-labels';
+		readLabels.textContent = 'Read labels';
+		readLabels.addEventListener('click', (): void => updateScale(readableScale()));
+		header.append(readLabels);
+	}
 	addButton('arrow-counter-clockwise', 'Reset zoom', (): void => {
 		updateScale(1);
 		body.scrollTo({ left: 0, top: 0 });
