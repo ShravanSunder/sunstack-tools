@@ -108,8 +108,17 @@ export class ChoiceIsland extends HTMLElement {
 		const tableView = this.getAttribute('view') === 'table';
 		const detailsMode = this.getAttribute('details');
 		const beside = detailsMode === 'beside' && !tableView ? new ChoiceDetailPanel() : undefined;
-		this.dataset['width'] =
-			this.getAttribute('data-width') ?? (tableView || beside ? 'canvas' : 'reading');
+		const authoredWidth = this.getAttribute('data-width');
+		this.dataset['width'] = authoredWidth ?? (tableView || beside ? 'canvas' : 'reading');
+		this.classList.toggle('ex-choice-default-width', authoredWidth === null);
+		this.classList.toggle('ex-choice-cards', !tableView);
+		if (!tableView) {
+			legend.addEventListener('click', (event): void => {
+				if (!(event instanceof PointerEvent) || event.pointerType !== 'touch') return;
+				legend.tabIndex = -1;
+				legend.focus({ preventScroll: true });
+			});
+		}
 		if (beside) {
 			fieldset.classList.add('ex-choice-beside-fieldset');
 			fieldset.append(beside.layout);
@@ -290,6 +299,14 @@ export class ChoiceIsland extends HTMLElement {
 						window.getSelection()?.toString()
 					)
 						return;
+					if (
+						option.target.localName === 'ex-option' &&
+						event instanceof PointerEvent &&
+						event.pointerType === 'touch'
+					) {
+						option.input.focus({ preventScroll: true });
+						return;
+					}
 					option.input.click();
 				},
 				{ signal },
@@ -317,6 +334,8 @@ export class ChoiceIsland extends HTMLElement {
 		copy.id = this.questionId;
 		copy.setAttribute('title', this.question);
 		for (const attribute of ['multiple', 'view', 'details', 'data-width']) {
+			if (attribute === 'data-width' && this.classList.contains('ex-choice-default-width'))
+				continue;
 			const value = this.getAttribute(attribute);
 			if (value !== null) copy.setAttribute(attribute, value);
 		}

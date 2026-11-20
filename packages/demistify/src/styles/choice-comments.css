@@ -127,6 +127,12 @@ ex-option .ex-choice-title-row > .ex-choice-details-button {
 .ex-choice-beside-fieldset {
 	container-type: inline-size;
 }
+ex-choice.ex-choice-default-width:has(> .ex-choice-beside-fieldset):not(
+		:has(> fieldset > .ex-choice-detail-layout > .ex-choice-detail-panels > :not([hidden]))
+	) {
+	max-inline-size: var(--width-reading);
+	margin-inline: 0 auto;
+}
 .ex-choice-detail-layout {
 	display: grid;
 	gap: var(--space-3);
@@ -173,6 +179,10 @@ ex-option .ex-choice-title-row > .ex-choice-details-button {
 @container (min-width: 64rem) {
 	.ex-choice-detail-layout:has(.ex-choice-detail-panel:not([hidden])) {
 		grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+	}
+	.ex-choice-detail-layout:has(> .ex-choice-detail-panels > :not([hidden]))
+		> .ex-choice-detail-options {
+		padding-inline-end: var(--choice-comment-gutter);
 	}
 	.ex-choice-detail-layout {
 		--choice-detail-enter-x: -8px;
@@ -505,4 +515,61 @@ ex-mermaid.ex-comment-target > .ex-entity-comment {
 /* Tree rows have no heading band inset; preserve full label width below the rail. */
 ex-tree.ex-comment-target {
 	padding-block-start: var(--space-4);
+}
+
+/* Keep comment controls outside the card without changing their DOM or review target. */
+ex-choice.ex-choice-cards {
+	--choice-comment-gutter: var(--space-10);
+}
+ex-choice.ex-choice-cards > fieldset {
+	padding-inline-end: var(--choice-comment-gutter);
+}
+ex-choice.ex-choice-cards > fieldset > legend {
+	box-sizing: border-box;
+	inline-size: 100%;
+	padding-inline-end: 0;
+}
+ex-choice.ex-choice-cards ex-option.ex-choice-option {
+	padding-inline-end: var(--space-4);
+}
+ex-choice.ex-choice-cards > .ex-entity-comment,
+ex-choice.ex-choice-cards ex-option.ex-choice-option > .ex-entity-comment {
+	inset-block-start: 0;
+	inset-inline-end: auto;
+	inset-inline-start: calc(100% + var(--space-2));
+	box-sizing: border-box;
+	min-inline-size: 0;
+	inline-size: var(--space-8);
+	border-color: var(--rule);
+	background: var(--surface-content);
+}
+ex-choice.ex-choice-cards > .ex-entity-comment {
+	inset-inline-start: auto;
+	inset-inline-end: 0;
+}
+ex-choice.ex-choice-cards > .ex-entity-comment::before,
+ex-choice.ex-choice-cards ex-option > .ex-entity-comment::before {
+	position: absolute;
+	inset-block: 0;
+	inset-inline-end: 100%;
+	inline-size: var(--space-2);
+	content: '';
+}
+ex-choice.ex-choice-cards > .ex-entity-comment[data-comment-count='0'],
+ex-choice.ex-choice-cards ex-option > .ex-entity-comment[data-comment-count='0'] {
+	opacity: 0;
+	pointer-events: none;
+}
+ex-choice.ex-choice-cards:has(> fieldset > legend:hover) > .ex-entity-comment,
+ex-choice.ex-choice-cards > .ex-entity-comment:is(:hover, :focus-visible),
+ex-choice.ex-choice-cards ex-option:is(:hover, :has(:focus-visible)) > .ex-entity-comment {
+	opacity: 1;
+	pointer-events: auto;
+}
+@media (hover: none) {
+	ex-choice.ex-choice-cards:has(> fieldset > legend:focus) > .ex-entity-comment,
+	ex-choice.ex-choice-cards ex-option:focus-within > .ex-entity-comment {
+		opacity: 1;
+		pointer-events: auto;
+	}
 }
