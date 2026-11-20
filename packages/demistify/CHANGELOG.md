@@ -1,5 +1,11 @@
 # @sunstack/demistify
 
+## 1.25.0
+
+### Minor Changes
+
+- 38cab84: Align Details buttons at the right edge of Choice cards. Add a beside-card Details mode with an animated entrance, a Close button, keyboard dismissal, and reduced-motion support.
+
 ## 1.24.0
 
 ### Minor Changes
