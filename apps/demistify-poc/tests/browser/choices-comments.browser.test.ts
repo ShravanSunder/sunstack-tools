@@ -67,6 +67,14 @@ test.each(['dark', 'light'])(
 		expect(controlCenter(marker).y).toBeCloseTo(edge.top, 0);
 		expect(controlCenter(fullscreen).x).toBeCloseTo(edge.right, 0);
 		expect(controlCenter(fullscreen).y).toBeGreaterThan(controlCenter(marker).y);
+		const expand = requiredElement(fullscreen, 'button');
+		const optionMarker = requiredElement(fixture, '#technical > .ex-entity-comment');
+		for (const control of [marker, expand]) {
+			const bounds = control.getBoundingClientRect();
+			expect(bounds.width).toBeCloseTo(optionMarker.getBoundingClientRect().width, 0);
+			expect(bounds.height).toBeCloseTo(bounds.width, 0);
+			expect(fixture.defaultView?.getComputedStyle(control).borderRadius).toBe('50%');
+		}
 		expect(controlCenter(paragraphMarker).x).toBeCloseTo(
 			paragraph.getBoundingClientRect().right,
 			0,
@@ -142,6 +150,63 @@ test.each(['dark', 'light'])(
 		await expect.poll(() => opacity(paragraphMarker)).toBe('0');
 	},
 );
+
+test('a code comment leaves its inspection buttons clear', async (): Promise<void> => {
+	const { document: fixture, frame } = await openReviewFixture();
+	const code = fixture.createElement('ex-code');
+	code.setAttribute('label', 'Review command');
+	code.innerHTML = '<script type="text/plain">cargo test</script>';
+	requiredElement(fixture, '#first-passage').after(code);
+	await expect.poll(() => code.querySelector(':scope > .ex-entity-comment')).not.toBeNull();
+	await fixtureLocator(frame, code).hover();
+	const marker = requiredElement(code, ':scope > .ex-entity-comment');
+	const actions = requiredElement(code, ':scope > .ex-inspect-controls');
+	expect(actions.getBoundingClientRect().right).toBeLessThan(marker.getBoundingClientRect().left);
+	await frame.getByRole('button', { name: 'Expand Review command', exact: true }).click();
+	await expect
+		.element(frame.getByRole('dialog', { name: 'Review command', exact: true }))
+		.toBeVisible();
+});
+
+test('a compact choice detail keeps an unmarked diagram’s Fullscreen button available', async (): Promise<void> => {
+	await page.viewport(390, 850);
+	const { document: fixture, frame } = await openReviewFixture('beside.html');
+	await frame
+		.getByRole('button', { name: 'Open details for Technical scope', exact: true })
+		.click();
+	const diagram = requiredElement(fixture, '#scope-diagram');
+	diagram.scrollIntoView({ block: 'center' });
+	await expect.poll(() => diagram.querySelector('svg')).not.toBeNull();
+	expect(diagram.querySelector(':scope > .ex-entity-comment')).toBeNull();
+	const actions = requiredElement(diagram, ':scope > .ex-inspect-controls');
+	expect(fixture.defaultView?.getComputedStyle(actions).opacity).toBe('1');
+	await frame.getByRole('button', { name: 'Expand Review ownership', exact: true }).click();
+	await expect
+		.element(frame.getByRole('dialog', { name: 'Review ownership', exact: true }))
+		.toBeVisible();
+});
+
+test('tapping a labelled table cell puts the comment action below the table', async (): Promise<void> => {
+	await page.viewport(390, 850);
+	const { document: fixture, frame } = await openReviewFixture();
+	const table = fixture.createElement('table');
+	table.innerHTML =
+		'<tbody><tr><td id="tap-cell" data-comment-label="Selected cell">Cell contents</td></tr></tbody>';
+	requiredElement(fixture, 'ex-document').append(table);
+	await expect.poll(() => table.querySelector('#tap-cell > .ex-entity-comment')).not.toBeNull();
+	await commands.tapReviewTarget('#tap-cell');
+	const action = frame.getByRole('button', { name: 'Comment on this block', exact: true });
+	await expect.element(action).toBeVisible();
+	const button = requiredElement(fixture, '.ex-block-comment-action');
+	expect(button.closest('table')).toBeNull();
+	expect(button.getBoundingClientRect().top).toBeGreaterThanOrEqual(
+		table.getBoundingClientRect().bottom,
+	);
+	await action.click();
+	await expect
+		.element(frame.getByRole('heading', { name: 'Selected cell', exact: true }))
+		.toBeVisible();
+});
 
 test('reopening a node edits its saved comment instead of adding another', async (): Promise<void> => {
 	const { document: fixture, frame } = await openReviewFixture();

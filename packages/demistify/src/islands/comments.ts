@@ -409,11 +409,10 @@ export class CommentsIsland extends HTMLElement {
 		button.replaceChildren(createCommentIcon(), 'Comment on this block');
 		button.setAttribute('aria-label', 'Comment on this block');
 		button.classList.add('ex-block-comment-action');
-		// Put the action after a list or table as a whole when the target is a list item or row.
-		const block = target.matches('li, tr')
-			? target.closest('ul, ol, .ex-table-scroll, table')
-			: target;
-		(block ?? target).after(button);
+		// Keep the action outside table structure or list items.
+		const table = target.matches('tr, td, th') ? target.closest('table') : null;
+		const list = target.matches('li') ? target.closest('ul, ol') : null;
+		(table?.closest('.ex-table-scroll') ?? table ?? list ?? target).after(button);
 		button.hidden = false;
 	}
 

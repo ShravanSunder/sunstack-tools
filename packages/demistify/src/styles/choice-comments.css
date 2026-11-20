@@ -303,9 +303,9 @@ ex-choice.ex-choice-default-width:has(> .ex-choice-beside-fieldset):not(
 	min-width: var(--space-8);
 	height: var(--space-8);
 	padding: var(--space-1);
-	border: 1px solid transparent;
+	border: 1px solid var(--rule);
 	border-radius: 50%;
-	background: transparent;
+	background: var(--surface-content);
 	color: var(--annotation-color);
 	opacity: 0;
 	pointer-events: none;
@@ -504,18 +504,22 @@ ex-choice.ex-choice-default-width:has(> .ex-choice-beside-fieldset):not(
 		inset-inline-start: auto;
 		inset-inline-end: var(--space-2);
 	}
-	.ex-review-document ex-mermaid.ex-inspectable > .ex-inspect-controls {
+	.ex-review-document ex-mermaid.ex-inspectable.ex-comment-target > .ex-inspect-controls {
 		opacity: 0;
 		pointer-events: none;
 	}
-	.ex-review-document ex-mermaid.ex-inspectable[data-comment-tapped] > .ex-inspect-controls,
-	.ex-review-document ex-mermaid.ex-inspectable > .ex-inspect-controls:has(:focus-visible) {
+	.ex-review-document
+		ex-mermaid.ex-inspectable.ex-comment-target[data-comment-tapped]
+		> .ex-inspect-controls,
+	.ex-review-document
+		ex-mermaid.ex-inspectable.ex-comment-target
+		> .ex-inspect-controls:has(:focus-visible) {
 		opacity: 1;
 		pointer-events: auto;
 	}
 }
 @media (hover: hover) and (max-width: 760px) {
-	.ex-review-document ex-mermaid.ex-inspectable:hover > .ex-inspect-controls {
+	.ex-review-document ex-mermaid.ex-inspectable.ex-comment-target:hover > .ex-inspect-controls {
 		opacity: 1;
 		pointer-events: auto;
 	}
@@ -543,15 +547,19 @@ ex-choice.ex-choice-default-width:has(> .ex-choice-beside-fieldset):not(
 	.ex-comment-target:is(p, li, h1, h2, h3, h4, h5, h6) {
 		padding-inline-end: var(--space-5);
 	}
-	.ex-comment-target:not(ex-choice, .ex-choice-option) > .ex-entity-comment {
-		border-color: var(--rule);
-		background: var(--surface-content);
+	.ex-comment-target:not(ex-mermaid, ex-choice, .ex-choice-option)
+		> .ex-inspect-controls:not(.ex-inspect-more) {
+		inset-inline-end: var(--space-8);
 	}
 	ex-mermaid.ex-comment-target > .ex-inspect-controls:not(.ex-inspect-more) {
 		flex-direction: column;
 		align-items: center;
 		inline-size: var(--space-8);
 		margin: 0;
+	}
+	ex-mermaid.ex-comment-target > .ex-inspect-controls > .ex-inspect-trigger {
+		inline-size: var(--space-8);
+		block-size: var(--space-8);
 	}
 	ex-mermaid.ex-comment-target
 		> :is(.ex-entity-comment, .ex-inspect-controls:not(.ex-inspect-more)) {
@@ -614,8 +622,6 @@ ex-choice.ex-choice-cards ex-option.ex-choice-option > .ex-entity-comment {
 	box-sizing: border-box;
 	min-inline-size: 0;
 	inline-size: var(--space-8);
-	border-color: var(--rule);
-	background: var(--surface-content);
 }
 ex-choice.ex-choice-cards > .ex-entity-comment {
 	inset-inline-start: auto;
