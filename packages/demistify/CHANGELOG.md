@@ -1,5 +1,11 @@
 # @sunstack/demistify
 
+## 1.25.3
+
+### Patch Changes
+
+- 43c18fe: Keep saved comment counts inside their circular buttons without shifting the buttons off their target edges.
+
 ## 1.25.2
 
 ### Patch Changes
