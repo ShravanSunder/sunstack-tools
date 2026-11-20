@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process';
-import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rename, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -13,9 +13,10 @@ const page = `<!doctype html><html lang="en">
 <head><title>Design</title><link rel="stylesheet" href="https://demistify.getagentstudio.dev/v1/theme.css">
 <script type="module" src="https://demistify.getagentstudio.dev/v1/runtime.js"></script></head>
 <body><ex-nav for="content" src="./navigation.json"></ex-nav><ex-document id="content">
-<h1>Design</h1><h2 id="NeedOverview">Read the overview</h2><p><a href="../overview.html#scope">Overview</a></p>
+<h1>Design</h1><h2 id="NeedOverview">Read the overview</h2><p><a href="../overview.html#scope">Overview</a> and <a href="../overview.html#details--from-markdown">details</a></p>
 </ex-document></body></html>`;
-const overview = '<h1>Overview</h1><h2 id="scope">Site scope</h2>';
+const overview =
+	'<h1>Overview</h1><h2 id="scope">Site scope</h2><ex-markdown id="details"><script type="text/markdown">## From Markdown</script></ex-markdown>';
 
 it('checks a real adjacent page and source inside an explicitly selected site root', async (): Promise<void> => {
 	const directory = await mkdtemp(join(tmpdir(), 'demistify-design-check-'));
@@ -34,6 +35,12 @@ it('checks a real adjacent page and source inside an explicitly selected site ro
 				{ id: 'overview', title: 'Overview', href: '../overview.html', icon: 'file' },
 			],
 			map: [
+				{
+					title: 'Markdown details',
+					description: 'Open the generated heading.',
+					icon: 'file',
+					target: { page: 'overview', fragment: 'details--from-markdown' },
+				},
 				{
 					title: 'Scope',
 					description: 'Read the shared design scope.',
@@ -72,7 +79,10 @@ it('checks a real adjacent page and source inside an explicitly selected site ro
 		);
 		await writeFile(
 			join(site, 'overview.html'),
-			'<h1>Overview</h1><script>const copy = \'id="scope"\';</script>',
+			overview.replace(
+				'<h2 id="scope">Site scope</h2>',
+				'<script>const copy = \'id="scope"\';</script>',
+			),
 		);
 		await expect(run(process.execPath, check)).rejects.toThrow(
 			'Missing HTML target: overview.html#scope',
@@ -87,7 +97,24 @@ it('checks a real adjacent page and source inside an explicitly selected site ro
 		await expect(run(process.execPath, check)).rejects.toThrow(
 			'Local target resolves outside the site root: escaped.html',
 		);
+		await symlink(join(site, 'overview.html'), join(deliverable, 'alias.html'));
+		const aliasPage = withRecord.replace('"href": "../overview.html"', '"href": "alias.html"');
+		await writeFile(
+			definition,
+			aliasPage.replace(
+				"page: 'index.html', fragment: 'NeedOverview'",
+				"page: 'alias.html', fragment: 'scope'",
+			),
+		);
+		await expect(run(process.execPath, check)).rejects.toThrow(
+			'Record NeedOverview must point to a page owned by this design set.',
+		);
 		expect(await readFile(navigationPath, 'utf8')).toBe(originalNavigation);
+		expect(await readFile(join(deliverable, 'design.json'), 'utf8')).toBe(output);
+		await writeFile(definition, withRecord.replace("'Shared scope'", "'Updated shared scope'"));
+		await rename(navigationPath, join(deliverable, 'navigation.saved'));
+		await mkdir(navigationPath);
+		await expect(run(process.execPath, check)).rejects.toThrow('Expected a generated file');
 		expect(await readFile(join(deliverable, 'design.json'), 'utf8')).toBe(output);
 	} finally {
 		await rm(directory, { recursive: true, force: true });

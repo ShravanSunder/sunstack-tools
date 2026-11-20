@@ -10,7 +10,7 @@ import {
 	type SharedMapNode,
 	sharedNavigationSchema,
 } from '../../core/shared-navigation.ts';
-import { checkHtml, formatFindings } from '../check.ts';
+import { checkHtml, documentFragmentIds, formatFindings } from '../check.ts';
 import { readDesign } from './read-design.ts';
 import type { DesignRecord } from './schema.ts';
 
@@ -78,33 +78,71 @@ function checkRecordRelationships(records: readonly DesignRecord[]): void {
 	}
 }
 
-/** Stage each derived file next to its destination so readers see complete JSON. */
-async function writeGeneratedJson(
+interface GeneratedFile {
+	file: string;
+	previous: string | undefined;
+	text: string;
+}
+
+async function planGeneratedJson(
 	file: string,
 	value: unknown,
 	sameValue: (current: unknown, next: unknown) => boolean = isDeepStrictEqual,
-): Promise<void> {
+): Promise<GeneratedFile | undefined> {
 	const existing = await lstat(file).catch((error: unknown) => {
 		if (!missing(error)) throw error;
 		return undefined;
 	});
-	if (existing) {
-		if (!existing.isFile()) throw new Error(`Expected a generated file at ${file}.`);
-		const current = await readFile(file, 'utf8');
+	if (existing && !existing.isFile()) throw new Error(`Expected a generated file at ${file}.`);
+	const previous = existing ? await readFile(file, 'utf8') : undefined;
+	if (previous !== undefined) {
 		try {
-			if (sameValue(JSON.parse(current), value)) return;
+			if (sameValue(JSON.parse(previous), value)) return undefined;
 		} catch {
 			// A malformed previous output can be regenerated from validated inputs.
 		}
 	}
-	const temporary = `${file}.${randomUUID()}.tmp`;
-	await writeFile(temporary, `${JSON.stringify(value, null, 2)}\n`, { flag: 'wx' });
+	return { file, previous, text: `${JSON.stringify(value, null, 2)}\n` };
+}
+
+/** Preflight both outputs, then stage their replacements and rollback copies together. */
+async function writeGeneratedFiles(outputs: GeneratedFile[]): Promise<void> {
+	const writes = outputs.map((output) => ({
+		...output,
+		stage: `${output.file}.${randomUUID()}.tmp`,
+		rollback: `${output.file}.${randomUUID()}.tmp`,
+	}));
+	const committed: typeof writes = [];
 	try {
-		await rename(temporary, file);
+		for (const { stage, text, previous, rollback } of writes) {
+			// oxlint-disable-next-line no-await-in-loop -- finish staging before renaming either output.
+			await writeFile(stage, text, { flag: 'wx' });
+			if (previous !== undefined) {
+				// oxlint-disable-next-line no-await-in-loop -- stage restoration bytes before renaming.
+				await writeFile(rollback, previous, { flag: 'wx' });
+			}
+		}
+		for (const pending of writes) {
+			// oxlint-disable-next-line no-await-in-loop -- record each completed rename for rollback.
+			await rename(pending.stage, pending.file);
+			committed.push(pending);
+		}
+	} catch (error) {
+		for (const { file, previous, rollback } of committed.toReversed()) {
+			// oxlint-disable-next-line no-await-in-loop -- undo each completed write before reporting failure.
+			await (previous === undefined ? unlink(file) : rename(rollback, file));
+		}
+		throw error;
 	} finally {
-		await unlink(temporary).catch((error: unknown): void => {
-			if (!missing(error)) throw error;
-		});
+		await Promise.all(
+			writes
+				.flatMap(({ stage, rollback }) => [stage, rollback])
+				.map(async (path) =>
+					unlink(path).catch((error: unknown): void => {
+						if (!missing(error)) throw error;
+					}),
+				),
+		);
 	}
 }
 
@@ -115,16 +153,18 @@ export async function checkDesignSet(directory: string, siteRoot?: string): Prom
 		throw new Error('The site root must contain the design set.');
 	const label = (file: string): string => relative(siteDirectory, file);
 	const inputFiles = new Map<string, Promise<string>>();
-	function readSiteFile(file: string): Promise<string> {
+	async function resolveSiteFile(file: string): Promise<string> {
 		if (!containsPath(siteDirectory, file))
 			throw new Error(`Path escapes the site root: ${label(file)}`);
+		const physical = await realpath(file);
+		if (!containsPath(siteDirectory, physical))
+			throw new Error(`Local target resolves outside the site root: ${label(file)}`);
+		return physical;
+	}
+	function readSiteFile(file: string): Promise<string> {
 		const present = inputFiles.get(file);
 		if (present) return present;
-		const reading = realpath(file).then(async (physical) => {
-			if (!containsPath(siteDirectory, physical))
-				throw new Error(`Local target resolves outside the site root: ${label(file)}`);
-			return readFile(physical, 'utf8');
-		});
+		const reading = resolveSiteFile(file).then((physical) => readFile(physical, 'utf8'));
 		inputFiles.set(file, reading);
 		return reading;
 	}
@@ -152,12 +192,38 @@ export async function checkDesignSet(directory: string, siteRoot?: string): Prom
 		return reading;
 	}
 
-	async function checkDestination(file: string, fragment: string): Promise<void> {
+	const navigationIds = new Map<string, Promise<ReadonlySet<string>>>();
+	function readNavigationIds(file: string): Promise<ReadonlySet<string>> {
+		const existing = navigationIds.get(file);
+		if (existing) return existing;
+		const reading = readSiteFile(file).then((html) =>
+			documentFragmentIds(html, async (source) => {
+				const target = resolveLink(source, file);
+				if (!target) return undefined;
+				try {
+					return await readSiteFile(target.file);
+				} catch (error) {
+					if (missing(error)) return undefined;
+					throw error;
+				}
+			}),
+		);
+		navigationIds.set(file, reading);
+		return reading;
+	}
+
+	async function checkDestination(
+		file: string,
+		fragment: string,
+		requireAuthoredId = false,
+	): Promise<void> {
 		try {
 			if (isHtml(file)) {
-				if (fragment && !(await readPage(file)).ids.has(fragment))
-					throw new Error(`Missing HTML target: ${label(file)}#${fragment}`);
-				await readPage(file);
+				const { ids } = await readPage(file);
+				if (fragment && !ids.has(fragment)) {
+					if (requireAuthoredId || !(await readNavigationIds(file)).has(fragment))
+						throw new Error(`Missing HTML target: ${label(file)}#${fragment}`);
+				}
 			} else {
 				await readSiteFile(file);
 			}
@@ -168,8 +234,21 @@ export async function checkDesignSet(directory: string, siteRoot?: string): Prom
 	}
 
 	const designFile = join(setDirectory, 'design.ts');
+	const declarationFile = join(setDirectory, 'design-schema.d.ts');
 	const navigationFile = join(setDirectory, 'navigation.json');
-	const design = readDesign(designFile, await readSiteFile(designFile));
+	async function readOwnedInput(file: string): Promise<string> {
+		if (!containsPath(setDirectory, await resolveSiteFile(file)))
+			throw new Error(`${label(file)} must remain inside this design set.`);
+		return readSiteFile(file);
+	}
+	const [designText, declaration] = await Promise.all([
+		readOwnedInput(designFile),
+		readOwnedInput(declarationFile).catch((error: unknown): undefined => {
+			if (missing(error)) return undefined;
+			throw error;
+		}),
+	]);
+	const design = readDesign(designFile, designText, declaration);
 	const navigation = {
 		version: 1,
 		pages: design.pages,
@@ -184,13 +263,14 @@ export async function checkDesignSet(directory: string, siteRoot?: string): Prom
 			if (!target || /[?#]/.test(page.href) || !isHtml(target.file))
 				throw new Error(`A declared page must name a relative HTML file: ${page.href}`);
 			await checkDestination(target.file, '');
-			return [page.id, target.file] as const;
+			const owned =
+				containsPath(setDirectory, target.file) &&
+				containsPath(setDirectory, await resolveSiteFile(target.file));
+			return { id: page.id, file: target.file, owned };
 		}),
 	);
-	const filesByPage = new Map(pages);
-	const ownedPages = new Set(
-		[...filesByPage.values()].filter((file): boolean => containsPath(setDirectory, file)),
-	);
+	const filesByPage = new Map(pages.map(({ id, file }) => [id, file]));
+	const ownedPages = new Set(pages.filter(({ owned }): boolean => owned).map(({ file }) => file));
 	if (!ownedPages.size) throw new Error('Declare at least one HTML page owned by this design set.');
 	const checkNavigationTarget = async (target: NavigationTarget): Promise<void> => {
 		const file = filesByPage.get(target.page);
@@ -211,7 +291,7 @@ export async function checkDesignSet(directory: string, siteRoot?: string): Prom
 			const destination = resolveLink(record.destination.page, designFile);
 			if (!destination || !ownedPages.has(destination.file))
 				throw new Error(`Record ${record.id} must point to a page owned by this design set.`);
-			await checkDestination(destination.file, record.destination.fragment);
+			await checkDestination(destination.file, record.destination.fragment, true);
 			await Promise.all(
 				record.sources.map(async (source) => {
 					const target = resolveLink(source.href, designFile);
@@ -280,20 +360,28 @@ export async function checkDesignSet(directory: string, siteRoot?: string): Prom
 				if (!missing(error)) throw error;
 				return undefined;
 			});
-			if (content !== undefined && (await readFile(path, 'utf8')) !== content)
+			if (
+				content !== undefined &&
+				(await readFile(await resolveSiteFile(path), 'utf8')) !== content
+			)
 				throw new Error(`Input changed during design check: ${label(path)}`);
 		}),
 	);
-	await writeGeneratedJson(join(setDirectory, 'design.json'), {
-		version: 1,
-		pages: design.pages,
-		records: design.records,
-		recordDestinations,
-	});
-	await writeGeneratedJson(navigationFile, navigation, (current): boolean => {
-		const parsed = sharedNavigationSchema.safeParse(current);
-		return parsed.success && isDeepStrictEqual(parsed.data, validatedNavigation);
-	});
+	const outputs = await Promise.all([
+		planGeneratedJson(join(setDirectory, 'design.json'), {
+			version: 1,
+			pages: design.pages,
+			records: design.records,
+			recordDestinations,
+		}),
+		planGeneratedJson(navigationFile, navigation, (current): boolean => {
+			const parsed = sharedNavigationSchema.safeParse(current);
+			return parsed.success && isDeepStrictEqual(parsed.data, validatedNavigation);
+		}),
+	]);
+	await writeGeneratedFiles(
+		outputs.filter((output): output is GeneratedFile => output !== undefined),
+	);
 	return [
 		details,
 		`Checked ${ownedPages.size} authored page(s), ${pages.length} navigation page(s), and ${design.records.length} design record(s).`,

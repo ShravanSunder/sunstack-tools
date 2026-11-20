@@ -1,7 +1,8 @@
 import { execFile } from 'node:child_process';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
+import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 
@@ -48,6 +49,34 @@ it('runs the packed authoring commands outside a checkout without browser depend
 		await expect(run(process.execPath, [cli, 'check'], { cwd: directory })).rejects.toMatchObject({
 			code: 1,
 		});
+	} finally {
+		await rm(directory, { recursive: true, force: true });
+	}
+});
+
+it('runs the typed design command in the packed executable with its declared compiler', async (): Promise<void> => {
+	const directory = await mkdtemp(join(tmpdir(), 'demistify-design-consumer-'));
+	try {
+		await run('tar', ['-xzf', archive, '-C', directory]);
+		const installed = join(directory, 'package');
+		const installedDependencies = join(installed, 'node_modules');
+		const require = createRequire(import.meta.url);
+		const compilerManifest = require.resolve('typescript/package.json');
+		const compiler: unknown = JSON.parse(await readFile(compilerManifest, 'utf8'));
+		const manifest: unknown = JSON.parse(await readFile(join(installed, 'package.json'), 'utf8'));
+		expect(compiler).toMatchObject({ version: '5.9.3' });
+		expect(manifest).toMatchObject({ dependencies: { typescript: '5.9.3' } });
+		await mkdir(installedDependencies);
+		await symlink(dirname(compilerManifest), join(installedDependencies, 'typescript'));
+		await writeFile(
+			join(directory, 'index.html'),
+			`${pageHead}<ex-nav for="content" src="./navigation.json"></ex-nav><ex-document id="content"><h1>Guide</h1></ex-document>`,
+		);
+		const cli = join(installed, 'demistify.js');
+		await run(process.execPath, [cli, 'design', 'init'], { cwd: directory });
+		const checked = await run(process.execPath, [cli, 'design', 'check'], { cwd: directory });
+		expect(checked.stdout).toContain('Checked 1 authored page(s), 1 navigation page(s)');
+		expect(await readFile(join(directory, 'design.json'), 'utf8')).toContain('"records": []');
 	} finally {
 		await rm(directory, { recursive: true, force: true });
 	}

@@ -1,3 +1,5 @@
+import { basename, dirname, join } from 'node:path';
+
 import typescript from 'typescript';
 
 import { designSchema, type DesignCore } from './schema.ts';
@@ -34,7 +36,11 @@ function readLiteral(expression: typescript.Expression, source: typescript.Sourc
 }
 
 /** Read a TypeScript data object. The authoring file is never imported or evaluated. */
-export function readDesign(file: string, text: string): DesignCore {
+export function readDesign(
+	file: string,
+	text: string,
+	declaration: string | undefined,
+): DesignCore {
 	const source = typescript.createSourceFile(file, text, typescript.ScriptTarget.ES2022, true);
 	const exportAssignment = source.statements.filter(typescript.isExportAssignment);
 	const [entry] = exportAssignment;
@@ -56,15 +62,32 @@ export function readDesign(file: string, text: string): DesignCore {
 		skipLibCheck: true,
 		allowImportingTsExtensions: true,
 		target: typescript.ScriptTarget.ES2022,
-		module: typescript.ModuleKind.NodeNext,
+		module: typescript.ModuleKind.ESNext,
+		moduleResolution: typescript.ModuleResolutionKind.Bundler,
 		types: [],
 	};
 	const host = typescript.createCompilerHost(compilerOptions);
+	const declarationName = 'design-schema.d.ts';
+	const declarationFile = join(dirname(file), declarationName);
+	const libraryDirectory = dirname(typescript.getDefaultLibFilePath(compilerOptions));
 	const getSourceFile = host.getSourceFile.bind(host);
-	host.getSourceFile = (name, languageVersion, onError, shouldCreateNewSourceFile) =>
-		name === file
-			? source
-			: getSourceFile(name, languageVersion, onError, shouldCreateNewSourceFile);
+	host.getSourceFile = (name, languageVersion, onError, shouldCreateNewSourceFile) => {
+		if (name === file) return source;
+		if (name === declarationFile && declaration !== undefined)
+			return typescript.createSourceFile(name, declaration, languageVersion, true);
+		if (dirname(name) === libraryDirectory && /^lib\..+\.d\.ts$/.test(basename(name)))
+			return getSourceFile(name, languageVersion, onError, shouldCreateNewSourceFile);
+		return undefined;
+	};
+	host.resolveModuleNameLiterals = (imports) =>
+		imports.map((moduleName) => ({
+			resolvedModule:
+				moduleName.text === `./${declarationName}` && declaration !== undefined
+					? { resolvedFileName: declarationFile, extension: typescript.Extension.Dts }
+					: undefined,
+		}));
+	host.resolveTypeReferenceDirectiveReferences = (references) =>
+		references.map(() => ({ resolvedTypeReferenceDirective: undefined }));
 	const program = typescript.createProgram([file], compilerOptions, host);
 	const diagnostics = typescript.getPreEmitDiagnostics(program);
 	if (diagnostics.length)

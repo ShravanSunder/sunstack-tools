@@ -31,6 +31,74 @@ import { checkStoryMarkup } from './story-markup.ts';
 type Element = DefaultTreeAdapterMap['element'];
 type ParentNode = DefaultTreeAdapterMap['parentNode'];
 
+async function markdownTargets(
+	pageElements: readonly Element[],
+	readSource?: CheckOptions['readSource'],
+): Promise<ReadonlySet<string>> {
+	const targets = new Set<string>();
+	const addDiagramTargets = (diagram: Element, ownerId: string): void => {
+		targets.add(ownerId);
+		for (const word of textOf(diagram).match(/[A-Za-z_][\w-]*/g) ?? [])
+			targets.add(`${ownerId}--${word}`);
+	};
+	for (const diagram of pageElements.filter(
+		(element): boolean => element.tagName === 'ex-mermaid',
+	)) {
+		const ownerId = attributeMap(diagram).get('id');
+		if (ownerId) addDiagramTargets(diagram, ownerId);
+	}
+	const owners = pageElements.filter((element): boolean => element.tagName === 'ex-markdown');
+	const sources = await Promise.all(
+		owners.map((owner): Promise<string | undefined> => {
+			const reference = attributeMap(owner).get('src');
+			return reference && readSource ? readSource(reference) : Promise.resolve(undefined);
+		}),
+	);
+	for (const [index, owner] of owners.entries()) {
+		const attrs = attributeMap(owner);
+		const prefix = attrs.get('id');
+		if (!prefix) continue;
+		const sourceElement = owner.childNodes
+			.filter(isElement)
+			.find((child): boolean => child.tagName === 'script');
+		const external = sources[index];
+		const content =
+			external ??
+			(sourceElement && attributeMap(sourceElement).has('data-ex-markdown-source')
+				? parseMarkdownSource(textOf(sourceElement)).text
+				: sourceElement
+					? textOf(sourceElement)
+					: textOf(owner));
+		const rendered = Array.from(walk(parse(renderMarkdownContent(content))));
+		const diagrams = rendered.filter((element): boolean => element.tagName === 'ex-mermaid');
+		for (const [diagramIndex, diagram] of diagrams.entries())
+			addDiagramTargets(diagram, `${prefix}--diagram-${diagramIndex + 1}`);
+		const seen = new Map<string, number>();
+		for (const heading of rendered.filter((element): boolean => /^h[1-6]$/.test(element.tagName))) {
+			const slug = headingSlug(textOf(heading));
+			const occurrence = (seen.get(slug) ?? 0) + 1;
+			seen.set(slug, occurrence);
+			targets.add(`${prefix}--${slug}${occurrence > 1 ? `-${occurrence}` : ''}`);
+		}
+	}
+	return targets;
+}
+
+/** Source and generated fragment IDs usable by document navigation. */
+export async function documentFragmentIds(
+	html: string,
+	readSource?: CheckOptions['readSource'],
+): Promise<ReadonlySet<string>> {
+	const elements = Array.from(walk(parse(html)));
+	const targets = new Set(await markdownTargets(elements, readSource));
+	for (const element of elements) {
+		const id = attributeMap(element).get('id');
+		if (id && !element.namespaceURI.endsWith('svg') && !hasAncestor(element, ['svg']))
+			targets.add(id);
+	}
+	return targets;
+}
+
 export interface TextEdit {
 	readonly start: number;
 	readonly end: number;
@@ -266,63 +334,7 @@ export async function checkHtml(source: string, options: CheckOptions = {}): Pro
 		else ids.set(id, element);
 	}
 
-	const markdownTargets = async (
-		pageElements: readonly Element[],
-		relativeTo = '',
-	): Promise<ReadonlySet<string>> => {
-		const targets = new Set<string>();
-		const addDiagramTargets = (diagram: Element, ownerId: string): void => {
-			targets.add(ownerId);
-			for (const word of textOf(diagram).match(/[A-Za-z_][\w-]*/g) ?? [])
-				targets.add(`${ownerId}--${word}`);
-		};
-		for (const diagram of pageElements.filter(
-			(element): boolean => element.tagName === 'ex-mermaid',
-		)) {
-			const ownerId = attributeMap(diagram).get('id');
-			if (ownerId) addDiagramTargets(diagram, ownerId);
-		}
-		const owners = pageElements.filter((element): boolean => element.tagName === 'ex-markdown');
-		const sources = await Promise.all(
-			owners.map((owner): Promise<string | undefined> => {
-				const reference = attributeMap(owner).get('src');
-				return reference && options.readSource
-					? options.readSource(join(relativeTo, reference))
-					: Promise.resolve(undefined);
-			}),
-		);
-		for (const [index, owner] of owners.entries()) {
-			const attrs = attributeMap(owner);
-			const prefix = attrs.get('id');
-			if (!prefix) continue;
-			const sourceElement = owner.childNodes
-				.filter(isElement)
-				.find((child): boolean => child.tagName === 'script');
-			const external = sources[index];
-			const content =
-				external ??
-				(sourceElement && attributeMap(sourceElement).has('data-ex-markdown-source')
-					? parseMarkdownSource(textOf(sourceElement)).text
-					: sourceElement
-						? textOf(sourceElement)
-						: textOf(owner));
-			const rendered = Array.from(walk(parse(renderMarkdownContent(content))));
-			const diagrams = rendered.filter((element): boolean => element.tagName === 'ex-mermaid');
-			for (const [diagramIndex, diagram] of diagrams.entries())
-				addDiagramTargets(diagram, `${prefix}--diagram-${diagramIndex + 1}`);
-			const seen = new Map<string, number>();
-			for (const heading of rendered.filter((element): boolean =>
-				/^h[1-6]$/.test(element.tagName),
-			)) {
-				const slug = headingSlug(textOf(heading));
-				const occurrence = (seen.get(slug) ?? 0) + 1;
-				seen.set(slug, occurrence);
-				targets.add(`${prefix}--${slug}${occurrence > 1 ? `-${occurrence}` : ''}`);
-			}
-		}
-		return targets;
-	};
-	for (const target of await markdownTargets(elements))
+	for (const target of await markdownTargets(elements, options.readSource))
 		if (!ids.has(target)) {
 			const owner = elements.find((element): boolean => element.tagName === 'ex-markdown');
 			if (owner) ids.set(target, owner);
@@ -335,30 +347,20 @@ export async function checkHtml(source: string, options: CheckOptions = {}): Pro
 		elements.some((element): boolean => element.tagName === 'ex-mermaid')
 			? await import('beautiful-mermaid')
 			: undefined;
-	const otherPages = new Map<string, Set<string> | undefined>();
-	const idsOnPage = async (file: string): Promise<Set<string> | undefined> => {
-		if (!otherPages.has(file)) {
-			const text = await options.readSource?.(file);
-			otherPages.set(
-				file,
-				text === undefined
-					? undefined
-					: new Set(
-							Array.from(text.matchAll(/\sid="([^"]+)"/g), (match): string => match[1] ?? ''),
-						),
+	const otherPages = new Map<string, Promise<ReadonlySet<string> | undefined>>();
+	const idsOnPage = (file: string): Promise<ReadonlySet<string> | undefined> => {
+		const cached = otherPages.get(file);
+		if (cached) return cached;
+		const checking = (async (): Promise<ReadonlySet<string> | undefined> => {
+			const html = await options.readSource?.(file);
+			if (html === undefined) return undefined;
+			return documentFragmentIds(
+				html,
+				(path) => options.readSource?.(join(dirname(file), path)) ?? Promise.resolve(undefined),
 			);
-		}
-		const targets = otherPages.get(file);
-		if (targets && options.readSource) {
-			const referencedHtml = await options.readSource(file);
-			if (referencedHtml)
-				for (const target of await markdownTargets(
-					Array.from(walk(parse(referencedHtml))),
-					dirname(file),
-				))
-					targets.add(target);
-		}
-		return targets;
+		})();
+		otherPages.set(file, checking);
+		return checking;
 	};
 	for (const problem of checkSharedTreeMarkup(elements, ids, inertTemplateElements))
 		report(problem.element, problem.severity, 'shared-navigation', problem.message);
