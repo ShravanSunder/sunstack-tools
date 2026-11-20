@@ -1,5 +1,12 @@
 # @sunstack/demistify
 
+## 1.25.2
+
+### Patch Changes
+
+- a7d0431: Fit entity–relationship diagrams to the reading view and offer a one-click label zoom in Fullscreen.
+- 4a51007: Center desktop comment controls at the upper corner of their blocks and align diagram Fullscreen below them on the same edge. Hide idle comment markers at phone width and on touch screens, with tap-to-comment and a marker toggle in the Comments panel.
+
 ## 1.25.1
 
 ### Patch Changes
