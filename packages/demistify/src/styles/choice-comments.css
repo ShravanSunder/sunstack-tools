@@ -659,9 +659,16 @@ ex-choice.ex-choice-cards ex-option > .ex-entity-comment[data-comment-count='0']
 	opacity: 0;
 	pointer-events: none;
 }
-ex-choice.ex-choice-cards:has(> fieldset > legend:hover) > .ex-entity-comment,
-ex-choice.ex-choice-cards > .ex-entity-comment:is(:hover, :focus-visible),
-ex-choice.ex-choice-cards ex-option:is(:hover, :has(:focus-visible)) > .ex-entity-comment {
+ex-choice.ex-choice-cards > .ex-entity-comment:focus-visible,
+ex-choice.ex-choice-cards ex-option:has(:focus-visible) > .ex-entity-comment {
 	opacity: 1;
 	pointer-events: auto;
+}
+@media (hover: hover) and (min-width: 761px) {
+	ex-choice.ex-choice-cards:has(> fieldset > legend:hover) > .ex-entity-comment,
+	ex-choice.ex-choice-cards > .ex-entity-comment:hover,
+	ex-choice.ex-choice-cards ex-option:hover > .ex-entity-comment {
+		opacity: 1;
+		pointer-events: auto;
+	}
 }

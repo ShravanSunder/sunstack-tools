@@ -112,6 +112,8 @@ test.each(['dark', 'light'])(
 		expect(opacity(paragraphMarker)).toBe('0');
 		expect(opacity(choiceMarker)).toBe('0');
 		expect(fixture.defaultView?.getComputedStyle(paragraph).paddingInlineEnd).toBe('0px');
+		await fixtureLocator(frame, requiredElement(fixture, '#technical')).hover();
+		expect(opacity(choiceMarker)).toBe('0');
 
 		await frame.getByRole('button', { name: 'Comments (0)', exact: true }).click();
 		await frame
@@ -148,6 +150,14 @@ test.each(['dark', 'light'])(
 		await frame.getByRole('button', { name: 'Close comments', exact: true }).click();
 		await fixtureLocator(frame, requiredElement(fixture, 'h1')).hover();
 		await expect.poll(() => opacity(paragraphMarker)).toBe('0');
+		const view = fixture.defaultView;
+		if (!view) throw new Error('Missing review window');
+		// Legacy touch clicks can arrive as a plain MouseEvent.
+		paragraph.dispatchEvent(
+			new view.PointerEvent('pointerdown', { bubbles: true, pointerType: 'touch' }),
+		);
+		paragraph.dispatchEvent(new view.MouseEvent('click', { bubbles: true, detail: 1 }));
+		await expect.element(tapAction).toBeVisible();
 	},
 );
 

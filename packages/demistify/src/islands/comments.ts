@@ -38,6 +38,7 @@ export class CommentsIsland extends HTMLElement {
 	private gutterFrame: number | undefined;
 	private readonly diagramResize = new ResizeObserver((): void => this.placeDiagramGutters());
 	private candidate: ReturnType<typeof captureCommentAnchor>;
+	private touchClickSource: Element | undefined;
 	private tappedTarget: HTMLElement | undefined;
 	private composing: CommentAnchor | undefined;
 	private active: PageComment | undefined;
@@ -143,6 +144,23 @@ export class CommentsIsland extends HTMLElement {
 			{ signal },
 		);
 		document.addEventListener('selectionchange', (): void => this.captureSelection(), { signal });
+		document.addEventListener(
+			'pointerdown',
+			(event): void => {
+				this.touchClickSource =
+					event.pointerType === 'touch' && event.target instanceof Element
+						? event.target
+						: undefined;
+			},
+			{ capture: true, passive: true, signal },
+		);
+		document.addEventListener(
+			'pointercancel',
+			(): void => {
+				this.touchClickSource = undefined;
+			},
+			{ capture: true, signal },
+		);
 		document.addEventListener('click', (event): void => this.captureTouchTarget(event), { signal });
 		window.addEventListener(
 			'resize',
@@ -244,6 +262,7 @@ export class CommentsIsland extends HTMLElement {
 		this.unregisterControl?.();
 		this.unregisterControl = undefined;
 		this.selectionButton?.remove();
+		this.touchClickSource = undefined;
 		this.clearTappedTarget();
 		this.root?.classList.remove('ex-review-document');
 		this.highlightStyle.remove();
@@ -387,11 +406,17 @@ export class CommentsIsland extends HTMLElement {
 		if (button.isConnected) document.body.append(button);
 	}
 
-	private captureTouchTarget(event: PointerEvent): void {
+	private captureTouchTarget(event: MouseEvent): void {
+		const touchSource = this.touchClickSource;
+		this.touchClickSource = undefined;
 		if (!(event.target instanceof Element) || this.selectionButton?.contains(event.target)) return;
+		// Safari versions can deliver a MouseEvent for a touch click.
+		const fromTouch =
+			(event instanceof PointerEvent && event.pointerType === 'touch') ||
+			(event.detail > 0 && touchSource !== undefined && event.target.contains(touchSource));
 		this.clearTappedTarget();
 		if (
-			event.pointerType !== 'touch' ||
+			!fromTouch ||
 			!matchMedia(compactComments).matches ||
 			!this.root?.contains(event.target) ||
 			this.root.hasAttribute('data-show-comment-markers') ||
