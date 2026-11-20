@@ -520,8 +520,15 @@ export class CommentsIsland extends HTMLElement {
 				(comment): boolean => comment.anchor.targetId === target.targetId,
 			).length;
 			const button = this.controls.get(target.element);
-			button?.replaceChildren(createCommentIcon(count > 0));
 			if (button) {
+				button.replaceChildren(createCommentIcon(count > 0));
+				if (count > 0) {
+					const countLabel = document.createElement('span');
+					countLabel.className = 'ex-entity-comment-count';
+					countLabel.setAttribute('aria-hidden', 'true');
+					countLabel.textContent = count > 9 ? '9+' : String(count);
+					button.append(countLabel);
+				}
 				button.dataset['commentCount'] = String(count);
 				button.setAttribute(
 					'aria-label',

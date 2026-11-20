@@ -37,6 +37,55 @@ test('a selected option and its comment share one title in the review rail', asy
 	expect(readCurrentReview(fixture).comments).toHaveLength(1);
 });
 
+test.each([
+	{ width: 1600, theme: 'dark' },
+	{ width: 1600, theme: 'light' },
+	{ width: 390, theme: 'dark' },
+	{ width: 390, theme: 'light' },
+])(
+	'saved Choice comment count stays inside its circle at $width $theme',
+	async ({ width, theme }): Promise<void> => {
+		await page.viewport(width, 900);
+		const { document: fixture, frame } = await openReviewFixture('beside.html');
+		fixture.documentElement.dataset['theme'] = theme;
+		const option = requiredElement(fixture, '#technical');
+		const marker = requiredElement(option, ':scope > .ex-entity-comment');
+		const original = marker.getBoundingClientRect();
+		if (width === 390) {
+			await frame.getByRole('button', { name: 'Comments (0)', exact: true }).click();
+			await frame
+				.getByRole('checkbox', { name: 'Show comment markers on the page', exact: true })
+				.click();
+		} else await fixtureLocator(frame, option).hover();
+		await frame.getByRole('button', { name: 'Comment on Technical scope', exact: true }).click();
+		await frame
+			.getByRole('textbox', { name: 'Your comment', exact: true })
+			.fill('Keep the checked boundary.');
+		await frame.getByRole('button', { name: 'Add comment', exact: true }).click();
+		await frame.getByRole('button', { name: 'Close comments', exact: true }).click();
+		await expect
+			.element(frame.getByRole('button', { name: 'Comment on Technical scope (1)', exact: true }))
+			.toBeVisible();
+		await frame
+			.getByRole('button', { name: 'Open details for Technical scope', exact: true })
+			.click();
+		const bounds = marker.getBoundingClientRect();
+		expect(bounds.width).toBe(original.width);
+		expect(bounds.height).toBe(original.height);
+		expect(marker.scrollWidth).toBeLessThanOrEqual(marker.clientWidth);
+		expect(marker.scrollHeight).toBeLessThanOrEqual(marker.clientHeight);
+		if (width === 1600) {
+			const markerCenter = controlCenter(marker);
+			const card = option.getBoundingClientRect();
+			expect(Math.abs(markerCenter.x - card.right)).toBeLessThan(2);
+			expect(Math.abs(markerCenter.y - card.top)).toBeLessThan(2);
+		}
+		await page.screenshot({
+			path: browserScreenshotPath(`saved-comment-circle-${width}-${theme}.png`),
+		});
+	},
+);
+
 test.each(['dark', 'light'])(
 	'desktop %s review centers diagram controls on the boundary and reveals only the hovered target',
 	async (theme): Promise<void> => {
