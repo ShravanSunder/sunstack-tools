@@ -1,6 +1,7 @@
 import { afterEach, expect, test } from 'vitest';
 import { page } from 'vitest/browser';
 
+import { browserScreenshotPath } from './browser-evidence.ts';
 import {
 	firstTextRect,
 	fixtureLocator,
@@ -169,6 +170,61 @@ test('wide diagrams scroll locally to both endpoints with reachable controls and
 	await verifyDiagramWidth(1600);
 	await verifyDiagramWidth(390);
 });
+
+test.each([1600, 390].flatMap((width) => ['dark', 'light'].map((theme) => ({ width, theme }))))(
+	'a wide schema fits and can zoom to its labels in one action at $width $theme',
+	async ({ width, theme }): Promise<void> => {
+		await page.viewport(width, 900);
+		const { document: fixture, frame } = await openFixture('layout');
+		fixture.documentElement.dataset['theme'] = theme;
+		const schema = fixture.createElement('ex-mermaid');
+		schema.setAttribute('label', 'Wide workspace schema');
+		schema.id = 'wide-schema';
+		const script = fixture.createElement('script');
+		script.type = 'text/plain';
+		const names = Array.from({ length: 12 }, (_, index) => `workspace_record_${index}`);
+		const tables = names.map(
+			(name) => `${name} {\n  text record_identifier PK\n  text related_workspace_identifier FK\n}`,
+		);
+		const relationships = names
+			.slice(1)
+			.map((name) => `workspace_record_0 ||--o{ ${name} : contains`);
+		script.textContent = ['erDiagram', ...relationships, ...tables].join('\n');
+		schema.append(script);
+		requiredElement(fixture, 'ex-document').append(schema);
+		schema.scrollIntoView({ block: 'center' });
+		await expect.poll(() => schema.querySelectorAll('svg .entity').length).toBe(tables.length);
+
+		const diagram = requiredElement(schema, 'svg');
+		const sourceWidth = Number(diagram.getAttribute('width'));
+		const label = requiredElement(schema, 'svg text[font-size="9"]');
+		const labelSize = Number(label.getAttribute('font-size'));
+		expect((sourceWidth * 16) / labelSize).toBeGreaterThan(schema.clientWidth);
+		expect(diagram.getBoundingClientRect().width).toBeLessThanOrEqual(schema.clientWidth + 1);
+		expect(schema.scrollWidth).toBeLessThanOrEqual(schema.clientWidth + 1);
+
+		await fixtureLocator(frame, schema).hover();
+		await frame.getByRole('button', { name: 'Expand Wide workspace schema', exact: true }).click();
+		const inspector = frame.getByRole('dialog', { name: 'Wide workspace schema', exact: true });
+		await expect.element(inspector).toBeVisible();
+		expect(fixture.querySelector('.ex-inspect-dialog [data-comment-control]')).toBeNull();
+		expect(schema.querySelector(':scope > .ex-entity-comment')).not.toBeNull();
+		const fittedWidth = diagram.getBoundingClientRect().width;
+		const scroller = requiredElement(fixture, '.ex-inspect-dialog .ex-inspect-body');
+		expect(fittedWidth).toBeLessThanOrEqual(scroller.clientWidth);
+		expect(diagram.getBoundingClientRect().height).toBeLessThanOrEqual(scroller.clientHeight);
+		await page.screenshot({ path: browserScreenshotPath(`schema-fit-${width}-${theme}.png`) });
+		await inspector.getByRole('button', { name: 'Read labels', exact: true }).click();
+		const visibleLabelSize = (labelSize * diagram.getBoundingClientRect().width) / sourceWidth;
+		expect(visibleLabelSize).toBeGreaterThanOrEqual(15.9);
+		expect(scroller.scrollWidth).toBeGreaterThan(scroller.clientWidth);
+		await page.screenshot({ path: browserScreenshotPath(`schema-labels-${width}-${theme}.png`) });
+		await inspector.getByRole('button', { name: 'Reset zoom', exact: true }).click();
+		expect(diagram.getBoundingClientRect().width).toBeCloseTo(fittedWidth, 0);
+		await inspector.getByRole('button', { name: 'Close', exact: true }).click();
+		expect(schema.querySelector('svg')).toBe(diagram);
+	},
+);
 
 test('tree multiline text stays beside its first-line icon and preserves inline code and loose paragraphs', async (): Promise<void> => {
 	const { document: fixture, frame } = await openFixture('layout');

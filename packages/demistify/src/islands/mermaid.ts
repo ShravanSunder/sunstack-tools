@@ -7,21 +7,20 @@ import { colorPreparedDiagram } from '../render/diagram-palette.ts';
 import { hasGraphEdges } from '../render/graph-source.ts';
 import { installIslandInspector, openIsland } from './inspector.ts';
 
-/**
- * Renders diagram text closer to body size, and never shrinks it below a readable size: a diagram
- * that would have to shrink further (a long chain in a narrow column) scrolls sideways instead.
- */
+/** Records widths for readable diagrams and for label zoom from a fitted schema. */
 function sizeDiagram(owner: HTMLElement): void {
 	const svg = owner.querySelector(':scope > svg');
 	const width = Number.parseFloat(svg?.getAttribute('width') ?? '');
 	if (!(svg instanceof SVGSVGElement) || !(width > 0)) return;
 	const preferredWidth = width < 720 ? Math.min(width * 1.25, 720) : width;
-	let minimumTextSize = 16;
+	let minimumTextSize = Infinity;
 	for (const label of svg.querySelectorAll('text')) {
 		const fontSize = Number.parseFloat(label.getAttribute('font-size') ?? '');
 		if (fontSize > 0) minimumTextSize = Math.min(minimumTextSize, fontSize);
 	}
-	const readableWidth = Math.ceil(width * (16 / minimumTextSize));
+	const readableWidth = Number.isFinite(minimumTextSize)
+		? Math.ceil(width * (16 / minimumTextSize))
+		: Math.ceil(width);
 	// CSS applies the floor against the current column width, including after a tab or drawer resize.
 	svg.style.setProperty(
 		'--diagram-width',
