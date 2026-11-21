@@ -59,6 +59,15 @@ export async function builtFixtures(): Promise<Plugin> {
 			.replaceAll('href="islands/', 'href="/__demistify/library/')
 			.replaceAll('src="islands/', 'src="/__demistify/library/'),
 	);
+	const capabilities = resolve(repositoryRoot, 'apps/demistify-poc/dist/experiments');
+	await mkdir(join(snapshot, 'capabilities'));
+	await writeFile(
+		join(snapshot, 'capabilities/index.html'),
+		(await readFile(join(capabilities, 'html-islands-capabilities-live.html'), 'utf8'))
+			.replaceAll('href="islands/', 'href="/__demistify/library/')
+			.replaceAll('src="islands/', 'src="/__demistify/library/'),
+	);
+
 	await Promise.all(
 		[
 			['navigation', 'navigation-markdown-fix'],

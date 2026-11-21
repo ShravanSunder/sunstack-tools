@@ -2,6 +2,7 @@ import { afterEach, expect, test } from 'vitest';
 import { commands, page, userEvent } from 'vitest/browser';
 
 import notesSource from '../../experiments/agent-written/navigation-markdown-fix/notes.md?raw';
+import { browserScreenshotPath } from './browser-evidence.ts';
 import { fixtureLocator, insideViewport, openFixture, requiredElement } from './fixture-page.ts';
 
 afterEach(async (): Promise<void> => {
@@ -357,3 +358,99 @@ test('Mermaid hover keeps themed connectors visible and their arrow scale stable
 	await frame.getByRole('button', { name: 'Switch light or dark theme', exact: true }).click();
 	expect(await verifyTheme()).not.toBe(firstThemeColor);
 });
+
+test.each([1400, 390])(
+	'inspection-only Card details stay inline-hidden at %i CSS px',
+	async (width): Promise<void> => {
+		await page.viewport(width, 1000);
+		const { document: fixture, frame } = await openFixture('layout');
+		const template = fixture.createElement('template');
+		template.innerHTML =
+			'<ex-card id="inspection-only-card" label="Bounded job" title="Job"><p>Inline summary.</p><ex-markdown slot="details"><script type="text/markdown">**Inspection attachment.**</script></ex-markdown></ex-card>';
+		requiredElement(fixture, 'ex-document').append(template.content);
+		const card = requiredElement(fixture, '#inspection-only-card');
+		const detail = requiredElement(card, '[slot="details"]');
+		const local = fixtureLocator(frame, card);
+		await expect.element(local.getByText('Inline summary.')).toBeVisible();
+		expect(detail.hasAttribute('hidden')).toBe(true);
+
+		await local.getByRole('button', { name: 'More about Bounded job' }).click();
+		const inspector = frame.getByRole(width === 390 ? 'dialog' : 'complementary', {
+			name: 'Bounded job',
+			exact: true,
+		});
+		await expect.element(inspector.getByText('Inspection attachment.')).toBeVisible();
+		const panel = requiredElement(
+			fixture,
+			width === 390 ? 'dialog.ex-inspect-dialog[open]' : '.ex-drawer[aria-label="Bounded job"]',
+		);
+		await expect
+			.poll((): boolean => panel.getAnimations().every(({ playState }) => playState === 'finished'))
+			.toBe(true);
+		await page.screenshot({ path: browserScreenshotPath(`card-detail-${width}.png`) });
+		await inspector.getByRole('button', { name: 'Close', exact: true }).click();
+		await expect
+			.poll((): boolean => fixture.documentElement.hasAttribute('data-drawer'))
+			.toBe(false);
+		expect(card.querySelector('[slot="details"]')).toBe(detail);
+		expect(detail.hasAttribute('hidden')).toBe(true);
+	},
+);
+
+test.each([1400, 390])(
+	'untitled Card keeps its bounded canvas usable at %i CSS px',
+	async (width): Promise<void> => {
+		await page.viewport(width, 1000);
+		const { document: fixture } = await openFixture('layout');
+		const canvas = requiredElement(fixture, '#gesture-canvas');
+		expect(canvas.querySelector(':scope > .ex-card-head')).toBeNull();
+
+		const body = requiredElement(canvas, 'svg');
+		const styles = fixture.defaultView?.getComputedStyle(canvas);
+		const inset =
+			Number.parseFloat(styles?.paddingTop ?? '') + Number.parseFloat(styles?.borderTopWidth ?? '');
+		const bounds = canvas.getBoundingClientRect();
+		expect(body.getBoundingClientRect().top - bounds.top).toBeCloseTo(inset);
+		expect(bounds.height).toBe(240);
+		expect(canvas.scrollHeight).toBeGreaterThan(canvas.clientHeight);
+
+		const metadata = fixture.createElement('div');
+		metadata.innerHTML =
+			'<ex-card title="Named"></ex-card><ex-card tone="done"></ex-card><ex-card icon="code"></ex-card><ex-card tag="Observed"></ex-card><ex-card pick></ex-card>';
+		requiredElement(fixture, 'ex-document').append(metadata);
+		expect(metadata.querySelectorAll('ex-card > .ex-card-head')).toHaveLength(5);
+		expect(metadata.querySelector('strong')?.textContent).toBe('Named');
+	},
+);
+
+test.each([1400, 390])(
+	'the built capabilities layer bands use shared reference styles at %i CSS px',
+	async (width): Promise<void> => {
+		await page.viewport(width, 1000);
+		const { document: fixture } = await openFixture('capabilities', '#layers');
+		const bands = fixture.querySelectorAll('#layers + .tree > .band');
+		expect(bands).toHaveLength(5);
+		const band = requiredElement(fixture, '#layers + .tree > .band');
+		const rail = requiredElement(band, ':scope > .lv');
+		const body = requiredElement(band, ':scope > .body');
+		const fixtureWindow = fixture.defaultView;
+		if (!fixtureWindow) throw new Error('Missing fixture window.');
+		const bandStyle = fixtureWindow.getComputedStyle(band);
+		const railStyle = fixtureWindow.getComputedStyle(rail);
+		const railBounds = rail.getBoundingClientRect();
+		const bodyBounds = body.getBoundingClientRect();
+		expect(bandStyle.display).toBe('grid');
+		expect(bandStyle.borderTopWidth).toBe('1px');
+		if (width === 1400) {
+			expect(railBounds.width).toBe(150);
+			expect(railStyle.borderRightWidth).toBe('1px');
+			expect(bodyBounds.left).toBeCloseTo(railBounds.right);
+			expect(bodyBounds.top).toBeCloseTo(railBounds.top);
+		} else {
+			expect(railStyle.borderBottomWidth).toBe('1px');
+			expect(bodyBounds.left).toBeCloseTo(railBounds.left);
+			expect(bodyBounds.top).toBeCloseTo(railBounds.bottom);
+		}
+		await page.screenshot({ path: browserScreenshotPath(`reference-bands-${width}.png`) });
+	},
+);

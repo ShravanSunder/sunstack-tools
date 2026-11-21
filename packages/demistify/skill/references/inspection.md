@@ -15,6 +15,8 @@ Mermaid diagrams offer only the fullscreen (arrows-out) icon. Code, file trees a
 
 Use `label` for a useful inspector name when the visual alone has no clear title. `zoom="true"` is not the flag syntax; write bare `zoom` on a supported owner. Native `details` remain a local disclosure, not an inspector or a guided path. Whole Tabs inspection can serve a different question from its children's controls; Grid/Flow authors inspect supported children rather than adding a container affordance.
 
+For a Card attachment that belongs in the inspector, use a direct child with `slot="details"`. The Card keeps that child hidden inline and exposes it through **More**. With `zoom="none"`, the Card leaves the child’s authored visibility in place.
+
 Clicking an ordinary image opens fullscreen with its caption. Mermaid opens fullscreen only through its arrows-out icon; clicking the drawing does not open inspection. Closing fullscreen restores the original content. Linked images and diagram nodes keep their link action; dragging to select text does not open a viewer. Explicit sidebar buttons still open beside the explanation. `zoom="none"` on the visual owner disables direct enlargement as well as its inspection buttons. Gallery screenshots use their own fullscreen action and Gallery arrow navigation; they do not open a screenshot inspection sidebar. `pictures.md` owns that branch. Markdown's source button opens the retained source, which is different from enlarging its rendered view.
 
 ## What the reader can do
