@@ -1,22 +1,9 @@
 /* oxlint-disable no-await-in-loop -- sequential navigation shares one page, viewport, and issue stream. */
-import { readFile, realpath, stat } from 'node:fs/promises';
-import { createServer, type Server } from 'node:http';
+import { realpath } from 'node:fs/promises';
 import { createRequire } from 'node:module';
-import { extname, isAbsolute, join, relative, resolve, sep } from 'node:path';
+import { join, resolve } from 'node:path';
 
-const contentTypes: Readonly<Record<string, string>> = {
-	'.html': 'text/html; charset=utf-8',
-	'.htm': 'text/html; charset=utf-8',
-	'.js': 'text/javascript',
-	'.mjs': 'text/javascript',
-	'.css': 'text/css',
-	'.svg': 'image/svg+xml',
-	'.png': 'image/png',
-	'.jpg': 'image/jpeg',
-	'.webp': 'image/webp',
-	'.woff2': 'font/woff2',
-	'.json': 'application/json',
-};
+import { containsPath, localPageUrl, localSiteFile, serveLocalSite } from './local-site.ts';
 
 interface Browser {
 	newPage(options: { viewport: { width: number; height: number } }): Promise<Page>;
@@ -81,50 +68,6 @@ async function launchBrowser(): Promise<Browser> {
 			{ cause: error },
 		);
 	}
-}
-
-function containsPath(root: string, file: string): boolean {
-	const child = relative(root, file);
-	return !isAbsolute(child) && child !== '..' && !child.startsWith(`..${sep}`);
-}
-
-async function fileForUrl(base: string, url: URL): Promise<string> {
-	const candidate = resolve(base, `.${decodeURIComponent(url.pathname)}`);
-	if (!containsPath(base, candidate)) throw new Error('Path escapes the render root.');
-	const physical = await realpath(candidate);
-	if (!containsPath(base, physical)) throw new Error('Path resolves outside the render root.');
-	if (!(await stat(physical)).isDirectory()) return physical;
-	const index = await realpath(join(physical, 'index.html'));
-	if (!containsPath(base, index))
-		throw new Error('Directory index resolves outside the render root.');
-	return index;
-}
-
-async function serve(base: string): Promise<{ server: Server; origin: string }> {
-	const server = createServer((request, response): void => {
-		const url = new URL(request.url ?? '/', 'http://local');
-		void fileForUrl(base, url)
-			.then(async (file) => {
-				const body = await readFile(file);
-				response.writeHead(200, {
-					'content-type': contentTypes[extname(file)] ?? 'application/octet-stream',
-				});
-				response.end(body);
-			})
-			.catch((): void => {
-				response.writeHead(404).end();
-			});
-	});
-	await new Promise<void>((done, reject): void => {
-		server.once('error', reject);
-		server.listen(0, '127.0.0.1', done);
-	});
-	const address = server.address();
-	if (typeof address !== 'object' || address === null) {
-		server.close();
-		throw new Error('Cannot start the local render-check server.');
-	}
-	return { server, origin: `http://127.0.0.1:${address.port}` };
 }
 
 async function inspectPage(page: Page, address: URL): Promise<PageInspection> {
@@ -270,7 +213,7 @@ async function inspectLinks(
 		const fragment = target.hash.slice(1);
 		target.hash = '';
 		try {
-			const file = await fileForUrl(base, target);
+			const file = await localSiteFile(base, target);
 			if (!fragment || !/\.html?$/i.test(file)) continue;
 			let ids = fragments.get(target.href);
 			if (!ids) {
@@ -296,7 +239,7 @@ export async function renderCheck(
 	const base = await realpath(root);
 	const browser = await launchBrowser();
 	try {
-		const { server, origin } = await serve(base);
+		const { server, origin } = await serveLocalSite(base);
 		try {
 			const findings: RenderFinding[] = [];
 			for (const file of files) findings.push(...(await inspectFile(browser, base, file, origin)));
@@ -319,8 +262,7 @@ async function inspectFile(
 	const physical = await realpath(resolve(file));
 	if (!containsPath(base, physical))
 		throw new Error(`Render input is outside the current directory: ${file}`);
-	const path = relative(base, physical).split(sep).map(encodeURIComponent).join('/');
-	const address = new URL(path, `${origin}/`);
+	const address = localPageUrl(base, physical, origin);
 	for (const width of widths) {
 		const page = await browser.newPage({ viewport: { width, height: 900 } });
 		const messages = new Set<string>();

@@ -42,6 +42,33 @@ async function readHookFile(): Promise<string | undefined> {
 
 async function main(): Promise<number> {
 	const [command, ...rest] = process.argv.slice(2);
+	if (command === 'open') {
+		const usage = 'Usage: demistify open <page.html> [--site-root <directory>] [--no-browser]';
+		try {
+			const { values, positionals } = parseArgs({
+				args: rest,
+				allowPositionals: true,
+				options: {
+					'site-root': { type: 'string' },
+					'no-browser': { type: 'boolean' },
+					help: { type: 'boolean', short: 'h' },
+				},
+			});
+			if (values.help || positionals.length !== 1 || !positionals[0]) {
+				write(usage);
+				return values.help ? 0 : 1;
+			}
+			const { openPage } = await import('../src/node/open-page.ts');
+			await openPage(positionals[0], {
+				siteRoot: values['site-root'],
+				noBrowser: values['no-browser'] ?? false,
+			});
+			return 0;
+		} catch (error) {
+			process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
+			return 1;
+		}
+	}
 	if (command === 'project') {
 		const [action, ...args] = rest;
 		const usage = 'Usage: demistify project check [directory] [--site-root <directory>] [--write]';
@@ -175,7 +202,7 @@ async function main(): Promise<number> {
 	}
 	if (command !== 'check') {
 		write(
-			'Usage: demistify check [--fix] [--render] [--no-diagrams] <page.html …>\n       demistify check --hook\n       demistify design --help\n       demistify project check [directory] [--site-root <directory>] [--write]',
+			'Usage: demistify check [--fix] [--render] [--no-diagrams] <page.html …>\n       demistify check --hook\n       demistify open <page.html> [--site-root <directory>] [--no-browser]\n       demistify design --help\n       demistify project check [directory] [--site-root <directory>] [--write]',
 		);
 		return command ? 1 : 0;
 	}
