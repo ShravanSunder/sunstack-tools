@@ -359,6 +359,27 @@ test('Mermaid hover keeps themed connectors visible and their arrow scale stable
 	expect(await verifyTheme()).not.toBe(firstThemeColor);
 });
 
+test('inspection-only Card details are hidden before the runtime loads', async (): Promise<void> => {
+	const iframe = document.createElement('iframe');
+	iframe.srcdoc = `<!doctype html><html><head><link rel="stylesheet" href="/__demistify/library/theme.css"></head><body>
+		<ex-card id="inspection-only"><p>Inline summary.</p><p slot="details">Inspection attachment.</p></ex-card>
+		<ex-card id="inline" zoom="none"><p slot="details">Explicitly inline attachment.</p></ex-card>
+	</body></html>`;
+	document.body.append(iframe);
+	await expect
+		.poll((): boolean => !!iframe.contentDocument?.querySelector<HTMLLinkElement>('link')?.sheet)
+		.toBe(true);
+	const fixture = iframe.contentDocument;
+	if (!fixture) throw new Error('Card fixture did not load.');
+
+	expect(fixture.defaultView?.customElements.get('ex-card')).toBeUndefined();
+	expect(requiredElement(fixture, '#inspection-only > p').getClientRects()).toHaveLength(1);
+	expect(
+		requiredElement(fixture, '#inspection-only > [slot="details"]').getClientRects(),
+	).toHaveLength(0);
+	expect(requiredElement(fixture, '#inline > [slot="details"]').getClientRects()).toHaveLength(1);
+});
+
 test.each([1400, 390])(
 	'inspection-only Card details stay inline-hidden at %i CSS px',
 	async (width): Promise<void> => {
