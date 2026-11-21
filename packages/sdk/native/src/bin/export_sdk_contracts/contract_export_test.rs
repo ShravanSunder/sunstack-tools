@@ -96,7 +96,7 @@ fn document_roots_keep_the_concrete_report_status_bindings() {
     let exported = export().unwrap();
     let roots = &exported.wide_integers["document_roots"];
     let roots = roots.as_object().unwrap();
-    assert_eq!(roots.len(), 8);
+    assert_eq!(roots.len(), 10);
     assert_eq!(roots["report"]["ref"], "SdkReport");
     assert_eq!(roots["report"]["arguments"]["TStatus"]["ref"], "LintStatus");
     assert_eq!(roots["inspection_report"]["ref"], "InspectionReport");
@@ -105,6 +105,11 @@ fn document_roots_keep_the_concrete_report_status_bindings() {
         "InspectionStatus"
     );
     assert_eq!(roots["configuration"]["ref"], "Configuration");
+    assert_eq!(
+        roots["rule_invocation_outcome"]["ref"],
+        "RuleInvocationOutcome"
+    );
+    assert_eq!(roots["evidence_plan_outcome"]["ref"], "EvidencePlanOutcome");
 }
 
 #[test]
