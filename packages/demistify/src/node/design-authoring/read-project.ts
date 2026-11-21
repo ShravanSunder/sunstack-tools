@@ -126,11 +126,14 @@ export async function readProjectIdentities(
 				!binding ||
 				binding.isTypeOnly ||
 				(binding.propertyName ?? binding.name).text !== 'agentId' ||
-				basename(path) !== 'design-sdk.generated.ts' ||
-				// oxlint-disable-next-line no-await-in-loop -- only the one allowed helper is verified.
-				(await read(path)) !== deliverySdkSource
+				basename(path) !== 'design-sdk.generated.ts'
 			)
 				throw new Error(`${file}: import agentId from the matching generated design SDK.`);
+			// oxlint-disable-next-line no-await-in-loop -- only the one allowed helper is verified.
+			if ((await read(path)) !== deliverySdkSource)
+				throw new Error(
+					`${file}: ${path} is out of date. Run demistify design types "${dirname(path)}" with the same CLI, then recheck the project.`,
+				);
 			helper = binding.name.text;
 			continue;
 		}

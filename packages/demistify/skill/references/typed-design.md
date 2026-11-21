@@ -10,11 +10,21 @@ demistify design check docs/projects/2026-11-router/milestones/2026-11-messages 
 Use the CLI from the selected Demistify binding. With a local npm installation, prefix each invocation with `npm exec --`. With the published archive, use the exact `pnpm dlx` URL from the matching entry guide and append the same `design` arguments.
 
 1. `init` writes `design.ts`, `design-decisions.ts`, `design-assumptions.ts`, `design-delivery.ts`, and their generated authoring support. It takes Pages, Map, and Walkthroughs from an existing authored `navigation.json`. For a new set, use the seeded page list and author the HTML pages yourself. Keep `design.ts` a literal data object. Decisions and assumptions live in separate literal arrays. Their type imports resolve to the local declaration.
-2. Add records with a stable ID, a title, a destination on a page in the set, and source links. Rules cite the needs they serve. Realizations and planned checks cite the rules they address. Give each planned check at least three `given` / `expect` cases.
-3. Use `<ex-nav src="./navigation.generated.json">` on owned pages, with the relative path adjusted for nested pages. Page links and source links may leave the set when their destinations stay inside the explicit site root. For example, `../../overview.html#scope` can link from the jobs set to the main overview. Preview a shared navigation site over HTTP.
+2. Add records with a stable ID, a title, a destination on a declared page, and source links. Rules cite the needs they serve. Realizations and planned checks cite the rules they address. Give each planned check at least three `given` / `expect` cases.
+3. Use `<ex-nav src="./navigation.generated.json">` on owned pages, with the relative path adjusted for nested pages. Point record and plan destinations to existing reviewed passages when they already have stable HTML IDs. Add each such page to the set’s `pages` and keep its own navigation binding. Use an explicit `--site-root` containing the set and its reviewed pages. A set can declare only reviewed pages. Preview a shared navigation site over HTTP.
 4. Run `check` to validate the authored inputs, local targets, and Demistify markup. It writes `design.generated.json` for record lookup, `navigation.generated.json` for navigation, and `deliverables.generated.json` for delivery progress. Edit the TypeScript or HTML sources and rerun the checker to refresh these files.
 
-An HTML fragment check verifies that the authored ID exists. Source excerpts and whether a planned check actually proves its rule still need engineering review.
+An HTML fragment check verifies that the authored ID exists. A heading ID covers the heading and its content until the next equal or higher heading in its section. A container ID covers the entire element. Editing a governing passage reopens evidence tied to its old scope revision.
+
+Source excerpts can summarize a source. For an exact quotation from a local HTML passage, add `verbatim: true` to its source reference. The checker compares decoded text after collapsing whitespace and checks only the cited passage when the link contains a fragment.
+
+```ts
+{
+  href: '../../reviewed/queue.html#cancel-before-claim',
+  excerpt: 'A cancelled job cannot acquire a worker claim.',
+  verbatim: true,
+}
+```
 
 If a check is forcibly interrupted while writing, remove the leftover `.demistify-design.lock` only after the checking process has ended, then rerun the check to regenerate the outputs.
 
@@ -123,11 +133,12 @@ Each shared records file exports an array of its own record kind. Use type-only 
 // agents-identity.ts
 import { agentId } from './milestones/2026-11-messages/design-sdk.generated.ts';
 
-const messagesLead = agentId('replace-with-the-agent-session-id');
+const messagesLead = agentId('replace-with-the-lead-session-id');
+const messagesBuilder = agentId('replace-with-the-builder-session-id');
 
 export default {
   owner: 'owner',
-  agents: { 'messages-lead': messagesLead },
+  agents: { 'messages-lead': messagesLead, 'messages-builder': messagesBuilder },
 };
 ```
 
@@ -141,14 +152,27 @@ export default defineDelivery(
 );
 ```
 
-The project checker resolves Lead aliases and emits their labels. It keeps session IDs in the authoring input. An alias identifies an assignment for readers. Decision authority still comes from its source.
+Set `builder: 'messages-builder'` in the deliverable module to show its Implementer. In a project, register both role aliases in `agents-identity.ts`. The generated views show aliases and keep session IDs in the authoring input. Builder changes leave scope revisions intact. The milestone Lead still records acceptance. In a standalone set, use an authored role label.
 
 Link a design item to a shared decision as `project/D1`, a shared assumption as `project/A1`, or a record in another registered design as `sessions/D4`. A new decision can declare `supersedes: 'D4'` and keep the previous record in the file. Update any affected governing link after checking what the replacement changes. The checker catches live links to a superseded decision and cycles in supersession or delivery prerequisites.
 
 ```sh
-demistify project check docs/projects/2026-11-router
+demistify project check docs/projects/2026-11-router --site-root docs
+demistify project check docs/projects/2026-11-router --site-root docs --write
 ```
 
-This writes `project.generated.json` and refreshes the three generated files in each registered set. Record a build and verification against the scope revision printed by the project check. A change to a linked prerequisite's build or scope reopens the dependent verification. Use `design check` for self-contained sets.
+The first command checks the project and lists open owner questions and delivery status. Add `--write` to refresh `project.generated.json` and the three generated files in each milestone. The site root can include reviewed HTML and evidence outside the project. Keep the manifest, identity file, and other TypeScript inputs inside the project.
 
-For an older draft, move choice and assumption records out of `design.ts` and rename `delivery.ts` to `design-delivery.ts`. Preserve record IDs, HTML destinations, and sources, then run `design types` and the matching check.
+Record a build and verification against the scope revision printed by the project check. A change to a linked prerequisite's build or scope reopens dependent verification. Use `design check` for self-contained sets.
+
+When readers need a project-wide view, place this binding in a hand-authored page served alongside the generated JSON.
+
+```html
+<ex-project-overview src="./project.generated.json"></ex-project-overview>
+```
+
+The overview links owner questions, milestones, deliverables, and records to their authored pages. Use `ex-deliverables` for the delivery details of a single milestone.
+
+After updating the CLI for an existing project, run `demistify design types <milestone>` for every registered milestone. The command replaces the generated declarations and SDK, including the SDK imported by `agents-identity.ts`. Then run the read-only project check and add `--write` when ready to refresh the view.
+
+For a draft that still embeds choices or assumptions in `design.ts`, move them to the separate record files and rename `delivery.ts` to `design-delivery.ts`. Preserve record IDs, HTML destinations, and sources.

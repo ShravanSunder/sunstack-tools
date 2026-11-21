@@ -15,7 +15,7 @@ const relativeHref = z
 		'must be a relative link',
 	);
 const relativeFile = relativeHref.refine(
-	(value) => !/[?#]/.test(value) && !value.split('/').includes('..'),
+	(value) => !/[?#]/.test(value),
 	'must be a safe relative path',
 );
 const htmlDestination = z.strictObject({
@@ -25,6 +25,7 @@ const htmlDestination = z.strictObject({
 const sourceReference = z.strictObject({
 	href: relativeHref,
 	excerpt: nonEmptyText,
+	verbatim: z.literal(true).optional(),
 });
 const servesRelationship = z.strictObject({
 	relation: z.literal('serves'),

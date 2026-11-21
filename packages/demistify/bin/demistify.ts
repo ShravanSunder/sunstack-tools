@@ -43,14 +43,33 @@ async function readHookFile(): Promise<string | undefined> {
 async function main(): Promise<number> {
 	const [command, ...rest] = process.argv.slice(2);
 	if (command === 'project') {
-		const [action, directory = '.'] = rest;
-		if (action === 'check' && rest.length <= 2 && directory !== '--help') {
-			const { checkProject } = await import('../src/node/design-authoring/check-project.ts');
-			write(await checkProject(directory));
+		const [action, ...args] = rest;
+		const usage = 'Usage: demistify project check [directory] [--site-root <directory>] [--write]';
+		if (!action || action === '--help') {
+			write(usage);
 			return 0;
 		}
-		write('Usage: demistify project check [directory]');
-		return !action || action === '--help' || (rest.length === 2 && directory === '--help') ? 0 : 1;
+		const { values, positionals } = parseArgs({
+			args,
+			allowPositionals: true,
+			options: {
+				'site-root': { type: 'string' },
+				write: { type: 'boolean' },
+				help: { type: 'boolean' },
+			},
+		});
+		if (values.help) {
+			write(usage);
+			return 0;
+		}
+		if (action !== 'check' || positionals.length > 1) {
+			write(usage);
+			return 1;
+		}
+		const [directory = '.'] = positionals;
+		const { checkProject } = await import('../src/node/design-authoring/check-project.ts');
+		write(await checkProject(directory, { siteRoot: values['site-root'], write: values.write }));
+		return 0;
 	}
 	if (command === 'design') {
 		const [action, ...args] = rest;
@@ -156,7 +175,7 @@ async function main(): Promise<number> {
 	}
 	if (command !== 'check') {
 		write(
-			'Usage: demistify check [--fix] [--render] [--no-diagrams] <page.html …>\n       demistify check --hook\n       demistify design --help\n       demistify project check [directory]',
+			'Usage: demistify check [--fix] [--render] [--no-diagrams] <page.html …>\n       demistify check --hook\n       demistify design --help\n       demistify project check [directory] [--site-root <directory>] [--write]',
 		);
 		return command ? 1 : 0;
 	}
@@ -206,9 +225,14 @@ async function main(): Promise<number> {
 	}
 	if (flags.has('--render') && files.length > 0) {
 		const { renderCheck } = await import('../src/node/render-check.ts');
-		for (const finding of await renderCheck(process.cwd(), files)) {
-			write(`${finding.file} render(${finding.width}): ${finding.message}`);
-			errors += 1;
+		try {
+			for (const finding of await renderCheck(process.cwd(), files)) {
+				write(`${finding.file} render(${finding.width}px): ${finding.message}`);
+				errors += 1;
+			}
+		} catch (error) {
+			process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
+			return 1;
 		}
 	}
 	write(

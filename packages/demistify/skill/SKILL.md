@@ -99,6 +99,16 @@ Use the same base as the runtime and theme. List the HTML files changed by this 
 
 Routine document authoring ends with this source check. Do not install or launch Playwright, Chrome, another browser, a preview server or a device/theme matrix to certify shared components. Browser inspection is only for an explicit user request or diagnosing a concrete rendering/interaction defect; inspect the affected view only. Component regression verification belongs to library development. This workflow policy also governs the component references below.
 
+For an explicit rendering check, work from the directory containing the pages and their local assets. Install Playwright in that workspace and its Chromium browser, then invoke the installed CLI.
+
+```sh
+pnpm add -D playwright
+pnpm exec playwright install chromium
+npm exec -- demistify check --render overview.html
+```
+
+Chromium checks the page at 1400 and 390 CSS pixels. The command reports local link and fragment failures, page overflow, visible components with render failures, and raw markup in table cells. Fix the listed file and viewport, then rerun the command.
+
 A source check does not establish visual or interaction behavior. Report a failed command or unavailable tool plainly; do not turn routine authoring into a browser-proof task or claim unobserved behavior.
 
 ## 5. Return the artifact
