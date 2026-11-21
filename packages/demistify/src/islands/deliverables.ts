@@ -2,7 +2,7 @@ import { type DeliverableView, parseDeliverablesView } from '../core/deliverable
 import { reportIssue } from '../core/issues.ts';
 import { registerReviewSource, type ReviewSourceResult } from '../core/review-document.ts';
 
-const stateLabels = {
+export const deliveryStateLabels = {
 	planned: 'Planned',
 	'implementation-in-progress': 'Implementation in progress',
 	'design-blocked': 'Blocked by design',
@@ -14,7 +14,12 @@ const stateLabels = {
 	'dependency-blocked': 'Blocked on prerequisite',
 } satisfies Record<DeliverableView['state'], string>;
 
-function linkTo(base: URL, reference: string, label: string, fragment?: string): HTMLAnchorElement {
+export function linkTo(
+	base: URL,
+	reference: string,
+	label: string,
+	fragment?: string,
+): HTMLAnchorElement {
 	const link = document.createElement('a');
 	const target = new URL(reference, base);
 	if (fragment) target.hash = encodeURIComponent(fragment);
@@ -23,7 +28,11 @@ function linkTo(base: URL, reference: string, label: string, fragment?: string):
 	return link;
 }
 
-function deliveryDetails(item: DeliverableView, source: URL): HTMLElement {
+export function deliveryDetails(
+	item: DeliverableView,
+	source: URL,
+	showAssignments = true,
+): HTMLElement {
 	const details = document.createElement('details');
 	const summary = document.createElement('summary');
 	summary.textContent = 'Checks and evidence';
@@ -35,7 +44,10 @@ function deliveryDetails(item: DeliverableView, source: URL): HTMLElement {
 		list.append(entry);
 		return entry;
 	};
-	if (item.dependsOn.length) add(`Prerequisites: ${item.dependsOn.join(', ')}`);
+	if (showAssignments) {
+		if (item.builder) add(`Builder: ${item.builder}`);
+		if (item.dependsOn.length) add(`Prerequisites: ${item.dependsOn.join(', ')}`);
+	}
 	if (item.implementation.candidate) add(`Candidate: ${item.implementation.candidate}`);
 	if (item.verification.build) add(`Verification build: ${item.verification.build}`);
 	for (const task of item.implementation.tasks) add(`${task.id} · ${task.state}`);
@@ -143,7 +155,7 @@ export class DeliverablesIsland extends HTMLElement {
 			);
 			row.append(title);
 			const summary = document.createElement('strong');
-			summary.textContent = stateLabels[item.state];
+			summary.textContent = deliveryStateLabels[item.state];
 			const state = row.insertCell();
 			state.append(summary);
 			for (const reason of item.reasons) {

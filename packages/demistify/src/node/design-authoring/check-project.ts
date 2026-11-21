@@ -2,6 +2,7 @@ import { realpath } from 'node:fs/promises';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 
 import type { DeliverableView } from '../../core/deliverables-view.ts';
+import { ownerQuestions, projectViewSchema } from '../../core/project-view.ts';
 import { checkRecordRelationships, openDesignCheck } from './check-design.ts';
 import { type DeliveryEntry, type DeliveryProjection, projectDelivery } from './delivery-model.ts';
 import { commitDesignOutputs, planGeneratedJson } from './design-output.ts';
@@ -181,21 +182,39 @@ function scopedDeliverables(
 	return { deliverables: output, destinations, evidence: [] };
 }
 
-export async function checkProject(directory: string): Promise<string> {
+interface ProjectCheckOptions {
+	readonly siteRoot?: string | undefined;
+	readonly write?: boolean | undefined;
+}
+
+export async function checkProject(
+	directory: string,
+	options: ProjectCheckOptions = {},
+): Promise<string> {
 	const root = await realpath(resolve(directory));
 	const projectFile = join(root, 'project.ts');
-	const check = await openDesignCheck(root);
-	const manifest = readProjectManifest(projectFile, await check.read(projectFile));
+	const check = await openDesignCheck(options.siteRoot ?? root);
+	const readAuthoringInput = (file: string): Promise<string> => check.read(file, root);
+	const manifest = readProjectManifest(projectFile, await readAuthoringInput(projectFile));
 	const identities =
-		manifest.identities && (await readProjectIdentities(manifest.identities, root, check.read));
+		manifest.identities &&
+		(await readProjectIdentities(manifest.identities, root, readAuthoringInput));
 	const sets = await Promise.all(
 		Object.entries(manifest.designs).map(async ([name, file]) => {
-			await check.read(file);
-			const set = await check.prepare(dirname(file));
+			await readAuthoringInput(file);
+			const set = await check.prepare(dirname(file), root);
 			if (set.lead !== undefined && (!identities || !Object.hasOwn(identities.agents, set.lead)))
 				throw new Error(
 					`${name}: unknown Lead alias ${set.lead}. Register it in agents-identity.ts.`,
 				);
+			for (const {
+				deliverable: { id, builder },
+			} of set.entries) {
+				if (builder && (!identities || !Object.hasOwn(identities.agents, builder)))
+					throw new Error(
+						`${name}/${id}: unknown Builder alias ${builder}. Register it in agents-identity.ts.`,
+					);
+			}
 			return Object.assign({ name }, set);
 		}),
 	);
@@ -209,12 +228,12 @@ export async function checkProject(directory: string): Promise<string> {
 		kind: 'choice' | 'assumption',
 	): Promise<{ records: DesignRecord[]; revisions: Map<string, string> } | undefined> {
 		if (file === undefined) return undefined;
-		const text = await check.read(file);
+		const text = await readAuthoringInput(file);
 		const records = readDesignItems(file, text, kind);
 		const declarations = await Promise.all(
 			projectRecordTypeImports(file, text, root).map(async (path): Promise<[string, string]> => [
 				path,
-				await check.read(path),
+				await readAuthoringInput(path),
 			]),
 		);
 		checkAuthoringTypes([file], new Map([[file, text], ...declarations]));
@@ -254,15 +273,6 @@ export async function checkProject(directory: string): Promise<string> {
 	checkRecordRelationships(design.records);
 	const delivery = projectDelivery(design, entries, revisions, true);
 	await Promise.all(delivery.evidence.map((href) => check.checkEvidence(href, projectFile)));
-	const plans = await Promise.all(
-		sets.map((set) =>
-			set.plan(
-				scopedDeliverables(delivery.deliverables, set.name, (href) =>
-					rebase(href, root, set.directory),
-				),
-			),
-		),
-	);
 	const output = {
 		version: 1,
 		...(identities ? { owner: identities.owner } : {}),
@@ -270,7 +280,9 @@ export async function checkProject(directory: string): Promise<string> {
 			sets.map((set) => [
 				set.name,
 				{
-					path: relative(root, join(set.directory, 'design.ts')),
+					path: rebase('design.ts', set.directory, root),
+					firstPage: rebase(set.firstPage.href, set.directory, root),
+					title: set.firstPage.title,
 					...(set.lead ? { lead: set.lead } : {}),
 				},
 			]),
@@ -278,17 +290,49 @@ export async function checkProject(directory: string): Promise<string> {
 		records: design.records,
 		deliverables: delivery.deliverables,
 	};
-	await commitDesignOutputs(
-		[root, ...sets.map((set) => set.directory)],
-		[
-			{
-				verify: check.verify,
-				plan: async () => [await planGeneratedJson(join(root, 'project.generated.json'), output)],
-			},
-			...plans.map(({ outputs }) => ({ verify: async (): Promise<void> => {}, plan: outputs })),
-		],
+	const view = projectViewSchema.parse(output);
+	const projectSource = {
+		file: join(root, 'project.generated.json'),
+		text: JSON.stringify(view),
+	};
+	const plans = await Promise.all(
+		sets.map((set) =>
+			set.plan(
+				scopedDeliverables(delivery.deliverables, set.name, (href) =>
+					rebase(href, root, set.directory),
+				),
+				projectSource,
+			),
+		),
 	);
-	return [`Checked ${sets.length} project design(s).`, ...plans.map(({ result }) => result)].join(
-		'\n',
-	);
+	if (options.write) {
+		await commitDesignOutputs(
+			[root, ...sets.map((set) => set.directory)],
+			[
+				{
+					verify: check.verify,
+					plan: async () => [await planGeneratedJson(projectSource.file, view)],
+				},
+				...plans.map(({ outputs }) => ({ verify: async (): Promise<void> => {}, plan: outputs })),
+			],
+		);
+	} else {
+		await check.verify();
+	}
+	const questions = ownerQuestions(view.records);
+	return [
+		`Checked ${sets.length} project design(s).`,
+		options.write
+			? 'Generated views refreshed.'
+			: 'Read-only check. Add --write to refresh generated views.',
+		...(questions.length
+			? [
+					'Waiting on owner',
+					...questions.map(
+						({ id, title, authority }): string => `  ${id} · ${authority?.question ?? title}`,
+					),
+				]
+			: []),
+		...plans.map(({ result }) => result),
+	].join('\n');
 }

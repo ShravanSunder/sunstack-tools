@@ -1,3 +1,12 @@
+ex-project-overview {
+	display: block;
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+ex-project-overview li {
+	margin-block: 0.25rem;
+}
+
 /* Two section widths share one left edge: Reading starts where Canvas starts. HTML and nested
    islands retain ownership of their own layout. */
 ex-document {

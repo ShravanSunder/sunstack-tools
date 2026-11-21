@@ -3,8 +3,6 @@ import { readFile, realpath } from 'node:fs/promises';
 import { dirname, extname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
 
-import { parse, type DefaultTreeAdapterMap } from 'parse5';
-
 import { deliverablesViewSchema } from '../../core/deliverables-view.ts';
 import {
 	type NavigationTarget,
@@ -19,6 +17,13 @@ import {
 	type DeliveryProjection,
 } from './delivery-model.ts';
 import { commitDesignOutputs, planGeneratedJson, type GeneratedFile } from './design-output.ts';
+import {
+	checkDesignItemMarkup,
+	normalizeExcerpt,
+	passageText,
+	readPageMarkup,
+	type PageMarkup,
+} from './design-page-markup.ts';
 import { readDeliveryEntries } from './read-delivery.ts';
 import { readDesign, readDesignItems } from './read-design.ts';
 import type { DesignCore, DesignRecord } from './schema.ts';
@@ -36,69 +41,6 @@ function missing(error: unknown): boolean {
 	return (
 		error instanceof Error && 'code' in error && ['ENOENT', 'ENOTDIR'].includes(String(error.code))
 	);
-}
-
-interface AuthoredFragment {
-	readonly source: string;
-	readonly designItem: string | undefined;
-	readonly authority: string | undefined;
-}
-
-interface PageMarkup {
-	ids: Map<string, AuthoredFragment>;
-	links: string[];
-	navigationSources: string[];
-	deliverySources: string[];
-	hasDocumentBase: boolean;
-}
-
-function readPageMarkup(html: string, file: string): PageMarkup {
-	const result: PageMarkup = {
-		ids: new Map(),
-		links: [],
-		navigationSources: [],
-		deliverySources: [],
-		hasDocumentBase: false,
-	};
-	function visit(node: DefaultTreeAdapterMap['node']): void {
-		if ('attrs' in node) {
-			const get = (name: string): string | undefined =>
-				node.attrs.find((attribute): boolean => attribute.name === name)?.value;
-			const id = get('id');
-			const href = get('href');
-			if (id) {
-				if (result.ids.has(id)) throw new Error(`Duplicate HTML id "${id}" in ${file}.`);
-				const source = node.sourceCodeLocation;
-				result.ids.set(id, {
-					source: source ? html.slice(source.startOffset, source.endOffset) : '',
-					designItem: get('data-design-item'),
-					authority: get('data-authority'),
-				});
-			}
-			if (href) result.links.push(href);
-			if (node.tagName === 'base' && href !== undefined) result.hasDocumentBase = true;
-			if (node.tagName === 'ex-nav') result.navigationSources.push(get('src') ?? '');
-			if (node.tagName === 'ex-deliverables') result.deliverySources.push(get('src') ?? '');
-		}
-		if ('childNodes' in node) node.childNodes.forEach(visit);
-	}
-	visit(parse(html, { sourceCodeLocationInfo: true }));
-	return result;
-}
-
-function checkDesignItemMarkup(record: DesignRecord, fragment: AuthoredFragment | undefined): void {
-	if (!fragment || (record.kind !== 'choice' && record.kind !== 'assumption')) return;
-	const itemKind = record.kind === 'choice' ? 'decision' : 'assumption';
-	if (fragment.designItem !== undefined && fragment.designItem !== itemKind)
-		throw new Error(
-			`${record.id}: expected data-design-item="${itemKind}" on its HTML destination.`,
-		);
-
-	if (record.kind !== 'choice' || fragment.authority === undefined) return;
-	const { authority } = record;
-	const expected = authority.state === 'owner-open' ? 'unknown' : authority.sourceKind;
-	if (fragment.authority !== expected)
-		throw new Error(`${record.id}: expected data-authority="${expected}" on its HTML destination.`);
 }
 
 const relatedKind = {
@@ -160,22 +102,26 @@ interface PreparedDesign {
 	readonly lead?: string;
 	readonly design: DesignCore;
 	readonly entries: readonly DeliveryEntry[];
+	readonly firstPage: { readonly href: string; readonly title: string };
 	readonly recordRevisions: ReadonlyMap<string, string>;
-	readonly plan: (delivery: DeliveryProjection) => Promise<{
+	readonly plan: (
+		delivery: DeliveryProjection,
+		projectSource?: { file: string; text: string },
+	) => Promise<{
 		readonly result: string;
 		readonly outputs: () => Promise<readonly (GeneratedFile | undefined)[]>;
 	}>;
 }
 
 interface DesignCheck {
-	readonly read: (file: string) => Promise<string>;
+	readonly read: (file: string, authoringRoot?: string) => Promise<string>;
 	readonly checkEvidence: (href: string, sourceFile: string) => Promise<void>;
 	readonly inspectRecords: (
 		records: readonly DesignRecord[],
 		sourceFile: string,
-		ownedPages?: ReadonlySet<string>,
+		declaredPages?: ReadonlySet<string>,
 	) => Promise<Map<string, string>>;
-	readonly prepare: (directory: string) => Promise<PreparedDesign>;
+	readonly prepare: (directory: string, authoringRoot?: string) => Promise<PreparedDesign>;
 	readonly verify: () => Promise<void>;
 }
 
@@ -183,12 +129,17 @@ export async function openDesignCheck(siteRoot: string): Promise<DesignCheck> {
 	const siteDirectory = await realpath(resolve(siteRoot));
 	const label = (file: string): string => relative(siteDirectory, file);
 	const inputFiles = new Map<string, Promise<string>>();
-	async function resolveSiteFile(file: string): Promise<string> {
+	const authoringRoots = new Map<string, string>();
+	async function resolveSiteFile(file: string, authoringRoot?: string): Promise<string> {
+		if (authoringRoot && !containsPath(authoringRoot, file))
+			throw new Error(`Authoring input escapes the project root: ${label(file)}`);
 		if (!containsPath(siteDirectory, file))
 			throw new Error(`Path escapes the site root: ${label(file)}`);
 		const physical = await realpath(file);
 		if (!containsPath(siteDirectory, physical))
 			throw new Error(`Local target resolves outside the site root: ${label(file)}`);
+		if (authoringRoot && !containsPath(authoringRoot, physical))
+			throw new Error(`Authoring input resolves outside the project root: ${label(file)}`);
 		return physical;
 	}
 	function readSiteFile(file: string): Promise<string> {
@@ -266,7 +217,7 @@ export async function openDesignCheck(siteRoot: string): Promise<DesignCheck> {
 	async function inspectRecords(
 		records: readonly DesignRecord[],
 		sourceFile: string,
-		ownedPages?: ReadonlySet<string>,
+		declaredPages?: ReadonlySet<string>,
 	): Promise<Map<string, string>> {
 		return new Map(
 			await Promise.all(
@@ -275,9 +226,9 @@ export async function openDesignCheck(siteRoot: string): Promise<DesignCheck> {
 					if (
 						!destination ||
 						!isHtml(destination.file) ||
-						(ownedPages && !ownedPages.has(destination.file))
+						(declaredPages && !declaredPages.has(destination.file))
 					)
-						throw new Error(`Record ${record.id} must point to a page owned by this design set.`);
+						throw new Error(`Record ${record.id} must point to a declared HTML page.`);
 					await checkDestination(destination.file, record.destination.fragment, true);
 					const sources =
 						record.kind === 'assumption' && record.resolution
@@ -287,7 +238,20 @@ export async function openDesignCheck(siteRoot: string): Promise<DesignCheck> {
 						sources.map(async (source) => {
 							const target = resolveLink(source.href, sourceFile);
 							if (!target) throw new Error(`Source reference must be local: ${source.href}`);
-							await checkDestination(target.file, target.fragment);
+							await checkDestination(target.file, target.fragment, source.verbatim === true);
+							if (source.verbatim) {
+								if (!isHtml(target.file))
+									throw new Error(
+										`${record.id}: verbatim excerpts require an HTML source: ${source.href}`,
+									);
+								const cited = target.fragment
+									? (await readPage(target.file)).ids.get(target.fragment)?.source
+									: await readSiteFile(target.file);
+								if (!cited || !passageText(cited).includes(normalizeExcerpt(source.excerpt)))
+									throw new Error(
+										`${record.id}: verbatim excerpt does not appear in ${source.href}.`,
+									);
+							}
 						}),
 					);
 					const passage = (await readPage(destination.file)).ids.get(record.destination.fragment);
@@ -312,13 +276,14 @@ export async function openDesignCheck(siteRoot: string): Promise<DesignCheck> {
 		);
 	}
 
-	async function prepare(directory: string): Promise<PreparedDesign> {
-		const setDirectory = await resolveSiteFile(resolve(directory));
+	async function prepare(directory: string, authoringRoot?: string): Promise<PreparedDesign> {
+		const setDirectory = await resolveSiteFile(resolve(directory), authoringRoot);
 		const designFile = join(setDirectory, 'design.ts');
 		const declarationFile = join(setDirectory, 'design-schema.d.ts');
 		const navigationFile = join(setDirectory, 'navigation.generated.json');
 		const deliverablesFile = join(setDirectory, 'deliverables.generated.json');
 		async function readOwnedInput(file: string): Promise<string> {
+			authoringRoots.set(file, setDirectory);
 			if (!containsPath(setDirectory, await resolveSiteFile(file)))
 				throw new Error(`${label(file)} must remain inside this design set.`);
 			return readSiteFile(file);
@@ -378,13 +343,14 @@ export async function openDesignCheck(siteRoot: string): Promise<DesignCheck> {
 				const owned =
 					containsPath(setDirectory, target.file) &&
 					containsPath(setDirectory, await resolveSiteFile(target.file));
-				return { id: page.id, file: target.file, owned };
+				return { id: page.id, href: page.href, title: page.title, file: target.file, owned };
 			}),
 		);
 		const filesByPage = new Map(pages.map(({ id, file }) => [id, file]));
 		const ownedPages = new Set(pages.filter(({ owned }): boolean => owned).map(({ file }) => file));
-		if (!ownedPages.size)
-			throw new Error('Declare at least one HTML page owned by this design set.');
+		const declaredPages = new Set(pages.map(({ file }) => file));
+		const [firstPage] = pages;
+		if (!firstPage) throw new Error('Declare at least one HTML page.');
 		const checkNavigationTarget = async (target: NavigationTarget): Promise<void> => {
 			const file = filesByPage.get(target.page);
 			if (file && target.fragment) await checkDestination(file, target.fragment);
@@ -399,8 +365,11 @@ export async function openDesignCheck(siteRoot: string): Promise<DesignCheck> {
 				route.steps.map((step) => checkNavigationTarget(step.target)),
 			),
 		]);
-		const recordRevisions = await inspectRecords(design.records, designFile, ownedPages);
-		async function plan(delivery: DeliveryProjection): ReturnType<PreparedDesign['plan']> {
+		const recordRevisions = await inspectRecords(design.records, designFile, declaredPages);
+		async function plan(
+			delivery: DeliveryProjection,
+			projectSource?: { file: string; text: string },
+		): ReturnType<PreparedDesign['plan']> {
 			const snapshotRevision = createHash('sha256')
 				.update(
 					JSON.stringify([Object.fromEntries(recordRevisions), navigation, delivery.deliverables]),
@@ -414,10 +383,8 @@ export async function openDesignCheck(siteRoot: string): Promise<DesignCheck> {
 			await Promise.all([
 				...delivery.destinations.map(async ({ page, fragment }) => {
 					const target = resolveLink(page, designFile);
-					if (!target || !ownedPages.has(target.file))
-						throw new Error(
-							`Deliverable destination must be a page owned by its design set: ${page}`,
-						);
+					if (!target || !declaredPages.has(target.file))
+						throw new Error(`Deliverable destination must be a declared HTML page: ${page}`);
 					await checkDestination(target.file, fragment ?? '', true);
 				}),
 				...delivery.evidence.map(async (href) => {
@@ -469,6 +436,7 @@ export async function openDesignCheck(siteRoot: string): Promise<DesignCheck> {
 							if (!target) return undefined;
 							if (target.file === navigationFile) return navigationText;
 							if (target.file === deliverablesFile) return deliverablesText;
+							if (target.file === projectSource?.file) return projectSource.text;
 							return readSiteFile(target.file).catch((error: unknown): undefined => {
 								if (!missing(error)) throw error;
 								return undefined;
@@ -528,6 +496,7 @@ export async function openDesignCheck(siteRoot: string): Promise<DesignCheck> {
 		}
 		return {
 			directory: setDirectory,
+			firstPage: { href: firstPage.href, title: firstPage.title },
 			design,
 			entries,
 			recordRevisions,
@@ -543,7 +512,7 @@ export async function openDesignCheck(siteRoot: string): Promise<DesignCheck> {
 					if (!missing(error)) throw error;
 					return undefined;
 				});
-				const current = await resolveSiteFile(path)
+				const current = await resolveSiteFile(path, authoringRoots.get(path))
 					.then((file) => readFile(file, 'utf8'))
 					.catch((error: unknown): undefined => {
 						if (!missing(error)) throw error;
@@ -559,13 +528,42 @@ export async function openDesignCheck(siteRoot: string): Promise<DesignCheck> {
 		if (!target) throw new Error(`Deliverable evidence must be local: ${href}`);
 		await checkDestination(target.file, target.fragment);
 	}
-	return { read: readSiteFile, checkEvidence, inspectRecords, prepare, verify };
+	return {
+		read: async (file, authoringRoot): Promise<string> => {
+			if (authoringRoot) {
+				authoringRoots.set(file, authoringRoot);
+				await resolveSiteFile(file, authoringRoot);
+			}
+			return readSiteFile(file);
+		},
+		checkEvidence,
+		inspectRecords,
+		prepare,
+		verify,
+	};
 }
 
 export async function checkDesignSet(directory: string, siteRoot?: string): Promise<string> {
 	const setDirectory = await realpath(resolve(directory));
 	const check = await openDesignCheck(siteRoot ?? setDirectory);
 	const set = await check.prepare(setDirectory);
+	const qualified =
+		set.design.records
+			.flatMap((record) => [
+				...('relationships' in record ? record.relationships.map(({ targetId }) => targetId) : []),
+				...(record.kind === 'choice' && record.supersedes ? [record.supersedes] : []),
+			])
+			.find((reference): boolean => reference.includes('/')) ??
+		set.entries
+			.flatMap(({ dependsOn, deliverable }) => [
+				...dependsOn,
+				...deliverable.scope.rules,
+				...deliverable.scope.designItems,
+				...deliverable.scope.verificationChecks,
+			])
+			.find((reference): boolean => reference.includes('/'));
+	if (qualified)
+		throw new Error(`Qualified reference ${qualified} requires demistify project check.`);
 	checkRecordRelationships(set.design.records);
 	const delivery = projectDelivery(set.design, set.entries, set.recordRevisions);
 	const { result, outputs } = await set.plan(delivery);

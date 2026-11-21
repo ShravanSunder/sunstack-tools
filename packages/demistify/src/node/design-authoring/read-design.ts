@@ -82,9 +82,33 @@ function readDefaultLiteral(file: string, text: string): unknown {
 	return readLiteral(entry.expression, source);
 }
 
+function recordValidationError(
+	file: string,
+	rawRecords: unknown,
+	error: z.ZodError,
+	embedded: boolean,
+): Error {
+	const records: readonly unknown[] = Array.isArray(rawRecords) ? rawRecords : [];
+	const issues = error.issues.map(({ path, message }): string => {
+		const index = embedded ? (path[0] === 'records' ? path[1] : undefined) : path[0];
+		const record = typeof index === 'number' ? records[index] : undefined;
+		const label =
+			typeof record === 'object' && record && 'id' in record && typeof record.id === 'string'
+				? ` record ${record.id}`
+				: '';
+		return `${file}${label} ${path.join('.') || 'input'}: ${message}`;
+	});
+	return new Error(issues.join('\n'));
+}
+
 /** Read the authored design without evaluating its TypeScript. */
 export function readDesign(file: string, text: string): AuthoredDesign {
-	return authoredDesignSchema.parse(readDefaultLiteral(file, text));
+	const input = readDefaultLiteral(file, text);
+	const validated = authoredDesignSchema.safeParse(input);
+	if (validated.success) return validated.data;
+	const records =
+		typeof input === 'object' && input && 'records' in input ? input.records : undefined;
+	throw recordValidationError(file, records, validated.error, true);
 }
 
 /** Read one literal decision or assumption file. */
@@ -94,9 +118,12 @@ export function readDesignItems(
 	kind: 'choice' | 'assumption',
 ): DesignRecord[] {
 	const input = readDefaultLiteral(file, text);
-	return kind === 'choice'
-		? z.array(choiceRecord).parse(input)
-		: z.array(assumptionRecord).parse(input);
+	const validated =
+		kind === 'choice'
+			? z.array(choiceRecord).safeParse(input)
+			: z.array(assumptionRecord).safeParse(input);
+	if (validated.success) return validated.data;
+	throw recordValidationError(file, input, validated.error, false);
 }
 
 /** Type-check only the files the authoring loader has resolved and read. */

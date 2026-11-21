@@ -19,6 +19,7 @@ interface VerificationReceipt {
 interface DeliverableInput {
 	readonly id: string;
 	readonly title: string;
+	readonly builder?: string;
 	readonly destination: { readonly page: string; readonly fragment: string };
 	readonly scope: DeliverableScope;
 	readonly implementation?: {

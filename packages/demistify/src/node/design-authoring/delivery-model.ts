@@ -18,6 +18,7 @@ const deliveryEntry = z.strictObject({
 	deliverable: z.strictObject({
 		id: address,
 		title: text,
+		builder: recordId.optional(),
 		destination,
 		scope: z.strictObject({
 			rules: scopedAddresses,
@@ -435,7 +436,7 @@ export function projectDelivery(
 	const byDependencyOrder = new Map<string, DeliverableView>();
 	for (const entry of deliverablesInDependencyOrder(byId)) {
 		const { deliverable, dependsOn } = entry;
-		const { id, title } = deliverable;
+		const { id, title, builder } = deliverable;
 		const { links: scopeLinks, coverageGap } = resolveScope(deliverable, records);
 		const governing = resolveGoverningDesign(entry, records, recordRevisions);
 		const { governingItems, designBlockers } = governing;
@@ -495,6 +496,7 @@ export function projectDelivery(
 		byDependencyOrder.set(id, {
 			id,
 			title,
+			...(builder === undefined ? {} : { builder }),
 			scopeRevision,
 			dependsOn,
 			state: unmetPrerequisites.length ? 'dependency-blocked' : progress.state,
