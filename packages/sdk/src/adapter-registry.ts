@@ -103,7 +103,6 @@ export class AdapterRegistry<TRegistered extends string> {
 		return new AdapterRegistry(new Map());
 	}
 
-	/** Add one distinct literal format name to this snapshot. */
 	withAdapter<const TAdded extends string>(
 		mapping: Omit<TranscriptAdapterMapping, 'format'> & {
 			readonly format: NewFormat<TAdded, TRegistered>;
