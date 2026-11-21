@@ -23,11 +23,18 @@ interface Browser {
 	close(): Promise<void>;
 }
 
+interface ConsoleMessage {
+	type(): string;
+	text(): string;
+}
+
 interface Page {
 	// oxlint-disable-next-line id-length -- Playwright method.
-	on(event: 'console', listener: (message: { type(): string; text(): string }) => void): void;
+	on(event: 'console', listener: (message: ConsoleMessage) => void): void;
 	// oxlint-disable-next-line id-length -- Playwright method.
 	on(event: 'pageerror', listener: (error: Error) => void): void;
+	off(event: 'console', listener: (message: ConsoleMessage) => void): void;
+	off(event: 'pageerror', listener: (error: Error) => void): void;
 	goto(
 		url: string,
 		options: { waitUntil: 'domcontentloaded'; timeout: number },
@@ -280,17 +287,22 @@ async function inspectFile(
 	for (const width of widths) {
 		const page = await browser.newPage({ viewport: { width, height: 900 } });
 		const messages = new Set<string>();
-		page.on('console', (message): void => {
+		const recordConsole = (message: ConsoleMessage): void => {
 			const content = message.text();
 			if (content.startsWith('[demistify]')) messages.add(content.replace('[demistify] ', ''));
 			else if (message.type() === 'error') messages.add(`console error: ${content}`);
-		});
-		page.on('pageerror', (error): void => {
+		};
+		const recordPageError = (error: Error): void => {
 			messages.add(`page error: ${error.message}`);
-		});
+		};
+		page.on('console', recordConsole);
+		page.on('pageerror', recordPageError);
 		try {
 			const inspection = await inspectPage(page, address);
 			for (const message of inspection.messages) messages.add(message);
+			// Linked pages are loaded to resolve rendered fragments. Only requested pages own diagnostics.
+			page.off('console', recordConsole);
+			page.off('pageerror', recordPageError);
 			for (const message of await inspectLinks(inspection, address, page, base))
 				messages.add(message);
 		} catch (error) {
