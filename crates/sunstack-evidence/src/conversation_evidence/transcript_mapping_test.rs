@@ -236,3 +236,113 @@ async fn mapped_capture_preserves_byte_positions_coverage_and_definition_bound_c
         assert_eq!(error.code, EvidenceCode::TranscriptDiscontinuous);
     }
 }
+
+#[tokio::test]
+async fn later_mapped_identity_collisions_leave_the_first_record_and_cursor_intact() {
+    const FALLBACK: &str = "{\"version\":1,\"event\":\"answer\",\"text\":\"fallback\"}\n";
+    const NATIVE_OFFSET: &str =
+        "{\"version\":1,\"event\":\"answer_id\",\"id\":\"offset:0\",\"text\":\"native\"}\n";
+    const NATIVE_NEXT_OFFSET: &str =
+        "{\"version\":1,\"event\":\"answer_id\",\"id\":\"offset:77\",\"text\":\"native\"}\n";
+    const CALL: &str =
+        "{\"version\":1,\"event\":\"started\",\"id\":\"read\",\"name\":\"read\",\"input\":null}\n";
+    const NATIVE_TOOL: &str =
+        "{\"version\":1,\"event\":\"answer_id\",\"id\":\"tool:read\",\"text\":\"native\"}\n";
+    let mut definition = mapping();
+    definition.records.insert(
+        "answer_id".into(),
+        TranscriptRecordMapping::AssistantMessage {
+            text: "/text".into(),
+            message_id: Some("/id".into()),
+        },
+    );
+    let registry = registry(definition.clone());
+    let root = tempfile::tempdir().unwrap();
+    let native_before_fallback = format!("{:<76}\n", NATIVE_NEXT_OFFSET.trim_end());
+    for (index, (first, later, expected_id)) in [
+        (FALLBACK, NATIVE_OFFSET, "offset:0"),
+        (native_before_fallback.as_str(), FALLBACK, "offset:77"),
+        (CALL, NATIVE_TOOL, "tool:read"),
+        (NATIVE_TOOL, CALL, "tool:read"),
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        let path = root.path().join(format!("trace-{index}.jsonl"));
+        std::fs::write(&path, first).unwrap();
+        let mut request = ConversationCaptureRequest {
+            transcript_path: path.clone(),
+            format: definition.format.clone(),
+            cursor: None,
+            final_assistant_text: None,
+            max_bytes: 4096,
+        };
+        let before =
+            capture_conversation(request.clone(), registry.clone(), CancellationToken::new())
+                .await
+                .unwrap();
+        assert_eq!(before.records[0].record_id.as_str(), expected_id);
+        assert_eq!(before.records[0].position, 0);
+        request.cursor = Some(before.cursor.encode().unwrap());
+        std::fs::OpenOptions::new()
+            .append(true)
+            .open(&path)
+            .unwrap()
+            .write_all(later.as_bytes())
+            .unwrap();
+
+        let continued = capture_conversation(request, registry.clone(), CancellationToken::new())
+            .await
+            .unwrap();
+        assert_eq!(continued.records, before.records, "order {index}");
+        assert_eq!(
+            continued.cursor.record_watermarks,
+            before.cursor.record_watermarks
+        );
+        assert_eq!(
+            continued.gaps,
+            [CoverageGap::MalformedRecord {
+                position: first.len() as u64
+            }]
+        );
+        let selected = select_conversation(
+            &continued,
+            &ConversationSelection {
+                turns: TurnWindow::SinceCursor {},
+                user_messages: Inclusion::Included,
+                assistant_messages: AssistantSelection::All,
+                tool_use: ToolUseSelection::Included {
+                    tools: ToolFilter::All {},
+                    results: Inclusion::Included,
+                },
+                hook_injected: Inclusion::Excluded,
+            },
+        )
+        .unwrap();
+        assert!(selected.records.is_empty());
+        assert_eq!(selected.coverage.gaps, continued.gaps);
+    }
+
+    let path = root.path().join("repeated-native.jsonl");
+    std::fs::write(&path, format!("{NATIVE_OFFSET}{NATIVE_OFFSET}")).unwrap();
+    let capture = capture_conversation(
+        ConversationCaptureRequest {
+            transcript_path: path,
+            format: definition.format,
+            cursor: None,
+            final_assistant_text: None,
+            max_bytes: 4096,
+        },
+        registry,
+        CancellationToken::new(),
+    )
+    .await
+    .unwrap();
+    assert!(capture.gaps.is_empty());
+    assert_eq!(capture.records.len(), 1);
+    assert_eq!(capture.records[0].record_id.as_str(), "offset:0");
+    assert_eq!(capture.records[0].position, NATIVE_OFFSET.len() as u64);
+    assert!(
+        matches!(&capture.records[0].body, ConversationBody::AssistantMessage { blocks } if blocks.len() == 2)
+    );
+}

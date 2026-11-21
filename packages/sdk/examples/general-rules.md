@@ -255,6 +255,8 @@ Use `AdapterRegistry.builtins().withAdapter(mapping)` to create a snapshot with 
 
 You can supply an offline Draft 2020-12 JSON Schema as the optional `schema` property, including a schema emitted by Zod's JSON Schema conversion. The schema validates selected rows, and the record pointers extract their fields. Inspect the returned coverage for unsupported or malformed rows, orphan results, and uncertainty about user-message injection. A changed adapter mapping or schema requires a fresh cursor.
 
+When a native message ID and a generated offset or tool record ID collide, the first record keeps its identity. The later row appears as a malformed-record gap at its original position.
+
 The program below binds its synthetic JSONL and a Codex rollout in the same request. Save it as `transcript-adapter.mts` and copy the fixtures `transcript-adapter.jsonl`, `transcript-adapter.ruleset.json`, `transcript-adapter.rules.jsonl`, and `general-codex-session.jsonl` into your consumer project. Run these commands from that directory.
 
 ```sh

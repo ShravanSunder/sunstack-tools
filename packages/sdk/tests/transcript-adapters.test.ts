@@ -53,7 +53,8 @@ void test(
 	{ timeout: 30_000 },
 	async () => {
 		const root = ownedDirectory('registered-transcript');
-		const trace = packagedFixture('transcript-adapter.jsonl');
+		const fixture = packagedFixture('transcript-adapter.jsonl');
+		const trace = `${fixture}{"event":"assistant","body":{"text":"schema rejected"},"fixtureAllowed":false}\n`;
 		const backend = await startControlledBackend();
 		const responder = answerEveryRequest(backend, 1);
 		try {
@@ -67,15 +68,37 @@ void test(
 			});
 			const editable = {
 				...adapterDefinition,
+				schema: Object.defineProperty(
+					{ type: 'object', properties: { fixtureAllowed: { type: 'string' } } },
+					'~standard',
+					{ value: { validate: () => false } },
+				),
 				records: {
 					...adapterDefinition.records,
 					tool_finished: { ...adapterDefinition.records.tool_finished, text: '/output' },
 				},
 			};
 			const builtins = AdapterRegistry.builtins();
+			let schemaReads = 0;
+			const accessorMapping = Object.defineProperty({ ...adapterDefinition }, 'schema', {
+				get() {
+					schemaReads += 1;
+					return { type: 'object' };
+				},
+			});
+			assert.throws(() => builtins.withAdapter(accessorMapping), /schema must be a data property/u);
+			assert.equal(schemaReads, 0);
 			const registry = builtins.withAdapter(editable);
 			editable.records.tool_finished.text = '/wrong';
 			const register = registry.withAdapter.bind(registry);
+			const enumerableMetadata = Object.defineProperty({ type: 'object' }, '~standard', {
+				enumerable: true,
+				value: { validate: () => false },
+			});
+			assert.throws(
+				() => builtins.withAdapter({ ...adapterDefinition, schema: enumerableMetadata }),
+				/function, not data/u,
+			);
 			assert.throws(
 				() => Reflect.apply(register, registry, [adapterDefinition]),
 				/already registered/u,
@@ -151,6 +174,14 @@ void test(
 			});
 			assert.equal(pending?.body.kind, 'tool_use');
 			assert.equal(pending.body.outcome, 'result_missing');
+			assert.equal(custom.content.records.length, 4);
+			assert.equal(custom.coverage.kind, 'single_source');
+			assert.ok(
+				custom.coverage.capture.gaps.some(
+					(gap) =>
+						gap.kind === 'malformed_record' && gap.position === BigInt(Buffer.byteLength(fixture)),
+				),
+			);
 			const saved = serialize({ kind: 'evidence_plan_outcome', value: evidence });
 			assert.equal(saved.kind, 'serialized');
 			assert.deepEqual(await deserialize(saved.json), {

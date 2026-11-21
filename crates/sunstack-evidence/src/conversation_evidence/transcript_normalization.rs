@@ -29,6 +29,11 @@ pub(super) fn category(name: &str, namespaced: bool) -> ToolCategory {
         _ => ToolCategory::Unknown,
     }
 }
+
+pub(super) fn tool_record_id(call_id: &CallId) -> EvidenceResult<RecordId> {
+    RecordId::new(format!("tool:{}", call_id.as_str()))
+}
+
 impl NormalizationState {
     fn add_record(&mut self, record: ConversationRecord) {
         if matches!(record.body, ConversationBody::UserMessage { .. }) {
@@ -116,7 +121,7 @@ impl NormalizationState {
         if self.calls.contains_key(&id) {
             return Err(EvidenceCode::AdapterOutputInvalid.into());
         }
-        let record_id = RecordId::new(format!("tool:{}", id.as_str()))?;
+        let record_id = tool_record_id(&id)?;
         self.calls.insert(id.clone(), self.output.records.len());
         self.add_record(ConversationRecord {
             record_id,

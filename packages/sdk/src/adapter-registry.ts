@@ -47,6 +47,40 @@ function isBuiltinFormat(format: string): boolean {
 	return builtinTranscriptFormats.some((builtin) => builtin === format);
 }
 
+/** Schema producers can attach hidden Standard Schema metadata to a JSON Schema document. */
+function mappingWithSchemaData(mapping: TranscriptAdapterMapping): unknown {
+	const schemaDescriptor = Object.getOwnPropertyDescriptor(mapping, 'schema');
+	if (schemaDescriptor === undefined) return mapping;
+	if (!Object.hasOwn(schemaDescriptor, 'value')) {
+		throw new TypeError('The adapter schema must be a data property.');
+	}
+	const schema: unknown = schemaDescriptor.value;
+	if (
+		typeof schema !== 'object' ||
+		schema === null ||
+		Object.getOwnPropertyDescriptor(schema, '~standard')?.enumerable !== false
+	) {
+		return mapping;
+	}
+	const schemaPrototype: unknown = Object.getPrototypeOf(schema);
+	const mappingPrototype: unknown = Object.getPrototypeOf(mapping);
+	if (
+		(schemaPrototype !== Object.prototype && schemaPrototype !== null) ||
+		(mappingPrototype !== Object.prototype && mappingPrototype !== null)
+	) {
+		return mapping;
+	}
+	// Copy descriptors so every other key remains subject to the ordinary wire encoder.
+	const schemaFields = Object.getOwnPropertyDescriptors(schema);
+	delete schemaFields['~standard'];
+	const schemaData: unknown = Object.create(schemaPrototype, schemaFields);
+	const mappingData: unknown = Object.create(mappingPrototype, {
+		...Object.getOwnPropertyDescriptors(mapping),
+		schema: { ...schemaDescriptor, value: schemaData },
+	});
+	return mappingData;
+}
+
 type NewFormat<TAdded extends string, TRegistered extends string> = TAdded &
 	(string extends TAdded ? never : unknown) &
 	(Extract<TAdded, TRegistered> extends never ? unknown : never);
@@ -67,7 +101,7 @@ export class AdapterRegistry<TRegistered extends string> {
 		},
 	): AdapterRegistry<TRegistered | TAdded> {
 		const current = registeredMappings(this);
-		const encoded = encodeForNative(mapping);
+		const encoded = encodeForNative(mappingWithSchemaData(mapping));
 		if (encoded.kind === 'rejected') throw new TypeError(encoded.message);
 		const snapshot: unknown = parseExactJson(encoded.json);
 		if (typeof snapshot !== 'object' || snapshot === null || !('format' in snapshot)) {

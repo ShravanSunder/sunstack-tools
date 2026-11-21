@@ -1,9 +1,14 @@
-use super::transcript_normalization::{NormalizationState, category, normalize_records};
+use super::transcript_normalization::{
+    NormalizationState, category, normalize_records, tool_record_id,
+};
 use crate::source_acquisition::structured_json::valid_pointer;
 use crate::*;
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
-use std::{collections::BTreeMap, sync::Arc};
+use std::{
+    collections::{BTreeMap, btree_map::Entry},
+    sync::Arc,
+};
 
 /// Declarative extraction for one JSONL transcript format.
 #[cfg_attr(feature = "typescript", derive(specta::Type))]
@@ -65,6 +70,37 @@ pub enum TranscriptRecordMapping {
     },
 }
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum MappedRecordIdentity {
+    NativeMessage,
+    OffsetMessage,
+    ToolCall,
+}
+
+#[derive(Default)]
+struct MappedRecordOwners(BTreeMap<RecordId, MappedRecordIdentity>);
+
+impl MappedRecordOwners {
+    fn accept(
+        &mut self,
+        record_id: RecordId,
+        identity: MappedRecordIdentity,
+        normalize: impl FnOnce(&RecordId) -> EvidenceResult<()>,
+    ) -> EvidenceResult<()> {
+        match self.0.entry(record_id) {
+            Entry::Occupied(entry) if *entry.get() != identity => {
+                Err(EvidenceCode::AdapterOutputInvalid.into())
+            }
+            Entry::Occupied(entry) => normalize(entry.key()),
+            Entry::Vacant(entry) => {
+                normalize(entry.key())?;
+                entry.insert(identity);
+                Ok(())
+            }
+        }
+    }
+}
+
 impl TranscriptRecordMapping {
     fn pointers_are_valid(&self) -> bool {
         match self {
@@ -94,35 +130,42 @@ impl TranscriptRecordMapping {
     fn normalize(
         &self,
         state: &mut NormalizationState,
+        owners: &mut MappedRecordOwners,
         record: &Value,
         position: u64,
     ) -> EvidenceResult<()> {
         match self {
             Self::UserMessage { text, message_id }
             | Self::AssistantMessage { text, message_id } => {
-                let record_id = match message_id
+                let (record_id, identity) = match message_id
                     .as_deref()
                     .and_then(|pointer| record.pointer(pointer))
                 {
-                    Some(value) => {
-                        RecordId::new(value.as_str().ok_or(EvidenceCode::AdapterOutputInvalid)?)?
-                    }
-                    None => RecordId::new(format!("offset:{position}"))?,
+                    Some(value) => (
+                        RecordId::new(value.as_str().ok_or(EvidenceCode::AdapterOutputInvalid)?)?,
+                        MappedRecordIdentity::NativeMessage,
+                    ),
+                    None => (
+                        RecordId::new(format!("offset:{position}"))?,
+                        MappedRecordIdentity::OffsetMessage,
+                    ),
                 };
                 let assistant = matches!(self, Self::AssistantMessage { .. });
-                state.message(
-                    record_id,
-                    position,
-                    assistant,
-                    vec![MessageBlock::Text {
-                        text: extract_text(record, text)?.into(),
-                    }],
-                    if assistant {
-                        InjectionOrigin::NotInjected
-                    } else {
-                        InjectionOrigin::Unknown
-                    },
-                )
+                let text = extract_text(record, text)?.into();
+                let injection = if assistant {
+                    InjectionOrigin::NotInjected
+                } else {
+                    InjectionOrigin::Unknown
+                };
+                owners.accept(record_id, identity, |record_id| {
+                    state.message(
+                        record_id.clone(),
+                        position,
+                        assistant,
+                        vec![MessageBlock::Text { text }],
+                        injection,
+                    )
+                })
             }
             Self::ToolCall {
                 call_id,
@@ -139,12 +182,18 @@ impl TranscriptRecordMapping {
                     .ok_or(EvidenceCode::AdapterOutputInvalid)?;
                 let input = serde_json::from_value(input.clone())
                     .map_err(|_| EvidenceCode::AdapterOutputInvalid)?;
-                state.call(
-                    call_id,
-                    tool_name.into(),
-                    input,
-                    position,
-                    category(tool_name, false),
+                owners.accept(
+                    tool_record_id(&call_id)?,
+                    MappedRecordIdentity::ToolCall,
+                    |_| {
+                        state.call(
+                            call_id,
+                            tool_name.into(),
+                            input,
+                            position,
+                            category(tool_name, false),
+                        )
+                    },
                 )
             }
             Self::ToolResult {
@@ -235,6 +284,7 @@ impl TranscriptAdapter for MappedTranscriptAdapter {
     }
 
     fn normalize(&self, capture: &CapturedTranscript<'_>) -> AdapterOutput {
+        let mut owners = MappedRecordOwners::default();
         normalize_records(capture.bytes, |state, record, position| {
             let event = extract_text(&record, &self.mapping.discriminator)?;
             let Some(mapping) = self.mapping.records.get(event) else {
@@ -248,7 +298,7 @@ impl TranscriptAdapter for MappedTranscriptAdapter {
             {
                 return Err(EvidenceCode::AdapterOutputInvalid.into());
             }
-            mapping.normalize(state, &record, position)
+            mapping.normalize(state, &mut owners, &record, position)
         })
     }
 }
