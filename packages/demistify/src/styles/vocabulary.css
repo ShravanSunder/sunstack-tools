@@ -1148,9 +1148,10 @@ ex-tree.ex-tree-shared li {
 	overflow-wrap: anywhere;
 }
 .ex-tree-title-row > .ex-tree-details-button {
+	inline-size: calc(var(--space-8) - var(--space-1));
 	height: calc(var(--space-8) - var(--space-1));
 	margin-inline-start: 0;
-	white-space: nowrap;
+	padding: 0;
 }
 @container (min-width: 640px) {
 	ex-tree.ex-tree-shared[layout='map'] .ex-tree-node {

@@ -133,10 +133,11 @@ test.each([
 		await expect
 			.element(fullscreen.getByText('Acknowledgment follows the durable write.'))
 			.toBeVisible();
-		const buttonBounds = requiredElement(
-			pageTree,
-			'.ex-tree-details-button',
-		).getBoundingClientRect();
+		const button = requiredElement(pageTree, '.ex-tree-details-button');
+		const buttonBounds = button.getBoundingClientRect();
+		expect(button.textContent?.trim()).toBe('');
+		expect(button.querySelector('.ph-article')).not.toBeNull();
+		expect(buttonBounds.width).toBe(28);
 		expect(buttonBounds.height).toBe(28);
 		const rowBounds = row.getBoundingClientRect();
 		expect(rowBounds.right - buttonBounds.right).toBeCloseTo(13, 0);

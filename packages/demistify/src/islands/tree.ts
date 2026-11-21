@@ -167,7 +167,8 @@ export class TreeIsland extends HTMLElement {
 					button.dataset['exTreeDetail'] = detail;
 					button.setAttribute('aria-label', `Open details for ${node.title}`);
 					button.setAttribute('aria-haspopup', 'dialog');
-					button.append(createPhosphorIcon('article'), 'Details');
+					button.title = 'Details';
+					button.append(createPhosphorIcon('article'));
 					titleRow.append(button);
 				}
 			}
