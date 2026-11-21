@@ -1147,17 +1147,19 @@ ex-tree.ex-tree-shared li {
 	color: var(--ink-soft);
 	overflow-wrap: anywhere;
 }
-.ex-tree-details-button {
-	display: inline-flex;
-	gap: var(--space-1);
-	width: auto;
-	padding-inline: var(--space-2);
+.ex-tree-title-row > .ex-tree-details-button {
+	height: calc(var(--space-8) - var(--space-1));
+	margin-inline-start: 0;
+	white-space: nowrap;
 }
 @container (min-width: 640px) {
 	ex-tree.ex-tree-shared[layout='map'] .ex-tree-node {
 		inline-size: max-content;
-		min-inline-size: 13rem;
-		max-inline-size: 19rem;
+		min-inline-size: 14rem;
+		max-inline-size: 21rem;
+	}
+	ex-tree.ex-tree-shared[layout='map'] .ex-tree-node:has(.ex-tree-details-button) {
+		inline-size: 21rem;
 	}
 }
 ex-board[data-mode='map'] ex-tree.ex-tree-shared[layout='map'] {

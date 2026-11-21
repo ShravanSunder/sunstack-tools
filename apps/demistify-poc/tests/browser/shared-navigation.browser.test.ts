@@ -129,17 +129,72 @@ test.each([
 		await frame.getByRole('button', { name: 'Read view', exact: true }).click();
 		const details = frame.getByRole('button', { name: `Open details for ${localTitle}` });
 		await details.click();
-		const drawer = fixtureLocator(
-			frame,
-			requiredElement(fixture, '[data-presentation="standard"][aria-label="Custody evidence"]'),
-		);
+		const fullscreen = frame.getByRole('dialog', { name: 'Custody evidence', exact: true });
 		await expect
-			.element(drawer.getByText('Acknowledgment follows the durable write.'))
+			.element(fullscreen.getByText('Acknowledgment follows the durable write.'))
 			.toBeVisible();
+		const buttonBounds = requiredElement(
+			pageTree,
+			'.ex-tree-details-button',
+		).getBoundingClientRect();
+		expect(buttonBounds.height).toBe(28);
+		const rowBounds = row.getBoundingClientRect();
+		expect(rowBounds.right - buttonBounds.right).toBeCloseTo(13, 0);
+		expect(buttonBounds.top - rowBounds.top).toBeCloseTo(13, 0);
 		await userEvent.keyboard('{Escape}');
 		await expect.element(details).toHaveFocus();
 		await title.first().click();
 		await expect.poll((): string => fixture.location.hash).toBe('#stored-custody');
+	},
+);
+
+test.each([1600, 390])(
+	'deep Tree opens Details fullscreen and keeps its Map geometry at %i',
+	async (width): Promise<void> => {
+		await page.viewport(width, 900);
+		const { document: fixture, frame } = await openFixture('shared-navigation', '', 'deep.html');
+		const tree = requiredElement(fixture, 'ex-tree');
+		const topics = fixtureLocator(frame, tree);
+		const first = topics.getByRole('button', {
+			name: 'Open details for A retry reads the committed result after an interrupted response',
+			exact: true,
+		});
+		await expect.element(first).toBeInTheDocument();
+		const trigger = requiredElement(tree, '.ex-tree-details-button');
+		trigger.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+		const map = requiredElement(tree, '.ex-tree-body');
+		const mapWidth = map.clientWidth;
+		const mapScroll = map.scrollLeft;
+		await first.click();
+		const dialog = frame.getByRole('dialog', { name: 'Retry evidence', exact: true });
+		await expect
+			.element(
+				dialog.getByText(
+					'The original result stays available when the response is interrupted after the store commits.',
+				),
+			)
+			.toBeVisible();
+		expect(map.clientWidth).toBe(mapWidth);
+		expect(map.scrollLeft).toBeCloseTo(mapScroll, 0);
+		expect(fixture.documentElement.scrollWidth).toBeLessThanOrEqual(width);
+		await userEvent.keyboard('{Escape}');
+		await expect.element(first).toHaveFocus();
+		expect(map.scrollLeft).toBeCloseTo(mapScroll, 0);
+		const second = topics.getByRole('button', {
+			name: 'Open details for Which work must be rechecked?',
+			exact: true,
+		});
+		await second.click();
+		const next = frame.getByRole('dialog', { name: 'Scope evidence', exact: true });
+		await expect
+			.element(
+				next.getByText(
+					'The changed rule invalidates the earlier scope revision and holds acceptance.',
+				),
+			)
+			.toBeVisible();
+		await next.getByRole('button', { name: 'Close', exact: true }).click();
+		await expect.element(second).toHaveFocus();
 	},
 );
 

@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "pages": [{"id":"deep","title":"Deep Map","href":"deep.html","icon":"file"}],
+  "map":[
+    {"title":"Recover a message result","description":"How the person gets back to the outcome after a connection drops.","icon":"envelope","children":[
+      {"title":"The retry route","description":"Follow the request through the service and back.","icon":"path","children":[
+        {"title":"Keep identity through delivery","description":"Compare what the service knows before and after reconnection.","icon":"key","children":[
+          {"title":"A retry reads the committed result after an interrupted response","description":"Read the durable result and see the worked example for the interruption case.","icon":"database","target":{"page":"deep","fragment":"retry"}},
+          {"title":"The service returns the result","description":"The reader receives the outcome even if the first response did not arrive.","icon":"envelope"}
+        ]},
+        {"title":"Report the current outcome","description":"Show the reader what is still pending.","icon":"user"}
+      ]},
+      {"title":"Deliver once","description":"The service distinguishes another request from an existing retry.","icon":"shield-check"}
+    ]},
+    {"title":"Know what needs rechecking","description":"Return to the rule that changed and see which proof depends on it.","icon":"test-tube","children":[
+      {"title":"Which work must be rechecked?","description":"Follow the checked scope revision into the active delivery.","icon":"file","target":{"page":"deep","fragment":"scope"}}
+    ]}
+  ]
+}
