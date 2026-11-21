@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process';
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, stat, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -77,7 +77,10 @@ export default ${JSON.stringify({
 	})} as const satisfies DesignCore;`;
 }
 
-function deliverableSource(receipt?: { build: string; scopeRevision: string }): string {
+function deliverableSource(
+	receipt?: { build: string; scopeRevision: string },
+	builder?: string,
+): string {
 	const progress = receipt
 		? {
 				implementation: {
@@ -97,6 +100,7 @@ function deliverableSource(receipt?: { build: string; scopeRevision: string }): 
 export default defineDeliverable(${JSON.stringify({
 		id: 'DEL-01',
 		title: 'Deliverable',
+		...(builder ? { builder } : {}),
 		destination: { page: 'index.html', fragment: 'DEL-01' },
 		scope: { rules: ['R1'], implementationTasks: ['task'], verificationChecks: ['V1'] },
 		...progress,
@@ -118,8 +122,11 @@ it('checks an empty project without discovering files beside the manifest', asyn
 			writeFile(join(directory, 'project-decisions.ts'), 'throw new Error("not registered");'),
 			writeFile(join(directory, 'agents-identity.ts'), 'throw new Error("not registered");'),
 		]);
-		await run(process.execPath, [cli, 'project', 'check', directory]);
+		const checked = await run(process.execPath, [cli, 'project', 'check', directory]);
+		expect(checked.stdout).toContain('Read-only check');
 		const output = join(directory, 'project.generated.json');
+		await expect(stat(output)).rejects.toMatchObject({ code: 'ENOENT' });
+		await run(process.execPath, [cli, 'project', 'check', directory, '--write']);
 		const empty = await readFile(output, 'utf8');
 		expect(JSON.parse(empty)).toEqual({
 			version: 1,
@@ -143,8 +150,8 @@ it('checks explicit project records, qualified prerequisites, and Lead aliases a
 	const messages = join(root, 'milestones/2026-11-messages');
 	const sessions = join(root, 'milestones/2026-11-sessions#archive');
 	const outputPath = join(root, 'project.generated.json');
-	const check = (): ReturnType<typeof run> =>
-		run(process.execPath, [cli, 'project', 'check', root]);
+	const check = (write = true): ReturnType<typeof run> =>
+		run(process.execPath, [cli, 'project', 'check', root, ...(write ? ['--write'] : [])]);
 	const readView = async (): Promise<z.infer<typeof projectView>> =>
 		projectView.parse(JSON.parse(await readFile(outputPath, 'utf8')));
 	try {
@@ -159,7 +166,10 @@ it('checks explicit project records, qualified prerequisites, and Lead aliases a
 						join(directory, 'design-delivery.ts'),
 						deliverySource(directory === messages ? 'sessions/DEL-01' : undefined),
 					),
-					writeFile(join(directory, 'deliverables/unit.ts'), deliverableSource()),
+					writeFile(
+						join(directory, 'deliverables/unit.ts'),
+						deliverableSource(undefined, directory === messages ? 'messages-builder' : undefined),
+					),
 					writeFile(join(directory, 'evidence.txt'), 'Observed target evidence.'),
 				]);
 			}),
@@ -184,12 +194,17 @@ export default { designs: { messages: messagesDesign, sessions: sessionsDesign }
 				join(root, 'agents-identity.ts'),
 				`import { agentId } from './milestones/2026-11-messages/design-sdk.generated.ts';
 const lead = agentId('private-fixture-session');
-export default { owner: 'owner', agents: { 'messages-lead': lead } };`,
+const builder = agentId('private-builder-session');
+export default { owner: 'owner', agents: { 'messages-lead': lead, 'messages-builder': builder } };`,
 			),
 			writeFile(
 				join(shared, 'project-decisions.ts'),
 				`import type { DesignDecision } from '../milestones/2026-11-messages/design-schema.d.ts';
-export default [${decision}] as const satisfies readonly DesignDecision[];`,
+export default [${decision}, {
+id: 'D2', kind: 'choice', title: 'Unassigned question',
+authority: { state: 'owner-open', owner: 'owner', question: 'Which end state should the reader show?' },
+destination: { page: 'index.html', fragment: 'D2' }, sources: [{ href: 'evidence.txt', excerpt: 'Context.' }]
+}] as const satisfies readonly DesignDecision[];`,
 			),
 			writeFile(
 				join(shared, 'project-assumptions.ts'),
@@ -206,6 +221,17 @@ resolution: { href: 'evidence.txt', excerpt: 'Available.' }
 			writeFile(join(shared, 'evidence.txt'), 'Available. Use the current result.'),
 		]);
 
+		const sdkFile = join(messages, 'design-sdk.generated.ts');
+		await writeFile(sdkFile, `${await readFile(sdkFile, 'utf8')}\n// Older SDK bytes.\n`);
+		await expect(check(false)).rejects.toThrow(
+			/design-sdk\.generated\.ts is out of date.*demistify design types/,
+		);
+		await run(process.execPath, [cli, 'design', 'types', messages]);
+		const readOnly = await check(false);
+		expect(readOnly.stdout).toMatch(/Waiting on owner[\s\S]*project\/D2[\s\S]*messages\/DEL-01/);
+		await expect(stat(outputPath)).rejects.toMatchObject({ code: 'ENOENT' });
+		const milestonePath = join(messages, 'deliverables.generated.json');
+		await expect(stat(milestonePath)).rejects.toMatchObject({ code: 'ENOENT' });
 		await check();
 		const before = await readView();
 		expect(before.deliverables['messages/DEL-01']?.state).toBe('dependency-blocked');
@@ -217,14 +243,23 @@ resolution: { href: 'evidence.txt', excerpt: 'Available.' }
 		).toEqual(['project/A1', 'project/D1']);
 		const published = await readFile(outputPath, 'utf8');
 		expect(published).toContain('messages-lead');
+		expect(published).toContain('messages-builder');
 		expect(published).not.toContain('private-fixture-session');
+		expect(published).not.toContain('private-builder-session');
+		expect(await readFile(milestonePath, 'utf8')).toContain('messages-builder');
+		const written = await stat(outputPath);
+		await check();
+		expect((await stat(outputPath)).mtimeMs).toBe(written.mtimeMs);
 
 		const stamp = async (directory: string, name: string, build: string): Promise<void> => {
 			const scopeRevision = (await readView()).deliverables[`${name}/DEL-01`]?.scopeRevision ?? '';
 			const receipt = { build, scopeRevision };
 			await Promise.all([
 				writeFile(join(directory, 'design.ts'), designSource(name === 'messages', receipt)),
-				writeFile(join(directory, 'deliverables/unit.ts'), deliverableSource(receipt)),
+				writeFile(
+					join(directory, 'deliverables/unit.ts'),
+					deliverableSource(receipt, name === 'messages' ? 'messages-builder' : undefined),
+				),
 			]);
 			await check();
 		};
@@ -233,6 +268,21 @@ resolution: { href: 'evidence.txt', excerpt: 'Available.' }
 		await stamp(messages, 'messages', 'messages-1');
 		const accepted = await readView();
 		expect(accepted.deliverables['messages/DEL-01']?.state).toBe('accepted');
+		const beforeAssignment = await readFile(milestonePath, 'utf8');
+		const messagesFile = join(messages, 'deliverables/unit.ts');
+		const withBuilder = await readFile(messagesFile, 'utf8');
+		await writeFile(messagesFile, withBuilder.replace('messages-builder', 'messages-lead'));
+		await check(false);
+		expect(await readFile(milestonePath, 'utf8')).toBe(beforeAssignment);
+		await check();
+		expect((await readView()).deliverables['messages/DEL-01']).toMatchObject({
+			builder: 'messages-lead',
+			state: 'accepted',
+			scopeRevision: accepted.deliverables['messages/DEL-01']?.scopeRevision,
+		});
+		await writeFile(messagesFile, withBuilder.replace('messages-builder', 'unknown-builder'));
+		await expect(check(false)).rejects.toThrow(/unknown Builder alias unknown-builder/);
+		await writeFile(messagesFile, withBuilder);
 		await stamp(sessions, 'sessions', 'build-2');
 		const revised = await readView();
 		expect(revised.deliverables['sessions/DEL-01']?.state).toBe('accepted');
@@ -274,3 +324,139 @@ resolution: { href: 'evidence.txt', excerpt: 'Available.' }
 		await rm(sandbox, { recursive: true, force: true });
 	}
 }, 90_000);
+
+it('uses one declared external passage in two milestone scopes and confines authoring inputs', async (): Promise<void> => {
+	const sandbox = await mkdtemp(join(tmpdir(), 'demistify-canonical-project-'));
+	const site = join(sandbox, 'site');
+	const project = join(site, 'project');
+	const canonicalPage = join(site, 'Reviewed Guide.html');
+	const canonicalHref = '../../Reviewed%20Guide.html';
+	const names = ['north', 'south'];
+	const viewFile = join(project, 'project.generated.json');
+	const check = (options: readonly string[] = []): ReturnType<typeof run> =>
+		run(process.execPath, [cli, 'project', 'check', project, '--site-root', site, ...options]);
+	const readView = async (): Promise<z.infer<typeof projectView>> =>
+		projectView.parse(JSON.parse(await readFile(viewFile, 'utf8')));
+	const authoredDesign = (receipt?: { build: string; scopeRevision: string }): string =>
+		designSource(false, receipt)
+			.replaceAll('index.html', canonicalHref)
+			.replaceAll(
+				'"href":"evidence.txt","excerpt":"Observed target evidence."',
+				`"href":"${canonicalHref}#R1","excerpt":"Shared & reviewed.","verbatim":true`,
+			);
+	const authoredDelivery = (receipt?: { build: string; scopeRevision: string }): string =>
+		deliverableSource(receipt).replaceAll('index.html', canonicalHref);
+	const html = fixturePage
+		.replace('./navigation.generated.json', './reviewed-navigation.json')
+		.replace(
+			'<p id="R1">Rule</p>',
+			'<h2 id="R1">Rule</h2><p>Shared <strong>&amp;</strong> reviewed.</p><h2 id="other-section">Other</h2>',
+		)
+		.replace(
+			'Implementation plan</p>',
+			'Implementation plan</p><p id="unrelated">Unrelated.</p><p>Shared &amp; reviewed.</p>',
+		);
+	try {
+		await Promise.all(
+			names.map(async (name) => {
+				const milestone = join(project, name);
+				await run(process.execPath, [cli, 'design', 'init', milestone]);
+				await mkdir(join(milestone, 'deliverables'));
+				await Promise.all([
+					writeFile(join(milestone, 'design.ts'), authoredDesign()),
+					writeFile(join(milestone, 'design-delivery.ts'), deliverySource()),
+					writeFile(join(milestone, 'deliverables/unit.ts'), authoredDelivery()),
+					writeFile(join(milestone, 'evidence.txt'), 'Observed the shared passage.'),
+				]);
+			}),
+		);
+		const projectSource = `import north from './north/design.ts';
+import south from './south/design.ts';
+export default { designs: { north, south } };`;
+		await Promise.all([
+			writeFile(canonicalPage, html),
+			writeFile(join(project, 'project.ts'), projectSource),
+		]);
+		await check();
+		await expect(stat(viewFile)).rejects.toMatchObject({ code: 'ENOENT' });
+		await check(['--write']);
+		const draft = await readView();
+		await Promise.all(
+			names.map(async (name) => {
+				const scopeRevision = draft.deliverables[`${name}/DEL-01`]?.scopeRevision ?? '';
+				expect(scopeRevision).toMatch(/^[a-f0-9]{64}$/);
+				const receipt = { build: `${name}-build`, scopeRevision };
+				await Promise.all([
+					writeFile(join(project, name, 'design.ts'), authoredDesign(receipt)),
+					writeFile(join(project, name, 'deliverables/unit.ts'), authoredDelivery(receipt)),
+				]);
+			}),
+		);
+		await check(['--write']);
+		const accepted = await readView();
+		for (const name of names) {
+			const view = accepted.deliverables[`${name}/DEL-01`];
+			expect(view?.state).toBe('accepted');
+			expect(
+				new URL(view?.links.plan.page ?? '', 'https://example.test/site/project/').pathname,
+			).toBe('/site/Reviewed%20Guide.html');
+		}
+		const acceptedBytes = await readFile(viewFile, 'utf8');
+		await writeFile(canonicalPage, html.replace('Unrelated.', 'Unrelated change.'));
+		await check(['--write']);
+		expect(await readFile(viewFile, 'utf8')).toBe(acceptedBytes);
+		await writeFile(
+			canonicalPage,
+			html.replace('reviewed.</p>', 'reviewed. This passage changed.</p>'),
+		);
+		await check();
+		expect(await readFile(viewFile, 'utf8')).toBe(acceptedBytes);
+		await check(['--write']);
+		const changed = await readView();
+		for (const name of names) {
+			const earlier = accepted.deliverables[`${name}/DEL-01`];
+			const current = changed.deliverables[`${name}/DEL-01`];
+			expect(current?.scopeRevision).not.toBe(earlier?.scopeRevision);
+			expect(current?.state).toBe('awaiting-verification');
+			expect(current?.verification.checks[0]?.state).toBe('stale');
+		}
+		await writeFile(canonicalPage, html.replace('reviewed.</p>', 'different.</p>'));
+		await expect(check()).rejects.toThrow(/(?:R1|U1|V1): verbatim excerpt does not appear/);
+		await writeFile(canonicalPage, html.replace('id="DEL-01"', 'id="other-plan"'));
+		await expect(check()).rejects.toThrow(/Missing HTML target.*#DEL-01/);
+		await writeFile(canonicalPage, html);
+		const unlistedDesign = authoredDesign().replace(
+			'"href":"' + canonicalHref + '"',
+			'"href":"other.html"',
+		);
+		await writeFile(join(project, 'north', 'other.html'), fixturePage);
+		await writeFile(join(project, 'north', 'design.ts'), unlistedDesign);
+		await expect(check()).rejects.toThrow(/must point to a declared HTML page/);
+		await writeFile(join(project, 'north', 'design.ts'), authoredDesign());
+
+		const outside = join(sandbox, 'outside.html');
+		await writeFile(outside, html);
+		await symlink(outside, join(site, 'escaped.html'));
+		await writeFile(
+			join(project, 'north', 'design.ts'),
+			authoredDesign().replaceAll(canonicalHref, '../../escaped.html'),
+		);
+		await expect(check()).rejects.toThrow(/resolves outside the site root/);
+		await writeFile(join(project, 'north', 'design.ts'), authoredDesign());
+
+		await writeFile(
+			join(site, 'agents-identity.ts'),
+			'export default { owner: "owner", agents: {} };',
+		);
+		await symlink(join(site, 'agents-identity.ts'), join(project, 'agents-identity.ts'));
+		await writeFile(
+			join(project, 'project.ts'),
+			projectSource
+				.replace('export default', "import identities from './agents-identity.ts';\nexport default")
+				.replace('{ designs:', '{ identities, designs:'),
+		);
+		await expect(check()).rejects.toThrow(/resolves outside the project root/);
+	} finally {
+		await rm(sandbox, { recursive: true, force: true });
+	}
+}, 50_000);

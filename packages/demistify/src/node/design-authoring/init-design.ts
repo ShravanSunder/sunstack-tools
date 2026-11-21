@@ -25,7 +25,7 @@ type Walkthrough = {
   description: string;
   steps: readonly { target: Target; narration: string; icon?: SubjectIcon }[];
 };
-type SourceReference = { href: string; excerpt: string };
+type SourceReference = { href: string; excerpt: string; verbatim?: true };
 type RecordFields = {
   id: string;
   title: string;

@@ -124,16 +124,15 @@ it('checks a real adjacent page and source inside an explicitly selected site ro
 			'Local target resolves outside the site root: escaped.html',
 		);
 		await symlink(join(site, 'overview.html'), join(deliverable, 'alias.html'));
-		const aliasPage = withRecord.replace('"href": "../overview.html"', '"href": "alias.html"');
 		await writeFile(
 			definition,
-			aliasPage.replace(
+			withRecord.replace(
 				"page: 'index.html', fragment: 'NeedOverview'",
 				"page: 'alias.html', fragment: 'scope'",
 			),
 		);
 		await expect(run(process.execPath, check)).rejects.toThrow(
-			'Record NeedOverview must point to a page owned by this design set.',
+			'Record NeedOverview must point to a declared HTML page.',
 		);
 		expect(await readFile(navigationPath, 'utf8')).toBe(originalNavigation);
 		expect(await readFile(join(deliverable, 'design.generated.json'), 'utf8')).toBe(output);
