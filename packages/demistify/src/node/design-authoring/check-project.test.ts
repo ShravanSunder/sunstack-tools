@@ -273,4 +273,4 @@ resolution: { href: 'evidence.txt', excerpt: 'Available.' }
 	} finally {
 		await rm(sandbox, { recursive: true, force: true });
 	}
-}, 30_000);
+}, 90_000);

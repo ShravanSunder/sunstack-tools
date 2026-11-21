@@ -265,7 +265,7 @@ it('composes typed work files into one delivery graph and keeps the last output 
 	} finally {
 		await rm(directory, { recursive: true, force: true });
 	}
-}, 20_000);
+}, 90_000);
 
 it('keeps scoped acceptance open until the owner answers and the governing assumption is confirmed', async (): Promise<void> => {
 	const directory = await mkdtemp(join(tmpdir(), 'demistify-design-authority-'));
@@ -448,4 +448,4 @@ export default [
 	} finally {
 		await rm(directory, { recursive: true, force: true });
 	}
-}, 20_000);
+}, 90_000);

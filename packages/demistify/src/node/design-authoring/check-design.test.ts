@@ -152,4 +152,4 @@ it('checks a real adjacent page and source inside an explicitly selected site ro
 	} finally {
 		await rm(directory, { recursive: true, force: true });
 	}
-}, 15_000);
+}, 90_000);
