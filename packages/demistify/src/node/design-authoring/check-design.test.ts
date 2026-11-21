@@ -87,6 +87,19 @@ it('checks a real adjacent page and source inside an explicitly selected site ro
 		expect(await readFile(navigationPath, 'utf8')).toBe(originalNavigation);
 		expect(await readFile(definition, 'utf8')).toBe(withRecord);
 		expect(await readFile(join(deliverable, 'index.html'), 'utf8')).toBe(page);
+		const legacyEntry = join(deliverable, 'delivery.ts');
+		await writeFile(legacyEntry, 'export default [];');
+		await expect(run(process.execPath, check)).rejects.toThrow(
+			'Rename delivery.ts to design-delivery.ts before checking this design.',
+		);
+		await unlink(legacyEntry);
+		await writeFile(
+			definition,
+			withRecord.replace("id: 'NeedOverview', kind: 'need'", "id: 'NeedOverview', kind: 'choice'"),
+		);
+		await expect(run(process.execPath, check)).rejects.toThrow(/Invalid discriminator value/);
+		expect(await readFile(join(deliverable, 'design.generated.json'), 'utf8')).toBe(output);
+		await writeFile(definition, withRecord);
 		await expect(run(process.execPath, check.slice(0, 4))).rejects.toThrow(
 			'escapes the site root: ../overview.html',
 		);

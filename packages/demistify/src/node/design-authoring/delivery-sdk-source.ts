@@ -63,12 +63,22 @@ interface DeliveryEntry {
 	readonly dependsOn?: readonly string[];
 }
 
+type QualifiedDeliverableId = \`\${string}/\${string}\`;
+interface DeliveryOptions {
+	readonly lead: string;
+}
+
 export function defineDelivery<const TDesign, const TEntries extends readonly DeliveryEntry[]>(
 	design: TDesign,
 	entries: TEntries & readonly (DeliveryEntry & {
-		readonly dependsOn?: readonly NoInfer<TEntries[number]['deliverable']['id']>[];
+		readonly dependsOn?: readonly (NoInfer<TEntries[number]['deliverable']['id']> | QualifiedDeliverableId)[];
 	})[],
-): { readonly design: TDesign; readonly entries: TEntries } {
-	return { design, entries };
+	options?: DeliveryOptions,
+): { readonly design: TDesign; readonly entries: TEntries; readonly lead?: string } {
+	return { design, entries, ...(options === undefined ? {} : { lead: options.lead }) };
+}
+
+export function agentId(sessionId: string): { readonly sessionId: string } {
+	return { sessionId };
 }
 `;

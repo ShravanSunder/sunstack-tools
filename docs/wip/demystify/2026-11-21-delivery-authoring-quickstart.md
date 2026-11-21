@@ -24,14 +24,14 @@ For an existing typed set, run `design types <set>` to refresh editor support. U
 
 ## Write each fact in its owning file
 
-| Who           | What to write                                                                                                                                                                                                         |
-| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Lead          | The design records in `design.ts`, their owning HTML passages, and the deliverables and prerequisites in `delivery.ts`. Assign each pair the module path, work log, implementation tasks and verification checks.     |
-| Implementer   | Completed tasks, candidate build and evidence in the assigned `deliverables/<name>.ts`. Log material observations, issues and recommendations using Show Me Your Work. Take open choices to the Lead.                 |
-| Verifier      | Observed outcomes and their evidence in the same deliverable module, keyed by the assigned check IDs. Pin the actual build and scope revision. Log what the check showed and any blocker through Show Me Your Work.   |
-| Lead or Owner | A dated decision. The Lead records its own call or the Owner's answer with the original source. A deliverable acceptance in `design.ts` is the separate act of accepting an exact build, scope revision and evidence. |
+| Who           | What to write                                                                                                                                                                                                            |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Lead          | The design records in `design.ts`, their owning HTML passages, and the deliverables and prerequisites in `design-delivery.ts`. Assign each pair the module path, work log, implementation tasks and verification checks. |
+| Implementer   | Completed tasks, candidate build and evidence in the assigned `deliverables/<name>.ts`. Log material observations, issues and recommendations using Show Me Your Work. Take open choices to the Lead.                    |
+| Verifier      | Observed outcomes and their evidence in the same deliverable module, keyed by the assigned check IDs. Pin the actual build and scope revision. Log what the check showed and any blocker through Show Me Your Work.      |
+| Lead or Owner | A dated decision. The Lead records its own call or the Owner's answer with the original source. A deliverable acceptance in `design.ts` is the separate act of accepting an exact build, scope revision and evidence.    |
 
-Use a stable `D` ID for a decision and an `A` ID for an assumption. Point rules, realizations and checks to decisions with `governed-by` and to assumptions with `relies-on`. Give the reader the same anchors in the HTML. The typed-design reference has the actual field names and a worked deliverable module. [Typed-design reference](../../../packages/demistify/skill/references/typed-design.md)
+Write decisions in `design-decisions.ts` with stable `D` IDs and assumptions in `design-assumptions.ts` with stable `A` IDs. Point rules, realizations and checks to decisions with `governed-by` and to assumptions with `relies-on`. Give the reader the same anchors in the HTML. The typed-design reference has the actual field names and a worked deliverable module. [Typed-design reference](../../../packages/demistify/skill/references/typed-design.md)
 
 The Lead alone decides whether a discovery breaks the shared mental model. Treat a one-way door as a break, including a commitment that would cost substantial time to undo. The Lead decides what to bring to the Owner. Reversible work may continue under a recorded open assumption with the Lead's direction. The affected deliverable waits for evidence before acceptance.
 
@@ -46,3 +46,15 @@ For a set that links to sibling material outside its folder, pass the containing
 Edit TypeScript or HTML, then run the check again. The CLI writes `design.generated.json`, `navigation.generated.json`, and `deliverables.generated.json`. Keep them together. Serve the set over HTTP, including the generated files and matching assets. Use Pages, Map and Walkthrough to take readers to authored passages. Put `<ex-deliverables src="./deliverables.generated.json" label="Delivery progress"></ex-deliverables>` inside the document when the reader needs work state, blockers and evidence links.
 
 The checker validates references, scope, and declared authority. Open the original decision and proof to establish who decided and what was observed.
+
+## Connect a project
+
+Use `docs/projects/yyyy-mm-name/project.ts` above your registered sets in `milestones/yyyy-mm-name/`. Include `project-decisions.ts` or `project-assumptions.ts` when the project has shared records. Keep owner and agent identities in `agents-identity.ts` and refer to agents by alias in the delivery plan.
+
+Give each included set a stable name in `project.ts`. Put a cross-set dependency such as `sessions/DEL-01` in the waiting design's delivery plan. Run the project check and use its scope revision when recording evidence. An empty manifest gives an empty project view.
+
+```sh
+"$demistify" project check docs/projects/2026-11-router
+```
+
+The typed-design guide has the exact imports, identity helper and project layout. [Project authoring example](../../../packages/demistify/skill/references/typed-design.md)

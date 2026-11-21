@@ -1,8 +1,12 @@
 import { basename, dirname, resolve } from 'node:path';
 
 import typescript from 'typescript';
+import { z } from 'zod';
 
-import { designSchema, type DesignCore } from './schema.ts';
+import { assumptionRecord, authoredDesignSchema, choiceRecord } from './schema.ts';
+import type { AuthoredDesign, DesignRecord } from './schema.ts';
+
+export const designDeclarationFilename = 'design-schema.d.ts';
 
 export function unwrapExpression(input: typescript.Expression): typescript.Expression {
 	let expression = input;
@@ -33,12 +37,23 @@ export function readLiteral(
 	if (typescript.isObjectLiteralExpression(expression)) {
 		const fields = new Map<string, unknown>();
 		for (const property of expression.properties) {
+			if (
+				typescript.isShorthandPropertyAssignment(property) &&
+				!property.objectAssignmentInitializer
+			) {
+				const name = property.name.text;
+				if (!bindings?.has(name)) throw new Error(`Unknown authoring binding: ${name}.`);
+				if (fields.has(name)) throw new Error(`Duplicate authoring object key: ${name}.`);
+				fields.set(name, bindings.get(name));
+				continue;
+			}
 			if (!typescript.isPropertyAssignment(property))
-				throw new Error('design.ts object properties must be simple assignments.');
+				throw new Error(`${source.fileName} object properties must be simple assignments.`);
 			const { name } = property;
 			if (!typescript.isStringLiteral(name) && !typescript.isIdentifier(name))
-				throw new Error('design.ts object keys must be identifiers or quoted strings.');
-			if (fields.has(name.text)) throw new Error(`Duplicate design.ts object key: ${name.text}`);
+				throw new Error(`${source.fileName} object keys must be identifiers or quoted strings.`);
+			if (fields.has(name.text))
+				throw new Error(`${source.fileName}: duplicate object key ${name.text}.`);
 			fields.set(name.text, readLiteral(property.initializer, source, bindings));
 		}
 		return Object.fromEntries(fields);
@@ -49,8 +64,7 @@ export function readLiteral(
 	);
 }
 
-/** Read a TypeScript data object. The authoring file is never imported or evaluated. */
-export function readDesign(file: string, text: string): DesignCore {
+function readDefaultLiteral(file: string, text: string): unknown {
 	const source = typescript.createSourceFile(file, text, typescript.ScriptTarget.ES2022, true);
 	const exportAssignment = source.statements.filter(typescript.isExportAssignment);
 	const [entry] = exportAssignment;
@@ -64,13 +78,30 @@ export function readDesign(file: string, text: string): DesignCore {
 				!(typescript.isImportDeclaration(statement) && statement.importClause?.isTypeOnly),
 		)
 	)
-		throw new Error('Expected one default export and optional type-only imports in design.ts.');
-	return designSchema.parse(readLiteral(entry.expression, source));
+		throw new Error(`${file}: expected one default export and optional type-only imports.`);
+	return readLiteral(entry.expression, source);
+}
+
+/** Read the authored design without evaluating its TypeScript. */
+export function readDesign(file: string, text: string): AuthoredDesign {
+	return authoredDesignSchema.parse(readDefaultLiteral(file, text));
+}
+
+/** Read one literal decision or assumption file. */
+export function readDesignItems(
+	file: string,
+	text: string,
+	kind: 'choice' | 'assumption',
+): DesignRecord[] {
+	const input = readDefaultLiteral(file, text);
+	return kind === 'choice'
+		? z.array(choiceRecord).parse(input)
+		: z.array(assumptionRecord).parse(input);
 }
 
 /** Type-check only the files the authoring loader has resolved and read. */
 export function checkAuthoringTypes(
-	entryPoint: string,
+	entryPoints: readonly string[],
 	sources: ReadonlyMap<string, string>,
 ): void {
 	const compilerOptions: typescript.CompilerOptions = {
@@ -111,7 +142,7 @@ export function checkAuthoringTypes(
 		});
 	host.resolveTypeReferenceDirectiveReferences = (references) =>
 		references.map(() => ({ resolvedTypeReferenceDirective: undefined }));
-	const program = typescript.createProgram([entryPoint], compilerOptions, host);
+	const program = typescript.createProgram([...entryPoints], compilerOptions, host);
 	const diagnostics = typescript.getPreEmitDiagnostics(program);
 	if (diagnostics.length)
 		throw new Error(

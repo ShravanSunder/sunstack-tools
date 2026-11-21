@@ -5,6 +5,7 @@ import { sharedNavigationSchema } from '../../core/shared-navigation.ts';
 
 const nonEmptyText = z.string().trim().min(1);
 const recordId = z.string().regex(/^[A-Za-z][A-Za-z0-9-]*$/);
+const recordReference = z.string().regex(/^(?:[A-Za-z][A-Za-z0-9-]*\/)?[A-Za-z][A-Za-z0-9-]*$/);
 const relativeHref = z
 	.string()
 	.min(1)
@@ -25,18 +26,21 @@ const sourceReference = z.strictObject({
 	href: relativeHref,
 	excerpt: nonEmptyText,
 });
-const servesRelationship = z.strictObject({ relation: z.literal('serves'), targetId: recordId });
+const servesRelationship = z.strictObject({
+	relation: z.literal('serves'),
+	targetId: recordReference,
+});
 const designDependencies = [
-	z.strictObject({ relation: z.literal('governed-by'), targetId: recordId }),
-	z.strictObject({ relation: z.literal('relies-on'), targetId: recordId }),
+	z.strictObject({ relation: z.literal('governed-by'), targetId: recordReference }),
+	z.strictObject({ relation: z.literal('relies-on'), targetId: recordReference }),
 ] as const;
 const realizesRelationship = z.strictObject({
 	relation: z.literal('realizes'),
-	targetId: recordId,
+	targetId: recordReference,
 });
 const checksRelationship = z.strictObject({
 	relation: z.literal('checks'),
-	targetId: recordId,
+	targetId: recordReference,
 });
 const recordBase = {
 	id: recordId,
@@ -116,12 +120,13 @@ const choiceAuthority = z.discriminatedUnion('state', [
 		...settledDecision,
 	}),
 ]);
-const choiceRecord = z.strictObject({
+export const choiceRecord = z.strictObject({
 	...recordBase,
 	kind: z.literal('choice'),
 	authority: choiceAuthority,
+	supersedes: recordReference.optional(),
 });
-const assumptionRecord = z
+export const assumptionRecord = z
 	.strictObject({
 		...recordBase,
 		kind: z.literal('assumption'),
@@ -138,22 +143,22 @@ const assumptionRecord = z
 		message: 'remove the resolution source or mark the assumption confirmed or refuted',
 	});
 
-export const designSchema = z.strictObject({
+const designRecords = [needRecord, ruleRecord, realizationRecord, plannedCheckRecord] as const;
+
+export const authoredDesignSchema = z.strictObject({
 	pages: sharedNavigationSchema.shape.pages,
 	mapGroups: sharedNavigationSchema.shape.map.unwrap(),
 	walkthroughs: sharedNavigationSchema.shape.walkthroughs.unwrap().optional(),
-	acceptances: z.array(deliveryAcceptanceSchema).optional(),
+	acceptances: z.array(deliveryAcceptanceSchema.extend({ deliverableId: recordId })).optional(),
+	records: z.array(z.discriminatedUnion('kind', designRecords)),
+});
+
+export const designSchema = authoredDesignSchema.extend({
 	records: z.array(
-		z.discriminatedUnion('kind', [
-			needRecord,
-			ruleRecord,
-			realizationRecord,
-			plannedCheckRecord,
-			choiceRecord,
-			assumptionRecord,
-		]),
+		z.discriminatedUnion('kind', [...designRecords, choiceRecord, assumptionRecord]),
 	),
 });
 
+export type AuthoredDesign = z.infer<typeof authoredDesignSchema>;
 export type DesignCore = z.infer<typeof designSchema>;
 export type DesignRecord = DesignCore['records'][number];

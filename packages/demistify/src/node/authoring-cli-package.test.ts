@@ -74,6 +74,20 @@ it('runs the typed design command in the packed executable with its declared com
 		);
 		const cli = join(installed, 'demistify.js');
 		await run(process.execPath, [cli, 'design', 'init'], { cwd: directory });
+		const decisionsFile = join(directory, 'design-decisions.ts');
+		const decisions = await readFile(decisionsFile, 'utf8');
+		expect(decisions).toContain('satisfies readonly DesignDecision[]');
+		expect(await readFile(join(directory, 'design-assumptions.ts'), 'utf8')).toContain(
+			'satisfies readonly DesignAssumption[]',
+		);
+		expect(await readFile(join(directory, 'design-delivery.ts'), 'utf8')).toContain(
+			'export default defineDelivery(design, []);',
+		);
+		await writeFile(decisionsFile, `${decisions}\n// Kept on a second init.\n`);
+		await expect(
+			run(process.execPath, [cli, 'design', 'init'], { cwd: directory }),
+		).rejects.toThrow(/EEXIST/);
+		expect(await readFile(decisionsFile, 'utf8')).toContain('// Kept on a second init.');
 		const checked = await run(process.execPath, [cli, 'design', 'check'], { cwd: directory });
 		expect(checked.stdout).toContain('Checked 1 authored page(s), 1 navigation page(s)');
 		expect(await readFile(join(directory, 'design.generated.json'), 'utf8')).toContain(

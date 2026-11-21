@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 const text = z.string().trim().min(1);
-const recordId = z.string().regex(/^[A-Za-z][A-Za-z0-9-]*$/);
+const recordId = z.string().regex(/^[A-Za-z][A-Za-z0-9-]*(?:\/[A-Za-z][A-Za-z0-9-]*)?$/);
 const localHref = z
 	.string()
 	.refine(

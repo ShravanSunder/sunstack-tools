@@ -1,14 +1,27 @@
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 
 import typescript from 'typescript';
+import { z } from 'zod';
 
 import { deliverySdkSource } from './delivery-sdk-source.ts';
-import { checkAuthoringTypes, readLiteral, unwrapExpression } from './read-design.ts';
+import {
+	checkAuthoringTypes,
+	designDeclarationFilename,
+	readLiteral,
+	unwrapExpression,
+} from './read-design.ts';
 
 export const deliverySdkFilename = 'design-sdk.generated.ts';
+export const deliveryEntryFilename = 'design-delivery.ts';
 
 type HelperName = 'defineDelivery' | 'defineDeliverable';
 type SourceReader = (file: string) => Promise<string | undefined>;
+const deliveryOptions = z.strictObject({ lead: z.string().min(1) });
+
+export interface AuthoredDelivery {
+	readonly entries: unknown;
+	readonly lead?: string;
+}
 
 interface AuthoringModule {
 	source: typescript.SourceFile;
@@ -69,7 +82,7 @@ function calledHelper(
 	module: AuthoringModule,
 	binding: string | undefined,
 	helper: HelperName,
-	argumentCount: number,
+	argumentCounts: readonly number[],
 ): readonly typescript.Expression[] {
 	const expression = module.exported;
 	if (
@@ -77,7 +90,7 @@ function calledHelper(
 		!typescript.isCallExpression(expression) ||
 		!typescript.isIdentifier(expression.expression) ||
 		expression.expression.text !== binding ||
-		expression.arguments.length !== argumentCount
+		!argumentCounts.includes(expression.arguments.length)
 	)
 		throw new Error(`${module.source.fileName}: default export must call ${helper}.`);
 	return expression.arguments;
@@ -89,15 +102,19 @@ export async function readDeliveryEntries(
 	designText: string,
 	declaration: string | undefined,
 	readSource: SourceReader,
-): Promise<unknown> {
+	designItems: ReadonlyMap<string, string>,
+): Promise<AuthoredDelivery> {
 	const directory = dirname(designFile);
-	const entryFile = join(directory, 'delivery.ts');
-	const sources = new Map([[designFile, designText]]);
-	if (declaration !== undefined) sources.set(join(directory, 'design-schema.d.ts'), declaration);
+	if ((await readSource(join(directory, 'delivery.ts'))) !== undefined)
+		throw new Error(`Rename delivery.ts to ${deliveryEntryFilename} before checking this design.`);
+	const entryFile = join(directory, deliveryEntryFilename);
+	const sources = new Map([...designItems, [designFile, designText]]);
+	if (declaration !== undefined)
+		sources.set(join(directory, designDeclarationFilename), declaration);
 	const entryText = await readSource(entryFile);
 	if (entryText === undefined) {
-		checkAuthoringTypes(designFile, sources);
-		return [];
+		checkAuthoringTypes([designFile, ...designItems.keys()], sources);
+		return { entries: [] };
 	}
 	sources.set(entryFile, entryText);
 	const sdkFile = join(directory, deliverySdkFilename);
@@ -119,7 +136,7 @@ export async function readDeliveryEntries(
 				throw new Error(`${file}: deliverable value imports are limited to the design SDK.`);
 			binding = helperBinding(statement, 'defineDeliverable');
 		}
-		const [data] = calledHelper(module, binding, 'defineDeliverable', 1);
+		const [data] = calledHelper(module, binding, 'defineDeliverable', [1]);
 		if (!data) throw new Error(`${file}: expected deliverable data.`);
 		return readLiteral(data, module.source);
 	}
@@ -158,7 +175,12 @@ export async function readDeliveryEntries(
 			throw new Error(`Delivery import must name a TypeScript file in deliverables/: ${file}`);
 		imports.push({ name: clause.name.text, file });
 	}
-	const [designArgument, declaredEntries] = calledHelper(entry, helper, 'defineDelivery', 2);
+	const [designArgument, declaredEntries, declaredOptions] = calledHelper(
+		entry,
+		helper,
+		'defineDelivery',
+		[2, 3],
+	);
 	if (
 		!designBinding ||
 		!designArgument ||
@@ -172,6 +194,11 @@ export async function readDeliveryEntries(
 			bindings.set(name, await readDeliverable(file));
 		}),
 	);
-	checkAuthoringTypes(entryFile, sources);
-	return readLiteral(declaredEntries, entry.source, bindings);
+	checkAuthoringTypes([entryFile, ...designItems.keys()], sources);
+	return {
+		entries: readLiteral(declaredEntries, entry.source, bindings),
+		...(declaredOptions === undefined
+			? {}
+			: deliveryOptions.parse(readLiteral(declaredOptions, entry.source))),
+	};
 }

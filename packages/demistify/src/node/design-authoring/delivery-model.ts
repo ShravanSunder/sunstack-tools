@@ -11,17 +11,19 @@ const [recordSchema] = designSchema.shape.records.element.options;
 const { id: recordId, title: text, destination } = recordSchema.shape;
 const evidenceHref = recordSchema.shape.sources.element.shape.href;
 const scopedIds = z.array(recordId).default([]);
+const address = z.string().regex(/^[A-Za-z][A-Za-z0-9-]*(?:\/[A-Za-z][A-Za-z0-9-]*)?$/);
+const scopedAddresses = z.array(address).default([]);
 const deliveryEntry = z.strictObject({
-	dependsOn: scopedIds,
+	dependsOn: scopedAddresses,
 	deliverable: z.strictObject({
-		id: recordId,
+		id: address,
 		title: text,
 		destination,
 		scope: z.strictObject({
-			rules: scopedIds,
-			designItems: scopedIds,
+			rules: scopedAddresses,
+			designItems: scopedAddresses,
 			implementationTasks: scopedIds,
-			verificationChecks: scopedIds,
+			verificationChecks: scopedAddresses,
 		}),
 		implementation: z
 			.strictObject({
@@ -37,7 +39,7 @@ const deliveryEntry = z.strictObject({
 	}),
 });
 
-type DeliveryEntry = z.infer<typeof deliveryEntry>;
+export type DeliveryEntry = z.infer<typeof deliveryEntry>;
 type Deliverable = DeliveryEntry['deliverable'];
 type Acceptance = NonNullable<DesignCore['acceptances']>[number];
 type DeliveryProgress = DeliverableView['progress'];
@@ -376,15 +378,20 @@ function deliverablesInDependencyOrder(
 	return ready;
 }
 
+export function parseDeliveryEntries(entries: unknown): DeliveryEntry[] {
+	const parsed = z.array(z.unknown()).safeParse(entries);
+	if (!parsed.success) throw new Error('Delivery entries must be an array.');
+	return parsed.data.map(parseEntry);
+}
+
 export function projectDelivery(
 	design: DesignCore,
 	entries: unknown,
 	recordRevisions: ReadonlyMap<string, string>,
+	trackPrerequisiteRevisions = false,
 ): DeliveryProjection {
-	const parsedEntries = z.array(z.unknown()).safeParse(entries);
-	if (!parsedEntries.success) throw new Error('Delivery entries must be an array.');
 	const byId = new Map<string, DeliveryEntry>();
-	for (const entry of parsedEntries.data.map(parseEntry)) {
+	for (const entry of parseDeliveryEntries(entries)) {
 		const { id } = entry.deliverable;
 		if (byId.has(id)) throw new Error(`${id}: duplicate deliverable ID.`);
 		byId.set(id, entry);
@@ -416,11 +423,26 @@ export function projectDelivery(
 		const { deliverable, dependsOn } = entry;
 		const { id, title } = deliverable;
 		const { links: scopeLinks, coverageGap } = resolveScope(deliverable, records);
-		const { scopeRevision, governingItems, designBlockers } = resolveGoverningDesign(
-			entry,
-			records,
-			recordRevisions,
-		);
+		const governing = resolveGoverningDesign(entry, records, recordRevisions);
+		const { governingItems, designBlockers } = governing;
+		const scopeRevision =
+			trackPrerequisiteRevisions && dependsOn.length
+				? createHash('sha256')
+						.update(
+							JSON.stringify([
+								governing.scopeRevision,
+								dependsOn.toSorted().map((prerequisiteId) => {
+									const prerequisite = byDependencyOrder.get(prerequisiteId);
+									return [
+										prerequisiteId,
+										prerequisite?.scopeRevision,
+										prerequisite?.implementation.candidate,
+									];
+								}),
+							]),
+						)
+						.digest('hex')
+				: governing.scopeRevision;
 		const links = { ...scopeLinks, governingItems };
 		const implementation = projectImplementation(deliverable);
 		const verification = projectVerification(deliverable, scopeRevision);

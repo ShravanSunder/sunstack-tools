@@ -5,9 +5,10 @@ import { join, resolve } from 'node:path';
 import { sharedNavigationSchema } from '../../core/shared-navigation.ts';
 import { subjectIcons } from '../../core/subject-icons.ts';
 import { deliverySdkSource } from './delivery-sdk-source.ts';
-import { deliverySdkFilename } from './read-delivery.ts';
+import { deliveryEntryFilename, deliverySdkFilename } from './read-delivery.ts';
+import { designDeclarationFilename } from './read-design.ts';
 
-const designTypeSource = `// Authoring types for Demistify design.ts.
+const designTypeSource = `// Authoring types for Demistify design, decision and assumption files.
 type SubjectIcon = ${subjectIcons.map((icon): string => JSON.stringify(icon)).join(' | ')};
 type Target = { page: string; fragment?: string };
 type Page = { id: string; title: string; href: string; icon: SubjectIcon };
@@ -44,10 +45,10 @@ type DesignRecord = RecordFields & (
   | { kind: 'realization'; explanation: string; status: 'proposed'; relationships: readonly Relationship<'realizes' | DesignDependency>[] }
   | { kind: 'planned-check'; status: 'planned'; relationships: readonly Relationship<'checks' | DesignDependency>[];
       cases: readonly { given: string; expect: string }[] }
-  | { kind: 'choice'; authority: Authority }
-  | ({ kind: 'assumption'; statement: string } & (
-      { status: 'open' } | { status: 'confirmed' | 'refuted'; resolution: SourceReference }
-    ))
+);
+export type DesignDecision = RecordFields & { kind: 'choice'; authority: Authority; supersedes?: string };
+export type DesignAssumption = RecordFields & { kind: 'assumption'; statement: string } & (
+  { status: 'open'; resolution?: never } | { status: 'confirmed' | 'refuted'; resolution: SourceReference }
 );
 export type DesignCore = {
   pages: readonly Page[];
@@ -59,9 +60,23 @@ export type DesignCore = {
 `;
 
 const authoringSupport = [
-	['design-schema.d.ts', designTypeSource],
+	[designDeclarationFilename, designTypeSource],
 	[deliverySdkFilename, deliverySdkSource],
 ] as const;
+
+const decisionsSource = `import type { DesignDecision } from './${designDeclarationFilename}';
+
+export default [] as const satisfies readonly DesignDecision[];
+`;
+const assumptionsSource = `import type { DesignAssumption } from './${designDeclarationFilename}';
+
+export default [] as const satisfies readonly DesignAssumption[];
+`;
+const deliverySource = `import design from './design.ts';
+import { defineDelivery } from './${deliverySdkFilename}';
+
+export default defineDelivery(design, []);
+`;
 
 /** Refresh editor support for an existing authored design. */
 export async function refreshDesignTypes(directory: string): Promise<string> {
@@ -80,7 +95,7 @@ export async function refreshDesignTypes(directory: string): Promise<string> {
 			}
 		}),
 	);
-	return `Refreshed design-schema.d.ts and ${deliverySdkFilename} in ${setDirectory}.`;
+	return `Refreshed ${designDeclarationFilename} and ${deliverySdkFilename} in ${setDirectory}.`;
 }
 
 /** Start from the current Pages, Map and Walkthroughs when a sidecar already exists. */
@@ -103,8 +118,15 @@ export async function initDesignSet(directory: string): Promise<string> {
 	};
 	const created: string[] = [];
 	try {
-		const designSource = `import type { DesignCore } from './design-schema.d.ts';\n\nexport default ${JSON.stringify(design, null, 2)} as const satisfies DesignCore;\n`;
-		for (const [name, text] of [...authoringSupport, ['design.ts', designSource] as const]) {
+		const designSource = `import type { DesignCore } from './${designDeclarationFilename}';\n\nexport default ${JSON.stringify(design, null, 2)} as const satisfies DesignCore;\n`;
+		const initialFiles = [
+			...authoringSupport,
+			['design.ts', designSource],
+			['design-decisions.ts', decisionsSource],
+			['design-assumptions.ts', assumptionsSource],
+			[deliveryEntryFilename, deliverySource],
+		] as const;
+		for (const [name, text] of initialFiles) {
 			const file = join(setDirectory, name);
 			// oxlint-disable-next-line no-await-in-loop -- roll back only the files this invocation created.
 			await writeFile(file, text, { flag: 'wx' });
@@ -114,5 +136,5 @@ export async function initDesignSet(directory: string): Promise<string> {
 		await Promise.all(created.map((file) => unlink(file)));
 		throw error;
 	}
-	return `Created design.ts and generated SDK support in ${setDirectory}. Add records and run demistify design check.`;
+	return `Created design.ts, design-decisions.ts, design-assumptions.ts, ${deliveryEntryFilename} and generated SDK support in ${setDirectory}. Add records and run demistify design check.`;
 }

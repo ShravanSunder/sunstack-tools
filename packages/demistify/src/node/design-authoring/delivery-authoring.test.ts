@@ -96,7 +96,7 @@ function beforeVerification(source: string): string {
 it('composes typed work files into one delivery graph and keeps the last output if inputs are invalid', async (): Promise<void> => {
 	const directory = await mkdtemp(join(tmpdir(), 'demistify-delivery-check-'));
 	try {
-		const graphFile = join(directory, 'delivery.ts');
+		const graphFile = join(directory, 'design-delivery.ts');
 		const deliverables = join(directory, 'deliverables');
 		const completeFile = join(deliverables, 'del-01-prevent-cancelled-job-from-running.ts');
 		const blockedFile = join(deliverables, 'del-02-report-job-already-started.ts');
@@ -193,6 +193,12 @@ it('composes typed work files into one delivery graph and keeps the last output 
 		);
 		await expect(run(process.execPath, check)).rejects.toThrow(/cycle/i);
 		expect(await readOutputs()).toEqual(produced);
+		await writeFile(
+			graphFile,
+			rootSource.replace("dependsOn: ['DEL-01']", "dependsOn: ['DEL-99']"),
+		);
+		await expect(run(process.execPath, check)).rejects.toThrow(/DEL-99/);
+		expect(await readOutputs()).toEqual(produced);
 		await writeFile(graphFile, rootSource);
 		await writeFile(
 			blockedFile,
@@ -265,6 +271,8 @@ it('keeps scoped acceptance open until the owner answers and the governing assum
 	const directory = await mkdtemp(join(tmpdir(), 'demistify-design-authority-'));
 	try {
 		const designFile = join(directory, 'design.ts');
+		const decisionsFile = join(directory, 'design-decisions.ts');
+		const assumptionsFile = join(directory, 'design-assumptions.ts');
 		const pageFile = join(directory, 'index.html');
 		const deliverableFile = join(
 			directory,
@@ -276,21 +284,20 @@ it('keeps scoped acceptance open until the owner answers and the governing assum
 			"{ state: 'owner-open', owner: 'owner', question: 'Which cancellation guarantee applies?' }";
 		const decided =
 			"{ state: 'owner-decided', owner: 'owner', sourceKind: 'owner-accepted', decision: 'Cancel before claim.', decidedOn: '2026-11-21' }";
-		const pendingDesign = designSource
-			.replace(
-				'records: [',
-				`records: [
+		const pendingDecisions = `import type { DesignDecision } from './design-schema.d.ts';
+export default [
     { id: 'D1', kind: 'choice', title: 'Cancellation guarantee', authority: ${ownerQuestion},
       destination: { page: 'index.html', fragment: 'D1' },
       sources: [{ href: 'evidence.txt', excerpt: 'Cancel before claim.' }] },
     { id: 'D2', kind: 'choice', title: 'Unrelated follow-up', authority: ${ownerQuestion},
       destination: { page: 'index.html', fragment: 'D2' },
-      sources: [{ href: 'evidence.txt', excerpt: 'Cancel before claim.' }] },`,
-			)
-			.replace(
-				"targetId: 'U4' }]",
-				"targetId: 'U4' }, { relation: 'governed-by', targetId: 'D1' }]",
-			);
+      sources: [{ href: 'evidence.txt', excerpt: 'Cancel before claim.' }] },
+] as const satisfies readonly DesignDecision[];
+`;
+		const pendingDesign = designSource.replace(
+			"targetId: 'U4' }]",
+			"targetId: 'U4' }, { relation: 'governed-by', targetId: 'D1' }]",
+		);
 		const fixturePage = page.replace(
 			'</ex-document>',
 			`<aside id="D1" data-design-item="decision">Cancellation guarantee.</aside>
@@ -303,8 +310,9 @@ it('keeps scoped acceptance open until the owner answers and the governing assum
 		await run(process.execPath, [cli, 'design', 'init', directory]);
 		await mkdir(join(directory, 'deliverables'));
 		await Promise.all([
+			writeFile(decisionsFile, pendingDecisions),
 			writeFile(
-				join(directory, 'delivery.ts'),
+				join(directory, 'design-delivery.ts'),
 				rootSource.replace(/import reportClaim[^\n]+\n|  \{ deliverable: reportClaim[^\n]+\n/g, ''),
 			),
 			writeFile(pageFile, fixturePage),
@@ -340,21 +348,24 @@ it('keeps scoped acceptance open until the owner answers and the governing assum
 		expect(unanswered?.state).toBe('design-blocked');
 		expect(unanswered?.reasons).toContain('D1 requires an owner decision.');
 
-		const assumedDesign = pendingDesign
-			.replace(ownerQuestion, decided)
-			.replace(
-				'records: [',
-				`records: [
+		const decidedSource = pendingDecisions.replace(ownerQuestion, decided);
+		const openAssumptions = `import type { DesignAssumption } from './design-schema.d.ts';
+export default [
     { id: 'A1', kind: 'assumption', title: 'Atomic claims', status: 'open',
       statement: 'Claims are atomic on the target backend.',
       destination: { page: 'index.html', fragment: 'A1' },
-      sources: [{ href: 'evidence.txt', excerpt: 'Target backend supports atomic claims.' }] },`,
-			)
-			.replace(
-				"{ relation: 'checks', targetId: 'R3' }]",
-				"{ relation: 'checks', targetId: 'R3' }, { relation: 'relies-on', targetId: 'A1' }]",
-			);
-		await writeFile(designFile, assumedDesign);
+      sources: [{ href: 'evidence.txt', excerpt: 'Target backend supports atomic claims.' }] },
+] as const satisfies readonly DesignAssumption[];
+`;
+		const assumedDesign = pendingDesign.replace(
+			"{ relation: 'checks', targetId: 'R3' }]",
+			"{ relation: 'checks', targetId: 'R3' }, { relation: 'relies-on', targetId: 'A1' }]",
+		);
+		await Promise.all([
+			writeFile(decisionsFile, decidedSource),
+			writeFile(assumptionsFile, openAssumptions),
+			writeFile(designFile, assumedDesign),
+		]);
 		await run(process.execPath, check);
 		const working = (await readDelivery()).deliverables['DEL-01'];
 		expect(working?.state).toBe('awaiting-verification');
@@ -369,24 +380,31 @@ it('keeps scoped acceptance open until the owner answers and the governing assum
 			page: 'index.html',
 			fragment: 'A1',
 		});
-		const refutedDesign = assumedDesign.replace(
+		const refutedAssumptions = openAssumptions.replace(
 			"status: 'open'",
 			"status: 'refuted', resolution: { href: 'evidence.txt', excerpt: 'Two claims observed.' }",
 		);
-		await writeFile(designFile, refutedDesign);
+		await writeFile(assumptionsFile, refutedAssumptions);
 		await run(process.execPath, check);
 		const refuted = (await readDelivery()).deliverables['DEL-01'];
 		expect(refuted?.state).toBe('design-blocked');
 		expect(refuted?.reasons).toContain('Assumption A1 was refuted. Await Lead review.');
-		await writeFile(designFile, assumedDesign.replace("status: 'open'", "status: 'confirmed'"));
+		await writeFile(
+			assumptionsFile,
+			openAssumptions.replace("status: 'open'", "status: 'confirmed'"),
+		);
 		await expect(run(process.execPath, check)).rejects.toThrow(/require a resolution source/);
-		await writeFile(designFile, refutedDesign.replace("status: 'refuted'", "status: 'open'"));
+		await writeFile(
+			assumptionsFile,
+			refutedAssumptions.replace("status: 'refuted'", "status: 'open'"),
+		);
 		await expect(run(process.execPath, check)).rejects.toThrow(/remove the resolution source/);
-		const settledDesign = assumedDesign.replace(
+		const settledAssumptions = openAssumptions.replace(
 			"status: 'open'",
 			"status: 'confirmed', resolution: { href: 'evidence.txt', excerpt: 'Target backend supports atomic claims.' }",
 		);
-		const accepted = await checkWithCurrentReceipts(settledDesign);
+		await writeFile(assumptionsFile, settledAssumptions);
+		const accepted = await checkWithCurrentReceipts(assumedDesign);
 		expect(accepted.deliverables['DEL-01']?.state).toBe('accepted');
 
 		await writeFile(pageFile, fixturePage.replace('id="D1"', 'id="D1" data-authority="author"'));
@@ -396,26 +414,34 @@ it('keeps scoped acceptance open until the owner answers and the governing assum
 		expect(await readDelivery()).toEqual(accepted);
 		await writeFile(pageFile, fixturePage);
 		await writeFile(
-			designFile,
-			settledDesign.replace("decidedOn: '2026-11-21'", "decidedOn: '2026-02-30'"),
+			decisionsFile,
+			decidedSource.replace("decidedOn: '2026-11-21'", "decidedOn: '2026-02-30'"),
 		);
 		await expect(run(process.execPath, check)).rejects.toThrow(/decidedOn/);
 		expect(await readDelivery()).toEqual(accepted);
 
 		const leadDecision =
 			"{ state: 'lead-decided', lead: 'Queue Lead', sourceKind: 'author', decision: 'Use existing claim operation.', rationale: 'Keeps the agreed behavior.', decidedOn: '2026-11-21' }";
-		const leadDesign = settledDesign.replace(decided, leadDecision);
+		const leadDecisions = decidedSource.replace(decided, leadDecision);
+		await writeFile(decisionsFile, leadDecisions);
 		await writeFile(pageFile, fixturePage.replace('id="D1"', 'id="D1" data-authority="author"'));
-		expect((await checkWithCurrentReceipts(leadDesign)).deliverables['DEL-01']?.state).toBe(
+		expect((await checkWithCurrentReceipts(assumedDesign)).deliverables['DEL-01']?.state).toBe(
 			'accepted',
 		);
 		await writeFile(pageFile, fixturePage.replace('id="D1"', 'id="D1" data-authority="contract"'));
 		await expect(run(process.execPath, check)).rejects.toThrow(/D1.*data-authority.*author/);
-		const contractDecision = leadDesign.replace("sourceKind: 'author'", "sourceKind: 'contract'");
-		expect((await checkWithCurrentReceipts(contractDecision)).deliverables['DEL-01']?.state).toBe(
+		const contractDecision = leadDecisions.replace(
+			"sourceKind: 'author'",
+			"sourceKind: 'contract'",
+		);
+		await writeFile(decisionsFile, contractDecision);
+		expect((await checkWithCurrentReceipts(assumedDesign)).deliverables['DEL-01']?.state).toBe(
 			'accepted',
 		);
-		await writeFile(designFile, leadDesign.replace("'lead-decided'", "'implementer-decided'"));
+		await writeFile(
+			decisionsFile,
+			leadDecisions.replace("'lead-decided'", "'implementer-decided'"),
+		);
 		await expect(run(process.execPath, check)).rejects.toThrow(
 			/Invalid discriminator value.*owner-decided.*lead-decided/,
 		);
