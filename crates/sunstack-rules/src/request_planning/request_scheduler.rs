@@ -153,7 +153,7 @@ pub(crate) async fn execute_plan(
                 changed = true;
                 continue;
             }
-            let backend = match backend_session.resolve() {
+            let backend = match backend_session.resolve().await {
                 Ok(backend) => backend,
                 Err(diagnostics) => {
                     fatal = Some(SchedulerFailure::Backend { diagnostics });

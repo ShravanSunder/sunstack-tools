@@ -2648,6 +2648,7 @@ version = "2.0.0-rc.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3fa60a95f1bed059a9e9b1f4052dfa8fee47813c429223c8590b338f719ac12e"
 dependencies = [
+ "chrono",
  "rustc_version",
  "serde_json",
  "specta-macros",
@@ -2868,6 +2869,7 @@ dependencies = [
  "sunstack",
  "sunstack-decisions",
  "sunstack-evidence",
+ "sunstack-rules",
  "tokio",
 ]
 

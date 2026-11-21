@@ -65,7 +65,7 @@ const contract = await contractInfo();
 assert.equal(contract.kind, 'ready');
 if (contract.kind !== 'ready') throw new Error('installed contract unavailable');
 assert.equal(contract.contract.sdk_release, '0.24.0');
-assert.equal(contract.contract.contract_revision, 22);
+assert.equal(contract.contract.contract_revision, 23);
 const options = { root, scope: { kind: 'all' } } as const;
 const ordinary = await run(configuration, options);
 assert.equal(ordinary.kind, 'completed');
@@ -96,7 +96,7 @@ assert.equal(restored.kind, 'decoded');
 if (restored.kind !== 'decoded') throw new Error('installed codec failed');
 assert.deepEqual(restored.value, { kind: 'run_outcome', value: selected });
 const incompatible = await deserialize(
-	saved.json.replace('"contract_revision":22', '"contract_revision":19'),
+	saved.json.replace('"contract_revision":23', '"contract_revision":19'),
 );
 assert.equal(incompatible.kind, 'incompatible');
 const empty = await run(configuration, { ...options, case_selection: [] });

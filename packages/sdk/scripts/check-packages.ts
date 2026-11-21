@@ -52,6 +52,7 @@ export function checkPackageMetadata(
 		assert.equal(metadata['type'], 'module');
 		assert.deepEqual(metadata['exports'], {
 			'.': { types: './dist/index.d.ts', default: './dist/index.js' },
+			'./rules': { types: './dist/rules.d.ts', default: './dist/rules.js' },
 			'./package.json': './package.json',
 		});
 	} else {

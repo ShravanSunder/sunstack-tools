@@ -40,7 +40,14 @@ void test('package gate accepts the advertised platform and rejects absent binar
 });
 
 void test('SDK package gate requires six exact-version optional dependencies and public entry points', () => {
-	const sdkFiles = ['package.json', 'README.md', 'dist/index.js', 'dist/index.d.ts'];
+	const sdkFiles = [
+		'package.json',
+		'README.md',
+		'dist/index.js',
+		'dist/index.d.ts',
+		'dist/rules.js',
+		'dist/rules.d.ts',
+	];
 	const sdk = {
 		name: '@sunstack/sdk',
 		version: '0.21.2',
@@ -49,6 +56,7 @@ void test('SDK package gate requires six exact-version optional dependencies and
 		type: 'module',
 		exports: {
 			'.': { types: './dist/index.d.ts', default: './dist/index.js' },
+			'./rules': { types: './dist/rules.d.ts', default: './dist/rules.js' },
 			'./package.json': './package.json',
 		},
 		optionalDependencies: {

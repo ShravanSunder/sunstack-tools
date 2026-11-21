@@ -1,6 +1,6 @@
 These are unmodified documents written by actual old SDK `serialize` calls on new,
 synthetic configuration values. They contain no frozen TypeScript-authoring inputs.
-The revision-22 native decoder must return `incompatible` before decoding either
+The current native decoder must return `incompatible` before decoding either
 payload. Changing a current document's revision does not replace this proof.
 
 - `revision20-synthetic.sdk-document`: matched revision-20 SDK/addon baseline, copied from

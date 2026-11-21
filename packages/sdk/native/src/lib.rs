@@ -11,6 +11,10 @@ use sunstack::sdk_host::{
         DeserializationOutcome, DeserializeSdkRequest, DocumentInvalidReason,
         SdkDocumentDiagnostic, deserialize_document,
     },
+    general_rules::{
+        AdmittedRuleSet, BoundRuleRun, GeneralRuleCall, RuleSetLoadRequest, RuleSetLoadStatus,
+        invalid_sdk_request,
+    },
     inspection_projection::{InspectRequest, InspectionOutcome},
     report_projection::RunOutcome,
     sdk_contracts::{
@@ -252,5 +256,175 @@ pub fn deserialize(env: &Env, request_json: String) -> napi::Result<PromiseRaw<'
             },
         };
         Ok(encode(&outcome))
+    })
+}
+
+/// An admitted definition and profile belonging to this addon instance.
+#[napi]
+pub struct NativeRuleSet {
+    admitted: AdmittedRuleSet,
+}
+
+#[napi(object, object_from_js = false)]
+pub struct NativeRuleSetLoadReply {
+    pub json: String,
+    pub rule_set: Option<NativeRuleSet>,
+}
+
+/// Capture definitions locally, retaining the approved profile with them.
+#[napi]
+pub fn load_rule_set<'env>(
+    env: &'env Env,
+    input_json: String,
+    cancellation: &CallCancellation,
+) -> napi::Result<PromiseRaw<'env, NativeRuleSetLoadReply>> {
+    let token = cancellation.token.clone();
+    env.spawn_future(async move {
+        let (status, rule_set) = match serde_json::from_str::<RuleSetLoadRequest>(&input_json) {
+            Ok(input) => {
+                let observation = token.clone();
+                owned(
+                    async move {
+                        let captured = AdmittedRuleSet::load(input, token).await;
+                        if observation.is_cancelled() {
+                            return (RuleSetLoadStatus::Cancelled, None);
+                        }
+                        match captured {
+                            Ok(admitted) => {
+                                (RuleSetLoadStatus::Ready, Some(NativeRuleSet { admitted }))
+                            }
+                            Err(diagnostics) => (RuleSetLoadStatus::Invalid { diagnostics }, None),
+                        }
+                    },
+                    |failure| (RuleSetLoadStatus::Failed { failure }, None),
+                )
+                .await
+            }
+            Err(_) => (
+                RuleSetLoadStatus::Invalid {
+                    diagnostics: invalid_sdk_request(),
+                },
+                None,
+            ),
+        };
+        Ok(NativeRuleSetLoadReply {
+            json: encode(&status),
+            rule_set,
+        })
+    })
+}
+
+/// Execute a general native invocation over explicitly bound sources.
+#[napi]
+pub fn evaluate_rules<'env>(
+    env: &'env Env,
+    input_json: String,
+    cancellation: &CallCancellation,
+    rule_set: Option<&NativeRuleSet>,
+) -> napi::Result<PromiseRaw<'env, String>> {
+    let token = cancellation.token.clone();
+    let admitted = rule_set.map(|set| set.admitted.clone());
+    env.spawn_future(async move {
+        use sunstack_rules::RuleInvocationOutcome;
+        let result = owned(
+            async move {
+                let outcome = if let Some(set) = admitted {
+                    match serde_json::from_str::<BoundRuleRun>(&input_json) {
+                        Ok(binding) => set.evaluate(binding, token).await,
+                        Err(_) => RuleInvocationOutcome::Invalid {
+                            diagnostics: invalid_sdk_request(),
+                        },
+                    }
+                } else {
+                    match sunstack_rules::decode_rule_invocation(input_json.as_bytes()) {
+                        Ok(input) => {
+                            sunstack::host_services::general_rules::evaluate(input, token).await
+                        }
+                        Err(diagnostics) => RuleInvocationOutcome::Invalid { diagnostics },
+                    }
+                };
+                GeneralRuleCall::Received { outcome }
+            },
+            |failure| GeneralRuleCall::Failed { failure },
+        )
+        .await;
+        Ok(encode(&result))
+    })
+}
+
+/// Read general evidence without provider access.
+#[napi]
+pub fn inspect_evidence<'env>(
+    env: &'env Env,
+    input_json: String,
+    cancellation: &CallCancellation,
+) -> napi::Result<PromiseRaw<'env, String>> {
+    let token = cancellation.token.clone();
+    env.spawn_future(async move {
+        use sunstack_evidence::EvidencePlanOutcome;
+        let result = match sunstack_evidence::decode_evidence_plan_input(input_json.as_bytes()) {
+            Ok(input) => {
+                owned(
+                    async move {
+                        GeneralRuleCall::Received {
+                            outcome: sunstack::host_services::general_rules::inspect_evidence(
+                                input, token,
+                            )
+                            .await,
+                        }
+                    },
+                    |failure| GeneralRuleCall::Failed { failure },
+                )
+                .await
+            }
+            Err(diagnostics) => GeneralRuleCall::Received {
+                outcome: EvidencePlanOutcome::Refused {
+                    diagnostics: sunstack_evidence::DiagnosticList {
+                        items: vec![*diagnostics],
+                        omitted_count: 0,
+                    },
+                },
+            },
+        };
+        Ok(encode(&result))
+    })
+}
+
+/// Preview general rule input without constructing an authenticated backend.
+#[napi]
+pub fn prepare_rules<'env>(
+    env: &'env Env,
+    input_json: String,
+    cancellation: &CallCancellation,
+    rule_set: Option<&NativeRuleSet>,
+) -> napi::Result<PromiseRaw<'env, String>> {
+    let token = cancellation.token.clone();
+    let admitted = rule_set.map(|set| set.admitted.clone());
+    env.spawn_future(async move {
+        use sunstack_rules::{RulePreparationOutcome, RulePreviewOutcome};
+        let invalid = |diagnostics| RulePreviewOutcome::Unavailable {
+            outcome: Box::new(RulePreparationOutcome::Invalid { diagnostics }),
+        };
+        let result = owned(
+            async move {
+                let outcome = if let Some(set) = admitted {
+                    match serde_json::from_str::<BoundRuleRun>(&input_json) {
+                        Ok(binding) => set.preview(binding, token).await,
+                        Err(_) => invalid(invalid_sdk_request()),
+                    }
+                } else {
+                    match sunstack_rules::decode_rule_invocation(input_json.as_bytes()) {
+                        Ok(input) => {
+                            sunstack::host_services::general_rules::preview(input, token).await
+                        }
+                        Err(diagnostics) => invalid(diagnostics),
+                    }
+                };
+                GeneralRuleCall::Received { outcome }
+            },
+            |failure| GeneralRuleCall::Failed { failure },
+        )
+        .await;
+        Ok(encode(&result))
     })
 }

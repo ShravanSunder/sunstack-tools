@@ -1,6 +1,7 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(
     Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, JsonSchema,
 )]
@@ -17,6 +18,7 @@ pub enum SelectedReason {
 }
 
 /// A selection always explains itself with unique reasons in the contract's order.
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(try_from = "Vec<SelectedReason>", into = "Vec<SelectedReason>")]
 #[schemars(with = "Vec<SelectedReason>")]
@@ -53,12 +55,14 @@ pub enum SelectionReasonError {
     #[error("selection reasons must be unique and canonically ordered")]
     InvalidOrder,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum OutsideChangeReason {
     NoDeclaredChange,
 }
 
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum OccurrenceSelection {

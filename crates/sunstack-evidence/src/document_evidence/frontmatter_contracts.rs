@@ -2,6 +2,7 @@ use crate::{DiagnosticList, SourceRef, SourceSpan, StructuredJson};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum FrontmatterUnavailableReason {
@@ -9,6 +10,7 @@ pub enum FrontmatterUnavailableReason {
     Malformed,
 }
 
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum FrontmatterFieldContent {
@@ -32,6 +34,7 @@ pub enum FrontmatterFieldContent {
     },
 }
 
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum FrontmatterFieldLocation {

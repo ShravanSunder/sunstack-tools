@@ -218,3 +218,12 @@ await test('case bindings reject labels, wrong tuples, missing owner identity, m
 	if (result.kind === 'diagnostics')
 		assert.deepEqual(sortDiagnostics(result.diagnostics), sortDiagnostics(expected));
 });
+
+await test('general rule bindings keep literal names and source kinds', () => {
+	assert.deepEqual(compile('valid-general-rule-bindings.ts'), { kind: 'compiled' });
+	const expected = expectedDiagnostics('invalid-general-rule-bindings.ts');
+	assert.equal(expected.length, 3);
+	const result = compile('invalid-general-rule-bindings.ts');
+	assert.equal(result.kind, 'diagnostics', result.kind === 'process_failure' ? result.detail : '');
+	assert.deepEqual(sortDiagnostics(result.diagnostics), sortDiagnostics(expected));
+});

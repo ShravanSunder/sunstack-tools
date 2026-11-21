@@ -7,6 +7,7 @@ use std::{num::NonZeroUsize, path::PathBuf};
 validated_name!(SnapshotId, |value: &str| !value.is_empty());
 validated_name!(GitObjectId, |value: &str| matches!(value.len(), 40 | 64)
     && value.bytes().all(|byte| byte.is_ascii_hexdigit()));
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum DirtyLayer {
@@ -14,18 +15,21 @@ pub enum DirtyLayer {
     Unstaged,
     Untracked,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum CommitParentPolicy {
     FirstParent,
     EachParent,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum UnknownRecencyPolicy {
     IncludeWithDiagnostic,
     ExcludeWithOmission,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum TimeWindow {
@@ -37,6 +41,7 @@ pub enum TimeWindow {
         until_utc: DateTime<Utc>,
     },
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct ResolvedTimeWindow {
@@ -44,12 +49,14 @@ pub struct ResolvedTimeWindow {
     pub since_utc: DateTime<Utc>,
     pub until_utc: DateTime<Utc>,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum RevisionHead {
     Commit { revision: String },
     Worktree {},
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum ChangeScope {
@@ -205,6 +212,7 @@ pub struct CapturedChange {
     pub before_spans: Vec<ChangeSpan>,
     pub after_spans: Vec<ChangeSpan>,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum ChangeMemberBasis {
@@ -221,6 +229,7 @@ pub enum ChangeMemberBasis {
         head: SourceRevision,
     },
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum ParentBasis {

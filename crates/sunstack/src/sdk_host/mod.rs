@@ -6,6 +6,7 @@
 pub mod configuration_loading;
 pub mod definition_capture;
 pub mod document_codec;
+pub mod general_rules;
 pub mod inspection_projection;
 pub mod matcher_transport;
 pub mod normalized_values;

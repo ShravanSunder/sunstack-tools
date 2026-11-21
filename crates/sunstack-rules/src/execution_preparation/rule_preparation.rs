@@ -17,6 +17,67 @@ pub async fn prepare_rules(
     input: RuleInvocationInput,
     context: RuleExecutionContext,
 ) -> RulePreparationOutcome {
+    prepare(input, context, None, None).await
+}
+
+#[derive(Default)]
+struct PreviewCapture {
+    ready: Vec<ModelRequestPreview>,
+    local_report: Option<Box<RuleInvocationReport>>,
+}
+
+/// Prepare an inspection view from the same admitted request bytes as live execution.
+pub async fn preview_rules(
+    input: RuleInvocationInput,
+    context: RuleExecutionContext,
+    captured: Option<CapturedRuleSet>,
+) -> RulePreviewOutcome {
+    let mut capture = PreviewCapture::default();
+    let outcome = prepare(input, context, Some(&mut capture), captured).await;
+    let RulePreparationOutcome::Prepared { preparation } = outcome else {
+        return RulePreviewOutcome::Unavailable {
+            outcome: Box::new(outcome),
+        };
+    };
+    if let Some(report) = capture.local_report {
+        return RulePreviewOutcome::NoModelWork { report };
+    }
+    if preparation.planned_requests.iter().any(|request| {
+        matches!(
+            request.readiness,
+            RequestPreparationReadiness::Waiting { .. }
+        )
+    }) {
+        return RulePreviewOutcome::PendingDependency {
+            ready: capture.ready,
+            preparation: Box::new(preparation),
+        };
+    }
+    if capture.ready.len() == 1
+        && let Some(request) = capture.ready.pop()
+    {
+        return RulePreviewOutcome::ReadySingle {
+            request,
+            preparation: Box::new(preparation),
+        };
+    }
+    if capture.ready.is_empty() {
+        return RulePreviewOutcome::Unavailable {
+            outcome: Box::new(RulePreparationOutcome::Prepared { preparation }),
+        };
+    }
+    RulePreviewOutcome::UnsupportedMultiple {
+        ready: capture.ready,
+        preparation: Box::new(preparation),
+    }
+}
+
+async fn prepare(
+    input: RuleInvocationInput,
+    context: RuleExecutionContext,
+    mut preview: Option<&mut PreviewCapture>,
+    captured: Option<CapturedRuleSet>,
+) -> RulePreparationOutcome {
     let started = Instant::now();
     let cancellation = context.cancellation.child_token();
     let _guard = cancellation.clone().drop_guard();
@@ -29,7 +90,8 @@ pub async fn prepare_rules(
             diagnostics: DiagnosticList::rule(RuleDiagnosticCode::InvalidConfiguration),
         };
     }
-    let admitted = match admit_invocation(&input, &context.adapters, &cancellation).await {
+    let admitted = match admit_invocation(&input, &context.adapters, &cancellation, captured).await
+    {
         Ok(admitted) => admitted,
         Err(diagnostics) => {
             return if cancellation.is_cancelled() {
@@ -85,6 +147,7 @@ pub async fn prepare_rules(
     )
     .await;
     let mut records = BTreeMap::new();
+    let mut request_bodies = BTreeMap::new();
     discover_ready_rules(&mut plan, &mut state, &mut session, &cancellation).await;
     finish_empty_carriers(&plan, &mut state);
     let mut diagnostics = DiagnosticList::default();
@@ -215,7 +278,7 @@ pub async fn prepare_rules(
             continue;
         }
         let mut omit_optional = omitted.contains(&request.id);
-        let backend = match backend_session.resolve() {
+        let backend = match backend_session.resolve().await {
             Ok(backend) => backend,
             Err(diagnostics) => return RulePreparationOutcome::Invalid { diagnostics },
         };
@@ -275,6 +338,17 @@ pub async fn prepare_rules(
         };
         let budget = match admission {
             RequestAdmission::Within(encoded) => {
+                if preview.is_some() {
+                    let Ok(body) = std::str::from_utf8(encoded.admitted.body()) else {
+                        return RulePreparationOutcome::PreparationFailed {
+                            diagnostics: DiagnosticList::rule(
+                                RuleDiagnosticCode::UnexpectedExecutionError,
+                            ),
+                            measurements,
+                        };
+                    };
+                    request_bodies.insert(request.id, body.to_owned());
+                }
                 let counts = encoded.admitted.counts().clone();
                 PreparedRequestBudget::WithinConfiguredBudget {
                     basis: counts.basis.clone(),
@@ -310,12 +384,24 @@ pub async fn prepare_rules(
         &mut measurements,
         closed.measurements,
     );
-    let preparation = project_preparation(
+    if let Some(capture) = &mut preview
+        && records.is_empty()
+    {
+        let mut report = project_report(&plan, &state, &input.origin, measurements.clone());
+        report.captures.clone_from(&closed.captures);
+        report
+            .change_selections
+            .clone_from(&closed.change_selections);
+        report.cursors.clone_from(&closed.cursors);
+        capture.local_report = Some(Box::new(report));
+    }
+    let (preparation, ready_bodies) = project_preparation(
         &plan,
         &state,
         &input.origin,
         PreparationProjection {
             records,
+            request_bodies,
             measurements,
             captures: closed.captures,
             change_selections: closed.change_selections,
@@ -323,6 +409,16 @@ pub async fn prepare_rules(
         },
         &mut diagnostics,
     );
+    if let Some(capture) = preview {
+        capture.ready = ready_bodies
+            .into_iter()
+            .map(|(index, body)| ModelRequestPreview {
+                index,
+                backend: input.backend.clone(),
+                body,
+            })
+            .collect();
+    }
     if cancellation.is_cancelled() {
         let measurements = preparation.measurements.clone();
         RulePreparationOutcome::Cancelled {

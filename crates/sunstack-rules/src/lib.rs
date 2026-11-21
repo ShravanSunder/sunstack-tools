@@ -20,6 +20,9 @@ pub use rule_definitions::definition_admission::*;
 pub use rule_definitions::definition_contracts::*;
 pub use rule_definitions::definition_loading::{LocatedRuleDefinition, ValidatedRuleFile};
 pub use rule_definitions::input_binding::{AdmittedSource, SourceId};
+pub use rule_definitions::invocation_admission::{
+    CapturedRuleSet, capture_rule_set, validate_rule_settings,
+};
 pub use rule_definitions::invocation_contracts::*;
 pub use rule_definitions::rule_diagnostics::*;
 pub use rule_definitions::rule_identity::*;
@@ -27,7 +30,7 @@ pub use rule_definitions::strict_decoding::decode_rule_invocation;
 pub use rule_evaluation::mechanical_contracts::*;
 pub use rule_evaluation::model_request_dispatch::*;
 pub use rule_evaluation::report_contracts::*;
-pub use rule_evaluation::rule_backend_factory::RuleBackendFactory;
+pub use rule_evaluation::rule_backend_factory::{RuleBackendFactory, RuleBackendPreparation};
 pub use rule_evaluation::rule_evaluation_contracts::*;
 pub use rule_evaluation::rule_execution::*;
 pub use rule_evaluation::rule_policy::*;

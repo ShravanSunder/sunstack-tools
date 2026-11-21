@@ -38,6 +38,10 @@ and suitable `skills/**/SKILL.md` input; it is not a keyless smoke check.
 Type checking is a separate step from running: `node file.ts` strips types and does
 not check them. Run `tsc --noEmit` (TypeScript 7) to check a consumer.
 
+## Evaluate rules over code and conversations
+
+Import `@sunstack/sdk/rules` to admit a rule set, inspect native evidence, preview exact model requests, or evaluate a document or conversation in one call. The package includes a runnable TypeScript program and fixtures for both source kinds. [General rules example](examples/general-rules.md)
+
 ## Author a configuration in TypeScript
 
 Every definition is a typed value: rulebook Markdown, marker-linked rule entries,

@@ -41,6 +41,8 @@ pub enum SdkDocumentValue {
     InspectionOutcome(InspectionOutcome),
     Report(SdkReport<LintStatus>),
     InspectionReport(InspectionReport<InspectionStatus>),
+    RuleInvocationOutcome(sunstack_rules::RuleInvocationOutcome),
+    EvidencePlanOutcome(sunstack_evidence::EvidencePlanOutcome),
 }
 
 /// Original document text crosses as data in an exact JSON string transport.
@@ -313,7 +315,9 @@ fn validate_document_counts(value: &SdkDocumentValue) -> Result<(), SdkDocumentD
         SdkDocumentValue::Configuration(_)
         | SdkDocumentValue::LoadedConfiguration(_)
         | SdkDocumentValue::LoadOutcome(_)
-        | SdkDocumentValue::CheckOutcome(_) => Ok(()),
+        | SdkDocumentValue::CheckOutcome(_)
+        | SdkDocumentValue::RuleInvocationOutcome(_)
+        | SdkDocumentValue::EvidencePlanOutcome(_) => Ok(()),
     }
 }
 

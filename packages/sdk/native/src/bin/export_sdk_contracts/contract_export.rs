@@ -118,6 +118,25 @@ impl SdkFormat {
 /// and the HTML and Markdown selections each keep a private `UnitOnly`;
 /// TypeScript needs one name per declaration, and the Rust name stays unchanged.
 const DISTINCT_NAMES: &[(&str, &str, &str)] = &[
+    ("evidence_diagnostics", "Diagnostic", "EvidenceDiagnostic"),
+    (
+        "evidence_diagnostics",
+        "DiagnosticList",
+        "EvidenceDiagnosticList",
+    ),
+    ("rule_diagnostics", "DiagnosticList", "RuleDiagnosticList"),
+    ("evidence_diagnostics", "RetryAdvice", "EvidenceRetryAdvice"),
+    ("report_contracts", "RequestOwner", "RuleRequestOwner"),
+    (
+        "structured_json",
+        "StructuredJson",
+        "EvidenceStructuredJson",
+    ),
+    (
+        "markdown_selection_contracts",
+        "SelectionWire",
+        "MarkdownUnitSelectionWire",
+    ),
     (
         "html_selection_contracts",
         "SelectionWire",
@@ -133,7 +152,9 @@ const DISTINCT_NAMES: &[(&str, &str, &str)] = &[
 fn distinct_names(types: &mut Types) {
     types.iter_mut(|definition| {
         for (module, name, exported) in DISTINCT_NAMES {
-            if definition.name == *name && definition.module_path.ends_with(module) {
+            if definition.name == *name
+                && definition.module_path.rsplit("::").next() == Some(*module)
+            {
                 definition.name = Cow::Borrowed(exported);
             }
         }
@@ -278,6 +299,8 @@ fn document_root_shapes(types: &Types) -> Result<Map<String, Value>, Box<dyn Err
         "inspection_outcome",
         "report",
         "inspection_report",
+        "rule_invocation_outcome",
+        "evidence_plan_outcome",
     ];
     let mut roots = Map::new();
     for (kind, variant) in &document.variants {
@@ -503,21 +526,32 @@ fn exclude_inside_scope(datatype: Option<&mut DataType>) -> Result<(), String> {
 }
 
 pub fn export() -> Result<Exported, Box<dyn Error>> {
-    let mut types = Types::default()
-        .register::<Configuration>()
-        .register::<ResolvedConfiguration>()
-        .register::<LoadOptions>()
-        .register::<RunRequest>()
-        .register::<ContractInfo>()
-        .register::<LoadOutcome>()
-        .register::<CheckOutcome>()
-        .register::<RunOutcome>()
-        .register::<SdkDocumentValue>()
-        .register::<SdkDocument<SdkDocumentValue>>()
-        .register::<DeserializeSdkRequest>()
-        .register::<InspectRequest>()
-        .register::<DeserializationOutcome>()
-        .register::<sunstack_evidence::EvidenceLanguage>();
+    let mut types =
+        Types::default()
+            .register::<Configuration>()
+            .register::<ResolvedConfiguration>()
+            .register::<LoadOptions>()
+            .register::<RunRequest>()
+            .register::<ContractInfo>()
+            .register::<LoadOutcome>()
+            .register::<CheckOutcome>()
+            .register::<RunOutcome>()
+            .register::<SdkDocumentValue>()
+            .register::<SdkDocument<SdkDocumentValue>>()
+            .register::<DeserializeSdkRequest>()
+            .register::<InspectRequest>()
+            .register::<DeserializationOutcome>()
+            .register::<sunstack_evidence::EvidenceLanguage>()
+            .register::<sunstack_evidence::EvidencePlanInput>()
+            .register::<sunstack_evidence::EvidencePlanOutcome>()
+            .register::<sunstack_rules::RulePreviewOutcome>()
+            .register::<sunstack_rules::RuleInvocationInput>()
+            .register::<sunstack::sdk_host::general_rules::RuleSetLoadRequest>()
+            .register::<sunstack::sdk_host::general_rules::RuleSetLoadStatus>()
+            .register::<sunstack::sdk_host::general_rules::BoundRuleRun>()
+            .register::<sunstack::sdk_host::general_rules::GeneralRuleCall<
+                sunstack_rules::RuleInvocationOutcome,
+            >>();
     select_question_shape(&mut types)?;
     exclusive_matcher_shape(&mut types)?;
     exclusive_inside_scope_shape(&mut types)?;

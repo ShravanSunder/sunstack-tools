@@ -28,17 +28,20 @@ impl RuleBackendFactory for CountedFactory {
     fn selection(&self) -> &BackendSelection {
         &self.selection
     }
-    fn prepare(self: Arc<Self>) -> Result<Arc<dyn DecisionBackend>, DiagnosticList> {
-        self.calls.fetch_add(1, Ordering::SeqCst);
-        match self.behavior {
-            FactoryBehavior::Refused => Err(DiagnosticList::rule(
-                RuleDiagnosticCode::InvalidConfiguration,
-            )),
-            FactoryBehavior::Ready => {
-                let BackendSelection::JevOpenrouter { endpoint, .. } = &self.selection;
-                Ok(Arc::new(transport::backend(endpoint)))
+    fn prepare(self: Arc<Self>) -> RuleBackendPreparation {
+        Box::pin(async move {
+            self.calls.fetch_add(1, Ordering::SeqCst);
+            match self.behavior {
+                FactoryBehavior::Refused => Err(DiagnosticList::rule(
+                    RuleDiagnosticCode::InvalidConfiguration,
+                )),
+                FactoryBehavior::Ready => {
+                    let BackendSelection::JevOpenrouter { endpoint, .. } = &self.selection;
+                    let backend: Arc<dyn DecisionBackend> = Arc::new(transport::backend(endpoint));
+                    Ok(backend)
+                }
             }
-        }
+        })
     }
 }
 fn local_rule() -> serde_json::Value {

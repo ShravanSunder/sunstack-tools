@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 use std::{collections::BTreeMap, path::PathBuf};
 use sunstack_decisions::{ChoiceLabel, DecisionRunOutcome, QuestionName};
 use sunstack_evidence::{CaptureCoverage, ReturnedCursor, SourceName, TargetLocation};
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct InvocationMeasurements {
@@ -28,6 +29,7 @@ pub struct InvocationMeasurements {
     pub model_requests: usize,
     pub inference_attempts: usize,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum EntryOwner {
@@ -48,12 +50,14 @@ pub enum EntryOwner {
         rule_id: RuleId,
     },
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct EntryKey {
     pub owner: EntryOwner,
     pub position: usize,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct RuleOccurrenceKey {
@@ -62,6 +66,7 @@ pub struct RuleOccurrenceKey {
     pub rule_id: RuleId,
     pub target: Box<crate::RuleOccurrenceTarget>,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum GroupBinding {
@@ -79,6 +84,7 @@ impl GroupBinding {
         }
     }
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct GroupResult {
@@ -88,6 +94,7 @@ pub struct GroupResult {
     pub applicability: ApplicabilityOutcome,
     pub entries: Vec<EvaluatedEntry>,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum NotEvaluatedReason {
@@ -95,6 +102,7 @@ pub enum NotEvaluatedReason {
     InvocationRefused,
     EarlierEntryStopped,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum ApplicabilityOutcome {
@@ -103,6 +111,7 @@ pub enum ApplicabilityOutcome {
     ApplicabilityFailed { entry: EntryKey, cause: Cause },
     NotEvaluated { reason: NotEvaluatedReason },
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum ConditionBasis {
@@ -127,6 +136,7 @@ pub enum ConditionBasis {
         max_scan_bytes: usize,
     },
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum PatternKind {
@@ -134,6 +144,7 @@ pub enum PatternKind {
     Regex,
     Ast,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum EntryBasis {
@@ -145,12 +156,14 @@ pub enum EntryBasis {
         answer: JudgmentReference,
     },
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct EvaluatedEntry {
     pub key: EntryKey,
     pub result: EntryResult,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum EntryResult {
@@ -166,6 +179,7 @@ pub enum EntryResult {
         reason: NotEvaluatedReason,
     },
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum ConditionOutcome {
@@ -173,6 +187,7 @@ pub enum ConditionOutcome {
     DidNotPass,
     Unresolved { diagnostic: ReportDiagnostic },
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum DecisionEntryOutcome {
@@ -181,6 +196,7 @@ pub enum DecisionEntryOutcome {
     Failed { cause: Cause },
     Cancelled,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum Cause {
@@ -201,12 +217,14 @@ pub enum Cause {
         diagnostic: ReportDiagnostic,
     },
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct JudgmentReference {
     pub request_index: usize,
     pub question_name: QuestionName,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum RuleOccurrenceResult {
@@ -265,12 +283,14 @@ impl RuleOccurrenceResult {
         }
     }
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum NotStartedReason {
     CallerCancelled,
     RequestLimit,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct RuleJudgment {
@@ -280,6 +300,7 @@ pub struct RuleJudgment {
     pub answers: BTreeMap<QuestionName, JudgmentReference>,
     pub target: TargetLocation,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct VerdictOutcome {
@@ -288,12 +309,14 @@ pub struct VerdictOutcome {
     pub threshold: f64,
     pub result: VerdictResult,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum VerdictBasis {
     Noul { answer: JudgmentReference },
     Composite { dimensions: Vec<DimensionResult> },
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct DimensionResult {
@@ -302,12 +325,14 @@ pub struct DimensionResult {
     pub normalized_value: f64,
     pub answer: JudgmentReference,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum VerdictResult {
     Pass,
     Fail { activation: Activation },
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum Activation {
@@ -315,6 +340,7 @@ pub enum Activation {
     Error,
     WarnAboveBand { band: f64 },
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum RouterOutcome {
@@ -341,23 +367,27 @@ pub enum RouterOutcome {
         reason: RouterNotEvaluated,
     },
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum RouterNotEvaluated {
     Cancelled,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct RouterGroupResult {
     pub position: usize,
     pub outcome: RouterOutcome,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum RoutingReport {
     RuleSets,
     Router { groups: Vec<RouterGroupResult> },
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum RequestOwner {
@@ -371,6 +401,7 @@ pub enum RequestOwner {
         route: Option<ChoiceLabel>,
     },
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum RequestMode {
@@ -379,6 +410,7 @@ pub enum RequestMode {
     StagedGate,
     Split { part: usize, of: usize },
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum QuestionOwner {
@@ -400,18 +432,21 @@ pub enum QuestionOwner {
         name: QuestionName,
     },
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct QuestionBinding {
     pub request_name: QuestionName,
     pub owner: QuestionOwner,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum RequestStatus {
     Sent { outcome: DecisionRunOutcome },
     NotSent { reason: NotSentReason },
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum NotSentReason {
@@ -423,18 +458,21 @@ pub enum NotSentReason {
     EvidenceRefused { diagnostics: DiagnosticList },
     RequestLimit,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct DiscardedAnswer {
     pub question_name: QuestionName,
     pub reason: DiscardReason,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum DiscardReason {
     OwnerNotApplicable { entry: EntryKey },
     NotRouted,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct RequestRecord {
@@ -446,6 +484,7 @@ pub struct RequestRecord {
     pub status: RequestStatus,
     pub discarded: Vec<DiscardedAnswer>,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct RuleInvocationReport {
@@ -520,6 +559,7 @@ impl RuleInvocationReport {
         }
     }
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum InvocationCancellationProgress {
@@ -528,6 +568,7 @@ pub enum InvocationCancellationProgress {
         partial_report: Box<RuleInvocationReport>,
     },
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum RuleInvocationOutcome {
