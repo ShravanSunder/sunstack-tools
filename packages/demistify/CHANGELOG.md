@@ -1,5 +1,11 @@
 # @sunstack/demistify
 
+## 1.28.0
+
+### Minor Changes
+
+- caa4546: Add `demistify open <page.html>` to preview authored HTML with its local Markdown, JSON, and assets. Use `--site-root` for a collection and `--no-browser` to print a URL for someone else to open.
+
 ## 1.27.0
 
 ### Minor Changes
