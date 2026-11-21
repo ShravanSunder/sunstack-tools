@@ -89,8 +89,8 @@ type IsUnion<TMember, TWhole = TMember> = TMember extends unknown
 
 type NewFormat<TAdded extends string, TRegistered extends string> = TAdded &
 	(true extends IsUnion<TAdded> ? never : unknown) &
-	// An open string key set, including a template pattern, requires no concrete property.
-	(Record<never, never> extends Record<TAdded, never> ? never : unknown) &
+	// A symbol-keyed record has no concrete string property to satisfy a literal name.
+	(Record<symbol, never> extends Record<TAdded, never> ? never : unknown) &
 	(Extract<TAdded, TRegistered> extends never ? unknown : never);
 
 /** An immutable snapshot of built-in and declarative transcript adapters. */
