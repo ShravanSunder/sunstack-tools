@@ -7,6 +7,37 @@ import { encodeForNative } from './wire-encoding.ts';
 export type TranscriptAdapterMapping = DeepReadonly<Contracts.TranscriptAdapterMapping>;
 export type TranscriptRecordMapping = DeepReadonly<Contracts.TranscriptRecordMapping>;
 
+interface StandardJsonSchemaDocument {
+	readonly [key: string]: unknown;
+	readonly '~standard': {
+		readonly version: 1;
+		readonly vendor: string;
+		readonly jsonSchema: {
+			readonly input: StandardJsonSchemaConverter;
+			readonly output: StandardJsonSchemaConverter;
+		};
+	};
+}
+
+// Identify producer output structurally. Registration encodes the document without calling converters.
+type StandardJsonSchemaConverter = (options: {
+	readonly target: 'draft-2020-12';
+}) => Readonly<Record<string, unknown>>;
+
+type SchemaDataValue =
+	| Exclude<Contracts.EvidenceStructuredJson, object>
+	| readonly SchemaDataValue[]
+	| SchemaDataObject
+	| StandardJsonSchemaDocument;
+
+interface SchemaDataObject {
+	readonly [key: string]: SchemaDataValue;
+}
+
+type TranscriptAdapterRegistration = Omit<TranscriptAdapterMapping, 'schema'> & {
+	readonly schema?: boolean | SchemaDataObject | StandardJsonSchemaDocument;
+};
+
 export interface ConversationSource<TFormat extends string = Contracts.BuiltinTranscriptFormat> {
 	readonly path: string;
 	readonly format: TFormat;
@@ -72,7 +103,7 @@ function copySchemaData(value: unknown, copies: WeakMap<object, object>): unknow
 	return copied;
 }
 
-function mappingWithSchemaData(mapping: TranscriptAdapterMapping): unknown {
+function mappingWithSchemaData(mapping: TranscriptAdapterRegistration): unknown {
 	const schemaDescriptor = Object.getOwnPropertyDescriptor(mapping, 'schema');
 	if (schemaDescriptor === undefined) return mapping;
 	if (!Object.hasOwn(schemaDescriptor, 'value')) {
@@ -112,7 +143,7 @@ export class AdapterRegistry<TRegistered extends string> {
 	}
 
 	withAdapter<const TAdded extends string>(
-		mapping: Omit<TranscriptAdapterMapping, 'format'> & {
+		mapping: Omit<TranscriptAdapterRegistration, 'format'> & {
 			readonly format: NewFormat<TAdded, TRegistered>;
 		},
 	): AdapterRegistry<TRegistered | TAdded> {

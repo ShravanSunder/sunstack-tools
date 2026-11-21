@@ -63,3 +63,22 @@ export function ambiguousRegistration(
 	// expect TS2322
 	registered.withAdapter({ ...mapping, format: open });
 }
+
+export function invalidSchemas(opaque: Record<string, unknown>): void {
+	// expect TS2322
+	registered.withAdapter({ ...mapping, format: 'invalid_root', schema: [] });
+	// expect TS2322
+	registered.withAdapter({ ...mapping, format: 'opaque_schema', schema: opaque });
+	registered.withAdapter({
+		...mapping,
+		format: 'executable_schema',
+		// expect TS2322
+		schema: { type: 'object', properties: { body: { transform: () => true } } },
+	});
+	const incompleteMetadata = {
+		...opaque,
+		'~standard': { version: 1, vendor: 'example', validate: () => true },
+	} as const;
+	// expect TS2322
+	registered.withAdapter({ ...mapping, format: 'missing_converter', schema: incompleteMetadata });
+}

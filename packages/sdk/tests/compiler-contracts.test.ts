@@ -223,7 +223,7 @@ await test('general rules keep literal binding names, source kinds and registere
 	assert.deepEqual(compile('valid-general-rule-bindings.ts'), { kind: 'compiled' });
 	assert.deepEqual(compile('valid-transcript-adapters.ts'), { kind: 'compiled' });
 	const expected = expectedDiagnostics('invalid-general-rule-bindings.ts');
-	assert.equal(expected.length, 12);
+	assert.equal(expected.length, 16);
 	const result = compile('invalid-general-rule-bindings.ts');
 	assert.equal(result.kind, 'diagnostics', result.kind === 'process_failure' ? result.detail : '');
 	assert.deepEqual(sortDiagnostics(result.diagnostics), sortDiagnostics(expected));

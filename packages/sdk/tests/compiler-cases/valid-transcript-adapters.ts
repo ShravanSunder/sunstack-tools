@@ -32,6 +32,29 @@ const plain: 'codex_rollout_jsonl' = conversation({
 }).format;
 const options: RuleCallOptions = { adapterRegistry: registry };
 
+interface SchemaProducerOutput {
+	readonly [key: string]: unknown;
+	readonly '~standard': {
+		readonly version: 1;
+		readonly vendor: string;
+		readonly jsonSchema: {
+			readonly input: (options: { readonly target: string }) => Record<string, unknown>;
+			readonly output: (options: { readonly target: string }) => Record<string, unknown>;
+		};
+	};
+}
+
+export function registerProducedSchemas(produced: SchemaProducerOutput): 'nested_schema' {
+	const adapters = registry
+		.withAdapter({ ...mapped, format: 'direct_schema', schema: produced })
+		.withAdapter({
+			...mapped,
+			format: 'nested_schema',
+			schema: { type: 'object', properties: { body: { allOf: [produced] } } },
+		});
+	return adapters.conversation({ path: '/trace', format: 'nested_schema' }).format;
+}
+
 export function narrowedSource(format: 'alpha_jsonl' | 'beta_jsonl'): 'alpha_jsonl' | 'beta_jsonl' {
 	if (format === 'alpha_jsonl') {
 		const alpha = registry.withAdapter({ ...mapped, format });
