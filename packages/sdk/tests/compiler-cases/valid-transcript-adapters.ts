@@ -31,4 +31,14 @@ const plain: 'codex_rollout_jsonl' = conversation({
 	format: 'codex_rollout_jsonl',
 }).format;
 const options: RuleCallOptions = { adapterRegistry: registry };
+
+export function narrowedSource(format: 'alpha_jsonl' | 'beta_jsonl'): 'alpha_jsonl' | 'beta_jsonl' {
+	if (format === 'alpha_jsonl') {
+		const alpha = registry.withAdapter({ ...mapped, format });
+		return alpha.conversation({ path: '/trace', format }).format;
+	}
+	const beta = registry.withAdapter({ ...mapped, format });
+	return beta.conversation({ path: '/trace', format }).format;
+}
+
 export { builtin, custom, options, plain, second };

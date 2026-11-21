@@ -50,3 +50,16 @@ registered.withAdapter({
 	// expect TS2322
 	records: { broken: { kind: 'tool_result', text: '/body' } },
 });
+
+export function ambiguousRegistration(
+	union: 'first_jsonl' | 'second_jsonl',
+	wide: string,
+	open: `example_${number}`,
+): void {
+	// expect TS2322
+	registered.withAdapter({ ...mapping, format: union });
+	// expect TS2322
+	registered.withAdapter({ ...mapping, format: wide });
+	// expect TS2322
+	registered.withAdapter({ ...mapping, format: open });
+}

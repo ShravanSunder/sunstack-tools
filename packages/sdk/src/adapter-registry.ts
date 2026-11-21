@@ -81,8 +81,16 @@ function mappingWithSchemaData(mapping: TranscriptAdapterMapping): unknown {
 	return mappingData;
 }
 
+type IsUnion<TMember, TWhole = TMember> = TMember extends unknown
+	? [TWhole] extends [TMember]
+		? false
+		: true
+	: never;
+
 type NewFormat<TAdded extends string, TRegistered extends string> = TAdded &
-	(string extends TAdded ? never : unknown) &
+	(true extends IsUnion<TAdded> ? never : unknown) &
+	// An open string key set, including a template pattern, requires no concrete property.
+	(Record<never, never> extends Record<TAdded, never> ? never : unknown) &
 	(Extract<TAdded, TRegistered> extends never ? unknown : never);
 
 /** An immutable snapshot of built-in and declarative transcript adapters. */
@@ -95,6 +103,7 @@ export class AdapterRegistry<TRegistered extends string> {
 		return new AdapterRegistry(new Map());
 	}
 
+	/** Add one distinct literal format name to this snapshot. */
 	withAdapter<const TAdded extends string>(
 		mapping: Omit<TranscriptAdapterMapping, 'format'> & {
 			readonly format: NewFormat<TAdded, TRegistered>;

@@ -253,6 +253,8 @@ console.log(JSON.stringify({ kind: outcome.kind, calls, coverage }));
 
 Use `AdapterRegistry.builtins().withAdapter(mapping)` to create a snapshot with an additional format. Define the discriminator and each record field with JSON Pointers. Bind the original file with `adapters.conversation({ path, format })` and pass `{ adapterRegistry: adapters }` to `inspectEvidence`, `prepareRules`, or `evaluateRules`. The adapter accepts string message text and call IDs, preserves tool inputs as JSON values, and interprets a supplied `is_error` field as a boolean. An omitted result status remains unknown.
 
+Each registration takes one concrete format-name literal. When a name comes from a union, narrow it to one branch before calling `withAdapter`.
+
 You can supply an offline Draft 2020-12 JSON Schema as the optional `schema` property, including a schema emitted by Zod's JSON Schema conversion. The schema validates selected rows, and the record pointers extract their fields. Inspect the returned coverage for unsupported or malformed rows, orphan results, and uncertainty about user-message injection. A changed adapter mapping or schema requires a fresh cursor.
 
 When a native message ID and a generated offset or tool record ID collide, the first record keeps its identity. The later row appears as a malformed-record gap at its original position.
