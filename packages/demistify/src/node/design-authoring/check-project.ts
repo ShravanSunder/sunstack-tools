@@ -6,7 +6,11 @@ import { checkRecordRelationships, openDesignCheck } from './check-design.ts';
 import { type DeliveryEntry, type DeliveryProjection, projectDelivery } from './delivery-model.ts';
 import { commitDesignOutputs, planGeneratedJson } from './design-output.ts';
 import { checkAuthoringTypes, readDesignItems } from './read-design.ts';
-import { readProjectIdentities, readProjectManifest } from './read-project.ts';
+import {
+	projectRecordTypeImports,
+	readProjectIdentities,
+	readProjectManifest,
+} from './read-project.ts';
 import type { DesignCore, DesignRecord } from './schema.ts';
 
 type EvidenceReceipt = NonNullable<DeliveryEntry['deliverable']['verification']>;
@@ -207,7 +211,13 @@ export async function checkProject(directory: string): Promise<string> {
 		if (file === undefined) return undefined;
 		const text = await check.read(file);
 		const records = readDesignItems(file, text, kind);
-		checkAuthoringTypes([file], new Map([[file, text]]));
+		const declarations = await Promise.all(
+			projectRecordTypeImports(file, text, root).map(async (path): Promise<[string, string]> => [
+				path,
+				await check.read(path),
+			]),
+		);
+		checkAuthoringTypes([file], new Map([[file, text], ...declarations]));
 		const scope = await check.inspectRecords(records, file);
 		return {
 			records: records.map((record) =>

@@ -4,7 +4,7 @@ import typescript from 'typescript';
 import { z } from 'zod';
 
 import { deliverySdkSource } from './delivery-sdk-source.ts';
-import { readLiteral, unwrapExpression } from './read-design.ts';
+import { designDeclarationFilename, readLiteral, unwrapExpression } from './read-design.ts';
 
 const alias = z.string().regex(/^[A-Za-z][A-Za-z0-9-]*$/);
 const filePath = z.string().min(1);
@@ -87,6 +87,20 @@ export function readProjectManifest(file: string, text: string): ProjectManifest
 	check(manifest.assumptions, ['project-assumptions.ts']);
 	check(manifest.identities, ['agents-identity.ts']);
 	return manifest;
+}
+
+export function projectRecordTypeImports(file: string, text: string, root: string): string[] {
+	const { body } = moduleBody(file, text);
+	return [
+		...new Set(
+			body.filter(typescript.isImportDeclaration).map((statement): string => {
+				const path = importFile(statement, file, root);
+				if (!statement.importClause?.isTypeOnly || basename(path) !== designDeclarationFilename)
+					throw new Error(`${file}: use type-only imports from ${designDeclarationFilename}.`);
+				return path;
+			}),
+		),
+	];
 }
 
 export async function readProjectIdentities(

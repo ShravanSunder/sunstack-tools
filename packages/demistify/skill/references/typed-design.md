@@ -10,7 +10,7 @@ demistify design check docs/projects/2026-11-router/milestones/2026-11-messages 
 Use the CLI from the selected Demistify binding. With a local npm installation, prefix each invocation with `npm exec --`. With the published archive, use the exact `pnpm dlx` URL from the matching entry guide and append the same `design` arguments.
 
 1. `init` writes `design.ts`, `design-decisions.ts`, `design-assumptions.ts`, `design-delivery.ts`, and their generated authoring support. It takes Pages, Map, and Walkthroughs from an existing authored `navigation.json`. For a new set, use the seeded page list and author the HTML pages yourself. Keep `design.ts` a literal data object. Decisions and assumptions live in separate literal arrays. Their type imports resolve to the local declaration.
-2. Add records with a stable ID, a title, a destination on a page in the set, and source links. Rules cite the needs they serve. Realizations and planned checks cite the rules they address.
+2. Add records with a stable ID, a title, a destination on a page in the set, and source links. Rules cite the needs they serve. Realizations and planned checks cite the rules they address. Give each planned check at least three `given` / `expect` cases.
 3. Use `<ex-nav src="./navigation.generated.json">` on owned pages, with the relative path adjusted for nested pages. Page links and source links may leave the set when their destinations stay inside the explicit site root. For example, `../../overview.html#scope` can link from the jobs set to the main overview. Preview a shared navigation site over HTTP.
 4. Run `check` to validate the authored inputs, local targets, and Demistify markup. It writes `design.generated.json` for record lookup, `navigation.generated.json` for navigation, and `deliverables.generated.json` for delivery progress. Edit the TypeScript or HTML sources and rerun the checker to refresh these files.
 
@@ -117,7 +117,7 @@ export default {
 };
 ```
 
-Each shared records file exports an array of its own record kind. Keep a project's decision and assumption files optional. To move a file inside the project, retain its name and update its explicit import and relative links. A project may register no designs or shared inputs. For example, `export default {};` generates an empty project view. The checker reads the registered inputs.
+Each shared records file exports an array of its own record kind. Use type-only imports from a generated `design-schema.d.ts` inside the project for editor checking. Keep a project's decision and assumption files optional. To move a file inside the project, retain its name and update its explicit import and relative links. A project may register no designs or shared inputs. For example, `export default {};` generates an empty project view. The checker reads the registered inputs.
 
 ```typescript
 // agents-identity.ts
@@ -131,7 +131,7 @@ export default {
 };
 ```
 
-Use the alias in the delivery plan. Keep the session ID in the identity file.
+Declare each `agentId` in a top-level `const` and use its alias in the delivery plan. Keep the session ID in the identity file.
 
 ```typescript
 export default defineDelivery(

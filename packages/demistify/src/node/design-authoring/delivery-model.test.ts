@@ -342,6 +342,35 @@ it('reopens an accepted candidate when its governing scope revision changes', ()
 		progress: { acceptance: refreshedAcceptance },
 	});
 	expect(reaccepted.evidence).toEqual(expect.arrayContaining(['acceptance.md', 'refresh.md']));
+	expect(reaccepted.deliverables['DEL-01']?.reasons).toEqual([
+		'The Lead accepted candidate build-a.',
+	]);
+});
+
+it('retains a verification scope when scoped task and prerequisite lists are reordered', (): void => {
+	const work = {
+		...candidateDraft,
+		scope: { ...candidateDraft.scope, implementationTasks: ['TASK-01', 'TASK-02'] },
+	};
+	const prerequisites = [
+		{ deliverable: { ...candidateDraft, id: 'DEL-02' } },
+		{ deliverable: { ...candidateDraft, id: 'DEL-03' } },
+	];
+	const first = projectDelivery(
+		design,
+		[...prerequisites, { deliverable: work, dependsOn: ['DEL-02', 'DEL-03'] }],
+		recordRevisions,
+	);
+	const reordered = {
+		...work,
+		scope: { ...work.scope, implementationTasks: ['TASK-02', 'TASK-01'] },
+	};
+	const second = projectDelivery(
+		design,
+		[...prerequisites, { deliverable: reordered, dependsOn: ['DEL-03', 'DEL-02'] }],
+		recordRevisions,
+	);
+	expect(scopeRevisionOf(second, 'DEL-01')).toBe(scopeRevisionOf(first, 'DEL-01'));
 });
 
 it('reopens the same build when a completed task is added to its declared scope', (): void => {

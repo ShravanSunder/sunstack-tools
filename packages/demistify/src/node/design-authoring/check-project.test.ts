@@ -186,7 +186,11 @@ export default { designs: { messages: messagesDesign, sessions: sessionsDesign }
 const lead = agentId('private-fixture-session');
 export default { owner: 'owner', agents: { 'messages-lead': lead } };`,
 			),
-			writeFile(join(shared, 'project-decisions.ts'), `export default [${decision}];`),
+			writeFile(
+				join(shared, 'project-decisions.ts'),
+				`import type { DesignDecision } from '../milestones/2026-11-messages/design-schema.d.ts';
+export default [${decision}] as const satisfies readonly DesignDecision[];`,
+			),
 			writeFile(
 				join(shared, 'project-assumptions.ts'),
 				`export default [{

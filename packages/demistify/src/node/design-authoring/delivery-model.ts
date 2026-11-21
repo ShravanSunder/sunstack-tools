@@ -160,8 +160,22 @@ function resolveGoverningDesign(
 		if (left < right) return -1;
 		return left === right ? 0 : 1;
 	});
+	const canonicalScope = {
+		rules: scope.rules.toSorted(),
+		designItems: scope.designItems.toSorted(),
+		implementationTasks: scope.implementationTasks.toSorted(),
+		verificationChecks: scope.verificationChecks.toSorted(),
+	};
 	const scopeRevision = createHash('sha256')
-		.update(JSON.stringify({ id, scope, destination: planDestination, dependsOn, revisions }))
+		.update(
+			JSON.stringify({
+				id,
+				scope: canonicalScope,
+				destination: planDestination,
+				dependsOn: dependsOn.toSorted(),
+				revisions,
+			}),
+		)
 		.digest('hex');
 	const governingItems: RecordDestination[] = [];
 	const designBlockers: DesignBlocker[] = [];
@@ -464,17 +478,19 @@ export function projectDelivery(
 		if (coverageGap && coverageGap !== progress.reason) reasons.push(coverageGap);
 		if (unmetPrerequisites.length)
 			reasons.unshift(`Awaiting acceptance of prerequisites: ${unmetPrerequisites.join(', ')}.`);
-		const staleBuilds = new Set(
-			acceptances
-				.filter(({ build }): boolean => build !== implementation.candidate)
-				.map(({ build }): string => build),
-		);
-		if (staleBuilds.size)
-			reasons.push(
-				`Lead acceptance for ${[...staleBuilds].join(', ')} does not match the current candidate.`,
+		if (progress.state !== 'accepted') {
+			const staleBuilds = new Set(
+				acceptances
+					.filter(({ build }): boolean => build !== implementation.candidate)
+					.map(({ build }): string => build),
 			);
-		if (acceptances.some((receipt): boolean => receipt.scopeRevision !== scopeRevision))
-			reasons.push('A recorded Lead acceptance covers a different scope revision.');
+			if (staleBuilds.size)
+				reasons.push(
+					`Lead acceptance for ${[...staleBuilds].join(', ')} does not match the current candidate.`,
+				);
+			if (acceptances.some((receipt): boolean => receipt.scopeRevision !== scopeRevision))
+				reasons.push('A recorded Lead acceptance covers a different scope revision.');
+		}
 
 		byDependencyOrder.set(id, {
 			id,
