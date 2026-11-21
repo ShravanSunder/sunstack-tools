@@ -152,21 +152,21 @@ Rich alternatives use `ex-compare`: keyed `data-compare-row` topics share CSS Gr
 
 `ex-trace` is an ordered sequence of native disclosures with status and arbitrary rich attachments. Tree remains the hierarchy/navigation view. The [Trace reference](skill/references/traces.md) shows its syntax; [source-derived call paths](skill/references/call-paths.md) compose it with comparison while keeping branches distinct from call frames and runtime evidence.
 
-| Elements                                                               | Use                                                                                          |
-| ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| `ex-document`, `ex-nav`                                                | Document and collection navigation                                                           |
-| `ex-markdown`, `ex-mermaid`                                            | Full Markdown/file islands and scoped diagrams                                               |
-| `ex-card`, `ex-callout`, `ex-region`, `ex-stat`                        | Titled semantic content, findings, regions and figures                                       |
-| `ex-code`, `ex-note`                                                   | Code/unified diffs with neutral margin comments beside colored changes                       |
-| `ex-tree`                                                              | Collapsible Markdown tree; plain labels, separate leading disclosure and trailing go-to icon |
-| `ex-pre`, `ex-file-tree`                                               | Literal text/TUI drawings and plain file trees                                               |
-| `ex-gallery`                                                           | Screenshot review and grid views over one collection                                         |
-| `ex-compare`, `ex-trace`                                               | Aligned arbitrary alternatives and ordered expandable evidence                               |
-| `ex-grid`, `ex-flow`, `ex-arrow`                                       | Native composition and labelled connections                                                  |
-| `ex-tabs`, `ex-board`, `ex-layers`                                     | Alternative views, boards and optional layers                                                |
-| `ex-presentation`, `ex-step`                                           | Named/described ordered stops through existing content                                       |
-| `ex-explorer`                                                          | Searchable graph document, selection/history, tracing and evidence                           |
-| `ex-zoom`, `ex-decision`, `ex-diagram-diff`, `ex-timeline`, `ex-layer` | Earlier lab vocabulary; reviewable in the legacy guide page                                  |
+| Elements                                        | Use                                                                                          |
+| ----------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `ex-document`, `ex-nav`                         | Document and collection navigation                                                           |
+| `ex-markdown`, `ex-mermaid`                     | Full Markdown/file islands and scoped diagrams                                               |
+| `ex-card`, `ex-callout`, `ex-region`, `ex-stat` | Titled semantic content, findings, regions and figures                                       |
+| `ex-code`, `ex-note`                            | Code/unified diffs with neutral margin comments beside colored changes                       |
+| `ex-tree`                                       | Collapsible Markdown tree; plain labels, separate leading disclosure and trailing go-to icon |
+| `ex-pre`, `ex-file-tree`                        | Literal text/TUI drawings and plain file trees                                               |
+| `ex-gallery`                                    | Screenshot review and grid views over one collection                                         |
+| `ex-compare`, `ex-trace`                        | Aligned arbitrary alternatives and ordered expandable evidence                               |
+| `ex-grid`, `ex-flow`, `ex-arrow`                | Native composition and labelled connections                                                  |
+| `ex-tabs`, `ex-board`, `ex-layers`              | Alternative views, boards and optional layers                                                |
+| `ex-presentation`, `ex-step`                    | Named/described ordered stops through existing content                                       |
+| `ex-explorer`                                   | Searchable graph document, selection/history, tracing and evidence                           |
+| `ex-timeline`                                   | Alias of `ex-trace`, with the same step disclosures, evidence, and inspection                |
 
 `src/vocabulary.ts` owns element attributes and validation/editor metadata. The packaged `skill/` teaches the matching markup; component-guide pages provide runnable examples.
 

@@ -31,7 +31,7 @@
 							Markdown owns the explanation. Mermaid owns the diagram. HTML places them inside the same decision, comparison and document. The shared library owns their styling and interactions.
 						</script></ex-markdown
 					>
-					<ex-decision id="proposal" status="proposed">
+					<ex-card id="proposal" tone="note">
 						<p class="eyebrow">Illustrative proposal</p>
 						<h2 class="q">Should a session survive its transport?</h2>
 						<div class="decided">
@@ -50,7 +50,7 @@
 							>
 						</ex-callout>
 						<ex-compare>
-							<section slot="before">
+							<section label="Before">
 								<ex-markdown
 									><script type="text/markdown">
 										### Current
@@ -58,16 +58,14 @@
 										The session follows the socket's lifetime.
 									</script></ex-markdown
 								>
-								<ex-zoom
-									><ex-mermaid
+								<ex-mermaid
 										><script type="text/plain">
 											flowchart TD
 											  Client --> Socket --> Session
 										</script></ex-mermaid
-									></ex-zoom
-								>
+									>
 							</section>
-							<section slot="after">
+							<section label="After">
 								<ex-markdown
 									><script type="text/markdown">
 										### Proposed
@@ -75,15 +73,13 @@
 										The registry owns the session independently of the socket.
 									</script></ex-markdown
 								>
-								<ex-zoom
-									><ex-mermaid
+								<ex-mermaid
 										><script type="text/plain">
 											flowchart TD
 											  Client --> Socket --> Registry --> Session
 											  Registry --> Reconnect
 										</script></ex-mermaid
-									></ex-zoom
-								>
+									>
 							</section>
 						</ex-compare>
 						<div class="note">
@@ -91,7 +87,7 @@
 							The supplied styling study distinguishes the question, answer, rationale and
 							commentary. Their visual geometry is shared; the author supplies the meaning.
 						</div>
-					</ex-decision>
+					</ex-card>
 					<ex-markdown id="details"
 						><script type="text/markdown">
 							## Details stay Markdown

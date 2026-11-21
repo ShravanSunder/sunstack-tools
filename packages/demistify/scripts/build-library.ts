@@ -142,7 +142,6 @@ const declarations = Object.entries(vocabulary).map(([tagName, spec]) => {
 			}),
 		),
 	};
-	if (spec.legacy) declaration['deprecated'] = 'Earlier lab vocabulary; still rendered.';
 	return declaration;
 });
 const customData = [

@@ -1,4 +1,4 @@
-ex-trace {
+:is(ex-trace, ex-timeline) {
 	display: block;
 	min-width: 0;
 	max-width: 100%;

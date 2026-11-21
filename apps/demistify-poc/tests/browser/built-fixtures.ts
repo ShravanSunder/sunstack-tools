@@ -333,7 +333,7 @@ export async function builtFixtures(): Promise<Plugin> {
 		join(publicStyle, 'inspector-controls.html'),
 		inspectorPage.replace(
 			'</ex-document>',
-			'<ex-zoom label="Unrelated disclosure" zoom><details id="ordinary-detail"><summary>Authored extra</summary><p>Ordinary authored disclosure.</p></details></ex-zoom></ex-document>',
+			'<ex-card label="Unrelated disclosure" zoom><details id="ordinary-detail"><summary>Authored extra</summary><p>Ordinary authored disclosure.</p></details></ex-card></ex-document>',
 		),
 	);
 	const callInspectorPage = await readFile(join(publicStyle, 'execution.html'), 'utf8');
@@ -341,7 +341,7 @@ export async function builtFixtures(): Promise<Plugin> {
 		join(publicStyle, 'inspector-calls.html'),
 		callInspectorPage.replace(
 			/(<ex-call-stack\b[^>]*>[\s\S]*?<\/ex-call-stack\s*>)/,
-			'<ex-zoom label="Call reader" zoom>$1</ex-zoom>',
+			'<ex-card label="Call reader" zoom>$1</ex-card>',
 		),
 	);
 	const documentCases = [

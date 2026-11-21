@@ -285,40 +285,44 @@ test('tabs carry meaningful icons, layer switches expose checked state and Home 
 	);
 });
 
-test('timeline and layer-band content share deliberate type metrics and aligned markers', async (): Promise<void> => {
-	const { document: fixture } = await openFixture('ui');
-	const fixtureWindow = fixture.defaultView;
-	if (!fixtureWindow) throw new Error('Missing fixture window.');
-	const styles = (selector: string): CSSStyleDeclaration =>
-		fixtureWindow.getComputedStyle(requiredElement(fixture, selector));
-	expect(styles('ex-timeline section small').fontSize).toBe('13px');
-	expect(styles('ex-timeline section h3').fontSize).toBe('17px');
-	expect(styles('ex-timeline section p').fontSize).toBe('15px');
-	expect(styles('ex-timeline section p').fontFamily).toBe(
-		styles('ex-timeline section h3').fontFamily,
-	);
-	expect(fixture.querySelectorAll('#status-timeline .ex-timeline-marker')).toHaveLength(2);
-	const marker = requiredElement(fixture, '#plain-timeline .ex-timeline-marker');
-	expect(marker.querySelector('.ex-tone-icon')).toBeNull();
-	expect(marker.getBoundingClientRect().width).toBe(32);
-	expect(marker.getBoundingClientRect().height).toBe(32);
-	expect(styles('#plain-timeline .ex-timeline-marker').borderRadius).toBe('50%');
-	expect(styles('ex-layer > strong').fontSize).toBe('15px');
-	expect(styles('ex-layer > p').lineHeight).toBe('22.5px');
-	expect(styles('ex-layer > strong').paddingTop).toBe(styles('ex-layer > p').paddingTop);
-	const label = requiredElement(fixture, 'ex-layer > strong');
-	const description = requiredElement(fixture, 'ex-layer > p');
-	expect(styles('ex-layer > strong').fontSize).toBe(styles('ex-layer > p').fontSize);
-	expect(styles('ex-layer > strong').lineHeight).toBe(styles('ex-layer > p').lineHeight);
-	expect(
-		Math.abs(
-			label.getBoundingClientRect().top +
-				label.getBoundingClientRect().height / 2 -
-				description.getBoundingClientRect().top -
-				description.getBoundingClientRect().height / 2,
-		),
-	).toBeLessThan(1);
-});
+test.each([1400, 390])(
+	'the timeline alias uses Trace disclosure, roles and layout at %i CSS px',
+	async (width): Promise<void> => {
+		await page.viewport(width, 1000);
+		const { document: fixture, frame } = await openFixture('ui');
+		const alias = requiredElement(fixture, '#status-timeline');
+		const plainAlias = requiredElement(fixture, '#plain-timeline');
+		const trace = requiredElement(fixture, '#plain-trace');
+		const aliasView = fixtureLocator(frame, alias);
+		const constructors = fixture.defaultView?.customElements;
+		expect(constructors?.get('ex-timeline')).toBeDefined();
+		for (const retired of ['ex-zoom', 'ex-decision', 'ex-diagram-diff', 'ex-layer'])
+			expect(constructors?.get(retired)).toBeUndefined();
+		expect(alias.querySelectorAll('.ex-trace-summary')).toHaveLength(2);
+		await expect.element(aliasView.getByRole('list')).toBeVisible();
+		expect(aliasView.getByRole('listitem').all()).toHaveLength(2);
+		expect(plainAlias.querySelector('.ex-trace-dot')).not.toBeNull();
+		expect(alias.querySelector('.ex-trace-summary .ex-tone-icon')).not.toBeNull();
+		const summary = requiredElement(alias, '.ex-trace-summary');
+		const traceSummary = requiredElement(trace, '.ex-trace-summary');
+		expect(summary.getBoundingClientRect().width).toBeCloseTo(
+			traceSummary.getBoundingClientRect().width,
+		);
+		expect(fixture.defaultView?.getComputedStyle(alias).display).toBe(
+			fixture.defaultView?.getComputedStyle(trace).display,
+		);
+
+		const attachment = aliasView.getByText(
+			'Observe the same session after replacing its transport.',
+		);
+		await expect.element(attachment).not.toBeVisible();
+		await aliasView.getByText('Prove reconnection', { exact: true }).click();
+		await expect.element(attachment).toBeVisible();
+		await page.screenshot({ path: browserScreenshotPath(`trace-alias-${width}.png`) });
+		await aliasView.getByText('Prove reconnection', { exact: true }).click();
+		await expect.element(attachment).not.toBeVisible();
+	},
+);
 
 test('dedicated gallery fills available space and its short grid scrolls without shrinking rows', async (): Promise<void> => {
 	const { document: fixture, frame } = await openFixture('ui', '', 'gallery.html');
