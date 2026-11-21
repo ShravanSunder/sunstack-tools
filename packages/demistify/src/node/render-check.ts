@@ -28,6 +28,10 @@ interface ConsoleMessage {
 	text(): string;
 }
 
+interface TabControl {
+	evaluate<Result>(script: (element: Element) => Result): Promise<Result>;
+}
+
 interface Page {
 	// oxlint-disable-next-line id-length -- Playwright method.
 	on(event: 'console', listener: (message: ConsoleMessage) => void): void;
@@ -44,6 +48,7 @@ interface Page {
 		status(): number;
 	} | null>;
 	evaluate<Result>(script: () => Promise<Result> | Result): Promise<Result>;
+	locator(selector: string): { elementHandles(): Promise<TabControl[]> };
 	waitForFunction(
 		script: () => boolean,
 		argument: undefined,
@@ -127,8 +132,42 @@ async function inspectPage(page: Page, address: URL): Promise<PageInspection> {
 	if (!response?.ok())
 		throw new Error(`HTTP ${response?.status() ?? 'unavailable'} loading ${address.pathname}.`);
 
-	// Scroll once to activate lazy islands and visit visible tabs using their normal handlers.
-	await page.evaluate(async () => {
+	const messages = new Set<string>();
+	const links = new Set<string>();
+	const fragments = new Set<string>();
+
+	async function collectVisibleState(): Promise<void> {
+		await settleVisibleState(page);
+		const visible = await inspectVisibleState(page);
+		for (const message of visible.messages) messages.add(message);
+		for (const link of visible.links) links.add(link);
+		for (const fragment of visible.fragments) fragments.add(fragment);
+	}
+
+	await collectVisibleState();
+	// Use a fixed snapshot so activation cannot add more tabs to this inspection.
+	const tabs = await page.locator('[role="tab"]').elementHandles();
+	for (const tab of tabs) {
+		const activated = await tab.evaluate((element): boolean => {
+			if (
+				!(element instanceof HTMLElement) ||
+				!element.getClientRects().length ||
+				getComputedStyle(element).visibility === 'hidden' ||
+				element.getAttribute('aria-selected') === 'true'
+			)
+				return false;
+			element.click();
+			return true;
+		});
+		if (activated) await collectVisibleState();
+	}
+
+	return { messages: [...messages], links: [...links], fragments: [...fragments] };
+}
+
+async function settleVisibleState(page: Page): Promise<void> {
+	// Scroll to activate lazy islands in the current panel.
+	await page.evaluate(async (): Promise<void> => {
 		// oxlint-disable-next-line unicorn/consistent-function-scoping -- runs in Chromium.
 		const frame = (): Promise<void> =>
 			new Promise((done): void => {
@@ -141,12 +180,8 @@ async function inspectPage(page: Page, address: URL): Promise<PageInspection> {
 			window.scrollTo(0, top);
 			await frame();
 		}
-		for (const tab of document.querySelectorAll<HTMLElement>('[role="tab"]')) {
-			if (!tab.getClientRects().length) continue;
-			tab.click();
-			await frame();
-		}
 		window.scrollTo(0, 0);
+		await frame();
 	});
 	await page
 		.waitForFunction(
@@ -161,7 +196,9 @@ async function inspectPage(page: Page, address: URL): Promise<PageInspection> {
 		.catch((): void => {
 			// Collect the names of still-busy islands in the same DOM report below.
 		});
+}
 
+async function inspectVisibleState(page: Page): Promise<PageInspection> {
 	return page.evaluate((): PageInspection => {
 		const ignore = 'code, pre, kbd, samp, [data-inspector-copy], [data-inspector-content]';
 		const messages: string[] = [];
