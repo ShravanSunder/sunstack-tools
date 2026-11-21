@@ -47,19 +47,25 @@ export function localPageUrl(root: string, file: string, origin: string): URL {
 	return new URL(path, `${origin}/`);
 }
 
-export async function localSiteFile(root: string, url: URL): Promise<string> {
+async function resolveLocalSiteFile(
+	root: string,
+	url: URL,
+): Promise<{ readonly file: string; readonly directory: boolean }> {
 	const candidate = resolve(root, `.${decodeURIComponent(url.pathname)}`);
 	if (!containsPath(root, candidate) || hiddenPath(root, candidate))
 		throw new Error('Path escapes the local site.');
 	const physical = await realpath(candidate);
 	if (!containsPath(root, physical) || hiddenPath(root, physical))
 		throw new Error('Path resolves outside the local site.');
-	const file = (await stat(physical)).isDirectory()
-		? await realpath(join(physical, 'index.html'))
-		: physical;
+	const directory = (await stat(physical)).isDirectory();
+	const file = directory ? await realpath(join(physical, 'index.html')) : physical;
 	if (!containsPath(root, file) || hiddenPath(root, file) || !(await stat(file)).isFile())
 		throw new Error('Invalid local site file.');
-	return file;
+	return { file, directory };
+}
+
+export async function localSiteFile(root: string, url: URL): Promise<string> {
+	return (await resolveLocalSiteFile(root, url)).file;
 }
 
 export async function serveLocalSite(
@@ -79,8 +85,18 @@ export async function serveLocalSite(
 		}
 
 		void Promise.resolve()
-			.then(() => localSiteFile(root, new URL(request.url ?? '/', 'http://local')))
-			.then(async (file): Promise<void> => {
+			.then(async (): Promise<void> => {
+				const url = new URL(request.url ?? '/', 'http://local');
+				const { file, directory } = await resolveLocalSiteFile(root, url);
+				if (directory && !url.pathname.endsWith('/')) {
+					url.pathname += '/';
+					response
+						.writeHead(308, {
+							location: `http://127.0.0.1:${address.port}${url.pathname}${url.search}`,
+						})
+						.end();
+					return;
+				}
 				const contentType = contentTypes.get(extname(file).toLowerCase());
 				if (options.browserAssetsOnly && !contentType) {
 					response.writeHead(404).end();

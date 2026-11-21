@@ -19,6 +19,8 @@ it('opens authored pages and their local includes within the selected site root'
 	const html = '<ex-markdown src="../notes.md"></ex-markdown>';
 	await Promise.all([
 		writeFile(page, html),
+		writeFile(join(pages, 'index.html'), '<ex-markdown src="notes.md"></ex-markdown>'),
+		writeFile(join(pages, 'notes.md'), 'Nested include'),
 		writeFile(join(root, 'notes.md'), '## Reviewed passage'),
 		writeFile(join(root, 'project.generated.json'), '{"version":1}'),
 		writeFile(join(root, '.hidden.json'), '{}'),
@@ -52,6 +54,10 @@ it('opens authored pages and their local includes within the selected site root'
 		expect(await data.text()).toBe('{"version":1}');
 		expect(outside.status).toBe(404);
 		expect(hidden.status).toBe(404);
+		const nested = await fetch(new URL('/project?mode=review', url));
+		expect(new URL(nested.url).pathname).toBe('/project/');
+		expect(new URL(nested.url).search).toBe('?mode=review');
+		expect(await (await fetch(new URL('./notes.md', nested.url))).text()).toBe('Nested include');
 	} finally {
 		lines.close();
 		processHandle.kill();
