@@ -23,6 +23,10 @@ The CLI build still produces the logical `dist/demistify-cli.tgz`. Release stagi
 
 The initial `1.0.0` package/changelog update is merged and deployed. Pre-1.0 candidates run checks without publishing `/v0`. Future public source changes and their consumed version updates stay in separate PRs. Test-only or release-tooling-only changes may use `pnpm changeset add --empty`; public source/guide changes must have a real target release declaration.
 
+## Build an npm candidate
+
+Run `pnpm --filter @sunstack/demistify build --npm` from the monorepo root with Node 26 or later. The build writes `packages/demistify/npm-dist/sunstack-demistify-<version>.tgz` and prints its npm integrity hash. Install that exact tarball into a clean directory with `npm install /absolute/path/to/the.tgz`, then run `npm exec -- demistify` for usage. The npm candidate contains the CLI, browser assets and matching authoring guide. Publication is a separate manual operation.
+
 ## One-time repository setup
 
 - Allow GitHub Actions to create pull requests. Bot PR creation is enabled and the repository retains a read-only default token; the version job explicitly requests only its required write permissions. Keep the default read-only.

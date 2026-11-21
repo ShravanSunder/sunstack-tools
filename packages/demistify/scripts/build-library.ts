@@ -178,4 +178,4 @@ await writeFile(
 process.stdout.write(
 	'Built drop-in Demistify runtime, lazy renderer chunks, theme, linked fonts, subset icons and editor data.\n',
 );
-await buildAuthoringCli(outputDirectory);
+await buildAuthoringCli(outputDirectory, process.argv.includes('--npm', 2));
