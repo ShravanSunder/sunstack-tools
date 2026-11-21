@@ -1,16 +1,19 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { lstat, open, readFile, realpath, rename, unlink, writeFile } from 'node:fs/promises';
 import { dirname, extname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
 
 import { parse, type DefaultTreeAdapterMap } from 'parse5';
 
+import { deliverablesViewSchema } from '../../core/deliverables-view.ts';
 import {
 	type NavigationTarget,
 	type SharedMapNode,
 	sharedNavigationSchema,
 } from '../../core/shared-navigation.ts';
 import { checkHtml, documentFragmentIds, formatFindings } from '../check.ts';
+import { projectDelivery } from './delivery-model.ts';
+import { readDeliveryEntries } from './read-delivery.ts';
 import { readDesign } from './read-design.ts';
 import type { DesignRecord } from './schema.ts';
 
@@ -29,14 +32,28 @@ function missing(error: unknown): boolean {
 	);
 }
 
+interface AuthoredFragment {
+	readonly source: string;
+	readonly designItem: string | undefined;
+	readonly authority: string | undefined;
+}
+
 interface PageMarkup {
-	ids: Set<string>;
+	ids: Map<string, AuthoredFragment>;
 	links: string[];
 	navigationSources: string[];
+	deliverySources: string[];
+	hasDocumentBase: boolean;
 }
 
 function readPageMarkup(html: string, file: string): PageMarkup {
-	const result: PageMarkup = { ids: new Set(), links: [], navigationSources: [] };
+	const result: PageMarkup = {
+		ids: new Map(),
+		links: [],
+		navigationSources: [],
+		deliverySources: [],
+		hasDocumentBase: false,
+	};
 	function visit(node: DefaultTreeAdapterMap['node']): void {
 		if ('attrs' in node) {
 			const get = (name: string): string | undefined =>
@@ -45,20 +62,43 @@ function readPageMarkup(html: string, file: string): PageMarkup {
 			const href = get('href');
 			if (id) {
 				if (result.ids.has(id)) throw new Error(`Duplicate HTML id "${id}" in ${file}.`);
-				result.ids.add(id);
+				const source = node.sourceCodeLocation;
+				result.ids.set(id, {
+					source: source ? html.slice(source.startOffset, source.endOffset) : '',
+					designItem: get('data-design-item'),
+					authority: get('data-authority'),
+				});
 			}
 			if (href) result.links.push(href);
+			if (node.tagName === 'base' && href !== undefined) result.hasDocumentBase = true;
 			if (node.tagName === 'ex-nav') result.navigationSources.push(get('src') ?? '');
+			if (node.tagName === 'ex-deliverables') result.deliverySources.push(get('src') ?? '');
 		}
 		if ('childNodes' in node) node.childNodes.forEach(visit);
 	}
-	visit(parse(html));
+	visit(parse(html, { sourceCodeLocationInfo: true }));
 	return result;
+}
+
+function checkDesignItemMarkup(record: DesignRecord, fragment: AuthoredFragment | undefined): void {
+	if (!fragment || (record.kind !== 'choice' && record.kind !== 'assumption')) return;
+	const itemKind = record.kind === 'choice' ? 'decision' : 'assumption';
+	if (fragment.designItem !== undefined && fragment.designItem !== itemKind)
+		throw new Error(
+			`${record.id}: expected data-design-item="${itemKind}" on its HTML destination.`,
+		);
+
+	if (record.kind !== 'choice' || fragment.authority === undefined) return;
+	const { authority } = record;
+	const expected = authority.state === 'owner-open' ? 'unknown' : authority.sourceKind;
+	if (fragment.authority !== expected)
+		throw new Error(`${record.id}: expected data-authority="${expected}" on its HTML destination.`);
 }
 
 const relatedKind = {
 	serves: 'need',
 	'governed-by': 'choice',
+	'relies-on': 'assumption',
 	realizes: 'rule',
 	checks: 'rule',
 } as const;
@@ -105,7 +145,7 @@ async function planGeneratedJson(
 	return { file, previous, text: `${JSON.stringify(value, null, 2)}\n` };
 }
 
-/** Preflight both outputs, then stage their replacements and rollback copies together. */
+/** Preflight all outputs, then stage their replacements and rollback copies together. */
 async function writeGeneratedFiles(outputs: GeneratedFile[]): Promise<void> {
 	const writes = outputs.map((output) => ({
 		...output,
@@ -235,20 +275,29 @@ export async function checkDesignSet(directory: string, siteRoot?: string): Prom
 
 	const designFile = join(setDirectory, 'design.ts');
 	const declarationFile = join(setDirectory, 'design-schema.d.ts');
-	const navigationFile = join(setDirectory, 'navigation.json');
+	const navigationFile = join(setDirectory, 'navigation.generated.json');
+	const deliverablesFile = join(setDirectory, 'deliverables.generated.json');
 	async function readOwnedInput(file: string): Promise<string> {
 		if (!containsPath(setDirectory, await resolveSiteFile(file)))
 			throw new Error(`${label(file)} must remain inside this design set.`);
 		return readSiteFile(file);
 	}
-	const [designText, declaration] = await Promise.all([
-		readOwnedInput(designFile),
-		readOwnedInput(declarationFile).catch((error: unknown): undefined => {
+	const readOptionalOwnedInput = (file: string): Promise<string | undefined> =>
+		readOwnedInput(file).catch((error: unknown): undefined => {
 			if (missing(error)) return undefined;
 			throw error;
-		}),
+		});
+	const [designText, declaration] = await Promise.all([
+		readOwnedInput(designFile),
+		readOptionalOwnedInput(declarationFile),
 	]);
-	const design = readDesign(designFile, designText, declaration);
+	const design = readDesign(designFile, designText);
+	const entries = await readDeliveryEntries(
+		designFile,
+		designText,
+		declaration,
+		readOptionalOwnedInput,
+	);
 	const navigation = {
 		version: 1,
 		pages: design.pages,
@@ -286,26 +335,84 @@ export async function checkDesignSet(directory: string, siteRoot?: string): Prom
 			route.steps.map((step) => checkNavigationTarget(step.target)),
 		),
 	]);
-	await Promise.all(
-		design.records.map(async (record) => {
-			const destination = resolveLink(record.destination.page, designFile);
-			if (!destination || !ownedPages.has(destination.file))
-				throw new Error(`Record ${record.id} must point to a page owned by this design set.`);
-			await checkDestination(destination.file, record.destination.fragment, true);
-			await Promise.all(
-				record.sources.map(async (source) => {
-					const target = resolveLink(source.href, designFile);
-					if (!target) throw new Error(`Source reference must be local: ${source.href}`);
-					await checkDestination(target.file, target.fragment);
-				}),
-			);
-		}),
+	const recordRevisions = new Map(
+		await Promise.all(
+			design.records.map(async (record) => {
+				const destination = resolveLink(record.destination.page, designFile);
+				if (!destination || !ownedPages.has(destination.file))
+					throw new Error(`Record ${record.id} must point to a page owned by this design set.`);
+				await checkDestination(destination.file, record.destination.fragment, true);
+				const sources =
+					record.kind === 'assumption' && record.resolution
+						? [...record.sources, record.resolution]
+						: record.sources;
+				await Promise.all(
+					sources.map(async (source) => {
+						const target = resolveLink(source.href, designFile);
+						if (!target) throw new Error(`Source reference must be local: ${source.href}`);
+						await checkDestination(target.file, target.fragment);
+					}),
+				);
+				const passage = (await readPage(destination.file)).ids.get(record.destination.fragment);
+				checkDesignItemMarkup(record, passage);
+				const governingRecord =
+					'relationships' in record
+						? {
+								...record,
+								relationships: record.relationships.toSorted(
+									(left, right) =>
+										left.relation.localeCompare(right.relation) ||
+										left.targetId.localeCompare(right.targetId),
+								),
+							}
+						: record;
+				const revision = createHash('sha256')
+					.update(JSON.stringify([governingRecord, passage?.source ?? '']))
+					.digest('hex');
+				return [record.id, revision] as const;
+			}),
+		),
 	);
+	const delivery = projectDelivery(design, entries, recordRevisions);
+	const snapshotRevision = createHash('sha256')
+		.update(
+			JSON.stringify([Object.fromEntries(recordRevisions), navigation, delivery.deliverables]),
+		)
+		.digest('hex');
+	const deliverables = deliverablesViewSchema.parse({
+		version: 1,
+		snapshotRevision,
+		deliverables: delivery.deliverables,
+	});
+	await Promise.all([
+		...delivery.destinations.map(async ({ page, fragment }) => {
+			const target = resolveLink(page, designFile);
+			if (!target || !ownedPages.has(target.file))
+				throw new Error(`Deliverable destination must be a page owned by its design set: ${page}`);
+			await checkDestination(target.file, fragment ?? '', true);
+		}),
+		...delivery.evidence.map(async (href) => {
+			const target = resolveLink(href, designFile);
+			if (!target) throw new Error(`Deliverable evidence must be local: ${href}`);
+			await checkDestination(target.file, target.fragment);
+		}),
+	]);
 
 	const navigationText = JSON.stringify(navigation);
+	const deliverablesText = JSON.stringify(deliverables);
 	const results = await Promise.all(
 		[...ownedPages].map(async (file) => {
 			const markup = await readPage(file);
+			if (markup.hasDocumentBase)
+				throw new Error(
+					`${label(file)}: remove <base href> so design links resolve from the authored page.`,
+				);
+			for (const source of markup.deliverySources) {
+				if (!source || /[?#]/.test(source) || resolveLink(source, file)?.file !== deliverablesFile)
+					throw new Error(
+						`The ex-deliverables src in ${label(file)} must resolve to the design set's deliverables.generated.json.`,
+					);
+			}
 			const [binding] = markup.navigationSources;
 			if (
 				markup.navigationSources.length !== 1 ||
@@ -314,7 +421,7 @@ export async function checkDesignSet(directory: string, siteRoot?: string): Prom
 				resolveLink(binding, file)?.file !== navigationFile
 			) {
 				throw new Error(
-					`The ex-nav src in ${label(file)} must resolve to the design set's navigation.json.`,
+					`The ex-nav src in ${label(file)} must resolve to the design set's navigation.generated.json.`,
 				);
 			}
 			await Promise.all(
@@ -325,9 +432,11 @@ export async function checkDesignSet(directory: string, siteRoot?: string): Prom
 			);
 			const findings = await checkHtml(await readSiteFile(file), {
 				readSource: async (path) => {
-					const local = resolve(dirname(file), path);
-					if (local === navigationFile) return navigationText;
-					return readSiteFile(local).catch((error: unknown): undefined => {
+					const target = resolveLink(path, file);
+					if (!target) return undefined;
+					if (target.file === navigationFile) return navigationText;
+					if (target.file === deliverablesFile) return deliverablesText;
+					return readSiteFile(target.file).catch((error: unknown): undefined => {
 						if (!missing(error)) throw error;
 						return undefined;
 					});
@@ -377,16 +486,19 @@ export async function checkDesignSet(directory: string, siteRoot?: string): Prom
 			}),
 		);
 		const outputs = await Promise.all([
-			planGeneratedJson(join(setDirectory, 'design.json'), {
+			planGeneratedJson(join(setDirectory, 'design.generated.json'), {
 				version: 1,
+				snapshotRevision,
 				pages: design.pages,
 				records: design.records,
 				recordDestinations,
+				recordRevisions: Object.fromEntries(recordRevisions),
 			}),
 			planGeneratedJson(navigationFile, navigation, (current): boolean => {
 				const parsed = sharedNavigationSchema.safeParse(current);
 				return parsed.success && isDeepStrictEqual(parsed.data, validatedNavigation);
 			}),
+			planGeneratedJson(deliverablesFile, deliverables),
 		]);
 		await writeGeneratedFiles(
 			outputs.filter((output): output is GeneratedFile => output !== undefined),
@@ -397,7 +509,14 @@ export async function checkDesignSet(directory: string, siteRoot?: string): Prom
 	}
 	return [
 		details,
+		`Last checked snapshot: ${snapshotRevision}`,
 		`Checked ${ownedPages.size} authored page(s), ${pages.length} navigation page(s), and ${design.records.length} design record(s).`,
+		...Object.values(delivery.deliverables).map(
+			({ id, state, title, scopeRevision, reasons }): string =>
+				[`${id} · ${state} · ${title}`, `Scope revision: ${scopeRevision}`, ...reasons].join(
+					'\n  ',
+				),
+		),
 	]
 		.filter(Boolean)
 		.join('\n');

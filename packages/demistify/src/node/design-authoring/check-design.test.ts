@@ -12,7 +12,7 @@ const cli = fileURLToPath(new URL('../../../bin/demistify.ts', import.meta.url))
 const page = `<!doctype html><html lang="en">
 <head><title>Design</title><link rel="stylesheet" href="https://demistify.getagentstudio.dev/v1/theme.css">
 <script type="module" src="https://demistify.getagentstudio.dev/v1/runtime.js"></script></head>
-<body><ex-nav for="content" src="./navigation.json"></ex-nav><ex-document id="content">
+<body><ex-nav for="content" src="./navigation.generated.json"></ex-nav><ex-document id="content">
 <h1>Design</h1><h2 id="NeedOverview">Read the overview</h2><p><a href="../overview.html#scope">Overview</a> and <a href="../overview.html#details--from-markdown">details</a></p>
 </ex-document></body></html>`;
 const overview = `<!doctype html><html lang="en">
@@ -30,7 +30,7 @@ it('checks a real adjacent page and source inside an explicitly selected site ro
 		const site = join(directory, 'site');
 		const deliverable = join(site, 'deliverable');
 		const definition = join(deliverable, 'design.ts');
-		const navigationPath = join(deliverable, 'navigation.json');
+		const navigationPath = join(deliverable, 'navigation.generated.json');
 		await mkdir(deliverable, { recursive: true });
 		await writeFile(join(deliverable, 'index.html'), page);
 		await writeFile(join(site, 'overview.html'), overview);
@@ -62,6 +62,7 @@ it('checks a real adjacent page and source inside an explicitly selected site ro
 			],
 		};
 		const originalNavigation = JSON.stringify(navigation);
+		await writeFile(join(deliverable, 'navigation.json'), originalNavigation);
 		await writeFile(navigationPath, originalNavigation);
 		await run(process.execPath, [cli, 'design', 'init', deliverable]);
 		const original = await readFile(definition, 'utf8');
@@ -79,7 +80,7 @@ it('checks a real adjacent page and source inside an explicitly selected site ro
 		expect(result.stdout).toContain(
 			'Checked 1 authored page(s), 2 navigation page(s), and 1 design record(s).',
 		);
-		const output = await readFile(join(deliverable, 'design.json'), 'utf8');
+		const output = await readFile(join(deliverable, 'design.generated.json'), 'utf8');
 		expect(JSON.parse(output)).toMatchObject({
 			recordDestinations: { NeedOverview: 'index.html#NeedOverview' },
 		});
@@ -122,19 +123,19 @@ it('checks a real adjacent page and source inside an explicitly selected site ro
 			'Record NeedOverview must point to a page owned by this design set.',
 		);
 		expect(await readFile(navigationPath, 'utf8')).toBe(originalNavigation);
-		expect(await readFile(join(deliverable, 'design.json'), 'utf8')).toBe(output);
+		expect(await readFile(join(deliverable, 'design.generated.json'), 'utf8')).toBe(output);
 		await writeFile(definition, withRecord.replace("'Shared scope'", "'Updated shared scope'"));
 		const lock = join(deliverable, '.demistify-design.lock');
 		await writeFile(lock, '');
 		await expect(run(process.execPath, check)).rejects.toThrow(
 			'Another design check has the output lock',
 		);
-		expect(await readFile(join(deliverable, 'design.json'), 'utf8')).toBe(output);
+		expect(await readFile(join(deliverable, 'design.generated.json'), 'utf8')).toBe(output);
 		await unlink(lock);
 		await rename(navigationPath, join(deliverable, 'navigation.saved'));
 		await mkdir(navigationPath);
 		await expect(run(process.execPath, check)).rejects.toThrow('Expected a generated file');
-		expect(await readFile(join(deliverable, 'design.json'), 'utf8')).toBe(output);
+		expect(await readFile(join(deliverable, 'design.generated.json'), 'utf8')).toBe(output);
 	} finally {
 		await rm(directory, { recursive: true, force: true });
 	}

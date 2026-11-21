@@ -24,7 +24,7 @@ export function captureReviewDocument(root: HTMLElement): void {
 	}
 	const inputs = [
 		...root.querySelectorAll<HTMLElement>(
-			'ex-markdown[src]:not([prepared]),ex-explorer[src],ex-call-stack',
+			'ex-markdown[src]:not([prepared]),ex-explorer[src],ex-call-stack,ex-deliverables[src]',
 		),
 	].filter((element): boolean => !element.closest(inspectionCopy));
 	documentSources.set(root, { markup, inputs });

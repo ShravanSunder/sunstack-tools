@@ -70,13 +70,15 @@ it('runs the typed design command in the packed executable with its declared com
 		await symlink(dirname(compilerManifest), join(installedDependencies, 'typescript'));
 		await writeFile(
 			join(directory, 'index.html'),
-			`${pageHead}<ex-nav for="content" src="./navigation.json"></ex-nav><ex-document id="content"><h1>Guide</h1></ex-document>`,
+			`${pageHead}<ex-nav for="content" src="./navigation.generated.json"></ex-nav><ex-document id="content"><h1>Guide</h1></ex-document>`,
 		);
 		const cli = join(installed, 'demistify.js');
 		await run(process.execPath, [cli, 'design', 'init'], { cwd: directory });
 		const checked = await run(process.execPath, [cli, 'design', 'check'], { cwd: directory });
 		expect(checked.stdout).toContain('Checked 1 authored page(s), 1 navigation page(s)');
-		expect(await readFile(join(directory, 'design.json'), 'utf8')).toContain('"records": []');
+		expect(await readFile(join(directory, 'design.generated.json'), 'utf8')).toContain(
+			'"records": []',
+		);
 	} finally {
 		await rm(directory, { recursive: true, force: true });
 	}

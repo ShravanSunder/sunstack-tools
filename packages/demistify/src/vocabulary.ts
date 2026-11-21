@@ -154,6 +154,10 @@ export const vocabulary: Readonly<Record<string, ElementSpec>> = {
 			label,
 		},
 	},
+	'ex-deliverables': {
+		description: 'Delivery progress, dependencies and evidence from a checked design set.',
+		attributes: { label, src: text('Relative deliverables.generated.json output.', true) },
+	},
 	'ex-document': {
 		description:
 			'The page body: bare Markdown, islands and layouts; adds outline and theme toggle.',

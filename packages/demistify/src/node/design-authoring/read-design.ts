@@ -1,23 +1,35 @@
-import { basename, dirname, join } from 'node:path';
+import { basename, dirname, resolve } from 'node:path';
 
 import typescript from 'typescript';
 
 import { designSchema, type DesignCore } from './schema.ts';
 
-function readLiteral(expression: typescript.Expression, source: typescript.SourceFile): unknown {
-	if (
+export function unwrapExpression(input: typescript.Expression): typescript.Expression {
+	let expression = input;
+	while (
 		typescript.isAsExpression(expression) ||
 		typescript.isSatisfiesExpression(expression) ||
 		typescript.isParenthesizedExpression(expression)
 	)
-		return readLiteral(expression.expression, source);
+		expression = expression.expression;
+	return expression;
+}
+
+export function readLiteral(
+	input: typescript.Expression,
+	source: typescript.SourceFile,
+	bindings?: ReadonlyMap<string, unknown>,
+): unknown {
+	const expression = unwrapExpression(input);
+	if (typescript.isIdentifier(expression) && bindings?.has(expression.text))
+		return bindings.get(expression.text);
 	if (typescript.isStringLiteral(expression)) return expression.text;
 	if (typescript.isNumericLiteral(expression)) return Number(expression.text);
 	if (expression.kind === typescript.SyntaxKind.TrueKeyword) return true;
 	if (expression.kind === typescript.SyntaxKind.FalseKeyword) return false;
 	if (expression.kind === typescript.SyntaxKind.NullKeyword) return null;
 	if (typescript.isArrayLiteralExpression(expression))
-		return expression.elements.map((element): unknown => readLiteral(element, source));
+		return expression.elements.map((element): unknown => readLiteral(element, source, bindings));
 	if (typescript.isObjectLiteralExpression(expression)) {
 		const fields = new Map<string, unknown>();
 		for (const property of expression.properties) {
@@ -27,20 +39,18 @@ function readLiteral(expression: typescript.Expression, source: typescript.Sourc
 			if (!typescript.isStringLiteral(name) && !typescript.isIdentifier(name))
 				throw new Error('design.ts object keys must be identifiers or quoted strings.');
 			if (fields.has(name.text)) throw new Error(`Duplicate design.ts object key: ${name.text}`);
-			fields.set(name.text, readLiteral(property.initializer, source));
+			fields.set(name.text, readLiteral(property.initializer, source, bindings));
 		}
 		return Object.fromEntries(fields);
 	}
 	const { line } = source.getLineAndCharacterOfPosition(expression.getStart(source));
-	throw new Error(`design.ts:${line + 1}: expected a data literal.`);
+	throw new Error(
+		`${source.fileName}:${line + 1}: expected a data literal or an imported deliverable.`,
+	);
 }
 
 /** Read a TypeScript data object. The authoring file is never imported or evaluated. */
-export function readDesign(
-	file: string,
-	text: string,
-	declaration: string | undefined,
-): DesignCore {
+export function readDesign(file: string, text: string): DesignCore {
 	const source = typescript.createSourceFile(file, text, typescript.ScriptTarget.ES2022, true);
 	const exportAssignment = source.statements.filter(typescript.isExportAssignment);
 	const [entry] = exportAssignment;
@@ -55,7 +65,14 @@ export function readDesign(
 		)
 	)
 		throw new Error('Expected one default export and optional type-only imports in design.ts.');
-	const data = readLiteral(entry.expression, source);
+	return designSchema.parse(readLiteral(entry.expression, source));
+}
+
+/** Type-check only the files the authoring loader has resolved and read. */
+export function checkAuthoringTypes(
+	entryPoint: string,
+	sources: ReadonlyMap<string, string>,
+): void {
 	const compilerOptions: typescript.CompilerOptions = {
 		noEmit: true,
 		strict: true,
@@ -68,36 +85,40 @@ export function readDesign(
 		types: [],
 	};
 	const host = typescript.createCompilerHost(compilerOptions);
-	const declarationName = 'design-schema.d.ts';
-	const declarationFile = join(dirname(file), declarationName);
 	const libraryDirectory = dirname(typescript.getDefaultLibFilePath(compilerOptions));
 	const getSourceFile = host.getSourceFile.bind(host);
 	host.getSourceFile = (name, languageVersion, onError, shouldCreateNewSourceFile) => {
-		if (name === file) return source;
-		if (name === declarationFile && declaration !== undefined)
-			return typescript.createSourceFile(name, declaration, languageVersion, true);
+		const text = sources.get(name);
+		if (text !== undefined) return typescript.createSourceFile(name, text, languageVersion, true);
 		if (dirname(name) === libraryDirectory && /^lib\..+\.d\.ts$/.test(basename(name)))
 			return getSourceFile(name, languageVersion, onError, shouldCreateNewSourceFile);
 		return undefined;
 	};
-	host.resolveModuleNameLiterals = (imports) =>
-		imports.map((moduleName) => ({
-			resolvedModule:
-				moduleName.text === `./${declarationName}` && declaration !== undefined
-					? { resolvedFileName: declarationFile, extension: typescript.Extension.Dts }
-					: undefined,
-		}));
+	host.resolveModuleNameLiterals = (imports, importer) =>
+		imports.map((moduleName) => {
+			const path = resolve(dirname(importer), moduleName.text);
+			return {
+				resolvedModule:
+					moduleName.text.startsWith('.') && sources.has(path)
+						? {
+								resolvedFileName: path,
+								extension: path.endsWith('.d.ts')
+									? typescript.Extension.Dts
+									: typescript.Extension.Ts,
+							}
+						: undefined,
+			};
+		});
 	host.resolveTypeReferenceDirectiveReferences = (references) =>
 		references.map(() => ({ resolvedTypeReferenceDirective: undefined }));
-	const program = typescript.createProgram([file], compilerOptions, host);
+	const program = typescript.createProgram([entryPoint], compilerOptions, host);
 	const diagnostics = typescript.getPreEmitDiagnostics(program);
 	if (diagnostics.length)
 		throw new Error(
-			typescript.formatDiagnostics(diagnostics, {
+			typescript.formatDiagnosticsWithColorAndContext(diagnostics, {
 				getCurrentDirectory: () => process.cwd(),
 				getCanonicalFileName: (name) => name,
 				getNewLine: () => '\n',
 			}),
 		);
-	return designSchema.parse(data);
 }

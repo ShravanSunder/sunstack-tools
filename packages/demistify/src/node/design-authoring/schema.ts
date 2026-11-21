@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { deliveryAcceptanceSchema } from '../../core/deliverables-view.ts';
 import { sharedNavigationSchema } from '../../core/shared-navigation.ts';
 
 const nonEmptyText = z.string().trim().min(1);
@@ -25,10 +26,10 @@ const sourceReference = z.strictObject({
 	excerpt: nonEmptyText,
 });
 const servesRelationship = z.strictObject({ relation: z.literal('serves'), targetId: recordId });
-const governingRelationship = z.strictObject({
-	relation: z.literal('governed-by'),
-	targetId: recordId,
-});
+const designDependencies = [
+	z.strictObject({ relation: z.literal('governed-by'), targetId: recordId }),
+	z.strictObject({ relation: z.literal('relies-on'), targetId: recordId }),
+] as const;
 const realizesRelationship = z.strictObject({
 	relation: z.literal('realizes'),
 	targetId: recordId,
@@ -54,7 +55,7 @@ const ruleRecord = z.strictObject({
 	kind: z.literal('rule'),
 	statement: nonEmptyText,
 	relationships: z
-		.array(z.discriminatedUnion('relation', [servesRelationship, governingRelationship]))
+		.array(z.discriminatedUnion('relation', [servesRelationship, ...designDependencies]))
 		.refine(
 			(links) => links.some((link) => link.relation === 'serves'),
 			'a rule must serve at least one need',
@@ -63,14 +64,24 @@ const ruleRecord = z.strictObject({
 const realizationRecord = z.strictObject({
 	...recordBase,
 	kind: z.literal('realization'),
-	relationships: z.array(realizesRelationship).min(1),
+	relationships: z
+		.array(z.discriminatedUnion('relation', [realizesRelationship, ...designDependencies]))
+		.refine(
+			(links) => links.some((link) => link.relation === 'realizes'),
+			'a realization must realize at least one rule',
+		),
 	explanation: nonEmptyText,
 	status: z.literal('proposed'),
 });
 const plannedCheckRecord = z.strictObject({
 	...recordBase,
 	kind: z.literal('planned-check'),
-	relationships: z.array(checksRelationship).min(1),
+	relationships: z
+		.array(z.discriminatedUnion('relation', [checksRelationship, ...designDependencies]))
+		.refine(
+			(links) => links.some((link) => link.relation === 'checks'),
+			'a planned check must check at least one rule',
+		),
 	status: z.literal('planned'),
 	cases: z
 		.array(
@@ -81,11 +92,16 @@ const plannedCheckRecord = z.strictObject({
 		)
 		.min(3),
 });
+const settledDecision = {
+	decision: nonEmptyText,
+	decidedOn: z.iso.date(),
+};
 const choiceAuthority = z.discriminatedUnion('state', [
 	z.strictObject({
 		state: z.literal('owner-decided'),
 		owner: z.literal('owner'),
-		decision: nonEmptyText,
+		sourceKind: z.enum(['owner-words', 'owner-accepted']),
+		...settledDecision,
 	}),
 	z.strictObject({
 		state: z.literal('owner-open'),
@@ -93,10 +109,11 @@ const choiceAuthority = z.discriminatedUnion('state', [
 		question: nonEmptyText,
 	}),
 	z.strictObject({
-		state: z.literal('agent-rationale'),
-		author: nonEmptyText,
+		state: z.literal('lead-decided'),
+		lead: nonEmptyText,
+		sourceKind: z.enum(['author', 'contract']),
 		rationale: nonEmptyText,
-		tradeoff: nonEmptyText,
+		...settledDecision,
 	}),
 ]);
 const choiceRecord = z.strictObject({
@@ -104,11 +121,28 @@ const choiceRecord = z.strictObject({
 	kind: z.literal('choice'),
 	authority: choiceAuthority,
 });
+const assumptionRecord = z
+	.strictObject({
+		...recordBase,
+		kind: z.literal('assumption'),
+		statement: nonEmptyText,
+		status: z.enum(['open', 'confirmed', 'refuted']),
+		resolution: sourceReference.optional(),
+	})
+	.refine(({ status, resolution }) => status === 'open' || resolution !== undefined, {
+		path: ['resolution'],
+		message: 'confirmed and refuted assumptions require a resolution source',
+	})
+	.refine(({ status, resolution }) => status !== 'open' || resolution === undefined, {
+		path: ['resolution'],
+		message: 'remove the resolution source or mark the assumption confirmed or refuted',
+	});
 
 export const designSchema = z.strictObject({
 	pages: sharedNavigationSchema.shape.pages,
 	mapGroups: sharedNavigationSchema.shape.map.unwrap(),
 	walkthroughs: sharedNavigationSchema.shape.walkthroughs.unwrap().optional(),
+	acceptances: z.array(deliveryAcceptanceSchema).optional(),
 	records: z.array(
 		z.discriminatedUnion('kind', [
 			needRecord,
@@ -116,6 +150,7 @@ export const designSchema = z.strictObject({
 			realizationRecord,
 			plannedCheckRecord,
 			choiceRecord,
+			assumptionRecord,
 		]),
 	),
 });

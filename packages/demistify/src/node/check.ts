@@ -7,6 +7,7 @@ import { dirname, join } from 'node:path';
 
 import { type DefaultTreeAdapterMap, parse } from 'parse5';
 
+import { parseDeliverablesView } from '../core/deliverables-view.ts';
 import { availableHeadingFragment, headingSlug } from '../core/heading-fragments.ts';
 import { parseMarkdownSource } from '../core/markdown-source.ts';
 import {
@@ -701,6 +702,25 @@ export async function checkHtml(source: string, options: CheckOptions = {}): Pro
 						error instanceof Error ? error.message : 'Invalid explorer data.',
 					);
 				}
+			}
+		}
+
+		if (name === 'ex-deliverables' && options.readSource) {
+			const file = attributes.get('src')?.trim();
+			// oxlint-disable-next-line no-await-in-loop -- inspect this island's declared data source.
+			const deliverySource = file ? await options.readSource(file) : undefined;
+			try {
+				if (deliverySource === undefined)
+					throw new Error('Cannot read generated deliverables data.');
+				parseDeliverablesView(deliverySource);
+			} catch (error) {
+				report(
+					element,
+					'error',
+					'deliverables-source',
+					error instanceof Error ? error.message : 'Invalid deliverables data.',
+					'src',
+				);
 			}
 		}
 
