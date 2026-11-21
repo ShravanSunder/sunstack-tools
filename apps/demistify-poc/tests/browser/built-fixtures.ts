@@ -544,17 +544,22 @@ export async function builtFixtures(): Promise<Plugin> {
 	);
 	const reviewHtml = await readFile(join(snapshot, 'review/index.html'), 'utf8');
 	await writeFile(
-		join(snapshot, 'review/beside.html'),
+		join(snapshot, 'review/sidebar.html'),
 		reviewHtml.replace(
 			'<ex-choice id="scope-question"',
-			'<ex-choice details="beside" id="scope-question"',
+			'<ex-choice details="sidebar" id="scope-question"',
 		),
 	);
+	const boundaryHtml = reviewHtml.replace(
+		'document-id="demistify-choice-fixture"',
+		'document-id="demistify-review-boundary-fixture"',
+	);
+	await writeFile(join(snapshot, 'review/boundary.html'), boundaryHtml);
 	await writeFile(
-		join(snapshot, 'review/boundary.html'),
-		reviewHtml.replace(
-			'document-id="demistify-choice-fixture"',
-			'document-id="demistify-review-boundary-fixture"',
+		join(snapshot, 'review/boundary-sidebar.html'),
+		boundaryHtml.replace(
+			'<ex-choice id="scope-question"',
+			'<ex-choice details="sidebar" id="scope-question"',
 		),
 	);
 	const searchPages = await Promise.all(

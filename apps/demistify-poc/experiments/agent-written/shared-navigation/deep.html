@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deep Map · Message delivery</title><link rel="stylesheet" href="/experiments/islands/theme.css"><script type="module" src="/experiments/islands/runtime.js"></script>
+</head>
+<body>
+<ex-nav for="content" src="deep-navigation.json"></ex-nav>
+<ex-document id="content">
+  <h1>Deep Map · Message delivery</h1>
+  <p>Try Details on the deepest topic. The supporting passage opens fullscreen. Close it to return to the same topic and scroll position.</p>
+  <ex-tree navigation="collection" layout="map" label="Four levels of delivery topics">
+    <a slot="details" data-for="#retry" href="#retry-details" hidden>Retry evidence</a>
+    <a slot="details" data-for="#scope" href="#scope-details" hidden>Scope evidence</a>
+  </ex-tree>
+  <h2 id="retry">A retry reads the committed result after an interrupted response</h2>
+  <p>Look up the same request ID before deciding whether to execute.</p>
+  <section id="retry-details" label="Retry evidence"><h3>Original result</h3><p>The original result stays available when the response is interrupted after the store commits.</p></section>
+  <h2 id="scope">Which work must be rechecked?</h2>
+  <p>Recheck delivery when the rule changes.</p>
+  <section id="scope-details" label="Scope evidence"><h3>Changed rule</h3><p>The changed rule invalidates the earlier scope revision and holds acceptance.</p></section>
+</ex-document></body></html>

@@ -7,6 +7,7 @@ import { createCommentSnapshot } from '../../../../packages/demistify/src/core/r
 import { fixtureLocator, openFixture, requiredElement } from './fixture-page.ts';
 import {
 	openBoundaryReviewFixture,
+	openReviewFixture,
 	readChoiceResponse,
 	readCurrentReview,
 	textCaretRect,
@@ -435,7 +436,7 @@ test('editable shortcuts keep native newlines and unified manual-copy/export con
 
 test('phone anchor reveal dismisses Comments, missing targets stay honest, and old disconnect cannot close new Details', async (): Promise<void> => {
 	await page.viewport(390, 900);
-	const { document: fixture, frame } = await openBoundaryReviewFixture();
+	const { document: fixture, frame } = await openReviewFixture('boundary-sidebar.html');
 	const context = requiredElement(fixture, '#context');
 	context.scrollIntoView({ block: 'center' });
 	// On a compact reader the exact section action is revealed by keyboard focus.
