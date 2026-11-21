@@ -412,14 +412,3 @@ export function installIslandInspector(owner: HTMLElement): void {
 	controls.append(expand);
 	owner.append(controls);
 }
-
-export class ZoomIsland extends HTMLElement {
-	connectedCallback(): void {
-		// The inspector's copy shows everything, details included.
-		if (this.hasAttribute('data-inspector-content') || this.hasAttribute('data-inspector-copy'))
-			return;
-		for (const detail of this.querySelectorAll<HTMLElement>(':scope > [slot="details"]'))
-			detail.hidden = true;
-		installIslandInspector(this);
-	}
-}

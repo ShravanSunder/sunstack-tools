@@ -34,14 +34,14 @@
 							The design sets what must work and how we will know. Planning carries that meaning into executable work. The Lead owns the picture and acceptance; the Implementer and Verifier supply different evidence.
 						</script></ex-markdown
 					>
-					<ex-decision status="accepted"
+					<ex-card tone="done"
 						><p class="eyebrow">The meaning to preserve</p>
 						<p class="q">Planning carries five reviewed design documents into executable work.</p>
 						<ex-markdown
 							><script type="text/markdown">
 								Source snapshot: 2026-10-14. This is a visual comparison of the supplied planning DAG, not live PR status or new workflow authority.
 							</script></ex-markdown
-						></ex-decision
+						></ex-card
 					>
 					<h2 id="maps">Three perspectives on the same work</h2>
 					<ex-tabs>
@@ -52,7 +52,7 @@
 
 									Solid arrows mean “depends on”. Click a node for its job, boundary and source. The two PRs contain implemented source; the amber F6 nodes are accepted design awaiting implementation.
 								</script></ex-markdown
-							><ex-zoom><ex-mermaid src="fixtures/roadmap.mmd"></ex-mermaid></ex-zoom>
+							><ex-mermaid src="fixtures/roadmap.mmd"></ex-mermaid>
 						</section>
 						<section label="What each design contributes to planning">
 							<ex-markdown
@@ -61,7 +61,7 @@
 
 									This is the normal dependency path for an adopted substantial design unit. Every document has its own local review; the whole set has an integrated review. Early feasibility research can look ahead without changing who owns a decision.
 								</script></ex-markdown
-							><ex-zoom><ex-mermaid src="fixtures/design.mmd"></ex-mermaid></ex-zoom>
+							><ex-mermaid src="fixtures/design.mmd"></ex-mermaid>
 						</section>
 						<section label="Who owns the work and the judgment">
 							<ex-markdown
@@ -70,8 +70,7 @@
 
 									This view is role topology, not a dependency DAG. The dotted Implementer–Verifier link means shared facts and reproductions. Advice, observation, findings and acceptance are separate results.
 								</script></ex-markdown
-							><ex-zoom
-								><ex-mermaid
+							><ex-mermaid
 									><script type="text/plain">
 										flowchart TD
 										  owner["You"]
@@ -92,27 +91,25 @@
 										  verifier --> accept
 										  accept --> reviewer
 									</script></ex-mermaid
-								></ex-zoom
-							>
+								>
 						</section>
 					</ex-tabs>
 					<h2 id="before-after">Implemented source and the planned extension</h2>
 					<ex-callout type="risk"
 						>These views describe a dated source snapshot and proposed dependencies. They do not
 						claim the planned work is implemented.</ex-callout
-					><ex-diagram-diff view="split" highlight="changes"
-						><section slot="before">
+					><ex-compare view="columns"
+						><section label="Before">
 							<h3>Implemented source</h3>
-							<ex-zoom><ex-mermaid src="fixtures/baseline.mmd"></ex-mermaid></ex-zoom>
+							<ex-mermaid src="fixtures/baseline.mmd"></ex-mermaid>
 						</section>
-						<section slot="after">
+						<section label="After">
 							<h3>With the accepted plan</h3>
-							<ex-zoom><ex-mermaid src="fixtures/proposal.mmd"></ex-mermaid></ex-zoom></section
-					></ex-diagram-diff>
+							<ex-mermaid src="fixtures/proposal.mmd"></ex-mermaid></section
+					></ex-compare>
 					<h2 id="layers">The layers still have different jobs</h2>
 					<div class="tree">
-						<ex-layer
-							><div class="lv">
+						<div class="band"><div class="lv">
 								<span class="code">L3</span><span class="name">Orchestrators</span>
 							</div>
 							<div class="body">
@@ -121,20 +118,18 @@
 										Pick the next decision and keep the whole job coherent.
 									</script></ex-markdown
 								>
-							</div></ex-layer
+							</div></div
 						>
-						<ex-layer
-							><div class="lv"><span class="code">L2</span><span class="name">Phases</span></div>
+						<div class="band"><div class="lv"><span class="code">L2</span><span class="name">Phases</span></div>
 							<div class="body">
 								<ex-markdown
 									><script type="text/markdown">
 										Own the judgment at one engineering altitude.
 									</script></ex-markdown
 								>
-							</div></ex-layer
+							</div></div
 						>
-						<ex-layer
-							><div class="lv">
+						<div class="band"><div class="lv">
 								<span class="code">Roles</span><span class="name">Responsibility</span>
 							</div>
 							<div class="body">
@@ -143,20 +138,18 @@
 										Own a result; Worker and Sidekick describe execution form.
 									</script></ex-markdown
 								>
-							</div></ex-layer
+							</div></div
 						>
-						<ex-layer
-							><div class="lv"><span class="code">L1</span><span class="name">Practices</span></div>
+						<div class="band"><div class="lv"><span class="code">L1</span><span class="name">Practices</span></div>
 							<div class="body">
 								<ex-markdown
 									><script type="text/markdown">
 										Carry recurring methods and useful work trails.
 									</script></ex-markdown
 								>
-							</div></ex-layer
+							</div></div
 						>
-						<ex-layer
-							><div class="lv">
+						<div class="band"><div class="lv">
 								<span class="code">L0</span><span class="name">Principles</span>
 							</div>
 							<div class="body">
@@ -165,7 +158,7 @@
 										Teach engineering judgment at the decision where it applies.
 									</script></ex-markdown
 								>
-							</div></ex-layer
+							</div></div
 						>
 					</div>
 					<h2 id="details">Jobs, boundaries and sources</h2>
@@ -559,62 +552,50 @@
 						</section>
 					</ex-tabs>
 					<h2>Implementation sequence</h2>
-					<ex-timeline>
-						<section>
+					<ex-trace>
+						<details open><summary>Main planner</summary>
 							<ex-markdown
 								><script type="text/markdown">
-									### Main planner
-
-									Plan Implementation reads all five documents and current closures, then schedules adopted test and verification strategy into slices, commands and prerequisites. It updates the canonical plan and actual consumers.
+								Plan Implementation reads all five documents and current closures, then schedules adopted test and verification strategy into slices, commands and prerequisites. It updates the canonical plan and actual consumers.
 								</script></ex-markdown
 							>
-						</section>
-						<section>
+						</details>
+						<details open><summary>Improvement planner</summary>
 							<ex-markdown
 								><script type="text/markdown">
-									### Improvement planner
-
-									Plan Improve Repo adopts the same five-document basis for design-bearing findings and preserves positively source-proven mechanics-only work.
+								Plan Improve Repo adopts the same five-document basis for design-bearing findings and preserves positively source-proven mechanics-only work.
 								</script></ex-markdown
 							>
-						</section>
-						<section>
+						</details>
+						<details open><summary>Structural proof</summary>
 							<ex-markdown
 								><script type="text/markdown">
-									### Structural proof
-
-									Permanent source-contract checks, existing schema tests, and a real source walk through producer → planner → handoff → executor/review. The paired Verifier reports finite observations.
+								Permanent source-contract checks, existing schema tests, and a real source walk through producer → planner → handoff → executor/review. The paired Verifier reports finite observations.
 								</script></ex-markdown
 							>
-						</section>
-						<section>
+						</details>
+						<details open><summary>Lead assessment</summary>
 							<ex-markdown
 								><script type="text/markdown">
-									### Lead assessment
-
-									The Lead opens the actual diff and decisive proof, checks them against the accepted need and design, and resolves every material gap before independent implementation review.
+								The Lead opens the actual diff and decisive proof, checks them against the accepted need and design, and resolves every material gap before independent implementation review.
 								</script></ex-markdown
 							>
-						</section>
-						<section>
+						</details>
+						<details open><summary>Independent review</summary>
 							<ex-markdown
 								><script type="text/markdown">
-									### Independent review
-
-									Independent reviewers inspect the implemented skills, their teaching, calls, claims and consumer consistency. The same review relationship checks bounded corrections.
+								Independent reviewers inspect the implemented skills, their teaching, calls, claims and consumer consistency. The same review relationship checks bounded corrections.
 								</script></ex-markdown
 							>
-						</section>
-						<section>
+						</details>
+						<details open><summary>PR readiness</summary>
 							<ex-markdown
 								><script type="text/markdown">
-									### PR readiness
-
-									Current PR head, checks, comments, review threads and mergeability are examined at the authorized delivery boundary.
+								Current PR head, checks, comments, review threads and mergeability are examined at the authorized delivery boundary.
 								</script></ex-markdown
 							>
-						</section>
-					</ex-timeline>
+						</details>
+					</ex-trace>
 					<h2>Source files, carried as references</h2>
 					<ex-file-tree
 						>Five-document planning convergence spec.md — accepted source reference

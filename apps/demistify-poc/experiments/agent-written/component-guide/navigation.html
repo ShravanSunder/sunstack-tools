@@ -9,7 +9,7 @@
 <a href="pictures.html">Screenshot gallery</a>
 <a href="navigation.html">Walkthroughs and links</a>
 <a href="explorer.html">Graph explorer</a>
-<a href="legacy.html">Earlier vocabulary</a>
+<a href="legacy.html">Timeline alias</a>
 <a href="proof.html">Authoring and delivery</a></nav><nav slot="presentations" aria-label="Walkthroughs"><a href="navigation.html#walkthrough"><strong>Session walkthrough</strong><span>Requirements, diagram and shared decision.</span></a></nav></ex-nav><ex-document id="guide"><h1>Presentations and deep links</h1><p>A presentation is a named path through the content below. Several paths may share the same target.</p><ex-markdown id="requirements" label="Session requirements" src="requirements.md"></ex-markdown><section id="architecture"><h2>Architecture</h2><ex-grid cols="2"><ex-mermaid id="before" label="Before"><script type="text/plain">flowchart LR
 Client --> Registry --> Session</script></ex-mermaid><ex-mermaid id="after" label="After"><script type="text/plain">flowchart LR
 Client --> Registry --> Session</script></ex-mermaid></ex-grid><ex-card id="lifetime" title="Session lifetime" tone="decision" pick>The Registry owns the session. A new transport can reconnect without creating another session.</ex-card></section><ex-tree title="Read the source"><script type="text/markdown">- [Session ownership](#requirements--ownership-table)

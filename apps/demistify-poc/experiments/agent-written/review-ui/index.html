@@ -17,9 +17,10 @@
 </script></ex-tree>
 <h2 id="views">Content views</h2><ex-tabs id="models"><section label="Current" icon="gear"><h3>Current model</h3><p>Connection ownership.</p></section><section label="Proposed" icon="git-branch"><h3>Proposed model</h3><p>Independent session ownership.</p></section></ex-tabs>
 <ex-layers off="planned"></ex-layers><ex-card id="planned-card" title="Planned proof" tone="planned" layer="planned">Recovery needs identity evidence.</ex-card>
-<h2 id="timeline">Delivery timeline</h2><ex-timeline id="status-timeline"><section tone="done"><small>Defined</small><h3>Registry owns lifetime</h3><p>Separate session identity from one connection.</p></section><section tone="planned"><small>Planned</small><h3>Prove reconnection</h3><p>Observe the same session after replacing its transport.</p></section></ex-timeline>
-<ex-timeline id="plain-timeline"><section><h3>An event without a supplied status</h3><p>A longer description wraps naturally without implying completion, a date or progress.</p></section></ex-timeline>
-<h2 id="band">Transport band</h2><ex-layer label="Transport"><strong>Transport</strong><p>Carries messages between the client and Registry.</p></ex-layer>
+<h2 id="timeline">Delivery timeline</h2><ex-timeline id="status-timeline"><details tone="done" tag="Defined" open><summary>Registry owns lifetime</summary><p>Separate session identity from one connection.</p></details><details tone="planned" tag="Planned"><summary>Prove reconnection</summary><p>Observe the same session after replacing its transport.</p></details></ex-timeline>
+<ex-trace id="plain-trace"><details><summary>Canonical Trace step</summary><p>Trace attachment.</p></details></ex-trace>
+<ex-timeline id="plain-timeline"><details><summary>An event without a supplied status</summary><p>A longer description wraps naturally without implying completion, a date or progress.</p></details></ex-timeline>
+<h2 id="band">Transport band</h2><ex-card title="Transport"><p>Carries messages between the client and Registry.</p></ex-card>
 <ex-tree id="lower-links"><script type="text/markdown">
 - [Lower last destination](#lower-last)
 </script></ex-tree>

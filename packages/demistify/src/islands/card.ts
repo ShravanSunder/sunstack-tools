@@ -23,15 +23,19 @@ export class CardIsland extends HTMLElement {
 	connectedCallback(): void {
 		if (this.hasAttribute('data-inspector-content')) return;
 		if (!this.hasAttribute('prepared')) {
+			if (this.getAttribute('zoom') !== 'none') {
+				for (const detail of this.querySelectorAll<HTMLElement>(':scope > [slot="details"]'))
+					detail.hidden = true;
+			}
 			adoptBodyMarkdown(this);
 			const header = createHead('div', 'ex-card-head', {
 				tone: readTone(this, undefined),
 				icon: readIcon(this),
-				title: takeTitle(this),
-				tag: this.getAttribute('tag'),
+				title: takeTitle(this)?.trim(),
+				tag: this.getAttribute('tag')?.trim() ?? null,
 				pick: this.getAttribute('pick'),
 			});
-			this.prepend(header);
+			if (header.childElementCount) this.prepend(header);
 			this.setAttribute('prepared', '');
 		}
 		installIslandInspector(this);

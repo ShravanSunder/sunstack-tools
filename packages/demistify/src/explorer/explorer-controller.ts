@@ -8,6 +8,7 @@ import { createDebouncedAction } from '../core/debounce.ts';
 import { createIconButton, createPhosphorIcon } from '../core/icons.ts';
 import { reportIssue } from '../core/issues.ts';
 import { registerInspectionCopy } from '../islands/inspection-copy.ts';
+import { installIslandInspector } from '../islands/inspector.ts';
 import { appendSources, connectionTable, supplementaryTable } from './explorer-tables.ts';
 import {
 	compositionView,
@@ -156,7 +157,7 @@ export class ExplorerController {
 		this.panel.id = `${owner.id}-details`;
 		this.sources.className = 'ex-explorer-sources';
 		this.sources.hidden = true;
-		const zoom = document.createElement('ex-zoom');
+		const zoom = document.createElement('div');
 		zoom.setAttribute('label', 'Composition graph');
 		zoom.setAttribute('zoom', '');
 		zoom.append(this.viewport);
@@ -181,6 +182,7 @@ export class ExplorerController {
 		shell.className = 'ex-explorer-shell';
 		shell.append(this.browser, this.main);
 		owner.replaceChildren(shell);
+		installIslandInspector(zoom);
 		this.resizeObserver = new ResizeObserver((): void => {
 			if (this.viewport.clientWidth === this.graphWidth || !owner.isConnected) return;
 			this.renderGraph();

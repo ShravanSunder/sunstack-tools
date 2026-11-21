@@ -657,7 +657,7 @@ test.each([1600, 390])(
 		workspace
 			.querySelector('button')
 			?.addEventListener('click', (): void => workspace.removeAttribute('open'));
-		const enlargement = fixture.createElement('ex-zoom');
+		const enlargement = fixture.createElement('ex-card');
 		enlargement.setAttribute('label', 'Workspace host');
 		enlargement.setAttribute('zoom', '');
 		enlargement.append(trigger, workspace);

@@ -91,5 +91,3 @@ export class CompareIsland extends HTMLElement {
 		this.append(range);
 	}
 }
-
-export class DiagramDiffIsland extends CompareIsland {}

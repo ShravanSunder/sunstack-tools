@@ -726,6 +726,26 @@ export async function checkHtml(source: string, options: CheckOptions = {}): Pro
 			}
 		}
 
+		if (name === 'ex-trace' || name === 'ex-timeline') {
+			for (const child of element.childNodes.filter(isElement)) {
+				const summaries = child.childNodes
+					.filter(isElement)
+					.filter((item): boolean => item.tagName === 'summary');
+				if (
+					child.tagName !== 'details' ||
+					summaries.length !== 1 ||
+					!summaries[0] ||
+					!textOf(summaries[0]).trim()
+				)
+					report(
+						child,
+						'error',
+						'trace',
+						'A Trace step needs a direct details element with one nonempty summary.',
+					);
+			}
+		}
+
 		if (name === 'ex-tabs')
 			for (const child of element.childNodes.filter(isElement))
 				if (child.tagName !== 'section' || !attributeMap(child).has('label'))

@@ -36,7 +36,6 @@ export interface ElementSpec {
 	/** Text the element reads from a `<script type="…">` child. */
 	readonly source?: 'text/plain' | 'text/markdown';
 	/** Earlier lab vocabulary: still rendered, not taught. */
-	readonly legacy?: boolean;
 }
 
 const text = (description: string, required = false): AttributeSpec => ({
@@ -72,6 +71,13 @@ export const layoutAttributes: Readonly<Record<string, AttributeSpec>> = {
 		'Width of this entire component or layout wrapper; Reading and Canvas share a left edge.',
 		['reading', 'canvas'],
 	),
+};
+
+const trace: ElementSpec = {
+	description:
+		'Ordered native disclosures with rich evidence attachments, distinct from a hierarchy tree.',
+	attributes: { title: text('Name of this evidence sequence.'), tone, icon, label },
+	childAttributes: { tone, icon, tag: text('Short source or observation status on a step.') },
 };
 
 export const vocabulary: Readonly<Record<string, ElementSpec>> = {
@@ -301,11 +307,10 @@ export const vocabulary: Readonly<Record<string, ElementSpec>> = {
 			label,
 		},
 	},
-	'ex-trace': {
-		description:
-			'Ordered native disclosures with rich evidence attachments, distinct from a hierarchy tree.',
-		attributes: { title: text('Name of this evidence sequence.'), tone, icon, label },
-		childAttributes: { tone, icon, tag: text('Short source or observation status on a step.') },
+	'ex-trace': trace,
+	'ex-timeline': {
+		...trace,
+		description: 'Alias for ex-trace. Uses the same disclosures and evidence attachments.',
 	},
 	'ex-grid': {
 		description: 'Children side by side; wraps when narrow, one column on phones.',
@@ -385,16 +390,6 @@ export const vocabulary: Readonly<Record<string, ElementSpec>> = {
 			src: text('Shared JSON defining Pages, semantic Map and Walkthroughs.'),
 		},
 	},
-	'ex-zoom': {
-		description: 'A surface whose `slot="details"` children show only when inspected.',
-		attributes: { label },
-		legacy: true,
-	},
-	'ex-decision': {
-		description: 'A decision record.',
-		attributes: { status: text('Decision status.'), label },
-		legacy: true,
-	},
 	'ex-compare': {
 		description:
 			'Alternatives with arbitrary islands: corresponding topic rows align, or one detailed view appears in tabs. A slider overlays two same-size pictures.',
@@ -413,13 +408,6 @@ export const vocabulary: Readonly<Record<string, ElementSpec>> = {
 		},
 		childAttributes: { label: text('Name of this alternative (default Before / After).'), icon },
 	},
-	'ex-diagram-diff': {
-		description: 'Before and after diagrams.',
-		attributes: { label },
-		legacy: true,
-	},
-	'ex-timeline': { description: 'A vertical timeline.', attributes: { label }, legacy: true },
-	'ex-layer': { description: 'A layer band.', attributes: { label }, legacy: true },
 };
 
 /** Attributes valid on every element. */
@@ -602,8 +590,7 @@ export function checkAttributes(
 			granted?.[name] === undefined && parent && !spec ? `<${parent}> child` : `<${element}>`;
 		problems.push({
 			attribute: name,
-			...(spec?.legacy ? { severity: 'warning' as const } : {}),
-			message: `${host} has no attribute "${name}"${spec?.legacy ? '; it has no effect' : ''}.${meant ? ` Use ${meant}.` : ` Known: ${names.join(', ') || 'none'}.`}`,
+			message: `${host} has no attribute "${name}".${meant ? ` Use ${meant}.` : ` Known: ${names.join(', ') || 'none'}.`}`,
 			...(meant && !attributes.has(meant)
 				? { fix: movedValue ? { name: meant, value: movedValue } : { name: meant } }
 				: {}),
@@ -612,7 +599,4 @@ export function checkAttributes(
 	return problems;
 }
 
-/** Elements authors are taught, for suggestions; legacy elements are accepted but not suggested. */
-export const taughtElements = Object.entries(vocabulary)
-	.filter(([, spec]): boolean => !spec.legacy)
-	.map(([name]): string => name);
+export const taughtElements = Object.keys(vocabulary);

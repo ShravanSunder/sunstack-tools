@@ -193,6 +193,10 @@ ex-card {
 	line-height: 1.55;
 	box-shadow: var(--shadow-float);
 }
+/* Keep inspector attachments out of the first paint before Card can set hidden. */
+ex-card:not(:defined):not([zoom='none']) > [slot='details'] {
+	display: none;
+}
 /* A declared category owns the surface paint; status remains explicit content. */
 :is(ex-card, ex-region, ex-section)[series='1'] {
 	--surface-category: var(--chart-1);
