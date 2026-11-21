@@ -53,7 +53,7 @@ For each matching condition below, load the named reference and return its autho
 | A card, consequential callout or reported number | `references/cards-and-callouts.md` | Meaningful units, tones/icons and truthful recommendation/chosen states |
 | The reader must select answers, attach feedback or override review identity | `references/choices-and-comments.md` | Requested response/feedback arrangement, default or overridden identities and binding, optional supporting details and intended interactions |
 | A compact status or identity, exact progress count or named phase comparison | `references/small-parts.md` | Supported parts, the complete combined-row recipe when requested, truthful boundaries, stable phase slots and exact supplied values |
-| Typed design records, cross-set sources or generated navigation | `references/typed-design.md` | Stable record IDs, checked HTML destinations and site-root links |
+| Typed design records, cross-set sources, generated navigation or deliverable progress | `references/typed-design.md` | Checked IDs and destinations, the authored TypeScript and HTML files, plus any generated navigation and delivery views the page uses |
 | Pages, heading links, breadcrumbs or collection search | `references/navigation.md` | Native page links, stable targets and current collection index when needed |
 | Sidebar/fullscreen inspection, including a visual's default controls | `references/inspection.md` | Inspection choice and return/state behavior |
 | A large bottom workspace beside Comments, such as related documents | `references/inspection.md` | Drawer markup, its initial state and lifecycle, and who reopens it after a close |

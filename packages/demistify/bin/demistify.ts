@@ -42,10 +42,20 @@ async function readHookFile(): Promise<string | undefined> {
 
 async function main(): Promise<number> {
 	const [command, ...rest] = process.argv.slice(2);
+	if (command === 'project') {
+		const [action, directory = '.'] = rest;
+		if (action === 'check' && rest.length <= 2 && directory !== '--help') {
+			const { checkProject } = await import('../src/node/design-authoring/check-project.ts');
+			write(await checkProject(directory));
+			return 0;
+		}
+		write('Usage: demistify project check [directory]');
+		return !action || action === '--help' || (rest.length === 2 && directory === '--help') ? 0 : 1;
+	}
 	if (command === 'design') {
 		const [action, ...args] = rest;
 		const usage =
-			'Usage: demistify design init [directory]\n       demistify design check [directory] [--site-root <directory>]';
+			'Usage: demistify design init [directory]\n       demistify design types [directory]\n       demistify design check [directory] [--site-root <directory>]';
 		if (!action || action === '--help') {
 			write(usage);
 			return 0;
@@ -63,6 +73,11 @@ async function main(): Promise<number> {
 		if (positionals.length <= 1 && action === 'init' && values['site-root'] === undefined) {
 			const { initDesignSet } = await import('../src/node/design-authoring/init-design.ts');
 			write(await initDesignSet(directory));
+			return 0;
+		}
+		if (positionals.length <= 1 && action === 'types' && values['site-root'] === undefined) {
+			const { refreshDesignTypes } = await import('../src/node/design-authoring/init-design.ts');
+			write(await refreshDesignTypes(directory));
 			return 0;
 		}
 		if (positionals.length <= 1 && action === 'check') {
@@ -141,7 +156,7 @@ async function main(): Promise<number> {
 	}
 	if (command !== 'check') {
 		write(
-			'Usage: demistify check [--fix] [--render] [--no-diagrams] <page.html …>\n       demistify check --hook\n       demistify design --help',
+			'Usage: demistify check [--fix] [--render] [--no-diagrams] <page.html …>\n       demistify check --hook\n       demistify design --help\n       demistify project check [directory]',
 		);
 		return command ? 1 : 0;
 	}
