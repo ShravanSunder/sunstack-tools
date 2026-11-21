@@ -46,7 +46,7 @@ test.each([
 	'saved Choice comment count stays inside its circle at $width $theme',
 	async ({ width, theme }): Promise<void> => {
 		await page.viewport(width, 900);
-		const { document: fixture, frame } = await openReviewFixture('beside.html');
+		const { document: fixture, frame } = await openReviewFixture();
 		fixture.documentElement.dataset['theme'] = theme;
 		const option = requiredElement(fixture, '#technical');
 		const marker = requiredElement(option, ':scope > .ex-entity-comment');
@@ -229,7 +229,7 @@ test('a code comment leaves its inspection buttons clear', async (): Promise<voi
 
 test('a compact choice detail keeps an unmarked diagram’s Fullscreen button available', async (): Promise<void> => {
 	await page.viewport(390, 850);
-	const { document: fixture, frame } = await openReviewFixture('beside.html');
+	const { document: fixture, frame } = await openReviewFixture();
 	await frame
 		.getByRole('button', { name: 'Open details for Technical scope', exact: true })
 		.click();
@@ -348,8 +348,8 @@ test('body, native controls and repainted Comment SVG keep answer and action sem
 	).toEqual(['desktop-check', 'phone-check']);
 });
 
-test('right-aligned card Details uses the native inspector and preserves the outline', async (): Promise<void> => {
-	const { document: fixture, frame } = await openReviewFixture();
+test('explicit sidebar Details stays right-aligned and preserves the outline', async (): Promise<void> => {
+	const { document: fixture, frame } = await openReviewFixture('sidebar.html');
 	const target = requiredElement(fixture, '#technical');
 	const label = requiredElement(target, '.ex-choice-label');
 	const button = requiredElement(target, '.ex-choice-details-button');
@@ -393,8 +393,8 @@ test('right-aligned card Details uses the native inspector and preserves the out
 	);
 });
 
-test('beside-card Details closes back to the same trigger and leaves selection unchanged', async (): Promise<void> => {
-	const { document: fixture, frame } = await openReviewFixture('beside.html');
+test('default beside-card Details closes back to the same trigger and leaves selection unchanged', async (): Promise<void> => {
+	const { document: fixture, frame } = await openReviewFixture();
 	const choice = requiredElement(fixture, '#scope-question');
 	const option = requiredElement(choice, '#technical');
 	const marker = requiredElement(option, ':scope > .ex-entity-comment');
@@ -445,7 +445,7 @@ test('beside-card Details closes back to the same trigger and leaves selection u
 		targetId: 'technical--choice-details',
 	});
 	document.body.replaceChildren();
-	const reopened = await openReviewFixture('beside.html');
+	const reopened = await openReviewFixture();
 	expect(reopened.document.querySelector('#scope-diagram > svg')).toBeNull();
 	await reopened.frame.getByRole('button', { name: 'Comments (1)', exact: true }).click();
 	await reopened.frame
@@ -489,10 +489,10 @@ test('selectable table and inline details retain their authored views at phone w
 });
 
 test.each([1600, 390])(
-	'Comments and Details replace each other through the native owner at width %i',
+	'Comments and explicit sidebar Details replace each other at width %i',
 	async (width): Promise<void> => {
 		await page.viewport(width, 1000);
-		const { document: fixture, frame } = await openReviewFixture();
+		const { document: fixture, frame } = await openReviewFixture('sidebar.html');
 		await frame.getByRole('button', { name: 'Comments (0)', exact: true }).click();
 		await expect
 			.element(

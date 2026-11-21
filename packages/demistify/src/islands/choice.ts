@@ -106,8 +106,12 @@ export class ChoiceIsland extends HTMLElement {
 		legend.textContent = this.question;
 		fieldset.append(legend);
 		const tableView = this.getAttribute('view') === 'table';
-		const detailsMode = this.getAttribute('details');
-		const beside = detailsMode === 'beside' && !tableView ? new ChoiceDetailPanel() : undefined;
+		const detailsMode = this.getAttribute('details') ?? (tableView ? 'sidebar' : 'beside');
+		const hasDetails = declarations.some((option): boolean =>
+			Boolean(option.querySelector(':scope > [slot="details"]')),
+		);
+		const beside =
+			detailsMode === 'beside' && !tableView && hasDetails ? new ChoiceDetailPanel() : undefined;
 		const authoredWidth = this.getAttribute('data-width');
 		this.dataset['width'] = authoredWidth ?? (tableView || beside ? 'canvas' : 'reading');
 		this.classList.toggle('ex-choice-default-width', authoredWidth === null);

@@ -1,3 +1,4 @@
+import { createIconButton } from '../core/icons.ts';
 import { setModalControlHost } from '../layout/reader-controls.ts';
 
 export type DrawerPresentation = { readonly kind: 'standard' } | { readonly kind: 'map' };
@@ -250,6 +251,7 @@ export class DrawerIsland extends HTMLElement {
 	private returnFocus: HTMLElement | null = null;
 	private reflectingOpen = false;
 	private initialized = false;
+	private closeButton: HTMLButtonElement | undefined;
 
 	static get observedAttributes(): string[] {
 		return ['open'];
@@ -265,6 +267,20 @@ export class DrawerIsland extends HTMLElement {
 		this.setAttribute('role', 'dialog');
 		if (!this.hasAttribute('aria-label'))
 			this.setAttribute('aria-label', this.getAttribute('label') ?? 'Details');
+		if (!this.querySelector(':scope > .ex-inspect-header > [data-drawer-close]')) {
+			const authoredHeader = this.querySelector(':scope > .ex-inspect-header');
+			const header = authoredHeader ?? this.ownerDocument.createElement('header');
+			if (!authoredHeader) {
+				header.className = 'ex-inspect-header';
+				const title = this.ownerDocument.createElement('strong');
+				title.textContent = this.getAttribute('aria-label') ?? 'Details';
+				header.append(title);
+				this.prepend(header);
+			}
+			this.closeButton ??= createIconButton('x', 'Close drawer', (): void => this.close());
+			this.closeButton.dataset['drawerClose'] = '';
+			header.append(this.closeButton);
+		}
 		this.initialized = true;
 		if (this.open) this.show();
 		else this.hidden = true;

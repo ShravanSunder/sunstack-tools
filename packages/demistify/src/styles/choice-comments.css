@@ -94,7 +94,8 @@ ex-option .ex-choice-title-row > .ex-choice-details-button {
 	font: inherit;
 	cursor: pointer;
 }
-.ex-choice-details-button {
+.ex-choice-details-button,
+.ex-tree-details-button {
 	display: inline-flex;
 	align-items: center;
 	gap: var(--space-1);
@@ -108,10 +109,12 @@ ex-option .ex-choice-title-row > .ex-choice-details-button {
 	color: var(--ink-soft);
 	font: 600 var(--text-sm)/1 var(--font-body);
 }
-.ex-choice-details-button .ph {
+.ex-choice-details-button .ph,
+.ex-tree-details-button .ph {
 	font-size: var(--text-lg);
 }
-.ex-choice-details-button:hover {
+.ex-choice-details-button:hover,
+.ex-tree-details-button:hover {
 	color: var(--ink);
 	border-color: var(--ink-soft);
 }
