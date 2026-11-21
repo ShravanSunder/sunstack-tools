@@ -30,6 +30,16 @@ For reader delivery, keep HTML small and import the matching shared library from
 </ex-document>
 ```
 
+## Open a local review
+
+From a matching source checkout, open the authored page in your browser:
+
+```sh
+node packages/demistify/bin/demistify.ts open docs/review/index.html
+```
+
+From the installed package, use `npx demistify open docs/review/index.html`. The preview serves the page directory over loopback. Set `--site-root docs` if the page depends on siblings elsewhere in that collection. Add `--no-browser` to print an address without launching a browser. Keep the process running during review.
+
 ## Files and no-server delivery
 
 Small HTML plus shared HTTPS assets is the default. Do not inline the library, fonts or image bytes. Keep images as ordinary local paths or web URLs. Several HTML pages reuse the same Cloudflare assets and browser cache.
