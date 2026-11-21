@@ -47,7 +47,31 @@ function isBuiltinFormat(format: string): boolean {
 	return builtinTranscriptFormats.some((builtin) => builtin === format);
 }
 
-/** Schema producers can attach hidden Standard Schema metadata to a JSON Schema document. */
+/** Remove hidden Standard Schema metadata while keeping other values for the wire encoder. */
+function copySchemaData(value: unknown, copies: WeakMap<object, object>): unknown {
+	if (typeof value !== 'object' || value === null) return value;
+	const existing = copies.get(value);
+	if (existing !== undefined) return existing;
+	const array = Array.isArray(value);
+	if (!array) {
+		const prototype: unknown = Object.getPrototypeOf(value);
+		if (prototype !== Object.prototype && prototype !== null) return value;
+	}
+	const copied = array ? [] : {};
+	// Keep shared references and cycles intact so the wire encoder handles each as usual.
+	copies.set(value, copied);
+	for (const key of Reflect.ownKeys(value)) {
+		const field = Object.getOwnPropertyDescriptor(value, key);
+		if (field === undefined) continue;
+		if (!Object.hasOwn(field, 'value')) {
+			throw new TypeError('The adapter schema must contain only data properties.');
+		}
+		if (key === '~standard' && field.enumerable === false) continue;
+		Object.defineProperty(copied, key, { ...field, value: copySchemaData(field.value, copies) });
+	}
+	return copied;
+}
+
 function mappingWithSchemaData(mapping: TranscriptAdapterMapping): unknown {
 	const schemaDescriptor = Object.getOwnPropertyDescriptor(mapping, 'schema');
 	if (schemaDescriptor === undefined) return mapping;
@@ -55,28 +79,12 @@ function mappingWithSchemaData(mapping: TranscriptAdapterMapping): unknown {
 		throw new TypeError('The adapter schema must be a data property.');
 	}
 	const schema: unknown = schemaDescriptor.value;
-	if (
-		typeof schema !== 'object' ||
-		schema === null ||
-		Object.getOwnPropertyDescriptor(schema, '~standard')?.enumerable !== false
-	) {
-		return mapping;
-	}
-	const schemaPrototype: unknown = Object.getPrototypeOf(schema);
+	if (typeof schema !== 'object' || schema === null) return mapping;
 	const mappingPrototype: unknown = Object.getPrototypeOf(mapping);
-	if (
-		(schemaPrototype !== Object.prototype && schemaPrototype !== null) ||
-		(mappingPrototype !== Object.prototype && mappingPrototype !== null)
-	) {
-		return mapping;
-	}
-	// Copy descriptors so every other key remains subject to the ordinary wire encoder.
-	const schemaFields = Object.getOwnPropertyDescriptors(schema);
-	delete schemaFields['~standard'];
-	const schemaData: unknown = Object.create(schemaPrototype, schemaFields);
+	if (mappingPrototype !== Object.prototype && mappingPrototype !== null) return mapping;
 	const mappingData: unknown = Object.create(mappingPrototype, {
 		...Object.getOwnPropertyDescriptors(mapping),
-		schema: { ...schemaDescriptor, value: schemaData },
+		schema: { ...schemaDescriptor, value: copySchemaData(schema, new WeakMap()) },
 	});
 	return mappingData;
 }

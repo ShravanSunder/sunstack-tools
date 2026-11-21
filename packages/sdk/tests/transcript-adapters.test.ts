@@ -54,7 +54,10 @@ void test(
 	async () => {
 		const root = ownedDirectory('registered-transcript');
 		const fixture = packagedFixture('transcript-adapter.jsonl');
-		const trace = `${fixture}{"event":"assistant","body":{"text":"schema rejected"},"fixtureAllowed":false}\n`;
+		const allowedInteger = 9_007_199_254_740_993n;
+		const allowedRow = `{"event":"assistant","message_id":"schema-accepted","body":{"text":"schema accepted"},"fixtureAllowed":${allowedInteger}}\n`;
+		const refusedRow = `{"event":"assistant","body":{"text":"schema rejected"},"fixtureAllowed":${allowedInteger - 1n}}\n`;
+		const trace = `${fixture}${allowedRow}${refusedRow}`;
 		const backend = await startControlledBackend();
 		const responder = answerEveryRequest(backend, 1);
 		try {
@@ -66,13 +69,15 @@ void test(
 				'transcript-adapter.ruleset.json': packagedFixture('transcript-adapter.ruleset.json'),
 				'transcript-adapter.rules.jsonl': packagedFixture('transcript-adapter.rules.jsonl'),
 			});
+			const subschema = Object.defineProperty({ const: allowedInteger }, '~standard', {
+				value: { validate: () => false },
+			});
 			const editable = {
 				...adapterDefinition,
-				schema: Object.defineProperty(
-					{ type: 'object', properties: { fixtureAllowed: { type: 'string' } } },
-					'~standard',
-					{ value: { validate: () => false } },
-				),
+				schema: {
+					type: 'object',
+					properties: { fixtureAllowed: { anyOf: [subschema, subschema] } },
+				},
 				records: {
 					...adapterDefinition.records,
 					tool_finished: { ...adapterDefinition.records.tool_finished, text: '/output' },
@@ -157,7 +162,7 @@ void test(
 			const custom = evidence.selections.find(({ id }) => id === 'custom')?.readiness;
 			assert.equal(custom?.kind, 'ready');
 			assert.equal(custom.content.kind, 'conversation_records');
-			const [user, call, assistant, pending] = custom.content.records;
+			const [user, call, assistant, pending, validated] = custom.content.records;
 			assert.equal(user?.record_id, 'example-user');
 			assert.equal(user.injection, 'unknown');
 			assert.equal(assistant?.record_id, 'example-assistant');
@@ -174,12 +179,14 @@ void test(
 			});
 			assert.equal(pending?.body.kind, 'tool_use');
 			assert.equal(pending.body.outcome, 'result_missing');
-			assert.equal(custom.content.records.length, 4);
+			assert.equal(validated?.record_id, 'schema-accepted');
+			assert.equal(custom.content.records.length, 5);
 			assert.equal(custom.coverage.kind, 'single_source');
 			assert.ok(
 				custom.coverage.capture.gaps.some(
 					(gap) =>
-						gap.kind === 'malformed_record' && gap.position === BigInt(Buffer.byteLength(fixture)),
+						gap.kind === 'malformed_record' &&
+						gap.position === BigInt(Buffer.byteLength(fixture + allowedRow)),
 				),
 			);
 			const saved = serialize({ kind: 'evidence_plan_outcome', value: evidence });
@@ -241,3 +248,33 @@ void test(
 		}
 	},
 );
+
+void test('nested schema metadata does not hide accessors, executable data or cycles', () => {
+	const builtins = AdapterRegistry.builtins();
+	let reads = 0;
+	const accessor = Object.defineProperty({}, 'const', {
+		get() {
+			reads += 1;
+			return 'never read';
+		},
+	});
+	const executable = Object.defineProperty({}, '~standard', {
+		enumerable: true,
+		value: { validate: () => false },
+	});
+	const cyclic = { allOf: [] };
+	Object.defineProperty(cyclic, 'allOf', { value: [cyclic] });
+	assert.throws(
+		() => builtins.withAdapter({ ...adapterDefinition, schema: { anyOf: [accessor] } }),
+		/schema must contain only data properties/u,
+	);
+	assert.equal(reads, 0);
+	assert.throws(
+		() => builtins.withAdapter({ ...adapterDefinition, schema: { anyOf: [executable] } }),
+		/function, not data/u,
+	);
+	assert.throws(
+		() => builtins.withAdapter({ ...adapterDefinition, schema: cyclic }),
+		/is a cycle/u,
+	);
+});

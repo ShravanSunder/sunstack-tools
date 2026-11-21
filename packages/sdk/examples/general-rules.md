@@ -255,7 +255,7 @@ Use `AdapterRegistry.builtins().withAdapter(mapping)` to create a snapshot with 
 
 Each registration takes one concrete format-name literal. When a name comes from a union, narrow it to one branch before calling `withAdapter`.
 
-You can supply an offline Draft 2020-12 JSON Schema as the optional `schema` property, including a schema emitted by Zod's JSON Schema conversion. The schema validates selected rows, and the record pointers extract their fields. Inspect the returned coverage for unsupported or malformed rows, orphan results, and uncertainty about user-message injection. A changed adapter mapping or schema requires a fresh cursor.
+You can supply an offline Draft 2020-12 JSON Schema as the optional `schema` property. Use Zod's JSON Schema conversion for the entire schema or for subschemas such as entries under `properties` or `anyOf`. The schema validates selected rows, and the record pointers extract their fields. Inspect the returned coverage for unsupported or malformed rows, orphan results, and uncertainty about user-message injection. A changed adapter mapping or schema requires a fresh cursor.
 
 When a native message ID and a generated offset or tool record ID collide, the first record keeps its identity. The later row appears as a malformed-record gap at its original position.
 
