@@ -1,5 +1,17 @@
 # @sunstack/demistify
 
+## 1.26.0
+
+### Minor Changes
+
+- 533fd20: Compose a delivery graph from typed deliverable modules, track progress against a build and design scope, and render the generated delivery view in HTML.
+
+  Record dated Lead and Owner decisions and link assumptions to the work that relies on them. Delivery state exposes open governing questions and unconfirmed or refuted assumptions.
+
+  Keep decisions, assumptions, and delivery in named files beside each design. Check explicitly registered project sets together and resolve shared records, Lead aliases, and cross-set prerequisites.
+
+- 83be660: Add typed design authoring and checking, including cross-set links within an explicit site root. Build an opt-in npm candidate containing the CLI, browser assets, and matching guide.
+
 ## 1.25.3
 
 ### Patch Changes
