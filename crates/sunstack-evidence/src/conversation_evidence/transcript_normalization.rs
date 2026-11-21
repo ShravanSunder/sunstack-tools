@@ -111,7 +111,7 @@ impl NormalizationState {
         name: String,
         input: StructuredJson,
         position: u64,
-        namespaced: bool,
+        tool_category: ToolCategory,
     ) -> EvidenceResult<()> {
         if self.calls.contains_key(&id) {
             return Err(EvidenceCode::AdapterOutputInvalid.into());
@@ -123,7 +123,7 @@ impl NormalizationState {
             position,
             body: ConversationBody::ToolUse(ToolUse {
                 call_id: id,
-                category: category(&name, namespaced),
+                category: tool_category,
                 tool_name: name,
                 input,
                 outcome: ToolOutcome::ResultMissing,
@@ -240,7 +240,7 @@ impl NormalizationState {
                     )
                     .map_err(|_| EvidenceCode::AdapterOutputInvalid)?,
                     position,
-                    false,
+                    category(field(item, "name")?, false),
                 )?,
                 "tool_result" => {
                     let content = item
@@ -370,8 +370,45 @@ impl NormalizationState {
                         .map_or_else(|| name.into(), |namespace| format!("{namespace}.{name}")),
                     input,
                     position,
-                    namespace.is_some(),
+                    category(name, namespace.is_some()),
                 )?;
+            }
+            "custom_tool_call" => {
+                let name = field(payload, "name")?;
+                let tool_category = match name {
+                    "apply_patch" => ToolCategory::EditFile,
+                    "exec" | "Bash" | "exec_command" | "shell_command" => ToolCategory::Shell,
+                    _ => ToolCategory::Other,
+                };
+                let input = payload
+                    .get("input")
+                    .ok_or(EvidenceCode::AdapterOutputInvalid)?;
+                self.call(
+                    CallId::new(field(payload, "call_id")?)?,
+                    name.into(),
+                    serde_json::from_value(input.clone())
+                        .map_err(|_| EvidenceCode::AdapterOutputInvalid)?,
+                    position,
+                    tool_category,
+                )?;
+            }
+            "custom_tool_call_output" => {
+                let outcome = match payload.get("is_error").and_then(Value::as_bool) {
+                    Some(true) => ToolOutcome::Failed,
+                    Some(false) => ToolOutcome::Succeeded,
+                    None => ToolOutcome::ResultPresentStatusUnknown,
+                };
+                let output = payload
+                    .get("output")
+                    .ok_or(EvidenceCode::AdapterOutputInvalid)?;
+                self.result(
+                    CallId::new(field(payload, "call_id")?)?,
+                    ToolResult::FullObserved {
+                        text: codex_custom_output_text(output)?,
+                    },
+                    outcome,
+                    position,
+                );
             }
             "function_call_output" => self.result(
                 CallId::new(field(payload, "call_id")?)?,
@@ -398,6 +435,32 @@ fn observed_text(value: &Value) -> EvidenceResult<String> {
         Value::String(text) => Ok(text.clone()),
         _ => serde_json::to_string(value).map_err(|_| EvidenceCode::AdapterOutputInvalid.into()),
     }
+}
+fn codex_custom_output_text(value: &Value) -> EvidenceResult<String> {
+    let Some(blocks) = value.as_array().filter(|blocks| !blocks.is_empty()) else {
+        return observed_text(value);
+    };
+    let mut combined = String::new();
+    for block in blocks {
+        // Flatten only plain text blocks. Additional fields and non-text values
+        // retain their JSON so the projection does not discard information.
+        let Some(text) = block
+            .as_object()
+            .filter(|fields| {
+                fields.len() == 2
+                    && matches!(
+                        fields.get("type").and_then(Value::as_str),
+                        Some("text" | "input_text" | "output_text")
+                    )
+            })
+            .and_then(|fields| fields.get("text"))
+            .and_then(Value::as_str)
+        else {
+            return observed_text(value);
+        };
+        combined.push_str(text);
+    }
+    Ok(combined)
 }
 pub(crate) fn normalize_builtin(format: &str, bytes: &[u8]) -> AdapterOutput {
     let mut state = NormalizationState::default();

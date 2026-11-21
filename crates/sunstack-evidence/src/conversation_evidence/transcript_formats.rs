@@ -5,6 +5,9 @@ use std::{
     sync::Arc,
 };
 
+/// Transcript names registered by the built-in adapters.
+pub const BUILTIN_TRANSCRIPT_FORMATS: &[&str] = &["claude_code_jsonl", "codex_rollout_jsonl"];
+
 /// Normalize only the supplied complete bytes. Whole messages share host identity; tool results
 /// amend their call. Record position is the last contributing entry's byte offset, so cursors
 /// detect amendments. Coverage gaps retain unsupported, malformed and orphan evidence.
@@ -22,7 +25,7 @@ impl AdapterRegistry {
         let mut registry = Self {
             adapters: BTreeMap::new(),
         };
-        for name in ["claude_code_jsonl", "codex_rollout_jsonl"] {
+        for &name in BUILTIN_TRANSCRIPT_FORMATS {
             registry = registry.with_adapter(Arc::new(BuiltinAdapter {
                 name: TranscriptFormatName::new(name)?,
             }))?;

@@ -40,7 +40,7 @@ not check them. Run `tsc --noEmit` (TypeScript 7) to check a consumer.
 
 ## Evaluate rules over code and conversations
 
-Import `@sunstack/sdk/rules` to admit a rule set, inspect native evidence, preview exact model requests, or evaluate a document or conversation in one call. The package includes a runnable TypeScript program and fixtures for both source kinds. [General rules example](examples/general-rules.md)
+Import `@sunstack/sdk/rules` to admit a rule set, inspect native evidence, preview exact model requests, or evaluate a document or conversation in one call. Use `codex_rollout_jsonl` for Codex and `claude_code_jsonl` for Claude Code. The packaged recipe includes both a TypeScript document and a Codex rollout. [General rules example](examples/general-rules.md)
 
 ## Author a configuration in TypeScript
 

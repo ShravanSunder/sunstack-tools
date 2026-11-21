@@ -227,6 +227,11 @@ mkdirSync(generalConsumer);
 writeFileSync(join(generalConsumer, 'package.json'), '{"private":true}\n');
 const generalProgramPath = join(generalConsumer, 'general-rules.mts');
 writeFileSync(generalProgramPath, generalProgram);
+const codexReaderSection = generalRecipe.split('## Read the selected Codex calls\n')[1] ?? '';
+const codexReader = /```ts\n([\s\S]+?)\n```/u.exec(codexReaderSection)?.[1];
+assert.ok(codexReader, 'the installed Codex recipe contains a record reader');
+const codexReaderPath = join(generalConsumer, 'read-codex-calls.mts');
+writeFileSync(codexReaderPath, codexReader);
 const generalFixtures = join(consumer, 'general-fixtures');
 mkdirSync(generalFixtures, { recursive: true });
 for (const entry of readdirSync(installedExamples)) {
@@ -303,7 +308,11 @@ step({
 	command: join(consumer, 'node_modules', '.bin', 'tsc'),
 	args: generalCompilerArguments
 		.split(/\s+/u)
-		.map((argument) => (argument === 'general-rules.mts' ? generalProgramPath : argument)),
+		.map((argument) =>
+			argument === 'general-rules.mts' || argument === 'read-codex-calls.mts'
+				? join(generalConsumer, argument)
+				: argument,
+		),
 });
 for (const sourceKind of ['document', 'conversation'] as const) {
 	const evidence = step({
@@ -318,6 +327,7 @@ for (const sourceKind of ['document', 'conversation'] as const) {
 			'u',
 		),
 	);
+	if (sourceKind === 'conversation') checkCodexReaderCases(evidence);
 	const preview = step({
 		label: `general-${sourceKind}-preview`,
 		command: process.execPath,
@@ -326,6 +336,62 @@ for (const sourceKind of ['document', 'conversation'] as const) {
 	});
 	assert.match(preview, /"questions":\{"q000001":/u);
 }
+
+function checkCodexReaderCases(evidence: string): void {
+	const original = readFileSync(join(generalFixtures, 'general-codex-session.jsonl'), 'utf8');
+	const entries = original.trimEnd().split('\n');
+	const firstEntry = entries[0];
+	assert.ok(firstEntry, 'the packaged rollout opens a turn');
+
+	const shell = {
+		call_id: 'list_sources',
+		tool_name: 'exec_command',
+		provenance: 'transcript',
+		outcome: 'result_present_status_unknown',
+		result: 'full_observed',
+	};
+	const filesystem = { ...shell, call_id: 'read_source', tool_name: 'mcp__filesystem.read_file' };
+	const cases = [
+		{ label: 'two-calls', transcript: null, tail: 'complete', calls: [shell, filesystem] },
+		{ label: 'empty', transcript: `${firstEntry}\n`, tail: 'complete', calls: [] },
+		{
+			label: 'partial',
+			transcript: `${entries.slice(0, -1).join('\n')}\n{"type":"response_item"`,
+			tail: 'incomplete',
+			calls: [shell, { ...filesystem, outcome: 'result_missing', result: 'absent' }],
+		},
+	];
+	for (const { label, transcript, tail, calls } of cases) {
+		const evidencePath = join(generalConsumer, `codex-${label}.sdk.json`);
+		let observed = evidence;
+		if (transcript !== null) {
+			const transcriptPath = join(generalConsumer, `codex-${label}.jsonl`);
+			writeFileSync(transcriptPath, transcript);
+			observed = step({
+				label: `general-codex-${label}-inspection`,
+				command: process.execPath,
+				args: [generalProgramPath, generalFixtures, 'conversation', 'inspect', transcriptPath],
+			});
+		}
+		writeFileSync(evidencePath, observed);
+		const summary: unknown = JSON.parse(
+			step({
+				label: `general-codex-${label}-reader`,
+				command: process.execPath,
+				args: [codexReaderPath, evidencePath],
+			}),
+		);
+		assert.ok(
+			typeof summary === 'object' &&
+				summary !== null &&
+				'calls' in summary &&
+				'coverage' in summary,
+		);
+		assert.deepEqual(summary.calls, calls);
+		assert.partialDeepStrictEqual(summary.coverage, [{ id: 'selected', kind: 'ready', tail }]);
+	}
+}
+
 step({ label: 'load-receipt', command: process.execPath, args: ['load-receipt.ts'] });
 step({ label: 'case-dispatch', command: process.execPath, args: ['case-dispatch.ts'] });
 

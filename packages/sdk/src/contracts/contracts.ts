@@ -3584,3 +3584,7 @@ export type WorkUnavailableReason =
 	| { kind: 'filter_unavailable'; filter: FilterName; folder: string }
 	| { kind: 'selection_unavailable'; evidence_kind: EvidenceKindName; file: string }
 	| { kind: 'selected_field_unavailable'; field: FieldName };
+
+/** Transcript formats registered by the SDK's built-in adapters. */
+export const builtinTranscriptFormats = ['claude_code_jsonl', 'codex_rollout_jsonl'] as const;
+export type BuiltinTranscriptFormat = (typeof builtinTranscriptFormats)[number];

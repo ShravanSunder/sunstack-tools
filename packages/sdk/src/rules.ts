@@ -10,6 +10,8 @@ import { afterDispatch, beforeDispatch } from './sdk-failures.ts';
 import { encodeForNative } from './wire-encoding.ts';
 
 export { deserialize, serialize } from './index.ts';
+export { builtinTranscriptFormats } from './contracts/contracts.ts';
+export type { BuiltinTranscriptFormat } from './contracts/contracts.ts';
 
 export type BindingGroup = DeepReadonly<Contracts.BindingGroup>;
 export type InputBinding = DeepReadonly<Contracts.InputBinding>;
@@ -311,7 +313,7 @@ export function document(input: Omit<DocumentBinding, 'kind'>): DocumentBinding 
 
 export interface ConversationSource {
 	readonly path: string;
-	readonly format: ConversationBinding['format'];
+	readonly format: Contracts.BuiltinTranscriptFormat;
 	readonly finalReply?: string;
 }
 

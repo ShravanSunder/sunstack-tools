@@ -28,13 +28,20 @@ export async function onChangedFile(path: string, signal: AbortSignal) {
 }
 ```
 
-Use `conversation` with a transcript path and format when the event supplies a session.
+Use `conversation` with the original transcript path and its registered format.
+
+| Transcript          | `format`              |
+| ------------------- | --------------------- |
+| Codex rollout JSONL | `codex_rollout_jsonl` |
+| Claude Code JSONL   | `claude_code_jsonl`   |
+
+`builtinTranscriptFormats` exports the names from the same Rust list that registers the adapters.
 
 ## Runnable program
 
-Copy the two `general-*.ruleset.json` files, their `general-*.rules.jsonl` files, `general-sample.ts`, and `general-session.jsonl` from this examples folder into a fixture directory. Save the program below as `general-rules.mts` in your project. The `.mts` extension selects ESM under NodeNext, including in a default npm project.
+Copy the two `general-*.ruleset.json` files, their `general-*.rules.jsonl` files, `general-sample.ts`, and `general-codex-session.jsonl` from this examples folder into a fixture directory. Save the program below as `general-rules.mts` in your project. The `.mts` extension selects ESM under NodeNext, including in a default npm project.
 
-`loadRuleSet` captures the rule set and its rules. The input companion names the bindings each run must supply. The profile makes file access, model choice, retries, and budgets explicit. The document rule uses a paragraph as its judgment target and attaches the exact TypeScript AST match as evidence. The conversation rule targets selected user messages.
+`loadRuleSet` captures the rule set and its rules. The input companion names the bindings each run must supply. The profile makes file access, model choice, retries, and budgets explicit. The document rule uses a paragraph as its judgment target and attaches the exact TypeScript AST match as evidence. The conversation rule selects tool calls and their observed results from the Codex rollout.
 
 ```ts
 import { resolve } from 'node:path';
@@ -50,7 +57,7 @@ import {
 	serialize,
 } from '@sunstack/sdk/rules';
 
-const [, , directory, sourceKind, action] = process.argv;
+const [, , directory, sourceKind, action, transcriptPath] = process.argv;
 if (directory === undefined || (sourceKind !== 'document' && sourceKind !== 'conversation')) {
 	throw new Error(
 		'Pass a fixture directory, document or conversation, and inspect, preview, or evaluate.',
@@ -63,7 +70,13 @@ const root = resolve(directory);
 const subject =
 	sourceKind === 'document'
 		? document({ repository: 'example', path: 'general-sample.ts' })
-		: conversation({ path: resolve(root, 'general-session.jsonl'), format: 'claude_code_jsonl' });
+		: conversation({
+				path:
+					transcriptPath === undefined
+						? resolve(root, 'general-codex-session.jsonl')
+						: resolve(transcriptPath),
+				format: 'codex_rollout_jsonl',
+			});
 const repositories: RuleRunProfile['repositories'] =
 	sourceKind === 'document'
 		? [
@@ -91,9 +104,9 @@ if (action === 'inspect') {
 			: {
 					kind: 'conversation',
 					turns: { kind: 'all' },
-					user_messages: 'included',
+					user_messages: 'excluded',
 					assistant_messages: 'excluded',
-					tool_use: { kind: 'excluded' },
+					tool_use: { kind: 'included', tools: { kind: 'all' }, results: 'included' },
 					hook_injected: 'excluded',
 				};
 	const outcome = await inspectEvidence({
@@ -162,12 +175,76 @@ if (action === 'inspect') {
 }
 ```
 
-With TypeScript and Node types installed, check the program with the following command.
+Save the companion reader below as `read-codex-calls.mts`. With TypeScript and Node types installed, check both programs with this command.
 
 ```sh
-npx tsc --ignoreConfig --noEmit --strict --target es2024 --module nodenext --types node general-rules.mts
+npx tsc --ignoreConfig --noEmit --strict --target es2024 --module nodenext --types node general-rules.mts read-codex-calls.mts
 ```
 
 Run `node general-rules.mts ./fixtures document inspect` or `bun general-rules.mts ./fixtures conversation inspect` with no backend settings. For `preview`, set `SUNSTACK_JEV_ENDPOINT` to the target you want to inspect. Preview needs neither a live server nor a credential. Use `evaluate` with `OPENROUTER_API_KEY` when you want to send the request. A local responder can use a synthetic credential.
 
 For evaluation, read the outcome tag first. A `complete_report` has completed evaluation and can contain a favorable or unfavorable judgment. An `incomplete_report`, `cancelled`, or `invalid` has its own reason or coverage. Inspect `report.occurrences` to see which targets were judged. Keep the serialized SDK document and pass its original text to `deserialize` to restore exact integer fields as `bigint`.
+
+## Read the selected Codex calls
+
+The fixture selects two calls. In a real rollout the same selection can return many calls, an empty list, or partial evidence. Read every selected record. Use the capture coverage and result tags to see what the transcript supplied. A call with `result_missing` is still a call. Keep the original `tool_name`, including its namespace, and `call_id`.
+
+```sh
+node general-rules.mts ./fixtures conversation inspect > conversation.sdk.json
+node read-codex-calls.mts conversation.sdk.json
+```
+
+Append the path to your original Codex rollout after `inspect` to use it in place of the fixture.
+
+```ts
+import { readFileSync } from 'node:fs';
+
+import { deserialize } from '@sunstack/sdk/rules';
+
+const [, , reportPath] = process.argv;
+if (reportPath === undefined) throw new Error('Pass the saved evidence document.');
+const restored = await deserialize(readFileSync(reportPath, 'utf8'));
+if (restored.kind !== 'decoded' || restored.value.kind !== 'evidence_plan_outcome') {
+	throw new Error('Expected an SDK evidence document from this revision.');
+}
+
+const outcome = restored.value.value;
+const selections =
+	outcome.kind === 'prepared' || outcome.kind === 'incomplete'
+		? outcome.selections
+		: outcome.kind === 'cancelled' && outcome.progress.kind === 'plan_admitted'
+			? outcome.progress.partial.selections
+			: [];
+
+const calls = selections.flatMap(({ readiness }) => {
+	if (readiness.kind !== 'ready' || readiness.content.kind !== 'conversation_records') return [];
+	return readiness.content.records.flatMap((record) => {
+		if (record.body.kind !== 'tool_use') return [];
+		const { call_id, tool_name, outcome, result } = record.body;
+		return [
+			{
+				call_id,
+				tool_name,
+				provenance: record.provenance,
+				outcome,
+				result: result.kind,
+			},
+		];
+	});
+});
+
+const coverage = selections.map(({ id, readiness }) => {
+	if (readiness.kind === 'refused') return { id, kind: readiness.kind };
+	const capture =
+		readiness.coverage.kind === 'single_source' ? readiness.coverage.capture : undefined;
+	return {
+		id,
+		kind: readiness.kind,
+		tail: capture?.tail.kind,
+		gaps: capture?.gaps.map((gap) => gap.kind),
+		omissions: readiness.omissions.map((omission) => omission.reason),
+	};
+});
+
+console.log(JSON.stringify({ kind: outcome.kind, calls, coverage }));
+```

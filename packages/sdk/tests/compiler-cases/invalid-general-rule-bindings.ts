@@ -21,3 +21,9 @@ export const missingBinding: BoundRuleInvocation<SourceContract> = {
 	inputs: {},
 	origin: { kind: 'direct' },
 };
+
+conversation({
+	path: 'session.jsonl',
+	// expect TS2322
+	format: 'codex_jsonl',
+});
