@@ -32,7 +32,7 @@ Use `conversation` with a transcript path and format when the event supplies a s
 
 ## Runnable program
 
-Copy the two `general-*.ruleset.json` files, their `general-*.rules.jsonl` files, `general-sample.ts`, and `general-session.jsonl` from this examples folder into a fixture directory. Save the program below as `general-rules.ts` in your project.
+Copy the two `general-*.ruleset.json` files, their `general-*.rules.jsonl` files, `general-sample.ts`, and `general-session.jsonl` from this examples folder into a fixture directory. Save the program below as `general-rules.mts` in your project. The `.mts` extension selects ESM under NodeNext, including in a default npm project.
 
 `loadRuleSet` captures the rule set and its rules. The input companion names the bindings each run must supply. The profile makes file access, model choice, retries, and budgets explicit. The document rule uses a paragraph as its judgment target and attaches the exact TypeScript AST match as evidence. The conversation rule targets selected user messages.
 
@@ -162,6 +162,12 @@ if (action === 'inspect') {
 }
 ```
 
-Run `node general-rules.ts ./fixtures document inspect` or `bun general-rules.ts ./fixtures conversation inspect` with no backend settings. For `preview`, set `SUNSTACK_JEV_ENDPOINT` to the target you want to inspect. Preview needs neither a live server nor a credential. Use `evaluate` with `OPENROUTER_API_KEY` when you want to send the request. A local responder can use a synthetic credential.
+With TypeScript and Node types installed, check the program with the following command.
+
+```sh
+npx tsc --ignoreConfig --noEmit --strict --target es2024 --module nodenext --types node general-rules.mts
+```
+
+Run `node general-rules.mts ./fixtures document inspect` or `bun general-rules.mts ./fixtures conversation inspect` with no backend settings. For `preview`, set `SUNSTACK_JEV_ENDPOINT` to the target you want to inspect. Preview needs neither a live server nor a credential. Use `evaluate` with `OPENROUTER_API_KEY` when you want to send the request. A local responder can use a synthetic credential.
 
 For evaluation, read the outcome tag first. A `complete_report` has completed evaluation and can contain a favorable or unfavorable judgment. An `incomplete_report`, `cancelled`, or `invalid` has its own reason or coverage. Inspect `report.occurrences` to see which targets were judged. Keep the serialized SDK document and pass its original text to `deserialize` to restore exact integer fields as `bigint`.

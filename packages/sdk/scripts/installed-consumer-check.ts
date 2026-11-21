@@ -222,7 +222,11 @@ const generalRecipe = readFileSync(join(installedExamples, 'general-rules.md'), 
 const runnableSection = generalRecipe.split('## Runnable program\n')[1] ?? '';
 const generalProgram = /```ts\n([\s\S]+?)\n```/u.exec(runnableSection)?.[1];
 assert.ok(generalProgram, 'the installed general rule recipe contains a TypeScript program');
-writeFileSync(join(consumer, 'general-rules.ts'), generalProgram);
+const generalConsumer = join(consumer, 'general-default-package');
+mkdirSync(generalConsumer);
+writeFileSync(join(generalConsumer, 'package.json'), '{"private":true}\n');
+const generalProgramPath = join(generalConsumer, 'general-rules.mts');
+writeFileSync(generalProgramPath, generalProgram);
 const generalFixtures = join(consumer, 'general-fixtures');
 mkdirSync(generalFixtures, { recursive: true });
 for (const entry of readdirSync(installedExamples)) {
@@ -289,11 +293,23 @@ step({
 	command: process.execPath,
 	args: ['markdown-islands.ts'],
 });
+const generalCompilerArguments = /^npx tsc (.+)$/mu.exec(generalRecipe)?.[1];
+assert.ok(
+	generalCompilerArguments,
+	'the installed general rule recipe names its type-check command',
+);
+step({
+	label: 'general-default-package-typecheck',
+	command: join(consumer, 'node_modules', '.bin', 'tsc'),
+	args: generalCompilerArguments
+		.split(/\s+/u)
+		.map((argument) => (argument === 'general-rules.mts' ? generalProgramPath : argument)),
+});
 for (const sourceKind of ['document', 'conversation'] as const) {
 	const evidence = step({
 		label: `general-${sourceKind}-inspection`,
 		command: process.execPath,
-		args: ['general-rules.ts', generalFixtures, sourceKind, 'inspect'],
+		args: [generalProgramPath, generalFixtures, sourceKind, 'inspect'],
 	});
 	assert.match(
 		evidence,
@@ -305,7 +321,7 @@ for (const sourceKind of ['document', 'conversation'] as const) {
 	const preview = step({
 		label: `general-${sourceKind}-preview`,
 		command: process.execPath,
-		args: ['general-rules.ts', generalFixtures, sourceKind, 'preview'],
+		args: [generalProgramPath, generalFixtures, sourceKind, 'preview'],
 		environment: { ...keyless, SUNSTACK_JEV_ENDPOINT: 'http://127.0.0.1:9/v1/systemone' },
 	});
 	assert.match(preview, /"questions":\{"q000001":/u);
