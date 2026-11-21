@@ -69,6 +69,15 @@ test.each(readingViews)(
 			fixture,
 			'#delivery > .ex-section-head',
 		).getBoundingClientRect();
+		const foldBounds = requiredElement(
+			fixture,
+			'#delivery > .ex-section-head > .ex-fold-control',
+		).getBoundingClientRect();
+		if (width >= 761) {
+			expect(Math.abs(foldBounds.left + foldBounds.width / 2 - headerBounds.right)).toBeLessThan(2);
+		} else {
+			expect(foldBounds.right).toBeLessThanOrEqual(headerBounds.right);
+		}
 		const titleBounds = requiredElement(fixture, '#story-main > summary').getBoundingClientRect();
 		expect(titleBounds.top).toBeGreaterThanOrEqual(headerBounds.bottom);
 		await page.screenshot({

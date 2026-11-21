@@ -29,7 +29,6 @@ ex-section {
 	gap: var(--space-2);
 	margin: calc(-1 * var(--space-5)) calc(-1 * var(--space-5)) var(--space-5);
 	padding: var(--space-3) var(--space-5);
-	padding-inline-end: calc(var(--space-5) + var(--space-6));
 	border-bottom: 1px solid var(--rule);
 	border-radius: var(--radius-md) var(--radius-md) 0 0;
 	background: color-mix(
@@ -41,7 +40,22 @@ ex-section {
 }
 .ex-section-head.ex-comment-target {
 	position: sticky;
-	padding-inline-end: calc(var(--space-5) + var(--space-6));
+	padding-inline-end: var(--space-5);
+}
+@media (hover: hover) and (min-width: 761px) {
+	.ex-section-head > .ex-fold-control {
+		position: absolute;
+		inset-inline-start: 100%;
+		inset-block-start: calc(var(--space-8) + var(--space-1));
+		translate: -50% -50%;
+		z-index: 11;
+		border: 1px solid var(--rule);
+		border-radius: 50%;
+		background: var(--surface-content);
+	}
+	.ex-section-head > .ex-fold-control:dir(rtl) {
+		translate: 50% -50%;
+	}
 }
 .ex-section-head > .ex-tone-icon {
 	flex: none;

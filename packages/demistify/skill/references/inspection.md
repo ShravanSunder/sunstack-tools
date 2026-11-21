@@ -42,7 +42,7 @@ Use `ex-drawer` for a large bottom workspace that stays interactive beside Comme
 
 Its lifecycle:
 
-- A static `open` attribute shows it when the page loads; without `open` it starts hidden.
+- A static `open` attribute shows it when the page loads; without `open` it starts hidden. The drawer supplies a visible Close button in its header.
 - Escape closes the latest workspace unless a control inside it used the key first. Closing returns focus to where it came from and fires a `close` event.
 - Nothing in plain document markup opens it later or reopens it after a close. Triggering is application-embedding API: a page controller calls `drawer.show()` and `drawer.close()`, or toggles `open`, and listens for `close` to restore its own view state. An ordinary declarative document adds no such script. When nothing on the page can reopen the drawer and readers must reach its content again after closing it, put that content in the document flow or a native disclosure instead of the drawer, so the page keeps one copy of it and its IDs.
 - `size="content"` opens a detail sheet above its parent workspace, while a large workspace closes the others. Opening one from a modal enlargement first returns that content to its document.
