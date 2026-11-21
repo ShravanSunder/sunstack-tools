@@ -3,7 +3,7 @@ use std::sync::Arc;
 use sunstack_decisions::{
     BackendSelection, CancellationToken, DecisionBackend, JevOpenRouterBackend,
 };
-use sunstack_evidence::{AdapterRegistry, EvidencePlanInput, EvidencePlanOutcome};
+use sunstack_evidence::{AdapterRegistry, EvidencePlanInput, EvidencePlanOutcome, EvidenceResult};
 use sunstack_rules::{
     CapturedRuleSet, DiagnosticList, RuleBackendFactory, RuleBackendPreparation, RuleDiagnostic,
     RuleDiagnosticCode, RuleExecutionContext, RuleInvocationInput, RuleInvocationOutcome,
@@ -55,11 +55,11 @@ impl RuleBackendFactory for JevRuleBackendFactory {
 
 fn rule_context(
     input: &RuleInvocationInput,
+    adapters: EvidenceResult<AdapterRegistry>,
     cancellation: CancellationToken,
     operation: BackendUse,
 ) -> Result<RuleExecutionContext, DiagnosticList> {
-    let adapters =
-        AdapterRegistry::builtins().map_err(|error| DiagnosticList::from(error.diagnostics()))?;
+    let adapters = adapters.map_err(|error| DiagnosticList::from(error.diagnostics()))?;
     Ok(RuleExecutionContext {
         backend: Arc::new(JevRuleBackendFactory {
             selection: input.backend.clone(),
@@ -74,7 +74,15 @@ pub async fn evaluate(
     input: RuleInvocationInput,
     cancellation: CancellationToken,
 ) -> RuleInvocationOutcome {
-    match rule_context(&input, cancellation, BackendUse::Evaluation) {
+    evaluate_with_registry(input, AdapterRegistry::builtins(), cancellation).await
+}
+
+pub async fn evaluate_with_registry(
+    input: RuleInvocationInput,
+    adapters: EvidenceResult<AdapterRegistry>,
+    cancellation: CancellationToken,
+) -> RuleInvocationOutcome {
+    match rule_context(&input, adapters, cancellation, BackendUse::Evaluation) {
         Ok(context) => sunstack_rules::evaluate_rules(input, context).await,
         Err(diagnostics) => RuleInvocationOutcome::Invalid { diagnostics },
     }
@@ -84,7 +92,12 @@ pub async fn prepare(
     input: RuleInvocationInput,
     cancellation: CancellationToken,
 ) -> RulePreparationOutcome {
-    match rule_context(&input, cancellation, BackendUse::Preparation) {
+    match rule_context(
+        &input,
+        AdapterRegistry::builtins(),
+        cancellation,
+        BackendUse::Preparation,
+    ) {
         Ok(context) => sunstack_rules::prepare_rules(input, context).await,
         Err(diagnostics) => RulePreparationOutcome::Invalid { diagnostics },
     }
@@ -94,7 +107,15 @@ pub async fn inspect_evidence(
     input: EvidencePlanInput,
     cancellation: CancellationToken,
 ) -> EvidencePlanOutcome {
-    match AdapterRegistry::builtins() {
+    inspect_evidence_with_registry(input, AdapterRegistry::builtins(), cancellation).await
+}
+
+pub async fn inspect_evidence_with_registry(
+    input: EvidencePlanInput,
+    adapters: EvidenceResult<AdapterRegistry>,
+    cancellation: CancellationToken,
+) -> EvidencePlanOutcome {
+    match adapters {
         Ok(registry) => sunstack_evidence::prepare_evidence(input, registry, cancellation).await,
         Err(error) => EvidencePlanOutcome::Refused {
             diagnostics: error.diagnostics(),
@@ -106,7 +127,15 @@ pub async fn preview(
     input: RuleInvocationInput,
     cancellation: CancellationToken,
 ) -> RulePreviewOutcome {
-    match rule_context(&input, cancellation, BackendUse::Preparation) {
+    preview_with_registry(input, AdapterRegistry::builtins(), cancellation).await
+}
+
+pub async fn preview_with_registry(
+    input: RuleInvocationInput,
+    adapters: EvidenceResult<AdapterRegistry>,
+    cancellation: CancellationToken,
+) -> RulePreviewOutcome {
+    match rule_context(&input, adapters, cancellation, BackendUse::Preparation) {
         Ok(context) => sunstack_rules::preview_rules(input, context, None).await,
         Err(diagnostics) => RulePreviewOutcome::Unavailable {
             outcome: Box::new(RulePreparationOutcome::Invalid { diagnostics }),
@@ -117,9 +146,10 @@ pub async fn preview(
 pub async fn evaluate_captured(
     input: RuleInvocationInput,
     capture: CapturedRuleSet,
+    adapters: EvidenceResult<AdapterRegistry>,
     cancellation: CancellationToken,
 ) -> RuleInvocationOutcome {
-    match rule_context(&input, cancellation, BackendUse::Evaluation) {
+    match rule_context(&input, adapters, cancellation, BackendUse::Evaluation) {
         Ok(context) => sunstack_rules::evaluate_captured_rules(input, context, capture).await,
         Err(diagnostics) => RuleInvocationOutcome::Invalid { diagnostics },
     }
@@ -128,9 +158,10 @@ pub async fn evaluate_captured(
 pub async fn preview_captured(
     input: RuleInvocationInput,
     capture: CapturedRuleSet,
+    adapters: EvidenceResult<AdapterRegistry>,
     cancellation: CancellationToken,
 ) -> RulePreviewOutcome {
-    match rule_context(&input, cancellation, BackendUse::Preparation) {
+    match rule_context(&input, adapters, cancellation, BackendUse::Preparation) {
         Ok(context) => sunstack_rules::preview_rules(input, context, Some(capture)).await,
         Err(diagnostics) => RulePreviewOutcome::Unavailable {
             outcome: Box::new(RulePreparationOutcome::Invalid { diagnostics }),

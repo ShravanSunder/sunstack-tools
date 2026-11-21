@@ -3501,7 +3501,25 @@ export type ToolUseSelection =
 	| { kind: 'excluded' }
 	| { kind: 'included'; tools: ToolFilter; results: Inclusion };
 
+/**  Declarative extraction for one JSONL transcript format. */
+export type TranscriptAdapterMapping = {
+	format: TranscriptFormatName;
+	discriminator: string;
+	records: { [key in string]: TranscriptRecordMapping };
+	schema?: TranscriptRecordSchema;
+};
+
 export type TranscriptFormatName = string;
+
+/**  JSON Pointers for the fields consumed from a selected record. */
+export type TranscriptRecordMapping =
+	| { kind: 'user_message'; text: string; message_id?: string | null }
+	| { kind: 'assistant_message'; text: string; message_id?: string | null }
+	| { kind: 'tool_call'; call_id: string; tool_name: string; input: string }
+	| { kind: 'tool_result'; call_id: string; text: string; is_error?: string | null };
+
+/**  An offline JSON Schema Draft 2020-12 document for selected records. */
+export type TranscriptRecordSchema = boolean | { [key in string]: EvidenceStructuredJson };
 
 export type TurnWindow =
 	| { kind: 'all' }

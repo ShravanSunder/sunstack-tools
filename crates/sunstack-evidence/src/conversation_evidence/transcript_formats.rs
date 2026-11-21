@@ -14,6 +14,9 @@ pub const BUILTIN_TRANSCRIPT_FORMATS: &[&str] = &["claude_code_jsonl", "codex_ro
 /// The implementation is trusted native code; this trait is not a sandbox.
 pub trait TranscriptAdapter: Send + Sync {
     fn format_name(&self) -> &TranscriptFormatName;
+    fn cursor_identity(&self) -> Option<&str> {
+        None
+    }
     fn normalize(&self, capture: &CapturedTranscript<'_>) -> AdapterOutput;
 }
 #[derive(Clone)]

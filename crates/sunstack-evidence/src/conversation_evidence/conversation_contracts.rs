@@ -223,6 +223,8 @@ pub struct TranscriptSource {
 pub struct MonitoringCursor {
     pub source: TranscriptSource,
     pub format: TranscriptFormatName,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub adapter_identity: Option<String>,
     pub committed_bytes: u64,
     pub prefix_digest: String,
     pub record_watermarks: BTreeMap<RecordId, u64>,

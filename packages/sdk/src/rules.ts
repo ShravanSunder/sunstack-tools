@@ -1,3 +1,5 @@
+import type { AdapterRegistry } from './adapter-registry.ts';
+import { encodeAdapterMappings } from './adapter-registry.ts';
 import type * as Contracts from './contracts/contracts.ts';
 import { installedBindingSources, resolveBinding } from './native-binding.ts';
 import type { BindingResolution, NativeCallCancellation } from './native-binding.ts';
@@ -10,6 +12,12 @@ import { afterDispatch, beforeDispatch } from './sdk-failures.ts';
 import { encodeForNative } from './wire-encoding.ts';
 
 export { deserialize, serialize } from './index.ts';
+export { AdapterRegistry, conversation } from './adapter-registry.ts';
+export type {
+	ConversationSource,
+	TranscriptAdapterMapping,
+	TranscriptRecordMapping,
+} from './adapter-registry.ts';
 export { builtinTranscriptFormats } from './contracts/contracts.ts';
 export type { BuiltinTranscriptFormat } from './contracts/contracts.ts';
 
@@ -26,6 +34,11 @@ export type EvidencePlanOutcome = DeepReadonly<Contracts.EvidencePlanOutcome>;
 export type GeneralRuleOutcome<TOutcome> =
 	| TOutcome
 	| { readonly kind: 'failed'; readonly failure: SdkFailure };
+
+/** Evidence acquisition options for inspect, preview and evaluation. */
+export interface RuleCallOptions extends CallOptions {
+	readonly adapterRegistry?: AdapterRegistry<string>;
+}
 
 let binding: BindingResolution | undefined;
 
@@ -113,7 +126,8 @@ function isReply<TOutcome>(
 type NativeRuleMethod = (
 	input: string,
 	cancellation: NativeCallCancellation,
-	ruleSet?: object,
+	ruleSetOrMappings?: object | string,
+	adapterMappings?: string,
 ) => Promise<string>;
 
 function isNativeRuleMethod(value: unknown): value is NativeRuleMethod {
@@ -128,7 +142,7 @@ interface GeneralRuleOperation<TOutcome> {
 
 interface GeneralRuleCallOptions {
 	readonly input: unknown;
-	readonly options: CallOptions | undefined;
+	readonly options: RuleCallOptions | undefined;
 	readonly ruleSet?: object;
 }
 
@@ -157,10 +171,34 @@ async function callRules<TOutcome>(
 	if (encoded.kind === 'rejected') {
 		return { kind: 'failed', failure: beforeDispatch('encoding_rejected', encoded.message) };
 	}
+	let mappings: string | undefined;
+	try {
+		const registry = options?.adapterRegistry;
+		if (registry !== undefined) mappings = encodeAdapterMappings(registry);
+	} catch (error) {
+		return {
+			kind: 'failed',
+			failure: beforeDispatch('encoding_rejected', describeRejection(error)),
+		};
+	}
+	if (
+		mappings !== undefined &&
+		typeof Reflect.get(addon, 'supportsTranscriptAdapterMappings') !== 'function'
+	) {
+		return {
+			kind: 'failed',
+			failure: beforeDispatch(
+				'contract_mismatch',
+				'Install a Sunstack addon with transcript adapter support.',
+			),
+		};
+	}
 	let reply: string;
 	try {
 		reply = await withCancellation(addon, signal.signal, (cancellation) =>
-			method.call(addon, encoded.json, cancellation, ruleSet),
+			operation.method === 'inspectEvidence'
+				? method.call(addon, encoded.json, cancellation, mappings)
+				: method.call(addon, encoded.json, cancellation, ruleSet, mappings),
 		);
 	} catch (error) {
 		return {
@@ -305,31 +343,15 @@ export async function loadRuleSet<const TContract extends InputContract>(
 }
 
 type DocumentBinding = Extract<InputBinding, { kind: 'document' }>;
-type ConversationBinding = Extract<InputBinding, { kind: 'conversation' }>;
 
 export function document(input: Omit<DocumentBinding, 'kind'>): DocumentBinding {
 	return { kind: 'document', ...input };
 }
 
-export interface ConversationSource {
-	readonly path: string;
-	readonly format: Contracts.BuiltinTranscriptFormat;
-	readonly finalReply?: string;
-}
-
-export function conversation(input: ConversationSource): ConversationBinding {
-	return {
-		kind: 'conversation',
-		transcript_path: input.path,
-		format: input.format,
-		...(input.finalReply === undefined ? {} : { final_assistant_text: input.finalReply }),
-	};
-}
-
 function selectRuleInput(
 	definition: RuleInvocationInput | AdmittedRuleSet<InputContract>,
-	invocationOrOptions: BoundRuleInvocation<InputContract> | CallOptions | undefined,
-	options: CallOptions | undefined,
+	invocationOrOptions: BoundRuleInvocation<InputContract> | RuleCallOptions | undefined,
+	options: RuleCallOptions | undefined,
 ): GeneralRuleCallOptions | { readonly kind: 'failed'; readonly failure: SdkFailure } {
 	if (!(ruleSetBrand in definition)) {
 		const rawOptions =
@@ -354,17 +376,17 @@ function selectRuleInput(
 /** Evaluate file-based native rules over this invocation's bound input sources. */
 export function evaluateRules(
 	input: RuleInvocationInput,
-	options?: CallOptions,
+	options?: RuleCallOptions,
 ): Promise<GeneralRuleOutcome<RuleInvocationOutcome>>;
 export function evaluateRules<const TContract extends InputContract>(
 	ruleSet: AdmittedRuleSet<TContract>,
 	invocation: BoundRuleInvocation<NoInfer<TContract>>,
-	options?: CallOptions,
+	options?: RuleCallOptions,
 ): Promise<GeneralRuleOutcome<RuleInvocationOutcome>>;
 export async function evaluateRules(
 	definition: RuleInvocationInput | AdmittedRuleSet<InputContract>,
-	invocationOrOptions?: BoundRuleInvocation<InputContract> | CallOptions,
-	options?: CallOptions,
+	invocationOrOptions?: BoundRuleInvocation<InputContract> | RuleCallOptions,
+	options?: RuleCallOptions,
 ): Promise<GeneralRuleOutcome<RuleInvocationOutcome>> {
 	const selected = selectRuleInput(definition, invocationOrOptions, options);
 	if ('kind' in selected) return selected;
@@ -377,7 +399,7 @@ export async function evaluateRules(
 /** Read selected evidence with coverage and original locations without a model. */
 export function inspectEvidence(
 	input: EvidencePlanInput,
-	options?: CallOptions,
+	options?: RuleCallOptions,
 ): Promise<GeneralRuleOutcome<EvidencePlanOutcome>> {
 	return callRules(
 		{ method: 'inspectEvidence', root: 'EvidencePlanOutcome', accepts: isEvidenceOutcome },
@@ -388,17 +410,17 @@ export function inspectEvidence(
 /** Inspect exact model request bodies and which work is ready without credentials or dispatch. */
 export function prepareRules(
 	input: RuleInvocationInput,
-	options?: CallOptions,
+	options?: RuleCallOptions,
 ): Promise<GeneralRuleOutcome<RulePreviewOutcome>>;
 export function prepareRules<const TContract extends InputContract>(
 	ruleSet: AdmittedRuleSet<TContract>,
 	invocation: BoundRuleInvocation<NoInfer<TContract>>,
-	options?: CallOptions,
+	options?: RuleCallOptions,
 ): Promise<GeneralRuleOutcome<RulePreviewOutcome>>;
 export async function prepareRules(
 	definition: RuleInvocationInput | AdmittedRuleSet<InputContract>,
-	invocationOrOptions?: BoundRuleInvocation<InputContract> | CallOptions,
-	options?: CallOptions,
+	invocationOrOptions?: BoundRuleInvocation<InputContract> | RuleCallOptions,
+	options?: RuleCallOptions,
 ): Promise<GeneralRuleOutcome<RulePreviewOutcome>> {
 	const selected = selectRuleInput(definition, invocationOrOptions, options);
 	if ('kind' in selected) return selected;

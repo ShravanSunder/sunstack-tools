@@ -1,5 +1,5 @@
 import type { BoundRuleInvocation } from '../../src/rules.ts';
-import { conversation, document } from '../../src/rules.ts';
+import { AdapterRegistry, conversation, document } from '../../src/rules.ts';
 
 type SourceContract = { readonly changed: { readonly kind: 'document' } };
 export const unknownName: BoundRuleInvocation<SourceContract> = {
@@ -26,4 +26,27 @@ conversation({
 	path: 'session.jsonl',
 	// expect TS2322
 	format: 'codex_jsonl',
+});
+
+const mapping = {
+	format: 'example_jsonl',
+	discriminator: '/event',
+	records: { answer: { kind: 'assistant_message', text: '/body' } },
+} as const;
+const builtins = AdapterRegistry.builtins();
+const registered = builtins.withAdapter(mapping);
+
+// expect TS2322
+registered.conversation({ path: '/trace', format: 'missing_jsonl' });
+// expect TS2322
+builtins.conversation({ path: '/trace', format: 'example_jsonl' });
+// expect TS2345
+registered.withAdapter(mapping);
+// expect TS2322
+registered.withAdapter({ ...mapping, format: 'codex_rollout_jsonl' });
+registered.withAdapter({
+	format: 'invalid_jsonl',
+	discriminator: '/event',
+	// expect TS2322
+	records: { broken: { kind: 'tool_result', text: '/body' } },
 });

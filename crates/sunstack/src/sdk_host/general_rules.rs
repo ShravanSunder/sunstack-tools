@@ -16,8 +16,9 @@ use sunstack_decisions::{
     RequestBudgetSettings,
 };
 use sunstack_evidence::{
-    EvidenceDiscovery, InvocationLimits, PackageSourceBinding, PayloadSchemaPath,
-    RepositoryBinding, ReturnedCursor, SourceName,
+    AdapterRegistry, EvidenceCode, EvidenceDiscovery, EvidenceResult, InvocationLimits,
+    PackageSourceBinding, PayloadSchemaPath, RepositoryBinding, ReturnedCursor, SourceName,
+    TranscriptAdapterMapping,
 };
 use sunstack_rules::{
     BindingGroup, BoundRuleSet, CapturedRuleSet, DiagnosticList, ExecutionSettings, InputBinding,
@@ -151,11 +152,13 @@ impl AdmittedRuleSet {
     pub async fn evaluate(
         &self,
         binding: BoundRuleRun,
+        adapters: EvidenceResult<AdapterRegistry>,
         cancellation: CancellationToken,
     ) -> RuleInvocationOutcome {
         crate::host_services::general_rules::evaluate_captured(
             self.bind(binding),
             self.capture.clone(),
+            adapters,
             cancellation,
         )
         .await
@@ -164,14 +167,42 @@ impl AdmittedRuleSet {
     pub async fn preview(
         &self,
         binding: BoundRuleRun,
+        adapters: EvidenceResult<AdapterRegistry>,
         cancellation: CancellationToken,
     ) -> RulePreviewOutcome {
         crate::host_services::general_rules::preview_captured(
             self.bind(binding),
             self.capture.clone(),
+            adapters,
             cancellation,
         )
         .await
+    }
+}
+
+/// Admit this call's data-only registrations before any evidence acquisition.
+pub async fn admit_transcript_registry(
+    mappings_json: Option<String>,
+    cancellation: &CancellationToken,
+) -> EvidenceResult<AdapterRegistry> {
+    let registry = AdapterRegistry::builtins()?;
+    let Some(mappings_json) = mappings_json.filter(|_| !cancellation.is_cancelled()) else {
+        return Ok(registry);
+    };
+    let builtins = registry.clone();
+    let admitted = tokio::task::spawn_blocking(move || {
+        let mappings: Vec<TranscriptAdapterMapping> =
+            serde_json::from_str(&mappings_json).map_err(|_| EvidenceCode::InvalidRequest)?;
+        mappings
+            .into_iter()
+            .try_fold(registry, AdapterRegistry::with_mapping)
+    })
+    .await
+    .map_err(|_| EvidenceCode::InvalidRequest)?;
+    if cancellation.is_cancelled() {
+        Ok(builtins)
+    } else {
+        admitted
     }
 }
 

@@ -18,6 +18,9 @@ pub use conversation_evidence::conversation_capture::*;
 pub use conversation_evidence::conversation_contracts::*;
 pub use conversation_evidence::conversation_selection::*;
 pub use conversation_evidence::transcript_formats::*;
+pub use conversation_evidence::transcript_mapping::{
+    TranscriptAdapterMapping, TranscriptRecordMapping, TranscriptRecordSchema,
+};
 pub use document_evidence::document_selection::*;
 pub use document_evidence::frontmatter_contracts::*;
 pub use document_evidence::heading_anchor_schemes::HeadingAnchorScheme;

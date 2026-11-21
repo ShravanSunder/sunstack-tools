@@ -3,7 +3,7 @@ use serde_json::Value;
 use std::collections::BTreeMap;
 
 #[derive(Default)]
-struct NormalizationState {
+pub(super) struct NormalizationState {
     output: AdapterOutput,
     messages: BTreeMap<RecordId, usize>,
     calls: BTreeMap<CallId, usize>,
@@ -16,7 +16,7 @@ fn field<'value>(value: &'value Value, key: &str) -> EvidenceResult<&'value str>
         .filter(|text| !text.is_empty())
         .ok_or_else(|| EvidenceCode::AdapterOutputInvalid.into())
 }
-fn category(name: &str, namespaced: bool) -> ToolCategory {
+pub(super) fn category(name: &str, namespaced: bool) -> ToolCategory {
     if namespaced || name.starts_with("mcp__") {
         return ToolCategory::Mcp;
     }
@@ -71,7 +71,7 @@ impl NormalizationState {
         }
         self.output.records.push(record);
     }
-    fn message(
+    pub(super) fn message(
         &mut self,
         id: RecordId,
         position: u64,
@@ -105,7 +105,7 @@ impl NormalizationState {
         }
         Ok(())
     }
-    fn call(
+    pub(super) fn call(
         &mut self,
         id: CallId,
         name: String,
@@ -134,7 +134,13 @@ impl NormalizationState {
         });
         Ok(())
     }
-    fn result(&mut self, id: CallId, result: ToolResult, outcome: ToolOutcome, position: u64) {
+    pub(super) fn result(
+        &mut self,
+        id: CallId,
+        result: ToolResult,
+        outcome: ToolOutcome,
+        position: u64,
+    ) {
         if let Some(index) = self.calls.get(&id).copied() {
             let record = &mut self.output.records[index];
             if let ConversationBody::ToolUse(tool) = &mut record.body {
@@ -148,6 +154,11 @@ impl NormalizationState {
                 position,
             });
         }
+    }
+    pub(super) fn unsupported_record(&mut self, position: u64) {
+        self.output
+            .gaps
+            .push(CoverageGap::UnsupportedRecord { position });
     }
     fn claude(&mut self, value: Value, position: u64) -> EvidenceResult<()> {
         let kind = field(&value, "type")?;
@@ -463,13 +474,22 @@ fn codex_custom_output_text(value: &Value) -> EvidenceResult<String> {
     Ok(combined)
 }
 pub(crate) fn normalize_builtin(format: &str, bytes: &[u8]) -> AdapterOutput {
+    normalize_records(bytes, |state, value, position| match format {
+        "claude_code_jsonl" => state.claude(value, position),
+        _ => state.codex(value, position),
+    })
+}
+
+pub(super) fn normalize_records(
+    bytes: &[u8],
+    mut normalize: impl FnMut(&mut NormalizationState, Value, u64) -> EvidenceResult<()>,
+) -> AdapterOutput {
     let mut state = NormalizationState::default();
     let mut position = 0_u64;
     for line in bytes.split_inclusive(|byte| *byte == b'\n') {
         let parsed = serde_json::from_slice(line);
         let result = match parsed {
-            Ok(value) if format == "claude_code_jsonl" => state.claude(value, position),
-            Ok(value) => state.codex(value, position),
+            Ok(value) => normalize(&mut state, value, position),
             Err(_) => Err(EvidenceCode::AdapterOutputInvalid.into()),
         };
         if result.is_err() {

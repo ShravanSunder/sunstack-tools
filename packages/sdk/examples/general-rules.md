@@ -28,7 +28,7 @@ export async function onChangedFile(path: string, signal: AbortSignal) {
 }
 ```
 
-Use `conversation` with the original transcript path and its registered format.
+Use `conversation` with the original transcript path for built-in formats.
 
 | Transcript          | `format`              |
 | ------------------- | --------------------- |
@@ -247,4 +247,156 @@ const coverage = selections.map(({ id, readiness }) => {
 });
 
 console.log(JSON.stringify({ kind: outcome.kind, calls, coverage }));
+```
+
+## Register another JSONL transcript
+
+Use `AdapterRegistry.builtins().withAdapter(mapping)` to create a snapshot with an additional format. Define the discriminator and each record field with JSON Pointers. Bind the original file with `adapters.conversation({ path, format })` and pass `{ adapterRegistry: adapters }` to `inspectEvidence`, `prepareRules`, or `evaluateRules`. The adapter accepts string message text and call IDs, preserves tool inputs as JSON values, and interprets a supplied `is_error` field as a boolean. An omitted result status remains unknown.
+
+You can supply an offline Draft 2020-12 JSON Schema as the optional `schema` property, including a schema emitted by Zod's JSON Schema conversion. The schema validates selected rows, and the record pointers extract their fields. Inspect the returned coverage for unsupported or malformed rows, orphan results, and uncertainty about user-message injection. A changed adapter mapping or schema requires a fresh cursor.
+
+The program below binds its synthetic JSONL and a Codex rollout in the same request. Save it as `transcript-adapter.mts` and copy the fixtures `transcript-adapter.jsonl`, `transcript-adapter.ruleset.json`, `transcript-adapter.rules.jsonl`, and `general-codex-session.jsonl` into your consumer project. Run these commands from that directory.
+
+```sh
+npx tsc --ignoreConfig --noEmit --strict --module NodeNext --target ES2024 --types node transcript-adapter.mts
+node transcript-adapter.mts . inspect
+SUNSTACK_JEV_ENDPOINT=http://127.0.0.1:4199/v1/systemone node transcript-adapter.mts . preview
+```
+
+Preview prepares one request locally and prints its body without contacting the endpoint. Use `evaluate` with an endpoint and credentials already configured when you want to submit the request.
+
+```ts
+import { resolve } from 'node:path';
+
+import type { EvidencePlanInput, RuleRunProfile } from '@sunstack/sdk/rules';
+import {
+	AdapterRegistry,
+	conversation,
+	deserialize,
+	evaluateRules,
+	inspectEvidence,
+	loadRuleSet,
+	prepareRules,
+	serialize,
+} from '@sunstack/sdk/rules';
+
+const [, , fixtureDirectory, action, transcriptPath] = process.argv;
+if (
+	fixtureDirectory === undefined ||
+	(action !== 'inspect' && action !== 'preview' && action !== 'evaluate')
+) {
+	throw new Error('Pass a fixture directory and inspect, preview, or evaluate.');
+}
+const root = resolve(fixtureDirectory);
+const adapters = AdapterRegistry.builtins().withAdapter({
+	format: 'example_jsonl',
+	discriminator: '/event',
+	records: {
+		operator: { kind: 'user_message', message_id: '/message_id', text: '/body/text' },
+		assistant: { kind: 'assistant_message', message_id: '/message_id', text: '/body/text' },
+		tool_started: { kind: 'tool_call', call_id: '/id', tool_name: '/name', input: '/arguments' },
+		tool_finished: { kind: 'tool_result', call_id: '/id', text: '/output', is_error: '/failed' },
+	},
+});
+const inputs = {
+	custom: adapters.conversation({
+		path: resolve(transcriptPath ?? resolve(root, 'transcript-adapter.jsonl')),
+		format: 'example_jsonl',
+	}),
+	codex: conversation({
+		path: resolve(root, 'general-codex-session.jsonl'),
+		format: 'codex_rollout_jsonl',
+	}),
+};
+const options = { adapterRegistry: adapters };
+const limits: RuleRunProfile['limits'] = {
+	max_files: 8n,
+	max_file_bytes: 65_536n,
+	max_total_bytes: 131_072n,
+	max_matches: 20n,
+	max_transcript_bytes: 65_536n,
+	include_ignored: false,
+};
+
+if (action === 'inspect') {
+	const select: EvidencePlanInput['declarations'][number]['select'] = {
+		kind: 'conversation',
+		turns: { kind: 'all' },
+		user_messages: 'included',
+		assistant_messages: 'all',
+		hook_injected: 'excluded',
+		tool_use: { kind: 'included', tools: { kind: 'all' }, results: 'included' },
+	};
+	const outcome = await inspectEvidence(
+		{
+			repositories: [],
+			payload_schemas: [],
+			cursors: [],
+			discovery: { kind: 'none' },
+			package_bindings: [],
+			native_queries: [],
+			limits,
+			sources: inputs,
+			declarations: [
+				{ id: 'custom', input: 'custom', requirement: 'required', select },
+				{ id: 'codex', input: 'codex', requirement: 'required', select },
+			],
+		},
+		options,
+	);
+	if (outcome.kind === 'failed') throw new Error(outcome.failure.message);
+	const document = serialize({ kind: 'evidence_plan_outcome', value: outcome });
+	if (document.kind !== 'serialized') throw new Error(document.message);
+	const restored = await deserialize(document.json);
+	if (restored.kind !== 'decoded') throw new Error(`Could not restore evidence: ${restored.kind}`);
+	console.log(document.json);
+} else {
+	const endpoint = process.env['SUNSTACK_JEV_ENDPOINT'];
+	if (endpoint === undefined)
+		throw new Error('Set SUNSTACK_JEV_ENDPOINT for preview or evaluation.');
+	const loaded = await loadRuleSet({
+		path: 'transcript-adapter.ruleset.json',
+		inputContract: { custom: { kind: 'conversation' }, codex: { kind: 'conversation' } },
+		profile: {
+			definition_root: root,
+			repositories: [],
+			discovery: { kind: 'none' },
+			package_bindings: [],
+			payload_schemas: [],
+			cursors: [],
+			limits,
+			execution: { speculation: 'off', max_concurrent_requests: 1n },
+			backend: { kind: 'jev_openrouter', endpoint, model: 'jev-latest' },
+			attempts: {
+				attempt_timeout_ms: 5_000n,
+				retry_count: 0,
+				initial_backoff_ms: 100n,
+				max_backoff_ms: 1_000n,
+				max_response_bytes: 65_536n,
+			},
+			request_budget: {
+				max_input_tokens: 100_000n,
+				max_request_bytes: 100_000n,
+				max_questions: 20n,
+				max_requests: 20n,
+				safety_margin_tokens: 32n,
+				accounting_policy: 'allow_estimated',
+			},
+		},
+	});
+	if (loaded.kind !== 'ready') throw new Error(`Rule set admission ended with ${loaded.kind}.`);
+	const invocation = { inputs, origin: { kind: 'direct' } } as const;
+	if (action === 'preview') {
+		const outcome = await prepareRules(loaded.ruleSet, invocation, options);
+		if (outcome.kind !== 'ready_single')
+			throw new Error(`Expected one request; got ${outcome.kind}.`);
+		console.log(outcome.request.body);
+	} else {
+		const outcome = await evaluateRules(loaded.ruleSet, invocation, options);
+		if (outcome.kind === 'failed') throw new Error(outcome.failure.message);
+		const document = serialize({ kind: 'rule_invocation_outcome', value: outcome });
+		if (document.kind !== 'serialized') throw new Error(document.message);
+		console.log(document.json);
+	}
+}
 ```

@@ -549,6 +549,7 @@ pub fn export() -> Result<Exported, Box<dyn Error>> {
             .register::<sunstack::sdk_host::general_rules::RuleSetLoadRequest>()
             .register::<sunstack::sdk_host::general_rules::RuleSetLoadStatus>()
             .register::<sunstack::sdk_host::general_rules::BoundRuleRun>()
+            .register::<sunstack_evidence::TranscriptAdapterMapping>()
             .register::<sunstack::sdk_host::general_rules::GeneralRuleCall<
                 sunstack_rules::RuleInvocationOutcome,
             >>();

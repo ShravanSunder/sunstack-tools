@@ -8747,6 +8747,40 @@ export const wideIntegerDefinitions = {
 			],
 		},
 	},
+	TranscriptAdapterMapping: {
+		generics: [],
+		shape: {
+			object: {
+				format: {
+					arguments: {},
+					ref: 'TranscriptFormatName',
+				},
+				records: {
+					map: {
+						arguments: {},
+						ref: 'TranscriptRecordMapping',
+					},
+				},
+				schema: {
+					arguments: {},
+					ref: 'TranscriptRecordSchema',
+				},
+			},
+		},
+	},
+	TranscriptRecordSchema: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					map: {
+						arguments: {},
+						ref: 'EvidenceStructuredJson',
+					},
+				},
+			],
+		},
+	},
 	TurnWindow: {
 		generics: [],
 		shape: {

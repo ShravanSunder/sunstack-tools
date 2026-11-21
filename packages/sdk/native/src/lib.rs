@@ -13,7 +13,7 @@ use sunstack::sdk_host::{
     },
     general_rules::{
         AdmittedRuleSet, BoundRuleRun, GeneralRuleCall, RuleSetLoadRequest, RuleSetLoadStatus,
-        invalid_sdk_request,
+        admit_transcript_registry, invalid_sdk_request,
     },
     inspection_projection::{InspectRequest, InspectionOutcome},
     report_projection::RunOutcome,
@@ -27,6 +27,12 @@ use sunstack_decisions::CancellationToken;
 #[napi]
 pub fn contract_info() -> String {
     encode(&sdk_host::contract_info(env!("SUNSTACK_SDK_TARGET")))
+}
+
+/// Capability marker for SDKs that supply transcript mapping arguments.
+#[napi]
+pub fn supports_transcript_adapter_mappings() -> bool {
+    true
 }
 
 /// One call's cancellation; aborting it never affects another call.
@@ -321,6 +327,7 @@ pub fn evaluate_rules<'env>(
     input_json: String,
     cancellation: &CallCancellation,
     rule_set: Option<&NativeRuleSet>,
+    adapter_mappings_json: Option<String>,
 ) -> napi::Result<PromiseRaw<'env, String>> {
     let token = cancellation.token.clone();
     let admitted = rule_set.map(|set| set.admitted.clone());
@@ -330,7 +337,14 @@ pub fn evaluate_rules<'env>(
             async move {
                 let outcome = if let Some(set) = admitted {
                     match serde_json::from_str::<BoundRuleRun>(&input_json) {
-                        Ok(binding) => set.evaluate(binding, token).await,
+                        Ok(binding) => {
+                            set.evaluate(
+                                binding,
+                                admit_transcript_registry(adapter_mappings_json, &token).await,
+                                token,
+                            )
+                            .await
+                        }
                         Err(_) => RuleInvocationOutcome::Invalid {
                             diagnostics: invalid_sdk_request(),
                         },
@@ -338,7 +352,12 @@ pub fn evaluate_rules<'env>(
                 } else {
                     match sunstack_rules::decode_rule_invocation(input_json.as_bytes()) {
                         Ok(input) => {
-                            sunstack::host_services::general_rules::evaluate(input, token).await
+                            sunstack::host_services::general_rules::evaluate_with_registry(
+                                input,
+                                admit_transcript_registry(adapter_mappings_json, &token).await,
+                                token,
+                            )
+                            .await
                         }
                         Err(diagnostics) => RuleInvocationOutcome::Invalid { diagnostics },
                     }
@@ -358,6 +377,7 @@ pub fn inspect_evidence<'env>(
     env: &'env Env,
     input_json: String,
     cancellation: &CallCancellation,
+    adapter_mappings_json: Option<String>,
 ) -> napi::Result<PromiseRaw<'env, String>> {
     let token = cancellation.token.clone();
     env.spawn_future(async move {
@@ -367,11 +387,14 @@ pub fn inspect_evidence<'env>(
                 owned(
                     async move {
                         GeneralRuleCall::Received {
-                            outcome: sunstack::host_services::general_rules::inspect_evidence(
-                                input, token,
+                        outcome:
+                            sunstack::host_services::general_rules::inspect_evidence_with_registry(
+                                input,
+                                admit_transcript_registry(adapter_mappings_json, &token).await,
+                                token,
                             )
                             .await,
-                        }
+                    }
                     },
                     |failure| GeneralRuleCall::Failed { failure },
                 )
@@ -397,6 +420,7 @@ pub fn prepare_rules<'env>(
     input_json: String,
     cancellation: &CallCancellation,
     rule_set: Option<&NativeRuleSet>,
+    adapter_mappings_json: Option<String>,
 ) -> napi::Result<PromiseRaw<'env, String>> {
     let token = cancellation.token.clone();
     let admitted = rule_set.map(|set| set.admitted.clone());
@@ -409,13 +433,25 @@ pub fn prepare_rules<'env>(
             async move {
                 let outcome = if let Some(set) = admitted {
                     match serde_json::from_str::<BoundRuleRun>(&input_json) {
-                        Ok(binding) => set.preview(binding, token).await,
+                        Ok(binding) => {
+                            set.preview(
+                                binding,
+                                admit_transcript_registry(adapter_mappings_json, &token).await,
+                                token,
+                            )
+                            .await
+                        }
                         Err(_) => invalid(invalid_sdk_request()),
                     }
                 } else {
                     match sunstack_rules::decode_rule_invocation(input_json.as_bytes()) {
                         Ok(input) => {
-                            sunstack::host_services::general_rules::preview(input, token).await
+                            sunstack::host_services::general_rules::preview_with_registry(
+                                input,
+                                admit_transcript_registry(adapter_mappings_json, &token).await,
+                                token,
+                            )
+                            .await
                         }
                         Err(diagnostics) => invalid(diagnostics),
                     }

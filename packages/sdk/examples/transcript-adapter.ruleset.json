@@ -1,0 +1,9 @@
+{
+	"schema_version": 1,
+	"name": "transcript-adapter",
+	"description": "Select evidence from a declarative transcript adapter and a built-in adapter",
+	"inputs": { "custom": { "kind": "conversation" }, "codex": { "kind": "conversation" } },
+	"applicability": [],
+	"common_ruleset_instructions": null,
+	"rule_paths": ["transcript-adapter.rules.jsonl"]
+}
