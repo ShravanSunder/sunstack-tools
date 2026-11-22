@@ -560,13 +560,9 @@ export async function openDesignCheck(siteRoot: string): Promise<DesignCheck> {
 				]);
 			const result = [
 				details,
-				`Last checked snapshot: ${snapshotRevision}`,
 				`Checked ${ownedPages.size} authored page(s), ${pages.length} navigation page(s), and ${design.records.length} design record(s).`,
-				...Object.values(delivery.deliverables).map(
-					({ id, state, title, scopeRevision, reasons }): string =>
-						[`${id} · ${state} · ${title}`, `Scope revision: ${scopeRevision}`, ...reasons].join(
-							'\n  ',
-						),
+				...Object.values(delivery.deliverables).map(({ id, state, title, reasons }): string =>
+					[`${id} · ${state} · ${title}`, ...(state === 'accepted' ? [] : reasons)].join('\n  '),
 				),
 			]
 				.filter(Boolean)

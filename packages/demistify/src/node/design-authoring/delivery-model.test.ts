@@ -330,7 +330,7 @@ it('reopens an accepted candidate when its governing scope revision changes', ()
 		},
 	});
 	expect(projected.deliverables['DEL-01']?.reasons).toContain(
-		'A recorded Lead acceptance covers a different scope revision.',
+		'The earlier Lead acceptance needs review.',
 	);
 	expect(projected.deliverables['DEL-02']).toMatchObject({ state: 'dependency-blocked' });
 	expect(reverified.deliverables['DEL-01']).toMatchObject({

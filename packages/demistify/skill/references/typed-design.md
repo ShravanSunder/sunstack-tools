@@ -72,11 +72,11 @@ export default defineDeliverable({
 });
 ```
 
-Give the pair the deliverable ID and file. Link scope to existing rule, design, and planned-check IDs. The Implementer records `implementation.completedTasks`, `candidate`, and local evidence. The Verifier records `verification.build`, the checker’s displayed `scopeRevision`, and `outcomes` keyed by check ID. A passing or failing outcome links its observation and evidence. A blocked outcome names the reason.
+Give the pair the deliverable ID and file. The Implementer records completed tasks, the candidate, and evidence. The Verifier checks that the observed build matches `implementation.candidate` and records `verification: { build, scopeRevision, outcomes }`. Read `scopeRevision` directly from the deliverable in fresh generated data. Key outcomes by check ID and link evidence or state the blocker.
 
 An unanswered governing owner question or a refuted assumption blocks the affected deliverable. The Lead can authorize reversible work under an open assumption. That deliverable stays open until the assumption is confirmed, even when its checks passed. The reader links to the governing items so the pair can open the right passage.
 
-Once the required evidence matches the current scope and candidate, the Lead can record `acceptances` in `design.ts`, with a `deliverableId`, `build`, `scopeRevision`, and evidence link. Dependent work shows its unmet prerequisites. A build or governing passage change keeps the older outcome visible as stale. When the Lead changes the assigned checks, move the earlier verification block to the deliverable’s `verificationHistory` so readers can still inspect it.
+When a deliverable is ready for acceptance, record `acceptances: [{ deliverableId, build, scopeRevision, evidence }]` in `design.ts`. Use a script to fill the build and scope from the checked deliverable. When assigned checks change, keep earlier verification in `verificationHistory`.
 
 In the authored HTML page, place the delivery overview where the reader needs the current state:
 
@@ -163,7 +163,7 @@ demistify project check docs/projects/2026-11-router --site-root docs --write
 
 The first command checks the project and lists open owner questions and delivery status. Add `--write` to refresh `project.generated.json` and the three generated files in each milestone. The site root can include reviewed HTML and evidence outside the project. Keep the manifest, identity file, and other TypeScript inputs inside the project.
 
-Record a build and verification against the scope revision printed by the project check. A change to a linked prerequisite's build or scope reopens dependent verification. Use `design check` for self-contained sets.
+For receipt automation, use `project check --write` to refresh the data. Use `design check` for self-contained sets.
 
 When readers need a project-wide view, place this binding in a hand-authored page served alongside the generated JSON.
 

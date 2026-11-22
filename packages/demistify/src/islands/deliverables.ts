@@ -102,7 +102,7 @@ export class DeliverablesIsland extends HTMLElement {
 			if (!response.ok) throw new Error(`HTTP ${response.status} loading ${reference}.`);
 			const text = await response.text();
 			const view = parseDeliverablesView(text);
-			this.renderTable(Object.values(view.deliverables), source, view.snapshotRevision);
+			this.renderTable(Object.values(view.deliverables), source);
 			this.dispatchEvent(new CustomEvent('island-ready', { bubbles: true }));
 			return { kind: 'loaded', source: text };
 		} catch (error) {
@@ -115,24 +115,17 @@ export class DeliverablesIsland extends HTMLElement {
 		}
 	}
 
-	private renderTable(
-		items: readonly DeliverableView[],
-		source: URL,
-		snapshotRevision: string,
-	): void {
-		const snapshot = document.createElement('small');
-		snapshot.textContent = `Last checked snapshot ${snapshotRevision.slice(0, 12)}`;
-		snapshot.title = snapshotRevision;
+	private renderTable(items: readonly DeliverableView[], source: URL): void {
 		if (!items.length) {
 			const summary = document.createElement('p');
-			summary.append('No deliverables planned. ', snapshot);
+			summary.textContent = 'No deliverables planned.';
 			this.replaceChildren(summary);
 			return;
 		}
 		const wrapper = document.createElement('div');
 		wrapper.className = 'ex-table-scroll';
 		const table = document.createElement('table');
-		table.createCaption().append(this.getAttribute('label') ?? 'Deliverables', ' · ', snapshot);
+		table.createCaption().textContent = this.getAttribute('label') ?? 'Deliverables';
 		const header = table.createTHead().insertRow();
 		for (const label of ['Deliverable', 'State', 'Work and evidence']) {
 			const cell = document.createElement('th');
@@ -158,7 +151,7 @@ export class DeliverablesIsland extends HTMLElement {
 			summary.textContent = deliveryStateLabels[item.state];
 			const state = row.insertCell();
 			state.append(summary);
-			for (const reason of item.reasons) {
+			for (const reason of item.state === 'accepted' ? [] : item.reasons) {
 				const paragraph = document.createElement('p');
 				paragraph.textContent = reason;
 				state.append(paragraph);

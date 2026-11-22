@@ -136,6 +136,8 @@ it('composes typed work files into one delivery graph and keeps the last output 
 		const produced = await readOutputs();
 		expect(checked.stdout).toContain('DEL-02 · verification-blocked');
 		expect(checked.stdout).toContain('V12 is blocked. Caller response unavailable');
+		expect(checked.stdout).not.toContain(firstRevision);
+		expect(checked.stdout).not.toMatch(/Last checked snapshot|Scope revision:/);
 		expect(JSON.parse(produced[2] ?? '')).toMatchObject({
 			version: 1,
 			deliverables: {

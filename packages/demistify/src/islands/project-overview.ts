@@ -87,7 +87,7 @@ function renderDelivery(
 		state,
 	);
 	if (delivery.builder) parent.append(` · Builder ${delivery.builder}`);
-	for (const reason of delivery.reasons) {
+	for (const reason of delivery.state === 'accepted' ? [] : delivery.reasons) {
 		const paragraph = document.createElement('p');
 		paragraph.textContent = reason;
 		parent.append(paragraph);

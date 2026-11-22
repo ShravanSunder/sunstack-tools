@@ -148,7 +148,7 @@ function resolveGoverningDesign(
 		if (!record) throw new Error(`${id}: missing governing design record ${scopeId}.`);
 		const revision = scopeRevisionSchema.safeParse(recordRevisions.get(scopeId));
 		if (!revision.success)
-			throw new Error(`${id}: expected a SHA-256 revision for governing design record ${scopeId}.`);
+			throw new Error(`${id}: could not check governing design record ${scopeId}.`);
 		linkedRevisions.set(scopeId, revision.data);
 		if ('relationships' in record) {
 			for (const { targetId } of record.relationships) includeRecord(targetId);
@@ -250,16 +250,15 @@ function projectVerification(
 					id: checkId,
 					state: 'stale',
 					reason: candidate
-						? `Outcome is for ${build}. Recheck candidate ${candidate}.`
-						: `Outcome is for ${build}. Record the implementation candidate.`,
+						? 'Recheck this outcome on the current build.'
+						: 'Record the implementation candidate.',
 					outcome,
 				};
 			if (verification?.scopeRevision !== scopeRevision)
 				return {
 					id: checkId,
 					state: 'stale',
-					reason:
-						'Outcome covers a different scope revision. Recheck this outcome against the current scope.',
+					reason: 'Recheck this outcome against the current design.',
 					outcome,
 				};
 			if (outcome.kind === 'blocked')
@@ -337,8 +336,8 @@ function projectProgress({
 			state: 'awaiting-verification',
 			reason:
 				verification.build === candidate && verification.scopeRevision !== scopeRevision
-					? `Recheck candidate ${candidate} against the current scope revision.`
-					: `Record every scoped verification outcome for candidate ${candidate}.`,
+					? 'Recheck the current build against the current design.'
+					: 'Record the verification results for the current build.',
 		};
 
 	const acceptanceBlocker = designBlockers[0];
@@ -355,7 +354,7 @@ function projectProgress({
 		};
 	return {
 		state: 'ready-for-acceptance',
-		reason: `Record Lead acceptance for candidate ${candidate}.`,
+		reason: 'Record the Lead’s acceptance.',
 	};
 }
 
@@ -424,9 +423,7 @@ export function projectDelivery(
 				(receipt): boolean => receipt.build === build && receipt.scopeRevision === scopeRevision,
 			)
 		)
-			throw new Error(
-				`${deliverableId}: duplicate Lead acceptance for build ${build} and scope revision ${scopeRevision}.`,
-			);
+			throw new Error(`${deliverableId}: duplicate Lead acceptance for the same build and design.`);
 		acceptancesById.set(deliverableId, [...previous, acceptance]);
 		evidence.add(acceptance.evidence);
 	}
@@ -480,17 +477,10 @@ export function projectDelivery(
 		if (unmetPrerequisites.length)
 			reasons.unshift(`Awaiting acceptance of prerequisites: ${unmetPrerequisites.join(', ')}.`);
 		if (progress.state !== 'accepted') {
-			const staleBuilds = new Set(
-				acceptances
-					.filter(({ build }): boolean => build !== implementation.candidate)
-					.map(({ build }): string => build),
-			);
-			if (staleBuilds.size)
-				reasons.push(
-					`Lead acceptance for ${[...staleBuilds].join(', ')} does not match the current candidate.`,
-				);
+			if (acceptances.some(({ build }) => build !== implementation.candidate))
+				reasons.push('The earlier Lead acceptance is for a different build.');
 			if (acceptances.some((receipt): boolean => receipt.scopeRevision !== scopeRevision))
-				reasons.push('A recorded Lead acceptance covers a different scope revision.');
+				reasons.push('The earlier Lead acceptance needs review.');
 		}
 
 		byDependencyOrder.set(id, {

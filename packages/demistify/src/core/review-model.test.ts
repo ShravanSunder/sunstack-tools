@@ -86,6 +86,13 @@ test('selected answer copy includes its comment without repeating the option tit
 	expect(copied).toContain('Do not lose this note.');
 	for (const comment of review.comments)
 		expect(copied).toContain(`Comment ID: ${comment.commentId}`);
+	const automaticRevision = `sha256:${'a'.repeat(64)}`;
+	const automaticReview = reviewEnvelopeSchema.parse({
+		...review,
+		documentRevision: automaticRevision,
+	});
+	expect(formatReview(automaticReview)).not.toContain(automaticRevision);
+	expect(automaticReview.documentRevision).toBe(automaticRevision);
 });
 
 test('a new selected passage updates the same comment without replacing its saved identity', (): void => {

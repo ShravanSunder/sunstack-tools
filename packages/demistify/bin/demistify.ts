@@ -145,7 +145,7 @@ async function main(): Promise<number> {
 			[...prepared.pages].map(([page, html]) => writeFile(resolve(directory, page), html)),
 		);
 		write(
-			`Prepared ${prepared.pages.size} pages, ${prepared.collection.records.length} records, revision ${prepared.collection.identity}.`,
+			`Prepared ${prepared.pages.size} pages and ${prepared.collection.records.length} records.`,
 		);
 		return 0;
 	}

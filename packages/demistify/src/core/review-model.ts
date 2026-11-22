@@ -101,7 +101,9 @@ export function textAnchorMatches(text: string, anchor: TextCommentAnchor): bool
 export function formatReview(review: ReviewEnvelope): string {
 	const lines = [
 		`# Review of ${review.documentId}`,
-		`Document revision: ${review.documentRevision}`,
+		...(/^sha256:[a-f0-9]{64}$/.test(review.documentRevision)
+			? []
+			: [`Document revision: ${review.documentRevision}`]),
 		`Review ID: ${review.reviewId}`,
 	];
 	const rendered = new Set<string>();
