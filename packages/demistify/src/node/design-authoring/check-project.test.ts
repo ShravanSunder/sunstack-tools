@@ -263,14 +263,15 @@ resolution: { href: 'evidence.txt', excerpt: 'Available.' }
 			),
 		);
 		await check(false);
+		const sharedChoiceMarkup = await readFile(sharedPage, 'utf8');
+		const sharedChoice = sharedChoiceMarkup.slice(sharedChoiceMarkup.indexOf('<ex-choice'));
 		await writeFile(
 			sharedPage,
-			(await readFile(sharedPage, 'utf8')).replace(
-				'data-decision="project/D2"',
-				'data-decision="messages/D2"',
-			),
+			sharedChoiceMarkup + sharedChoice.replace('id="D2"', 'id="second-choice"'),
 		);
-		await expect(check(false)).rejects.toThrow(/Choice D2 must reference project\/D2/);
+		await expect(check(false)).rejects.toThrow(
+			/Choice second-choice must be the HTML destination of project\/D2/,
+		);
 		await writeFile(sharedPage, sharedMarkup);
 		const before = await readView();
 		expect(before.deliverables['messages/DEL-01']?.state).toBe('dependency-blocked');

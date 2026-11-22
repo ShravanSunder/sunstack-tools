@@ -202,7 +202,7 @@ export async function checkProject(
 	const sets = await Promise.all(
 		Object.entries(manifest.designs).map(async ([name, file]) => {
 			await readAuthoringInput(file);
-			const set = await check.prepare(dirname(file), { root, namespace: name });
+			const set = await check.prepare(dirname(file), root);
 			if (set.lead !== undefined && (!identities || !Object.hasOwn(identities.agents, set.lead)))
 				throw new Error(
 					`${name}: unknown Lead alias ${set.lead}. Register it in agents-identity.ts.`,
@@ -237,7 +237,7 @@ export async function checkProject(
 			]),
 		);
 		checkAuthoringTypes([file], new Map([[file, text], ...declarations]));
-		const scope = await check.inspectRecords(records, file, { namespace: 'project' });
+		const scope = await check.inspectRecords(records, file);
 		return {
 			records: records.map((record) =>
 				projectRecord(record, 'project', (href) => rebase(href, dirname(file), root)),
@@ -296,6 +296,19 @@ export async function checkProject(
 		text: JSON.stringify(view),
 		records: new Map(design.records.map((record) => [record.id, record])),
 	};
+	const choicePages = new Map<string, string | undefined>();
+	for (const set of sets) {
+		for (const { file, owned } of set.pages) {
+			if (owned) choicePages.set(file, set.name);
+			else if (!choicePages.has(file)) choicePages.set(file, undefined);
+		}
+	}
+	await check.checkChoices({
+		pages: choicePages,
+		records: projectSource.records,
+		sourceFile: projectFile,
+		project: true,
+	});
 	const plans = await Promise.all(
 		sets.map((set) =>
 			set.plan(

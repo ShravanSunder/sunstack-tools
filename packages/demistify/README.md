@@ -125,6 +125,7 @@ before adding record targets to a typed design that uses older generated declara
 An authored `<ex-choice id="D6" data-decision="D6" title="…">` can serve as an open owner
 decision's destination. Use its recorded question as the title. The review handoff carries the
 decision ID with the selected options. The Lead records the actual answer in the decision file.
+On a shared project page, use the qualified decision ID, such as `data-decision="messages/D6"`.
 
 ### Reading measure and visual canvas
 

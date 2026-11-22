@@ -170,9 +170,17 @@ it('resolves Map and Walkthrough record references to the same checked Choice', 
 			  steps: [{ target: { record: 'D1' }, narration: 'Decide what to do after the job is claimed.' }] }
 		]`,
 		);
+		const designWithSharedPassage = design.replace(
+			'"records": []',
+			`"records": [{
+				id: 'N1', kind: 'need', title: 'Stop work', statement: 'The caller can request cancellation.',
+				destination: { page: 'index.html', fragment: 'cancel-policy' },
+				sources: [{ href: 'index.html#NeedOverview', excerpt: 'Read the overview' }]
+			}]`,
+		);
 		const html = page.replace(/<p><a href="\.\.\/overview[\s\S]*?<\/p>/, choice);
 		await Promise.all([
-			writeFile(designFile, design),
+			writeFile(designFile, designWithSharedPassage),
 			writeFile(pageFile, html),
 			writeFile(
 				join(directory, 'design-decisions.ts'),
@@ -195,15 +203,13 @@ it('resolves Map and Walkthrough record references to the same checked Choice', 
 		});
 
 		await writeFile(pageFile, html.replace('data-decision="D1"', 'data-decision="D2"'));
-		await expect(run(process.execPath, check)).rejects.toThrow(
-			/Choice cancel-policy must reference D1/,
-		);
+		await expect(run(process.execPath, check)).rejects.toThrow(/unknown design record D2/);
 		await writeFile(pageFile, html.replace('Stop claimed work?', 'A different question?'));
 		await expect(run(process.execPath, check)).rejects.toThrow(
 			/must ask the question recorded in D1/,
 		);
 		await writeFile(pageFile, html);
-		await writeFile(designFile, design.replace("record: 'D1'", "record: 'D2'"));
+		await writeFile(designFile, designWithSharedPassage.replace("record: 'D1'", "record: 'D2'"));
 		await expect(run(process.execPath, check)).rejects.toThrow(/unknown design record D2/);
 		expect(await readFile(outputFile, 'utf8')).toBe(generated);
 	} finally {
