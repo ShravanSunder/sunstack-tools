@@ -4,6 +4,7 @@ import type { DesignRecord } from './schema.ts';
 
 interface AuthoredFragment {
 	readonly source: string;
+	readonly heading?: true;
 	readonly designItem: string | undefined;
 	readonly authority: string | undefined;
 }
@@ -33,8 +34,20 @@ export function readPageMarkup(html: string, file: string): PageMarkup {
 		readonly start: number;
 	}
 	const groups: { headings: Heading[]; end: number }[] = [];
-	function visit(node: DefaultTreeAdapterMap['node'], headings: Heading[]): void {
+	const preformattedText: { start: number; end: number }[] = [];
+	function visit(
+		node: DefaultTreeAdapterMap['node'],
+		headings: Heading[],
+		inPreformattedText = false,
+	): void {
 		let currentHeadings = headings;
+		const preservesWhitespace =
+			inPreformattedText ||
+			('tagName' in node && ['pre', 'listing', 'textarea'].includes(node.tagName));
+		if (preservesWhitespace && 'value' in node && node.sourceCodeLocation) {
+			const { startOffset, endOffset } = node.sourceCodeLocation;
+			preformattedText.push({ start: startOffset, end: endOffset });
+		}
 		if ('attrs' in node) {
 			const get = (name: string): string | undefined =>
 				node.attrs.find((attribute): boolean => attribute.name === name)?.value;
@@ -78,7 +91,7 @@ export function readPageMarkup(html: string, file: string): PageMarkup {
 			}
 		}
 		if ('childNodes' in node) {
-			for (const child of node.childNodes) visit(child, currentHeadings);
+			for (const child of node.childNodes) visit(child, currentHeadings, preservesWhitespace);
 		}
 	}
 	const documentHeadings: Heading[] = [];
@@ -91,7 +104,14 @@ export function readPageMarkup(html: string, file: string): PageMarkup {
 			const fragment = id ? result.ids.get(id) : undefined;
 			if (id && fragment) {
 				const passageEnd = Math.min(...nextByRank.slice(0, rank));
-				result.ids.set(id, { ...fragment, source: html.slice(start, passageEnd) });
+				const preservesWhitespace = preformattedText.some(
+					(text): boolean => text.start < passageEnd && text.end >= passageEnd,
+				);
+				result.ids.set(id, {
+					...fragment,
+					source: html.slice(start, passageEnd),
+					...(preservesWhitespace ? {} : { heading: true }),
+				});
 			}
 			nextByRank[rank - 1] = start;
 		}

@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { readFile, realpath } from 'node:fs/promises';
+import { lstat, readFile, realpath } from 'node:fs/promises';
 import { dirname, extname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
 
@@ -28,6 +28,12 @@ import {
 import { readDeliveryEntries } from './read-delivery.ts';
 import { readDesign, readDesignItems } from './read-design.ts';
 import type { DesignCore, DesignRecord } from './schema.ts';
+import {
+	deliveryRevisionInputs,
+	readScopeBoundaries,
+	recordScopeRevision,
+	type RecordScopeRevision,
+} from './scope-boundary.ts';
 
 function containsPath(root: string, file: string): boolean {
 	const child = relative(root, file);
@@ -105,7 +111,7 @@ interface PreparedDesign {
 	readonly entries: readonly DeliveryEntry[];
 	readonly firstPage: { readonly href: string; readonly title: string };
 	readonly pages: readonly { file: string; owned: boolean }[];
-	readonly recordRevisions: ReadonlyMap<string, string>;
+	readonly recordRevisions: ReadonlyMap<string, RecordScopeRevision>;
 	readonly plan: (
 		delivery: DeliveryProjection,
 		projectSource?: ProjectNavigationSource,
@@ -134,8 +140,12 @@ interface DesignCheck {
 	readonly inspectRecords: (
 		records: readonly DesignRecord[],
 		sourceFile: string,
-		declaredPages?: ReadonlySet<string>,
-	) => Promise<Map<string, string>>;
+		options?: { pages?: ReadonlySet<string>; previousBoundaries?: ReadonlyMap<string, string> },
+	) => Promise<Map<string, RecordScopeRevision>>;
+	readonly readScopeBoundaries: (
+		file: string,
+		location: 'design' | 'project',
+	) => Promise<ReadonlyMap<string, string>>;
 	readonly checkChoices: (scope: ChoiceCheckScope) => Promise<void>;
 	readonly prepare: (directory: string, authoringRoot?: string) => Promise<PreparedDesign>;
 	readonly verify: () => Promise<void>;
@@ -233,17 +243,16 @@ export async function openDesignCheck(siteRoot: string): Promise<DesignCheck> {
 	async function inspectRecords(
 		records: readonly DesignRecord[],
 		sourceFile: string,
-		declaredPages?: ReadonlySet<string>,
-	): Promise<Map<string, string>> {
+		{
+			pages,
+			previousBoundaries,
+		}: { pages?: ReadonlySet<string>; previousBoundaries?: ReadonlyMap<string, string> } = {},
+	): Promise<Map<string, RecordScopeRevision>> {
 		return new Map(
 			await Promise.all(
 				records.map(async (record) => {
 					const destination = resolveLink(record.destination.page, sourceFile);
-					if (
-						!destination ||
-						!isHtml(destination.file) ||
-						(declaredPages && !declaredPages.has(destination.file))
-					)
+					if (!destination || !isHtml(destination.file) || (pages && !pages.has(destination.file)))
 						throw new Error(`Record ${record.id} must point to a declared HTML page.`);
 					await checkDestination(destination.file, record.destination.fragment, true);
 					const sources =
@@ -272,24 +281,27 @@ export async function openDesignCheck(siteRoot: string): Promise<DesignCheck> {
 					);
 					const passage = (await readPage(destination.file)).ids.get(record.destination.fragment);
 					checkDesignItemMarkup(record, passage);
-					const governingRecord =
-						'relationships' in record
-							? {
-									...record,
-									relationships: record.relationships.toSorted(
-										(left, right) =>
-											left.relation.localeCompare(right.relation) ||
-											left.targetId.localeCompare(right.targetId),
-									),
-								}
-							: record;
-					const revision = createHash('sha256')
-						.update(JSON.stringify([governingRecord, passage?.source ?? '']))
-						.digest('hex');
+					const revision = recordScopeRevision({
+						record,
+						source: passage?.source ?? '',
+						heading: passage?.heading === true,
+						previousBoundary: previousBoundaries?.get(record.id),
+					});
 					return [record.id, revision] as const;
 				}),
 			),
 		);
+	}
+
+	async function readPreviousBoundaries(
+		file: string,
+		location: 'design' | 'project',
+	): Promise<ReadonlyMap<string, string>> {
+		const existing = await lstat(file).catch((error: unknown) => {
+			if (missing(error)) return undefined;
+			throw error;
+		});
+		return existing?.isFile() ? readScopeBoundaries(await readSiteFile(file), location) : new Map();
 	}
 
 	async function checkChoices(scope: ChoiceCheckScope): Promise<void> {
@@ -412,7 +424,15 @@ export async function openDesignCheck(siteRoot: string): Promise<DesignCheck> {
 			if (node.target) await checkNavigationTarget(node.target);
 			await Promise.all(node.children.map(checkMapNode));
 		};
-		const recordRevisions = await inspectRecords(design.records, designFile, declaredPages);
+		const generatedDesign = join(setDirectory, 'design.generated.json');
+		const previousBoundaries = await readPreviousBoundaries(generatedDesign, 'design');
+		const recordRevisions = await inspectRecords(design.records, designFile, {
+			pages: declaredPages,
+			previousBoundaries,
+		});
+		const storedRevisions = Object.fromEntries(
+			[...recordRevisions].map(([id, entry]) => [id, entry.current]),
+		);
 		const localRecords = new Map(design.records.map((record) => [record.id, record]));
 		async function plan(
 			delivery: DeliveryProjection,
@@ -450,9 +470,7 @@ export async function openDesignCheck(siteRoot: string): Promise<DesignCheck> {
 				),
 			]);
 			const snapshotRevision = createHash('sha256')
-				.update(
-					JSON.stringify([Object.fromEntries(recordRevisions), navigation, delivery.deliverables]),
-				)
+				.update(JSON.stringify([storedRevisions, navigation, delivery.deliverables]))
 				.digest('hex');
 			const deliverables = deliverablesViewSchema.parse({
 				version: 1,
@@ -544,13 +562,18 @@ export async function openDesignCheck(siteRoot: string): Promise<DesignCheck> {
 			);
 			const outputs = (): Promise<(GeneratedFile | undefined)[]> =>
 				Promise.all([
-					planGeneratedJson(join(setDirectory, 'design.generated.json'), {
+					planGeneratedJson(generatedDesign, {
 						version: 1,
 						snapshotRevision,
 						pages: design.pages,
 						records: design.records,
 						recordDestinations,
-						recordRevisions: Object.fromEntries(recordRevisions),
+						recordRevisions: storedRevisions,
+						boundaryWhitespace: Object.fromEntries(
+							[...recordRevisions].flatMap(([id, entry]) =>
+								entry.boundaryWhitespace === undefined ? [] : [[id, entry.boundaryWhitespace]],
+							),
+						),
 					}),
 					planGeneratedJson(navigationFile, navigation, (current): boolean => {
 						const parsed = sharedNavigationSchema.safeParse(current);
@@ -615,6 +638,7 @@ export async function openDesignCheck(siteRoot: string): Promise<DesignCheck> {
 		checkEvidence,
 		checkChoices,
 		inspectRecords,
+		readScopeBoundaries: readPreviousBoundaries,
 		prepare,
 		verify,
 	};
@@ -647,7 +671,10 @@ export async function checkDesignSet(directory: string, siteRoot?: string): Prom
 		records: new Map(set.design.records.map((record) => [record.id, record])),
 		sourceFile: join(setDirectory, 'design.ts'),
 	});
-	const delivery = projectDelivery(set.design, set.entries, set.recordRevisions);
+	const revisions = deliveryRevisionInputs(set.recordRevisions);
+	const delivery = projectDelivery(set.design, set.entries, revisions.current, {
+		legacyRecordRevisions: revisions.legacy,
+	});
 	const { result, outputs } = await set.plan(delivery);
 	await commitDesignOutputs([set.directory], [{ verify: check.verify, plan: outputs }]);
 	return result;

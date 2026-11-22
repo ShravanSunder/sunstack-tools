@@ -129,7 +129,7 @@ interface DesignBlocker {
 }
 
 interface GoverningDesign {
-	readonly scopeRevision: string;
+	readonly scopeRevisions: readonly [string, ...string[]];
 	readonly governingItems: RecordDestination[];
 	readonly designBlockers: readonly DesignBlocker[];
 }
@@ -137,19 +137,19 @@ interface GoverningDesign {
 function resolveGoverningDesign(
 	{ deliverable, dependsOn }: DeliveryEntry,
 	records: ReadonlyMap<string, DesignRecord>,
-	recordRevisions: ReadonlyMap<string, string>,
+	revisionInputs: {
+		readonly current: ReadonlyMap<string, string>;
+		readonly legacy: readonly ReadonlyMap<string, string>[];
+	},
 ): GoverningDesign {
 	const { id, scope, destination: planDestination } = deliverable;
-	const linkedRevisions = new Map<string, string>();
+	const linkedRecords = new Set<string>();
 	// The checker has validated the relationship kinds before calling the projector.
 	function includeRecord(scopeId: string): void {
-		if (linkedRevisions.has(scopeId)) return;
+		if (linkedRecords.has(scopeId)) return;
 		const record = records.get(scopeId);
 		if (!record) throw new Error(`${id}: missing governing design record ${scopeId}.`);
-		const revision = scopeRevisionSchema.safeParse(recordRevisions.get(scopeId));
-		if (!revision.success)
-			throw new Error(`${id}: could not check governing design record ${scopeId}.`);
-		linkedRevisions.set(scopeId, revision.data);
+		linkedRecords.add(scopeId);
 		if ('relationships' in record) {
 			for (const { targetId } of record.relationships) includeRecord(targetId);
 		}
@@ -157,30 +157,35 @@ function resolveGoverningDesign(
 
 	for (const scopeId of [...scope.rules, ...scope.designItems, ...scope.verificationChecks])
 		includeRecord(scopeId);
-	const revisions = [...linkedRevisions].toSorted(([left], [right]): number => {
-		if (left < right) return -1;
-		return left === right ? 0 : 1;
-	});
+	const recordIds = [...linkedRecords].toSorted();
 	const canonicalScope = {
 		rules: scope.rules.toSorted(),
 		designItems: scope.designItems.toSorted(),
 		implementationTasks: scope.implementationTasks.toSorted(),
 		verificationChecks: scope.verificationChecks.toSorted(),
 	};
-	const scopeRevision = createHash('sha256')
-		.update(
-			JSON.stringify({
-				id,
-				scope: canonicalScope,
-				destination: planDestination,
-				dependsOn: dependsOn.toSorted(),
-				revisions,
-			}),
-		)
-		.digest('hex');
+	const revisionFor = (recordRevisions: ReadonlyMap<string, string>): string => {
+		const revisions = recordIds.map((scopeId): [string, string] => {
+			const revision = scopeRevisionSchema.safeParse(recordRevisions.get(scopeId));
+			if (!revision.success)
+				throw new Error(`${id}: could not check governing design record ${scopeId}.`);
+			return [scopeId, revision.data];
+		});
+		return createHash('sha256')
+			.update(
+				JSON.stringify({
+					id,
+					scope: canonicalScope,
+					destination: planDestination,
+					dependsOn: dependsOn.toSorted(),
+					revisions,
+				}),
+			)
+			.digest('hex');
+	};
 	const governingItems: RecordDestination[] = [];
 	const designBlockers: DesignBlocker[] = [];
-	for (const [scopeId] of revisions) {
+	for (const scopeId of recordIds) {
 		const record = records.get(scopeId);
 		if (record?.kind === 'choice') {
 			governingItems.push({ id: scopeId, ...record.destination });
@@ -200,7 +205,14 @@ function resolveGoverningDesign(
 				});
 		}
 	}
-	return { scopeRevision, governingItems, designBlockers };
+	return {
+		scopeRevisions: [
+			revisionFor(revisionInputs.current),
+			...revisionInputs.legacy.map(revisionFor),
+		],
+		governingItems,
+		designBlockers,
+	};
 }
 
 function projectImplementation(deliverable: Deliverable): DeliverableView['implementation'] {
@@ -225,7 +237,7 @@ function projectImplementation(deliverable: Deliverable): DeliverableView['imple
 
 function projectVerification(
 	deliverable: Deliverable,
-	scopeRevision: string,
+	scopeRevisions: readonly string[],
 ): DeliverableView['verification'] {
 	const { id, scope, implementation, verification, verificationHistory } = deliverable;
 	const outcomes = new Map(Object.entries(verification?.outcomes ?? {}));
@@ -254,7 +266,7 @@ function projectVerification(
 						: 'Record the implementation candidate.',
 					outcome,
 				};
-			if (verification?.scopeRevision !== scopeRevision)
+			if (!scopeRevisions.includes(verification?.scopeRevision ?? ''))
 				return {
 					id: checkId,
 					state: 'stale',
@@ -271,7 +283,7 @@ function projectVerification(
 
 interface ProgressInputs {
 	readonly deliverable: Deliverable;
-	readonly scopeRevision: string;
+	readonly scopeRevisions: readonly string[];
 	readonly coverageGap: string | undefined;
 	readonly designBlockers: readonly DesignBlocker[];
 	readonly implementation: DeliverableView['implementation'];
@@ -281,7 +293,7 @@ interface ProgressInputs {
 
 function projectProgress({
 	deliverable,
-	scopeRevision,
+	scopeRevisions,
 	coverageGap,
 	designBlockers,
 	implementation,
@@ -335,7 +347,8 @@ function projectProgress({
 		return {
 			state: 'awaiting-verification',
 			reason:
-				verification.build === candidate && verification.scopeRevision !== scopeRevision
+				verification.build === candidate &&
+				!scopeRevisions.includes(verification.scopeRevision ?? '')
 					? 'Recheck the current build against the current design.'
 					: 'Record the verification results for the current build.',
 		};
@@ -344,7 +357,8 @@ function projectProgress({
 	if (acceptanceBlocker) return { state: 'design-blocked', reason: acceptanceBlocker.reason };
 
 	const acceptance = acceptances.find(
-		(receipt): boolean => receipt.build === candidate && receipt.scopeRevision === scopeRevision,
+		(receipt): boolean =>
+			receipt.build === candidate && scopeRevisions.includes(receipt.scopeRevision),
 	);
 	if (acceptance)
 		return {
@@ -402,7 +416,10 @@ export function projectDelivery(
 	design: DesignCore,
 	entries: unknown,
 	recordRevisions: ReadonlyMap<string, string>,
-	trackPrerequisiteRevisions = false,
+	options: {
+		readonly trackPrerequisiteRevisions?: boolean;
+		readonly legacyRecordRevisions?: readonly ReadonlyMap<string, string>[];
+	} = {},
 ): DeliveryProjection {
 	const byId = new Map<string, DeliveryEntry>();
 	for (const entry of parseDeliveryEntries(entries)) {
@@ -431,37 +448,49 @@ export function projectDelivery(
 	const records = new Map(design.records.map((record) => [record.id, record]));
 	const destinations: Destination[] = [];
 	const byDependencyOrder = new Map<string, DeliverableView>();
+	const revisionsByDelivery = new Map<string, readonly string[]>();
 	for (const entry of deliverablesInDependencyOrder(byId)) {
 		const { deliverable, dependsOn } = entry;
 		const { id, title, builder } = deliverable;
 		const { links: scopeLinks, coverageGap } = resolveScope(deliverable, records);
-		const governing = resolveGoverningDesign(entry, records, recordRevisions);
+		const governing = resolveGoverningDesign(entry, records, {
+			current: recordRevisions,
+			legacy: options.legacyRecordRevisions ?? [],
+		});
 		const { governingItems, designBlockers } = governing;
-		const scopeRevision =
-			trackPrerequisiteRevisions && dependsOn.length
+		const includePrerequisites = (revision: string, index: number): string =>
+			options.trackPrerequisiteRevisions && dependsOn.length
 				? createHash('sha256')
 						.update(
 							JSON.stringify([
-								governing.scopeRevision,
+								revision,
 								dependsOn.toSorted().map((prerequisiteId) => {
 									const prerequisite = byDependencyOrder.get(prerequisiteId);
 									return [
 										prerequisiteId,
-										prerequisite?.scopeRevision,
+										revisionsByDelivery.get(prerequisiteId)?.[index],
 										prerequisite?.implementation.candidate,
 									];
 								}),
 							]),
 						)
 						.digest('hex')
-				: governing.scopeRevision;
+				: revision;
+		const [scopeRevision, ...legacyRevisions] = [
+			includePrerequisites(governing.scopeRevisions[0], 0),
+			...governing.scopeRevisions
+				.slice(1)
+				.map((revision, index) => includePrerequisites(revision, index + 1)),
+		];
+		const scopeRevisions = [scopeRevision, ...legacyRevisions];
+		revisionsByDelivery.set(id, scopeRevisions);
 		const links = { ...scopeLinks, governingItems };
 		const implementation = projectImplementation(deliverable);
-		const verification = projectVerification(deliverable, scopeRevision);
+		const verification = projectVerification(deliverable, scopeRevisions);
 		const acceptances = acceptancesById.get(id) ?? [];
 		const progress = projectProgress({
 			deliverable,
-			scopeRevision,
+			scopeRevisions,
 			coverageGap,
 			designBlockers,
 			implementation,
@@ -479,7 +508,7 @@ export function projectDelivery(
 		if (progress.state !== 'accepted') {
 			if (acceptances.some(({ build }) => build !== implementation.candidate))
 				reasons.push('The earlier Lead acceptance is for a different build.');
-			if (acceptances.some((receipt): boolean => receipt.scopeRevision !== scopeRevision))
+			if (acceptances.some((receipt): boolean => !scopeRevisions.includes(receipt.scopeRevision)))
 				reasons.push('The earlier Lead acceptance needs review.');
 		}
 
