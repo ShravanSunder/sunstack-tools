@@ -18,7 +18,10 @@ const page = `<!doctype html><html lang="en">
 const overview = `<!doctype html><html lang="en">
 <head><title>Overview</title><script type="module" src="https://demistify.getagentstudio.dev/v1/runtime.js"></script></head>
 <body><ex-nav for="overview-details"></ex-nav>
-<ex-document id="overview"><h1>Overview</h1><h2 id="scope">Site scope</h2></ex-document>
+<ex-document id="overview"><h1>Overview</h1><h2 id="scope">Site scope</h2>
+<ex-choice id="shared-decision" data-decision="project/D1" title="Keep the overview?">
+<ex-option id="keep-overview" title="Keep it"><template slot="summary">Keep the shared page.</template></ex-option>
+</ex-choice></ex-document>
 <main id="overview-details"><h2>Example</h2><h2>Example</h2>
 <template><h2 id="heading-example-2">Inert template</h2></template>
 <ex-markdown id="details"><script type="text/markdown">## From Markdown</script></ex-markdown>

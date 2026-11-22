@@ -126,6 +126,8 @@ An authored `<ex-choice id="D6" data-decision="D6" title="…">` can serve as an
 decision's destination. Use its recorded question as the title. The review handoff carries the
 decision ID with the selected options. The Lead records the actual answer in the decision file.
 On a shared project page, use the qualified decision ID, such as `data-decision="messages/D6"`.
+`project check` validates Choices across the project's declared and referenced record pages.
+`design check` validates Choices on the design's own pages and at its own decision destinations.
 
 ### Reading measure and visual canvas
 

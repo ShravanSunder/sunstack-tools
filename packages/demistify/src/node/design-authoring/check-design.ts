@@ -294,16 +294,25 @@ export async function openDesignCheck(siteRoot: string): Promise<DesignCheck> {
 
 	async function checkChoices(scope: ChoiceCheckScope): Promise<void> {
 		const { records, sourceFile, project } = scope;
-		const pages = new Map(scope.pages);
+		const externalFragments = new Map<string, Set<string>>();
 		for (const record of records.values()) {
+			if (!project && record.kind !== 'choice') continue;
 			const target = resolveLink(record.destination.page, sourceFile);
-			if (target && !pages.has(target.file)) pages.set(target.file, undefined);
+			if (!target || scope.pages.has(target.file)) continue;
+			const fragments = externalFragments.get(target.file) ?? new Set<string>();
+			fragments.add(record.destination.fragment);
+			externalFragments.set(target.file, fragments);
 		}
+		const pages = new Map(scope.pages);
+		for (const file of externalFragments.keys()) pages.set(file, undefined);
 		await Promise.all(
 			[...pages].map(async ([file, namespace]) => {
 				const { decisionChoices } = await readPage(file);
+				const fragments = project ? undefined : externalFragments.get(file);
 				checkDecisionChoices({
-					choices: decisionChoices,
+					choices: fragments
+						? decisionChoices.filter(({ id }) => fragments.has(id))
+						: decisionChoices,
 					file,
 					displayPath: label(file),
 					resolveRecord(reference) {
@@ -638,7 +647,7 @@ export async function checkDesignSet(directory: string, siteRoot?: string): Prom
 		throw new Error(`Qualified reference ${qualified} requires demistify project check.`);
 	checkRecordRelationships(set.design.records);
 	await check.checkChoices({
-		pages: new Map(set.pages.map(({ file }) => [file, undefined])),
+		pages: new Map(set.pages.filter(({ owned }) => owned).map(({ file }) => [file, undefined])),
 		records: new Map(set.design.records.map((record) => [record.id, record])),
 		sourceFile: join(setDirectory, 'design.ts'),
 	});
