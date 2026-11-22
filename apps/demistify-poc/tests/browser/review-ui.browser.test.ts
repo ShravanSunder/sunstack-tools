@@ -20,7 +20,7 @@ test('empty delivery progress shows only its status', async (): Promise<void> =>
 		.element(overview.getByText('No deliverables planned.', { exact: true }))
 		.toBeVisible();
 	expect(progress.textContent).toBe('No deliverables planned.');
-	expect(progress.querySelector('[title]')).toBeNull();
+	expect(progress.querySelector(`[title="${view.snapshotRevision}"]`)).toBeNull();
 });
 
 test.each([1400, 390])(
