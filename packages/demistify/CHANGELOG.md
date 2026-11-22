@@ -1,5 +1,11 @@
 # @sunstack/demistify
 
+## 1.30.0
+
+### Minor Changes
+
+- f69ccb9: Show decision authority, status, replacement links and affected records in the project overview. Link Map and Walkthrough targets to checked design record IDs, and carry the decision ID with answers from an HTML Choice bound to an open owner question.
+
 ## 1.29.0
 
 ### Minor Changes
