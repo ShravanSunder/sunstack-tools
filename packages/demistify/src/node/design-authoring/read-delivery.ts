@@ -102,18 +102,18 @@ export async function readDeliveryEntries(
 	designText: string,
 	declaration: string | undefined,
 	readSource: SourceReader,
-	designItems: ReadonlyMap<string, string>,
+	designSources: ReadonlyMap<string, string>,
 ): Promise<AuthoredDelivery> {
 	const directory = dirname(designFile);
 	if ((await readSource(join(directory, 'delivery.ts'))) !== undefined)
 		throw new Error(`Rename delivery.ts to ${deliveryEntryFilename} before checking this design.`);
 	const entryFile = join(directory, deliveryEntryFilename);
-	const sources = new Map([...designItems, [designFile, designText]]);
+	const sources = new Map([...designSources, [designFile, designText]]);
 	if (declaration !== undefined)
 		sources.set(join(directory, designDeclarationFilename), declaration);
 	const entryText = await readSource(entryFile);
 	if (entryText === undefined) {
-		checkAuthoringTypes([designFile, ...designItems.keys()], sources);
+		checkAuthoringTypes([designFile, ...designSources.keys()], sources);
 		return { entries: [] };
 	}
 	sources.set(entryFile, entryText);
@@ -194,7 +194,7 @@ export async function readDeliveryEntries(
 			bindings.set(name, await readDeliverable(file));
 		}),
 	);
-	checkAuthoringTypes([entryFile, ...designItems.keys()], sources);
+	checkAuthoringTypes([entryFile, ...designSources.keys()], sources);
 	return {
 		entries: readLiteral(declaredEntries, entry.source, bindings),
 		...(declaredOptions === undefined
