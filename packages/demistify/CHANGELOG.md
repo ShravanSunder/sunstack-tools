@@ -1,5 +1,15 @@
 # @sunstack/demistify
 
+## 1.31.0
+
+### Minor Changes
+
+- c91a8bb: Split a milestone’s design records by subject. Import local TypeScript files that default-export literal record arrays, then spread them into `design.ts` alongside inline records. Run `demistify design types` to refresh the generated `DesignRecord` type.
+
+### Patch Changes
+
+- ca05702: Keep verification and acceptance current when adding a neighboring heading only changes the blank space after a design passage. Continue to require a recheck when the passage or its governing data changes.
+
 ## 1.30.1
 
 ### Patch Changes
