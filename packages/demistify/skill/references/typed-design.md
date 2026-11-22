@@ -72,11 +72,11 @@ export default defineDeliverable({
 });
 ```
 
-Give the pair the deliverable ID and file. Link scope to existing rule, design, and planned-check IDs. The Implementer records the completed tasks, candidate, and evidence. The Verifier records the build and an outcome per check, with evidence or a blocker. When writing receipts, have the tool or script read `scopeRevision` directly from the deliverable in fresh generated data.
+Give the pair the deliverable ID and file. The Implementer records completed tasks, the candidate, and evidence. The Verifier checks that the observed build matches `implementation.candidate` and records `verification: { build, scopeRevision, outcomes }`. Read `scopeRevision` directly from the deliverable in fresh generated data. Key outcomes by check ID and link evidence or state the blocker.
 
 An unanswered governing owner question or a refuted assumption blocks the affected deliverable. The Lead can authorize reversible work under an open assumption. That deliverable stays open until the assumption is confirmed, even when its checks passed. The reader links to the governing items so the pair can open the right passage.
 
-When a deliverable is ready for acceptance, the Lead records their decision with an evidence link in `design.ts`. Use the same generated data to fill the receipt's build and scope fields. The reader shows what needs rechecking or which prerequisite is blocking it. When the assigned checks change, keep earlier verification in `verificationHistory`.
+When a deliverable is ready for acceptance, record `acceptances: [{ deliverableId, build, scopeRevision, evidence }]` in `design.ts`. The tool fills the build and scope from the checked deliverable. When assigned checks change, keep earlier verification in `verificationHistory`.
 
 In the authored HTML page, place the delivery overview where the reader needs the current state:
 
