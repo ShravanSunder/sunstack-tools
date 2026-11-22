@@ -267,7 +267,10 @@ resolution: { href: 'evidence.txt', excerpt: 'Available.' }
 		const sharedChoice = sharedChoiceMarkup.slice(sharedChoiceMarkup.indexOf('<ex-choice'));
 		await writeFile(
 			sharedPage,
-			sharedChoiceMarkup + sharedChoice.replace('id="D2"', 'id="second-choice"'),
+			sharedChoiceMarkup +
+				sharedChoice
+					.replace('id="D2"', 'id="second-choice"')
+					.replace('id="end-state"', 'id="other-end-state"'),
 		);
 		await expect(check(false)).rejects.toThrow(
 			/Choice second-choice must be the HTML destination of project\/D2/,
