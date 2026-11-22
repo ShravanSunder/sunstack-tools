@@ -1,11 +1,34 @@
 import { z } from 'zod';
 
 import { deliveryAcceptanceSchema } from '../../core/deliverables-view.ts';
-import { sharedNavigationSchema } from '../../core/shared-navigation.ts';
+import {
+	navigationTargetSchema,
+	sharedMapNodeSchema,
+	sharedNavigationSchema,
+	sharedWalkthroughSchema,
+	sharedWalkthroughStepSchema,
+} from '../../core/shared-navigation.ts';
 
 const nonEmptyText = z.string().trim().min(1);
 const recordId = z.string().regex(/^[A-Za-z][A-Za-z0-9-]*$/);
 const recordReference = z.string().regex(/^(?:[A-Za-z][A-Za-z0-9-]*\/)?[A-Za-z][A-Za-z0-9-]*$/);
+const authoredNavigationTarget = z.union([
+	navigationTargetSchema,
+	z.strictObject({ record: recordReference }),
+]);
+const authoredMapNode = sharedMapNodeSchema
+	.pick({ title: true, description: true, icon: true })
+	.extend({
+		target: authoredNavigationTarget.optional(),
+		get children(): z.ZodDefault<z.ZodArray<typeof authoredMapNode>> {
+			return z.array(authoredMapNode).default([]);
+		},
+	});
+const authoredWalkthrough = sharedWalkthroughSchema.extend({
+	steps: z.array(sharedWalkthroughStepSchema.extend({ target: authoredNavigationTarget })).min(1),
+});
+export type AuthoredNavigationTarget = z.infer<typeof authoredNavigationTarget>;
+export type AuthoredMapNode = z.infer<typeof authoredMapNode>;
 const relativeHref = z
 	.string()
 	.min(1)
@@ -148,8 +171,8 @@ const designRecords = [needRecord, ruleRecord, realizationRecord, plannedCheckRe
 
 export const authoredDesignSchema = z.strictObject({
 	pages: sharedNavigationSchema.shape.pages,
-	mapGroups: sharedNavigationSchema.shape.map.unwrap(),
-	walkthroughs: sharedNavigationSchema.shape.walkthroughs.unwrap().optional(),
+	mapGroups: z.array(authoredMapNode),
+	walkthroughs: z.array(authoredWalkthrough).optional(),
 	acceptances: z.array(deliveryAcceptanceSchema.extend({ deliverableId: recordId })).optional(),
 	records: z.array(z.discriminatedUnion('kind', designRecords)),
 });

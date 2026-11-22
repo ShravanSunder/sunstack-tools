@@ -2,7 +2,7 @@ import { realpath } from 'node:fs/promises';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 
 import type { DeliverableView } from '../../core/deliverables-view.ts';
-import { ownerQuestions, projectViewSchema } from '../../core/project-view.ts';
+import { projectDecisions, projectViewSchema } from '../../core/project-view.ts';
 import { checkRecordRelationships, openDesignCheck } from './check-design.ts';
 import { type DeliveryEntry, type DeliveryProjection, projectDelivery } from './delivery-model.ts';
 import { commitDesignOutputs, planGeneratedJson } from './design-output.ts';
@@ -294,7 +294,21 @@ export async function checkProject(
 	const projectSource = {
 		file: join(root, 'project.generated.json'),
 		text: JSON.stringify(view),
+		records: new Map(design.records.map((record) => [record.id, record])),
 	};
+	const choicePages = new Map<string, string | undefined>();
+	for (const set of sets) {
+		for (const { file, owned } of set.pages) {
+			if (owned) choicePages.set(file, set.name);
+			else if (!choicePages.has(file)) choicePages.set(file, undefined);
+		}
+	}
+	await check.checkChoices({
+		pages: choicePages,
+		records: projectSource.records,
+		sourceFile: projectFile,
+		project: true,
+	});
 	const plans = await Promise.all(
 		sets.map((set) =>
 			set.plan(
@@ -319,7 +333,7 @@ export async function checkProject(
 	} else {
 		await check.verify();
 	}
-	const questions = ownerQuestions(view.records);
+	const questions = projectDecisions(view.records).filter(({ status }) => status === 'Open');
 	return [
 		`Checked ${sets.length} project design(s).`,
 		options.write
@@ -329,7 +343,8 @@ export async function checkProject(
 			? [
 					'Waiting on owner',
 					...questions.map(
-						({ id, title, authority }): string => `  ${id} · ${authority?.question ?? title}`,
+						({ record: { id, title, authority } }): string =>
+							`  ${id} · ${authority?.question ?? title}`,
 					),
 				]
 			: []),
