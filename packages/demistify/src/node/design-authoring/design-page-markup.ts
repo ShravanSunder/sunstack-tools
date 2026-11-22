@@ -13,6 +13,7 @@ export interface PageMarkup {
 	links: string[];
 	navigationSources: string[];
 	deliverySources: string[];
+	decisionChoices: { id: string; reference: string; title: string }[];
 	hasDocumentBase: boolean;
 }
 
@@ -22,6 +23,7 @@ export function readPageMarkup(html: string, file: string): PageMarkup {
 		links: [],
 		navigationSources: [],
 		deliverySources: [],
+		decisionChoices: [],
 		hasDocumentBase: false,
 	};
 	const sections = new Set(['article', 'aside', 'body', 'ex-document', 'main', 'nav', 'section']);
@@ -65,6 +67,15 @@ export function readPageMarkup(html: string, file: string): PageMarkup {
 			if (node.tagName === 'base' && href !== undefined) result.hasDocumentBase = true;
 			if (node.tagName === 'ex-nav') result.navigationSources.push(get('src') ?? '');
 			if (node.tagName === 'ex-deliverables') result.deliverySources.push(get('src') ?? '');
+			if (node.tagName === 'ex-choice') {
+				const reference = get('data-decision');
+				if (reference !== undefined)
+					result.decisionChoices.push({
+						id: id ?? '',
+						reference: reference.trim(),
+						title: get('title') ?? '',
+					});
+			}
 		}
 		if ('childNodes' in node) {
 			for (const child of node.childNodes) visit(child, currentHeadings);

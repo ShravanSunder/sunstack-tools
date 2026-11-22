@@ -11,19 +11,20 @@ import { designDeclarationFilename } from './read-design.ts';
 const designTypeSource = `// Authoring types for Demistify design, decision and assumption files.
 type SubjectIcon = ${subjectIcons.map((icon): string => JSON.stringify(icon)).join(' | ')};
 type Target = { page: string; fragment?: string };
+type NavigationTarget = Target | { record: string };
 type Page = { id: string; title: string; href: string; icon: SubjectIcon };
 type MapNode = {
   title: string;
   description: string;
   icon: SubjectIcon;
-  target?: Target;
+  target?: NavigationTarget;
   children?: readonly MapNode[];
 };
 type Walkthrough = {
   id: string;
   title: string;
   description: string;
-  steps: readonly { target: Target; narration: string; icon?: SubjectIcon }[];
+  steps: readonly { target: NavigationTarget; narration: string; icon?: SubjectIcon }[];
 };
 type SourceReference = { href: string; excerpt: string; verbatim?: true };
 type RecordFields = {

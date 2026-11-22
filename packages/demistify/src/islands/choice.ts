@@ -21,6 +21,7 @@ export class ChoiceIsland extends HTMLElement {
 	private source: HTMLTemplateElement | undefined;
 	private options: readonly RenderedOption[] = [];
 	private questionId = '';
+	private decisionId: string | undefined;
 	private question = '';
 	private rendering: Promise<void> | undefined;
 	private events = new AbortController();
@@ -30,6 +31,7 @@ export class ChoiceIsland extends HTMLElement {
 	get response(): ChoiceResponse {
 		return choiceResponseSchema.parse({
 			questionId: this.questionId,
+			...(this.decisionId && { decisionId: this.decisionId }),
 			question: this.question,
 			selected: this.options
 				.filter((option): boolean => option.input.checked)
@@ -65,6 +67,7 @@ export class ChoiceIsland extends HTMLElement {
 
 	private async initialize(): Promise<void> {
 		this.questionId = this.copiedResponse?.questionId ?? this.id.trim();
+		this.decisionId = this.copiedResponse?.decisionId ?? this.getAttribute('data-decision')?.trim();
 		this.question = this.copiedResponse?.question ?? this.getAttribute('title')?.trim() ?? '';
 		if (!this.questionId || !this.question)
 			throw new Error('ex-choice needs an authored id and question title.');

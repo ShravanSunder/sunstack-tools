@@ -7,6 +7,7 @@ export const documentIdentitySchema = z.object({
 });
 export const choiceResponseSchema = z.object({
 	questionId: identityText,
+	decisionId: identityText.optional(),
 	question: identityText,
 	selected: z
 		.array(z.object({ optionId: identityText, label: identityText }))
@@ -123,6 +124,7 @@ export function formatReview(review: ReviewEnvelope): string {
 	if (review.answers.length) lines.push('', '# Selected answers');
 	for (const answer of review.answers) {
 		lines.push('', `## ${answer.question}`, `Question ID: ${answer.questionId}`);
+		if (answer.decisionId) lines.push(`Decision ID: ${answer.decisionId}`);
 		appendTargetComments(answer.questionId);
 		for (const option of answer.selected) {
 			lines.push(`- ${option.label} (${option.optionId})`);

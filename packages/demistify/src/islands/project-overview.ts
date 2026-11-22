@@ -1,6 +1,12 @@
 import type { DeliverableView } from '../core/deliverables-view.ts';
 import { reportIssue } from '../core/issues.ts';
-import { ownerQuestions, parseProjectView, type ProjectView } from '../core/project-view.ts';
+import {
+	parseProjectView,
+	projectDecisions,
+	type ProjectDecision,
+	type ProjectRecord,
+	type ProjectView,
+} from '../core/project-view.ts';
 import { registerReviewSource, type ReviewSourceResult } from '../core/review-document.ts';
 import { deliveryDetails, deliveryStateLabels, linkTo } from './deliverables.ts';
 
@@ -22,6 +28,50 @@ function appendItem(list: HTMLUListElement): HTMLLIElement {
 	list.append(item);
 	return item;
 }
+
+function recordLink(source: URL, record: ProjectRecord, title = record.title): HTMLAnchorElement {
+	return linkTo(
+		source,
+		record.destination.page,
+		`${record.id} · ${title}`,
+		record.destination.fragment,
+	);
+}
+
+function renderDecision(list: HTMLUListElement, source: URL, decision: ProjectDecision): void {
+	const { record, status, authority, replacement, governedRecords } = decision;
+	const item = appendItem(list);
+	item.append(
+		recordLink(source, record, status === 'Open' ? record.authority?.question : undefined),
+		` · Authority: ${authority} · Status: ${status}`,
+	);
+	if (record.authority?.decidedOn) item.append(` · ${record.authority.decidedOn}`);
+	if (record.authority?.decision) {
+		const outcome = document.createElement('p');
+		outcome.textContent = record.authority.decision;
+		item.append(outcome);
+	}
+	if (replacement) {
+		const link = document.createElement('p');
+		link.append('Replaced by ', recordLink(source, replacement));
+		item.append(link);
+	}
+	if (governedRecords.length) {
+		const details = document.createElement('details');
+		const summary = document.createElement('summary');
+		summary.textContent = 'Affected design records';
+		details.append(summary);
+		const links = appendList(details);
+		for (const governed of governedRecords) appendItem(links).append(recordLink(source, governed));
+		item.append(details);
+	}
+}
+
+const assumptionStatuses: ReadonlyMap<string, string> = new Map([
+	['open', 'Unverified'],
+	['confirmed', 'Confirmed'],
+	['refuted', 'Refuted'],
+]);
 
 function renderDelivery(
 	parent: HTMLLIElement,
@@ -90,19 +140,12 @@ export class ProjectOverviewIsland extends HTMLElement {
 
 	private renderOverview(view: ProjectView, source: URL): void {
 		const content = document.createElement('div');
-		const questions = ownerQuestions(view.records);
+		const decisions = projectDecisions(view.records);
+		const questions = decisions.filter(({ status }) => status === 'Open');
 		if (questions.length) {
 			appendHeading(content, 'h2', 'Waiting on owner');
 			const list = appendList(content);
-			for (const { id, title, destination, authority } of questions)
-				appendItem(list).append(
-					linkTo(
-						source,
-						destination.page,
-						`${id} · ${authority?.question ?? title}`,
-						destination.fragment,
-					),
-				);
+			for (const decision of questions) renderDecision(list, source, decision);
 		}
 
 		appendHeading(content, 'h2', 'Milestones');
@@ -120,13 +163,32 @@ export class ProjectOverviewIsland extends HTMLElement {
 			for (const delivery of planned) renderDelivery(appendItem(list), delivery, view, source);
 		}
 
-		if (view.records.length) {
+		const decided = decisions.filter(({ status }) => status !== 'Open');
+		if (decided.length) {
+			appendHeading(content, 'h2', 'Decisions');
+			const list = appendList(content);
+			for (const decision of decided) renderDecision(list, source, decision);
+		}
+
+		const assumptions = view.records.filter(({ kind }) => kind === 'assumption');
+		if (assumptions.length) {
+			appendHeading(content, 'h2', 'Assumptions');
+			const list = appendList(content);
+			for (const assumption of assumptions) {
+				const item = appendItem(list);
+				item.append(recordLink(source, assumption));
+				const status = assumptionStatuses.get(assumption.status ?? '');
+				if (status) item.append(` · ${status}`);
+			}
+		}
+
+		const otherRecords = view.records.filter(
+			({ kind }) => kind !== 'choice' && kind !== 'assumption',
+		);
+		if (otherRecords.length) {
 			appendHeading(content, 'h2', 'Design records');
 			const list = appendList(content);
-			for (const { id, title, destination } of view.records)
-				appendItem(list).append(
-					linkTo(source, destination.page, `${id} · ${title}`, destination.fragment),
-				);
+			for (const record of otherRecords) appendItem(list).append(recordLink(source, record));
 		}
 		this.replaceChildren(content);
 	}

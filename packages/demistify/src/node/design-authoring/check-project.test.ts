@@ -227,12 +227,51 @@ resolution: { href: 'evidence.txt', excerpt: 'Available.' }
 			/design-sdk\.generated\.ts is out of date.*demistify design types/,
 		);
 		await run(process.execPath, [cli, 'design', 'types', messages]);
+		const messagesDesign = join(messages, 'design.ts');
+		await writeFile(
+			messagesDesign,
+			designSource(true)
+				.replace(
+					'"mapGroups":[]',
+					`"mapGroups":[{ title: 'Owner call', description: 'Open the shared question.',
+					icon: 'file', target: { record: 'project/D2' } }]`,
+				)
+				.replace(
+					'"href":"index.html","icon":"file"}]',
+					'"href":"index.html","icon":"file"},{ id: "shared", title: "Shared decisions", href: "../../shared/index.html", icon: "file" }]',
+				),
+		);
 		const readOnly = await check(false);
 		expect(readOnly.stdout).toMatch(/Waiting on owner[\s\S]*project\/D2[\s\S]*messages\/DEL-01/);
 		await expect(stat(outputPath)).rejects.toMatchObject({ code: 'ENOENT' });
 		const milestonePath = join(messages, 'deliverables.generated.json');
 		await expect(stat(milestonePath)).rejects.toMatchObject({ code: 'ENOENT' });
 		await check();
+		const generatedNavigation: unknown = JSON.parse(
+			await readFile(join(messages, 'navigation.generated.json'), 'utf8'),
+		);
+		expect(generatedNavigation).toMatchObject({
+			map: [{ target: { page: 'shared', fragment: 'D2' } }],
+		});
+		const sharedPage = join(shared, 'index.html');
+		const sharedMarkup = await readFile(sharedPage, 'utf8');
+		await writeFile(
+			sharedPage,
+			sharedMarkup.replace(
+				'<p id="D2">Replacement</p>',
+				'<ex-choice id="D2" data-decision="project/D2" title="Which end state should the reader show?"><ex-option id="end-state" title="Show the final result"><template slot="summary">Keep the completed state visible.</template></ex-option></ex-choice>',
+			),
+		);
+		await check(false);
+		await writeFile(
+			sharedPage,
+			(await readFile(sharedPage, 'utf8')).replace(
+				'data-decision="project/D2"',
+				'data-decision="messages/D2"',
+			),
+		);
+		await expect(check(false)).rejects.toThrow(/Choice D2 must reference project\/D2/);
+		await writeFile(sharedPage, sharedMarkup);
 		const before = await readView();
 		expect(before.deliverables['messages/DEL-01']?.state).toBe('dependency-blocked');
 		expect(before.deliverables['sessions/DEL-01']?.links.plan.page).toBe(

@@ -2,7 +2,7 @@ import { realpath } from 'node:fs/promises';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 
 import type { DeliverableView } from '../../core/deliverables-view.ts';
-import { ownerQuestions, projectViewSchema } from '../../core/project-view.ts';
+import { projectDecisions, projectViewSchema } from '../../core/project-view.ts';
 import { checkRecordRelationships, openDesignCheck } from './check-design.ts';
 import { type DeliveryEntry, type DeliveryProjection, projectDelivery } from './delivery-model.ts';
 import { commitDesignOutputs, planGeneratedJson } from './design-output.ts';
@@ -202,7 +202,7 @@ export async function checkProject(
 	const sets = await Promise.all(
 		Object.entries(manifest.designs).map(async ([name, file]) => {
 			await readAuthoringInput(file);
-			const set = await check.prepare(dirname(file), root);
+			const set = await check.prepare(dirname(file), { root, namespace: name });
 			if (set.lead !== undefined && (!identities || !Object.hasOwn(identities.agents, set.lead)))
 				throw new Error(
 					`${name}: unknown Lead alias ${set.lead}. Register it in agents-identity.ts.`,
@@ -237,7 +237,7 @@ export async function checkProject(
 			]),
 		);
 		checkAuthoringTypes([file], new Map([[file, text], ...declarations]));
-		const scope = await check.inspectRecords(records, file);
+		const scope = await check.inspectRecords(records, file, { namespace: 'project' });
 		return {
 			records: records.map((record) =>
 				projectRecord(record, 'project', (href) => rebase(href, dirname(file), root)),
@@ -294,6 +294,7 @@ export async function checkProject(
 	const projectSource = {
 		file: join(root, 'project.generated.json'),
 		text: JSON.stringify(view),
+		records: new Map(design.records.map((record) => [record.id, record])),
 	};
 	const plans = await Promise.all(
 		sets.map((set) =>
@@ -319,7 +320,7 @@ export async function checkProject(
 	} else {
 		await check.verify();
 	}
-	const questions = ownerQuestions(view.records);
+	const questions = projectDecisions(view.records).filter(({ status }) => status === 'Open');
 	return [
 		`Checked ${sets.length} project design(s).`,
 		options.write
@@ -329,7 +330,8 @@ export async function checkProject(
 			? [
 					'Waiting on owner',
 					...questions.map(
-						({ id, title, authority }): string => `  ${id} · ${authority?.question ?? title}`,
+						({ record: { id, title, authority } }): string =>
+							`  ${id} · ${authority?.question ?? title}`,
 					),
 				]
 			: []),

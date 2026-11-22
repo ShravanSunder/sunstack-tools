@@ -152,3 +152,61 @@ it('checks a real adjacent page and source inside an explicitly selected site ro
 		await rm(directory, { recursive: true, force: true });
 	}
 }, 90_000);
+
+it('resolves Map and Walkthrough record references to the same checked Choice', async (): Promise<void> => {
+	const directory = await mkdtemp(join(tmpdir(), 'demistify-decision-navigation-'));
+	try {
+		await run(process.execPath, [cli, 'design', 'init', directory]);
+		const designFile = join(directory, 'design.ts');
+		const pageFile = join(directory, 'index.html');
+		const choice =
+			'<ex-choice id="cancel-policy" title="Stop claimed work?" data-decision="D1"><ex-option id="only-queued" title="Stop queued work"><template slot="summary">Claimed work continues.</template></ex-option><ex-option id="also-running" title="Request a running stop"><template slot="summary">The worker receives a stop request.</template></ex-option></ex-choice>';
+		const design = (await readFile(designFile, 'utf8')).replace(
+			'"mapGroups": []',
+			`"mapGroups": [
+			{ title: 'Cancellation', description: 'See what a choice would change.', icon: 'file', target: { record: 'D1' } }
+		], "walkthroughs": [
+			{ id: 'cancel-route', title: 'Cancellation', description: 'Follow a queued job.',
+			  steps: [{ target: { record: 'D1' }, narration: 'Decide what to do after the job is claimed.' }] }
+		]`,
+		);
+		const html = page.replace(/<p><a href="\.\.\/overview[\s\S]*?<\/p>/, choice);
+		await Promise.all([
+			writeFile(designFile, design),
+			writeFile(pageFile, html),
+			writeFile(
+				join(directory, 'design-decisions.ts'),
+				`export default [{
+				id: 'D1', kind: 'choice', title: 'Cancellation after claim',
+				authority: { state: 'owner-open', owner: 'owner', question: 'Stop claimed work?' },
+				destination: { page: 'index.html', fragment: 'cancel-policy' },
+				sources: [{ href: 'index.html#NeedOverview', excerpt: 'Read the overview' }]
+			}];`,
+			),
+		]);
+		const check = [cli, 'design', 'check', directory];
+		await run(process.execPath, check);
+		const outputFile = join(directory, 'navigation.generated.json');
+		const generated = await readFile(outputFile, 'utf8');
+		const target = { page: 'home', fragment: 'cancel-policy' };
+		expect(JSON.parse(generated)).toMatchObject({
+			map: [{ target }],
+			walkthroughs: [{ steps: [{ target }] }],
+		});
+
+		await writeFile(pageFile, html.replace('data-decision="D1"', 'data-decision="D2"'));
+		await expect(run(process.execPath, check)).rejects.toThrow(
+			/Choice cancel-policy must reference D1/,
+		);
+		await writeFile(pageFile, html.replace('Stop claimed work?', 'A different question?'));
+		await expect(run(process.execPath, check)).rejects.toThrow(
+			/must ask the question recorded in D1/,
+		);
+		await writeFile(pageFile, html);
+		await writeFile(designFile, design.replace("record: 'D1'", "record: 'D2'"));
+		await expect(run(process.execPath, check)).rejects.toThrow(/unknown design record D2/);
+		expect(await readFile(outputFile, 'utf8')).toBe(generated);
+	} finally {
+		await rm(directory, { recursive: true, force: true });
+	}
+}, 90_000);

@@ -9,6 +9,50 @@ afterEach(async (): Promise<void> => {
 	await page.viewport(1600, 1000);
 });
 
+test.each([1400, 390])(
+	'project decision history and owner actions remain readable at %ipx',
+	async (width): Promise<void> => {
+		await page.viewport(width, 1000);
+		const { document: fixture, frame } = await openFixture('ui', '', 'decision-views.html');
+		const overview = fixtureLocator(frame, requiredElement(fixture, 'ex-project-overview'));
+		await expect.element(overview.getByText(/Authority: Lead · Status: Superseded/)).toBeVisible();
+		await expect.element(overview.getByText(/Authority: Owner · Status: Decided/)).toBeVisible();
+		await expect.element(overview.getByText(/Authority: Owner · Status: Open/)).toBeVisible();
+		await expect
+			.element(overview.getByText(/Workers can acknowledge a stop request.*Unverified/))
+			.toBeVisible();
+		const replacement = overview.getByText('Replaced by', { exact: false }).getByRole('link');
+		await expect
+			.element(replacement)
+			.toHaveAttribute('href', expect.stringMatching(/decision-views\.html#D2$/));
+		await overview.getByText('Affected design records', { exact: true }).click();
+		await expect
+			.element(overview.getByRole('link', { name: 'jobs/R1 · Send the stop request once' }).first())
+			.toBeVisible();
+		expect(fixture.documentElement.scrollWidth).toBeLessThanOrEqual(width);
+		await page.screenshot({ path: browserScreenshotPath(`decision-views-${width}.png`) });
+		await frame.getByRole('button', { name: 'Switch light or dark theme', exact: true }).click();
+		await expect.element(overview.getByText(/Authority: Lead · Status: Superseded/)).toBeVisible();
+		expect(fixture.documentElement.scrollWidth).toBeLessThanOrEqual(width);
+		await page.screenshot({ path: browserScreenshotPath(`decision-views-dark-${width}.png`) });
+
+		await overview.getByRole('link', { name: /jobs\/D3/ }).click();
+		await expect.poll((): string => fixture.location.hash).toBe('#D3');
+		let answer: unknown;
+		requiredElement(fixture, '#D3').addEventListener('choice-change', (event): void => {
+			if ('detail' in event) answer = event.detail;
+		});
+		const option = frame.getByRole('radio', { name: 'Show stopping', exact: true });
+		await option.click();
+		await expect.element(option).toBeChecked();
+		expect(answer).toMatchObject({
+			questionId: 'D3',
+			decisionId: 'jobs/D3',
+			selected: [{ optionId: 'show-stopping' }],
+		});
+	},
+);
+
 test('explicit destination IDs win over generated heading aliases', async (): Promise<void> => {
 	const { document: fixture, frame } = await openFixture('ui');
 	const link = requiredElement(fixture, '#exact-link');
