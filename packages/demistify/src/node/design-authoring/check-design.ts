@@ -372,10 +372,14 @@ export async function openDesignCheck(siteRoot: string): Promise<DesignCheck> {
 			readOptionalOwnedInput(decisionFile),
 			readOptionalOwnedInput(assumptionFile),
 		]);
-		const authored = readDesign(designFile, designText);
-		const designItems = new Map<string, string>();
-		if (decisions !== undefined) designItems.set(decisionFile, decisions);
-		if (assumptions !== undefined) designItems.set(assumptionFile, assumptions);
+		const { design: authored, recordSources } = await readDesign(
+			designFile,
+			designText,
+			readOwnedInput,
+		);
+		const designSources = new Map(recordSources);
+		if (decisions !== undefined) designSources.set(decisionFile, decisions);
+		if (assumptions !== undefined) designSources.set(assumptionFile, assumptions);
 		const design: DesignCore = {
 			...authored,
 			records: [
@@ -391,7 +395,7 @@ export async function openDesignCheck(siteRoot: string): Promise<DesignCheck> {
 			designText,
 			declaration,
 			readOptionalOwnedInput,
-			designItems,
+			designSources,
 		);
 		const entries = parseDeliveryEntries(deliverySource.entries);
 		for (const {

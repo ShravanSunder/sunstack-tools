@@ -219,3 +219,110 @@ it('resolves Map and Walkthrough record references to the same checked Choice', 
 		await rm(directory, { recursive: true, force: true });
 	}
 }, 90_000);
+
+it('checks explicitly imported record arrays and rejects invalid split inputs without replacing snapshots', async (): Promise<void> => {
+	const directory = await mkdtemp(join(tmpdir(), 'demistify-design-records-'));
+	const milestone = join(directory, 'milestone');
+	const check = [cli, 'design', 'check', milestone, '--site-root', directory];
+	try {
+		await run(process.execPath, [cli, 'design', 'init', milestone]);
+		await mkdir(join(milestone, 'records'));
+		await writeFile(
+			join(milestone, 'index.html'),
+			page.replace(/<p><a href[\s\S]*?<\/p>/, '<h2 id="RuleOverview">Keep the overview</h2>'),
+		);
+		const designPath = join(milestone, 'design.ts');
+		const recordPath = join(milestone, 'records', 'overview.ts');
+		const initial = await readFile(designPath, 'utf8');
+		const authored = `import overview from './records/overview.ts';\n${initial.replace(
+			'"records": []',
+			`"records": [...overview, {
+				id: 'RuleOverview', kind: 'rule', title: 'Keep the overview', statement: 'Retain the overview.',
+				destination: { page: 'index.html', fragment: 'RuleOverview' },
+				sources: [{ href: 'index.html#NeedOverview', excerpt: 'Overview' }],
+				relationships: [{ relation: 'serves', targetId: 'NeedOverview' }],
+			}]`,
+		)}`;
+		const records = `import type { DesignRecord } from '../design-schema.d.ts';
+export default [{
+	id: 'NeedOverview', kind: 'need', title: 'Shared scope', statement: 'Readers can open the overview.',
+	destination: { page: 'index.html', fragment: 'NeedOverview' },
+	sources: [{ href: 'index.html#NeedOverview', excerpt: 'Overview' }],
+}] as const satisfies readonly DesignRecord[];`;
+		await Promise.all([writeFile(designPath, authored), writeFile(recordPath, records)]);
+		await run(process.execPath, check);
+		const snapshot = join(milestone, 'design.generated.json');
+		const checked = await readFile(snapshot, 'utf8');
+		expect(JSON.parse(checked)).toMatchObject({
+			recordDestinations: {
+				NeedOverview: 'index.html#NeedOverview',
+				RuleOverview: 'index.html#RuleOverview',
+			},
+			records: [
+				{ id: 'NeedOverview' },
+				{ id: 'RuleOverview', relationships: [{ relation: 'serves', targetId: 'NeedOverview' }] },
+			],
+		});
+
+		const inlineRecord = records.slice(
+			records.indexOf('[{') + 1,
+			records.indexOf('}] as const') + 1,
+		);
+		const equivalentInline = authored
+			.replace("import overview from './records/overview.ts';\n", '')
+			.replace('...overview', inlineRecord);
+		await writeFile(designPath, equivalentInline);
+		await run(process.execPath, check);
+		expect(await readFile(snapshot, 'utf8')).toBe(checked);
+		await writeFile(designPath, authored);
+
+		await writeFile(
+			join(directory, 'project.ts'),
+			`import milestone from './milestone/design.ts';
+export default { designs: { milestone } };`,
+		);
+		await run(process.execPath, [cli, 'project', 'check', directory, '--write']);
+		const project = await readFile(join(directory, 'project.generated.json'), 'utf8');
+		expect(JSON.parse(project)).toMatchObject({
+			records: [
+				{ id: 'milestone/NeedOverview' },
+				{
+					id: 'milestone/RuleOverview',
+					relationships: [{ relation: 'serves', targetId: 'milestone/NeedOverview' }],
+				},
+			],
+		});
+
+		await writeFile(recordPath, records.replace("kind: 'need'", "kind: 'choice'"));
+		await expect(run(process.execPath, check)).rejects.toThrow(
+			/records\/overview\.ts record NeedOverview.*Invalid discriminator/,
+		);
+		await writeFile(
+			recordPath,
+			records.replace('satisfies readonly DesignRecord[]', 'satisfies readonly never[]'),
+		);
+		await expect(run(process.execPath, check)).rejects.toThrow(/records\/overview\.ts.*TS2322/s);
+		await writeFile(recordPath, 'export default (() => [])();');
+		await expect(run(process.execPath, check)).rejects.toThrow(
+			/records\/overview\.ts.*expected a data literal/,
+		);
+		await writeFile(recordPath, records);
+		await writeFile(designPath, authored.replace('...overview', '...overview.slice()'));
+		await expect(run(process.execPath, check)).rejects.toThrow(/spread.*imported record array/i);
+		await writeFile(designPath, authored.replace('...overview,', '...overview, ...overview,'));
+		await expect(run(process.execPath, check)).rejects.toThrow(/Duplicate design record ID/);
+
+		const outside = join(directory, 'outside.ts');
+		await writeFile(outside, 'export default [];');
+		await writeFile(designPath, authored.replace('./records/overview.ts', '../outside.ts'));
+		await expect(run(process.execPath, check)).rejects.toThrow(/escapes the design set/);
+		await symlink(outside, join(milestone, 'records', 'external.ts'));
+		await writeFile(designPath, authored.replace('./records/overview.ts', './records/external.ts'));
+		await expect(run(process.execPath, check)).rejects.toThrow(
+			/must remain inside this design set/,
+		);
+		expect(await readFile(snapshot, 'utf8')).toBe(checked);
+	} finally {
+		await rm(directory, { recursive: true, force: true });
+	}
+}, 60_000);

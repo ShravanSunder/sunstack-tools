@@ -40,7 +40,7 @@ type Authority =
   | ({ state: 'owner-decided'; owner: 'owner'; sourceKind: 'owner-words' | 'owner-accepted' } & SettledDecision)
   | { state: 'owner-open'; owner: 'owner'; question: string }
   | ({ state: 'lead-decided'; lead: string; sourceKind: 'author' | 'contract'; rationale: string } & SettledDecision);
-type DesignRecord = RecordFields & (
+export type DesignRecord = RecordFields & (
   | { kind: 'need'; statement: string }
   | { kind: 'rule'; statement: string; relationships: readonly Relationship<'serves' | DesignDependency>[] }
   | { kind: 'realization'; explanation: string; status: 'proposed'; relationships: readonly Relationship<'realizes' | DesignDependency>[] }

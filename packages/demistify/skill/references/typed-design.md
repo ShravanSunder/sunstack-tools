@@ -28,6 +28,12 @@ Source excerpts can summarize a source. For an exact quotation from a local HTML
 
 If a check is forcibly interrupted while writing, remove the leftover `.demistify-design.lock` only after the checking process has ended, then rerun the check to regenerate the outputs.
 
+### Split a milestone’s records by subject
+
+Keep a small set inline. If it grows, put each subject’s authored records in a literal array inside the same milestone. In `records/delivery.ts`, use `import type { DesignRecord } from '../design-schema.d.ts'` and `export default […] as const satisfies readonly DesignRecord[]`, with the actual record objects inside the array.
+
+In `design.ts`, add `import delivery from './records/delivery.ts'` and include `...delivery` directly inside the `records` array alongside inline records. Keep destination and source links relative to `design.ts`. IDs and relationships still span the whole milestone. Run `design types` to refresh the generated declaration before using the `DesignRecord` type.
+
 ## Record decisions and assumptions
 
 Give each material decision or assumption a stable ID and an owning HTML passage. Write the explanation, options and tradeoffs directly in HTML. Write decisions in `design-decisions.ts` and assumptions in `design-assumptions.ts`. Keep their stable IDs and point to them from the governing item in `design.ts`.

@@ -1,4 +1,4 @@
-import { basename, dirname, resolve } from 'node:path';
+import { basename, dirname, isAbsolute, relative, resolve, sep } from 'node:path';
 
 import typescript from 'typescript';
 import { z } from 'zod';
@@ -34,52 +34,83 @@ export function readLiteral(
 	if (expression.kind === typescript.SyntaxKind.NullKeyword) return null;
 	if (typescript.isArrayLiteralExpression(expression))
 		return expression.elements.map((element): unknown => readLiteral(element, source, bindings));
-	if (typescript.isObjectLiteralExpression(expression)) {
-		const fields = new Map<string, unknown>();
-		for (const property of expression.properties) {
-			if (
-				typescript.isShorthandPropertyAssignment(property) &&
-				!property.objectAssignmentInitializer
-			) {
-				const name = property.name.text;
-				if (!bindings?.has(name)) throw new Error(`Unknown authoring binding: ${name}.`);
-				if (fields.has(name)) throw new Error(`Duplicate authoring object key: ${name}.`);
-				fields.set(name, bindings.get(name));
-				continue;
-			}
-			if (!typescript.isPropertyAssignment(property))
-				throw new Error(`${source.fileName} object properties must be simple assignments.`);
-			const { name } = property;
-			if (!typescript.isStringLiteral(name) && !typescript.isIdentifier(name))
-				throw new Error(`${source.fileName} object keys must be identifiers or quoted strings.`);
-			if (fields.has(name.text))
-				throw new Error(`${source.fileName}: duplicate object key ${name.text}.`);
-			fields.set(name.text, readLiteral(property.initializer, source, bindings));
-		}
-		return Object.fromEntries(fields);
-	}
+	if (typescript.isObjectLiteralExpression(expression))
+		return readObjectLiteral(expression, source, {
+			bindings,
+			readProperty: (_name, value): unknown => readLiteral(value, source, bindings),
+		});
 	const { line } = source.getLineAndCharacterOfPosition(expression.getStart(source));
 	throw new Error(
 		`${source.fileName}:${line + 1}: expected a data literal or an imported deliverable.`,
 	);
 }
 
-function readDefaultLiteral(file: string, text: string): unknown {
+interface ObjectLiteralReader {
+	readonly bindings?: ReadonlyMap<string, unknown> | undefined;
+	readonly readProperty: (name: string, value: typescript.Expression) => unknown;
+}
+
+function readObjectLiteral(
+	expression: typescript.ObjectLiteralExpression,
+	source: typescript.SourceFile,
+	{ bindings, readProperty }: ObjectLiteralReader,
+): Record<string, unknown> {
+	const fields = new Map<string, unknown>();
+	for (const property of expression.properties) {
+		if (
+			typescript.isShorthandPropertyAssignment(property) &&
+			!property.objectAssignmentInitializer
+		) {
+			const name = property.name.text;
+			if (!bindings?.has(name)) throw new Error(`Unknown authoring binding: ${name}.`);
+			if (fields.has(name)) throw new Error(`Duplicate authoring object key: ${name}.`);
+			fields.set(name, bindings.get(name));
+			continue;
+		}
+		if (!typescript.isPropertyAssignment(property))
+			throw new Error(`${source.fileName} object properties must be simple assignments.`);
+		const { name } = property;
+		if (!typescript.isStringLiteral(name) && !typescript.isIdentifier(name))
+			throw new Error(`${source.fileName} object keys must be identifiers or quoted strings.`);
+		if (fields.has(name.text))
+			throw new Error(`${source.fileName}: duplicate object key ${name.text}.`);
+		fields.set(name.text, readProperty(name.text, property.initializer));
+	}
+	return Object.fromEntries(fields);
+}
+
+function authoredModule(
+	file: string,
+	text: string,
+): {
+	source: typescript.SourceFile;
+	imports: readonly typescript.ImportDeclaration[];
+	expression: typescript.Expression;
+} {
 	const source = typescript.createSourceFile(file, text, typescript.ScriptTarget.ES2022, true);
-	const exportAssignment = source.statements.filter(typescript.isExportAssignment);
-	const [entry] = exportAssignment;
+	const exports = source.statements.filter(typescript.isExportAssignment);
+	const [entry] = exports;
 	if (
-		exportAssignment.length !== 1 ||
+		exports.length !== 1 ||
 		!entry ||
 		entry.isExportEquals ||
 		source.statements.some(
-			(statement): boolean =>
-				statement !== entry &&
-				!(typescript.isImportDeclaration(statement) && statement.importClause?.isTypeOnly),
+			(statement): boolean => statement !== entry && !typescript.isImportDeclaration(statement),
 		)
 	)
-		throw new Error(`${file}: expected one default export and optional type-only imports.`);
-	return readLiteral(entry.expression, source);
+		throw new Error(`${file}: expected one default export and optional imports.`);
+	return {
+		source,
+		imports: source.statements.filter(typescript.isImportDeclaration),
+		expression: unwrapExpression(entry.expression),
+	};
+}
+
+function readDefaultLiteral(file: string, text: string): unknown {
+	const { source, imports, expression } = authoredModule(file, text);
+	if (imports.some(({ importClause }): boolean => !importClause?.isTypeOnly))
+		throw new Error(`${file}: only type-only imports are allowed in a literal record file.`);
+	return readLiteral(expression, source);
 }
 
 function recordValidationError(
@@ -101,14 +132,111 @@ function recordValidationError(
 	return new Error(issues.join('\n'));
 }
 
-/** Read the authored design without evaluating its TypeScript. */
-export function readDesign(file: string, text: string): AuthoredDesign {
+interface AuthoredRecordImport {
+	readonly binding: string;
+	readonly file: string;
+}
+
+function resolveRecordImport(
+	statement: typescript.ImportDeclaration,
+	designFile: string,
+): AuthoredRecordImport {
+	const { importClause, moduleSpecifier, attributes } = statement;
+	if (
+		!importClause?.name ||
+		importClause.namedBindings ||
+		attributes ||
+		!typescript.isStringLiteral(moduleSpecifier) ||
+		!/^\.\.?\//.test(moduleSpecifier.text) ||
+		!moduleSpecifier.text.endsWith('.ts') ||
+		moduleSpecifier.text.endsWith('.d.ts') ||
+		moduleSpecifier.text.includes('\\')
+	)
+		throw new Error(`${designFile}: record imports must be relative default imports of .ts files.`);
+	const directory = dirname(designFile);
+	const file = resolve(directory, moduleSpecifier.text);
+	const child = relative(directory, file);
+	if (child === '..' || child.startsWith(`..${sep}`) || isAbsolute(child))
+		throw new Error(
+			`${designFile}: record import escapes the design set: ${moduleSpecifier.text}.`,
+		);
+	return { binding: importClause.name.text, file };
+}
+
+type AuthoredRecord = AuthoredDesign['records'][number];
+
+function readRecordArray(file: string, text: string): AuthoredRecord[] {
 	const input = readDefaultLiteral(file, text);
-	const validated = authoredDesignSchema.safeParse(input);
+	const validated = authoredDesignSchema.shape.records.safeParse(input);
 	if (validated.success) return validated.data;
-	const records =
-		typeof input === 'object' && input && 'records' in input ? input.records : undefined;
-	throw recordValidationError(file, records, validated.error, true);
+	throw recordValidationError(file, input, validated.error, false);
+}
+
+function composeRecordArray(
+	value: typescript.ArrayLiteralExpression,
+	source: typescript.SourceFile,
+	imports: ReadonlyMap<string, AuthoredRecord[]>,
+	used: Set<string>,
+): unknown[] {
+	return value.elements.flatMap((element): unknown[] => {
+		if (!typescript.isSpreadElement(element)) return [readLiteral(element, source)];
+		const binding = typescript.isIdentifier(element.expression) && element.expression.text;
+		const records = binding ? imports.get(binding) : undefined;
+		if (!binding || !records)
+			throw new Error(
+				`${source.fileName}: spread only an imported record array directly in records.`,
+			);
+		used.add(binding);
+		return records;
+	});
+}
+
+interface ReadDesignResult {
+	readonly design: AuthoredDesign;
+	readonly recordSources: ReadonlyMap<string, string>;
+}
+
+/** Compose explicit record arrays before validating the design, without executing author modules. */
+export async function readDesign(
+	file: string,
+	text: string,
+	readOwnedInput: (file: string) => Promise<string>,
+): Promise<ReadDesignResult> {
+	const { source, imports, expression } = authoredModule(file, text);
+	if (!typescript.isObjectLiteralExpression(expression))
+		throw new Error(`${file}: expected a literal design object.`);
+
+	const recordModules = await Promise.all(
+		imports
+			.filter(({ importClause }): boolean => !importClause?.isTypeOnly)
+			.map(async (statement) => {
+				const { binding, file: recordPath } = resolveRecordImport(statement, file);
+				return { binding, file: recordPath, text: await readOwnedInput(recordPath) };
+			}),
+	);
+	const arraysByBinding = new Map(
+		recordModules.map((record) => [record.binding, readRecordArray(record.file, record.text)]),
+	);
+	const used = new Set<string>();
+	const input = readObjectLiteral(expression, source, {
+		readProperty(name, value): unknown {
+			const literal = unwrapExpression(value);
+			return name === 'records' && typescript.isArrayLiteralExpression(literal)
+				? composeRecordArray(literal, source, arraysByBinding, used)
+				: readLiteral(value, source);
+		},
+	});
+	for (const binding of arraysByBinding.keys()) {
+		if (!used.has(binding))
+			throw new Error(`${file}: spread imported record array ${binding} directly in records.`);
+	}
+	const validated = authoredDesignSchema.safeParse(input);
+	if (validated.success)
+		return {
+			design: validated.data,
+			recordSources: new Map(recordModules.map((record) => [record.file, record.text])),
+		};
+	throw recordValidationError(file, input['records'], validated.error, true);
 }
 
 /** Read one literal decision or assumption file. */
