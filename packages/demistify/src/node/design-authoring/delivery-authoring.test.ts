@@ -7,7 +7,7 @@ import { promisify } from 'node:util';
 
 import { expect, it } from 'vitest';
 
-import { parseDeliverablesView } from '../../core/deliverables-view.ts';
+import { parseDeliverablesView, type DeliverableView } from '../../core/deliverables-view.ts';
 
 const run = promisify(execFile);
 const cli = fileURLToPath(new URL('../../../bin/demistify.ts', import.meta.url));
@@ -92,6 +92,96 @@ const outputNames = [
 function beforeVerification(source: string): string {
 	return `${source.slice(0, source.indexOf('  verification:'))}});\n`;
 }
+
+it('keeps accepted work current when a sibling heading only moves a blank line', async (): Promise<void> => {
+	const directory = await mkdtemp(join(tmpdir(), 'demistify-delivery-boundary-'));
+	const index = join(directory, 'index.html');
+	const designFile = join(directory, 'design.ts');
+	const deliverables = join(directory, 'deliverables');
+	const implementation = join(deliverables, 'del-01-prevent-cancelled-job-from-running.ts');
+	const heading =
+		'<h2 id="R3">Cancelled work never starts</h2>\n<p>No handler entry after cancellation.</p>';
+	const baseline = page.replace(
+		'<p id="R3">No handler entry after cancellation.</p>',
+		`${heading}\n\n<h2>Other scope</h2>`,
+	);
+	try {
+		await run(process.execPath, [cli, 'design', 'init', directory]);
+		await mkdir(deliverables);
+		await Promise.all([
+			writeFile(designFile, designSource),
+			writeFile(index, baseline),
+			writeFile(
+				join(directory, 'design-delivery.ts'),
+				rootSource.replace(/import reportClaim[^\n]+\n|  \{ deliverable: reportClaim[^\n]+\n/g, ''),
+			),
+			writeFile(implementation, beforeVerification(complete)),
+			writeFile(join(directory, 'evidence.txt'), 'Zero handler entries.'),
+			writeFile(join(directory, 'acceptance.txt'), 'Lead reviewed the verification.'),
+		]);
+		const check = [cli, 'design', 'check', directory];
+		const readDelivery = async (): Promise<DeliverableView | undefined> =>
+			parseDeliverablesView(await readFile(join(directory, 'deliverables.generated.json'), 'utf8'))
+				.deliverables['DEL-01'];
+		await run(process.execPath, check);
+		const scopeRevision = (await readDelivery())?.scopeRevision ?? '';
+		// Recorded by the 1.30.1 CLI for this exact fixture before the parser fix.
+		const legacyScope = '960b7fa9d796ed6a0cef342901463755cca1fa0492ffe0de3e33ea736e0c05ec';
+		expect(scopeRevision).not.toBe(legacyScope);
+		await Promise.all([
+			// The previous release did not save source separators.
+			writeFile(join(directory, 'design.generated.json'), '{}'),
+			writeFile(implementation, complete.replace('DEL-01-scope', legacyScope)),
+			writeFile(
+				designFile,
+				designSource.replace(
+					'/* Lead acceptance */',
+					`acceptances: [{ deliverableId: 'DEL-01', build: 'build-87', scopeRevision: '${legacyScope}', evidence: 'acceptance.txt' }],`,
+				),
+			),
+		]);
+		await run(process.execPath, check);
+		expect((await readDelivery())?.state).toBe('accepted');
+
+		const addedSibling = baseline.replace(
+			`${heading}\n\n`,
+			`${heading}\n<h2>New rule</h2><p>An unrelated rule.</p>\n\n`,
+		);
+		await writeFile(index, addedSibling);
+		await run(process.execPath, check);
+		expect(await readDelivery()).toMatchObject({ state: 'accepted', scopeRevision });
+
+		const recorded = await readFile(designFile, 'utf8');
+		await Promise.all([
+			writeFile(implementation, complete.replace('DEL-01-scope', scopeRevision)),
+			writeFile(join(directory, 'current-acceptance.txt'), 'Lead reviewed the current evidence.'),
+			writeFile(
+				designFile,
+				recorded.replace(
+					"evidence: 'acceptance.txt' }]",
+					`evidence: 'acceptance.txt' }, { deliverableId: 'DEL-01', build: 'build-87', scopeRevision: '${scopeRevision}', evidence: 'current-acceptance.txt' }]`,
+				),
+			),
+		]);
+		await run(process.execPath, check);
+		expect(await readDelivery()).toMatchObject({
+			state: 'accepted',
+			progress: { acceptance: { evidence: 'current-acceptance.txt' } },
+		});
+
+		await writeFile(
+			index,
+			addedSibling.replace(
+				'No handler entry after cancellation.',
+				'Allow handler entry after cancellation.',
+			),
+		);
+		await run(process.execPath, check);
+		expect((await readDelivery())?.state).toBe('awaiting-verification');
+	} finally {
+		await rm(directory, { recursive: true, force: true });
+	}
+}, 90_000);
 
 it('composes typed work files into one delivery graph and keeps the last output if inputs are invalid', async (): Promise<void> => {
 	const directory = await mkdtemp(join(tmpdir(), 'demistify-delivery-check-'));
