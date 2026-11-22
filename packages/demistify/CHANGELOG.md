@@ -1,5 +1,11 @@
 # @sunstack/demistify
 
+## 1.30.1
+
+### Patch Changes
+
+- 963f346: Keep generated revisions out of routine CLI output, delivery views, and copied review text. Show delivery status and recheck guidance in plain language while retaining evidence matching in generated data.
+
 ## 1.30.0
 
 ### Minor Changes
