@@ -356,10 +356,10 @@ function projectProgress({
 	const acceptanceBlocker = designBlockers[0];
 	if (acceptanceBlocker) return { state: 'design-blocked', reason: acceptanceBlocker.reason };
 
-	const acceptance = acceptances.find(
-		(receipt): boolean =>
-			receipt.build === candidate && scopeRevisions.includes(receipt.scopeRevision),
-	);
+	const currentBuildReceipts = acceptances.filter(({ build }) => build === candidate);
+	const acceptance =
+		currentBuildReceipts.find((receipt) => receipt.scopeRevision === scopeRevisions[0]) ??
+		currentBuildReceipts.find((receipt) => scopeRevisions.includes(receipt.scopeRevision));
 	if (acceptance)
 		return {
 			state: 'accepted',

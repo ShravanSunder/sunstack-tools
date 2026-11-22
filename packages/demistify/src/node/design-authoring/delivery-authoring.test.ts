@@ -151,6 +151,24 @@ it('keeps accepted work current when a sibling heading only moves a blank line',
 		await run(process.execPath, check);
 		expect(await readDelivery()).toMatchObject({ state: 'accepted', scopeRevision });
 
+		const recorded = await readFile(designFile, 'utf8');
+		await Promise.all([
+			writeFile(implementation, complete.replace('DEL-01-scope', scopeRevision)),
+			writeFile(join(directory, 'current-acceptance.txt'), 'Lead reviewed the current evidence.'),
+			writeFile(
+				designFile,
+				recorded.replace(
+					"evidence: 'acceptance.txt' }]",
+					`evidence: 'acceptance.txt' }, { deliverableId: 'DEL-01', build: 'build-87', scopeRevision: '${scopeRevision}', evidence: 'current-acceptance.txt' }]`,
+				),
+			),
+		]);
+		await run(process.execPath, check);
+		expect(await readDelivery()).toMatchObject({
+			state: 'accepted',
+			progress: { acceptance: { evidence: 'current-acceptance.txt' } },
+		});
+
 		await writeFile(
 			index,
 			addedSibling.replace(
