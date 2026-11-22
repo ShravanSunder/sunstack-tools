@@ -13,6 +13,7 @@ import {
 	readProjectManifest,
 } from './read-project.ts';
 import type { DesignCore, DesignRecord } from './schema.ts';
+import { deliveryRevisionInputs, type RecordScopeRevision } from './scope-boundary.ts';
 
 type EvidenceReceipt = NonNullable<DeliveryEntry['deliverable']['verification']>;
 type EvidenceOutcome = EvidenceReceipt['outcomes'][string];
@@ -222,11 +223,13 @@ export async function checkProject(
 		throw new Error('Register each design directory only once.');
 
 	const design: DesignCore = { pages: [], mapGroups: [], records: [], acceptances: [] };
-	const revisions = new Map<string, string>();
+	const revisions = new Map<string, RecordScopeRevision>();
+	const projectOutput = join(root, 'project.generated.json');
+	const savedBoundaries = await check.readScopeBoundaries(projectOutput, 'project');
 	async function loadShared(
 		file: string | undefined,
 		kind: 'choice' | 'assumption',
-	): Promise<{ records: DesignRecord[]; revisions: Map<string, string> } | undefined> {
+	): Promise<{ records: DesignRecord[]; revisions: Map<string, RecordScopeRevision> } | undefined> {
 		if (file === undefined) return undefined;
 		const text = await readAuthoringInput(file);
 		const records = readDesignItems(file, text, kind);
@@ -237,7 +240,13 @@ export async function checkProject(
 			]),
 		);
 		checkAuthoringTypes([file], new Map([[file, text], ...declarations]));
-		const scope = await check.inspectRecords(records, file);
+		const previousBoundaries = new Map(
+			records.flatMap(({ id }): [string, string][] => {
+				const suffix = savedBoundaries.get(qualify('project', id));
+				return suffix === undefined ? [] : [[id, suffix]];
+			}),
+		);
+		const scope = await check.inspectRecords(records, file, { previousBoundaries });
 		return {
 			records: records.map((record) =>
 				projectRecord(record, 'project', (href) => rebase(href, dirname(file), root)),
@@ -271,7 +280,11 @@ export async function checkProject(
 		entries.push(...set.entries.map((entry) => projectEntry(entry, set.name, href)));
 	}
 	checkRecordRelationships(design.records);
-	const delivery = projectDelivery(design, entries, revisions, true);
+	const inputs = deliveryRevisionInputs(revisions);
+	const delivery = projectDelivery(design, entries, inputs.current, {
+		trackPrerequisiteRevisions: true,
+		legacyRecordRevisions: inputs.legacy,
+	});
 	await Promise.all(delivery.evidence.map((href) => check.checkEvidence(href, projectFile)));
 	const output = {
 		version: 1,
@@ -287,12 +300,17 @@ export async function checkProject(
 				},
 			]),
 		),
-		records: design.records,
+		records: design.records.map((record) => {
+			const boundaryWhitespace = record.id.startsWith('project/')
+				? revisions.get(record.id)?.boundaryWhitespace
+				: undefined;
+			return boundaryWhitespace === undefined ? record : { ...record, boundaryWhitespace };
+		}),
 		deliverables: delivery.deliverables,
 	};
 	const view = projectViewSchema.parse(output);
 	const projectSource = {
-		file: join(root, 'project.generated.json'),
+		file: projectOutput,
 		text: JSON.stringify(view),
 		records: new Map(design.records.map((record) => [record.id, record])),
 	};
