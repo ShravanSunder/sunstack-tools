@@ -76,7 +76,7 @@ Give the pair the deliverable ID and file. The Implementer records completed tas
 
 An unanswered governing owner question or a refuted assumption blocks the affected deliverable. The Lead can authorize reversible work under an open assumption. That deliverable stays open until the assumption is confirmed, even when its checks passed. The reader links to the governing items so the pair can open the right passage.
 
-When a deliverable is ready for acceptance, record `acceptances: [{ deliverableId, build, scopeRevision, evidence }]` in `design.ts`. The tool fills the build and scope from the checked deliverable. When assigned checks change, keep earlier verification in `verificationHistory`.
+When a deliverable is ready for acceptance, record `acceptances: [{ deliverableId, build, scopeRevision, evidence }]` in `design.ts`. Use a script to fill the build and scope from the checked deliverable. When assigned checks change, keep earlier verification in `verificationHistory`.
 
 In the authored HTML page, place the delivery overview where the reader needs the current state:
 
