@@ -104,7 +104,7 @@ A new decision can declare `supersedes: 'D1'` and keep the old one in the file. 
 
 ## Place records on pages
 
-Place a record with an empty element. The placement is the anchor. After generating the views, the runtime adds `id="R1"` and the statement when the page loads, so any page can link to `#R1`. It finds the record data beside the page’s generated navigation or project overview source. A declared external page with neither binding can use `<meta name="demistify-records" content="../milestone/records.generated.js">`.
+Place a record with an empty element. The placement is the anchor. After generating the views, the runtime adds `id="R1"` and the statement when the page loads, so any page can link to `#R1`. It finds the record data beside the page’s generated navigation source, or beside the project overview source if the page has no generated navigation. A declared external page with neither binding can use `<meta name="demistify-records" content="../milestone/records.generated.js">`.
 
 ```html
 <head>

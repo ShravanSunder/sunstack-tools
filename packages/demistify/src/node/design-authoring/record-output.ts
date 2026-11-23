@@ -17,21 +17,15 @@ export function recordOutputFile(
 ): string {
 	if (markup.hasDocumentBase)
 		throw new Error(`${file}: remove <base href> so design links resolve from the authored page.`);
-	const implicit: string[] = [];
-	for (const [sources, name] of [
-		[markup.navigationSources, 'navigation.generated.json'],
-		[markup.projectOverviewSources, 'project.generated.json'],
+	for (const [kind, sources, name] of [
+		['navigation', markup.navigationSources, 'navigation.generated.json'],
+		['overview', markup.projectOverviewSources, 'project.generated.json'],
 	] as const) {
-		for (const href of sources) {
-			if (href.split('/').at(-1) === name) implicit.push(href);
-		}
-	}
-	if (implicit.length > 1)
-		throw new Error(
-			`${file}: multiple generated navigation or overview sources for record bindings.`,
-		);
-	const [binding] = implicit;
-	if (binding) {
+		const candidates = sources.filter((href) => href.split('/').at(-1) === name);
+		if (candidates.length > 1)
+			throw new Error(`${file}: multiple generated ${kind} sources for record bindings.`);
+		const [binding] = candidates;
+		if (!binding) continue;
 		const target = resolveDesignLink(binding, file, siteRoot);
 		if (!target) throw new Error('Generated records require a local source in ' + file + '.');
 		return checkedOutput(join(dirname(target.file), designRecordsFilename));

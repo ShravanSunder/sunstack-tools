@@ -6,13 +6,13 @@ import { promisify } from 'node:util';
 
 import { designRecordsFilename } from '../../core/design-record-view.ts';
 import { containsPath } from '../local-site.ts';
-import { findDesignInput } from './design-location.ts';
 import {
 	gitOutputRoot,
 	isTrackedOutput,
 	readOutputFile,
 	type GeneratedFile,
 } from './design-output.ts';
+import { findRegisteredProject } from './read-project.ts';
 
 const patterns = [
 	'*.generated.json',
@@ -34,8 +34,8 @@ export function projectIgnoreDirectory(project: string): string {
 }
 
 export async function designIgnoreDirectory(directory: string): Promise<string> {
-	const project = await findDesignInput(directory, 'project.ts');
-	return project ? projectIgnoreDirectory(project) : directory;
+	const project = await findRegisteredProject(directory);
+	return project ? projectIgnoreDirectory(project.directory) : directory;
 }
 
 export function generatedDesignPaths(
@@ -163,6 +163,10 @@ export async function planDesignIgnore(
 			)
 				return undefined;
 		}
+		if (directory === root)
+			throw new Error(
+				`Add the generated design ignore patterns to repository-root .gitignore at ${file} before writing: ${patterns.join(', ')}.`,
+			);
 		if (await isTrackedOutput(file))
 			throw new Error(
 				`Add the generated design ignore patterns to tracked ${file} before writing: ${patterns.join(', ')}.`,

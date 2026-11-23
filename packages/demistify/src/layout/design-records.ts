@@ -8,15 +8,22 @@ import { reportIssue } from '../core/issues.ts';
 const placementSelector = '[data-design-record], ex-tree[data-design-need]';
 
 function recordsSource(): URL | undefined {
-	const implicit = Array.from(document.querySelectorAll('ex-nav[src], ex-project-overview[src]'))
-		.map((element): string | undefined => {
-			const filename = element.matches('ex-nav')
-				? 'navigation.generated.json'
-				: 'project.generated.json';
-			const source = element.getAttribute('src');
-			return source?.split('/').at(-1) === filename ? source : undefined;
-		})
-		.filter((source): source is string => source !== undefined);
+	const implicit =
+		(
+			[
+				['ex-nav[src]', 'navigation.generated.json'],
+				['ex-project-overview[src]', 'project.generated.json'],
+			] as const
+		)
+			.map(([selector, filename]): string[] =>
+				Array.from(document.querySelectorAll(selector)).flatMap((element): string[] => {
+					const source = element.getAttribute('src')?.trim() ?? '';
+					if (/^(?:[a-z][a-z0-9+.-]*:|\/|\\)/iu.test(source)) return [];
+					const path = decodeURIComponent(source.split(/[?#]/u, 1)[0] ?? '');
+					return path.split('/').at(-1) === filename ? [source] : [];
+				}),
+			)
+			.find((sources): boolean => sources.length > 0) ?? [];
 	const markers = document.querySelectorAll<HTMLMetaElement>('meta[name="demistify-records"]');
 	if (implicit.length > 1 || (implicit.length === 0 && markers.length !== 1)) return undefined;
 	const [binding] = implicit;

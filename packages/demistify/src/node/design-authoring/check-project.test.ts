@@ -216,9 +216,13 @@ it('initializes a design under the shared projects ignore scope without editing 
 	const tracked = '# maintained by the author\n';
 	const git = (args: string[]): ReturnType<typeof run> => run('git', ['-C', root, ...args]);
 	try {
-		await mkdir(project, { recursive: true });
+		await mkdir(phase, { recursive: true });
 		await git(['init', '--quiet', '--template=']);
-		await writeFile(join(project, 'project.ts'), 'export default {};');
+		await writeFile(
+			join(project, 'project.ts'),
+			"import phase from './phase/design.ts'; export default { designs: { phase } };",
+		);
+		await writeFile(join(phase, 'project.ts'), 'export const settings = { app: true };');
 		await writeFile(ignore, tracked);
 		await git(['add', 'docs/projects/.gitignore']);
 		const init = [cli, 'design', 'init', phase];
@@ -240,6 +244,81 @@ it('initializes a design under the shared projects ignore scope without editing 
 		await rm(root, { recursive: true, force: true });
 	}
 }, 30_000);
+
+it.each(['absent', 'untracked'] as const)(
+	'refuses to change a repository-root ignore with %s coverage',
+	async (initial): Promise<void> => {
+		const root = await mkdtemp(join(tmpdir(), 'demistify-root-ignore-'));
+		const ignore = join(root, '.gitignore');
+		const project = join(root, 'project.ts');
+		const output = join(root, 'project.generated.json');
+		const original = '# unrelated untracked rule\n*.bak\n';
+		const coverage =
+			'*.generated.json\ndesign-sdk.generated.ts\ndesign-schema.d.ts\nrecords.generated.js\n';
+		const cliCheck = [cli, 'project', 'check', root, '--write'];
+		try {
+			await run('git', ['-C', root, 'init', '--quiet', '--template=']);
+			await writeFile(project, 'export default {};');
+			if (initial === 'untracked') await writeFile(ignore, original);
+			await expect(run(process.execPath, cliCheck)).rejects.toThrow(/repository-root \.gitignore/);
+			await expect(run(process.execPath, [cli, 'design', 'init', root])).rejects.toThrow(
+				/repository-root \.gitignore/,
+			);
+			if (initial === 'absent') await expect(stat(ignore)).rejects.toHaveProperty('code', 'ENOENT');
+			else expect(await readFile(ignore, 'utf8')).toBe(original);
+			await expect(stat(output)).rejects.toHaveProperty('code', 'ENOENT');
+			await expect(stat(join(root, 'design.ts'))).rejects.toHaveProperty('code', 'ENOENT');
+
+			await writeFile(ignore, coverage);
+			const before = await stat(ignore);
+			await run(process.execPath, cliCheck);
+			await run(process.execPath, [cli, 'design', 'init', root]);
+			expect(await readFile(ignore, 'utf8')).toBe(coverage);
+			expect((await stat(ignore)).mtimeMs).toBe(before.mtimeMs);
+		} finally {
+			await rm(root, { recursive: true, force: true });
+		}
+	},
+	30_000,
+);
+
+it.each([
+	['application code', 'export const settings = { app: true };'],
+	['unregistered design', 'export default {};'],
+])(
+	'keeps standalone ignore scope under a project.ts containing %s',
+	async (_name, manifest): Promise<void> => {
+		const root = await mkdtemp(join(tmpdir(), 'demistify-standalone-ignore-'));
+		const projects = join(root, 'docs', 'projects');
+		const project = join(projects, 'app');
+		const initialized = join(project, 'initialized');
+		const existing = join(project, 'existing');
+		try {
+			await mkdir(existing, { recursive: true });
+			await run('git', ['-C', root, 'init', '--quiet', '--template=']);
+			await writeFile(join(project, 'project.ts'), manifest ?? '');
+			await run(process.execPath, [cli, 'design', 'init', initialized]);
+			expect(await readFile(join(initialized, '.gitignore'), 'utf8')).toContain(
+				'records.generated.js',
+			);
+			await Promise.all([
+				writeFile(join(existing, 'design.ts'), designSource(false)),
+				writeFile(join(existing, 'index.html'), fixturePage),
+			]);
+			await run(process.execPath, [cli, 'design', 'check', existing, '--write']);
+			expect(await readFile(join(existing, '.gitignore'), 'utf8')).toContain(
+				'records.generated.js',
+			);
+			expect(await readFile(join(existing, 'records.generated.js'), 'utf8')).toContain(
+				'Return the current result.',
+			);
+			await expect(stat(join(projects, '.gitignore'))).rejects.toHaveProperty('code', 'ENOENT');
+		} finally {
+			await rm(root, { recursive: true, force: true });
+		}
+	},
+	30_000,
+);
 
 it('qualifies need coverage and deduplicates scoped rule notes across a checked project', async (): Promise<void> => {
 	const root = await mkdtemp(join(tmpdir(), 'demistify-qualified-coverage-'));

@@ -4,7 +4,6 @@ import { dirname, join, resolve } from 'node:path';
 import { sharedNavigationSchema } from '../../core/shared-navigation.ts';
 import { openDesignCheck } from './check-design.ts';
 import { deliverySdkSource } from './delivery-sdk-source.ts';
-import { findDesignInput } from './design-location.ts';
 import { commitDesignOutputs, planGeneratedText, refuseTrackedOutput } from './design-output.ts';
 import { designTypeSource, designTypesFor } from './design-type-source.ts';
 import {
@@ -14,7 +13,7 @@ import {
 } from './generated-ignore.ts';
 import { deliveryEntryFilename, deliverySdkFilename } from './read-delivery.ts';
 import { designDeclarationFilename, readDesignItems, readDesignSources } from './read-design.ts';
-import { readProjectManifest } from './read-project.ts';
+import { findRegisteredProject } from './read-project.ts';
 
 const authoringSupport = [
 	[designDeclarationFilename, designTypeSource],
@@ -36,8 +35,8 @@ export default defineDelivery(design, []);
 `;
 
 async function authoredRecordIds(directory: string): Promise<string[]> {
-	const project = await findDesignInput(directory, 'project.ts');
-	const check = await openDesignCheck(project ?? directory);
+	const project = await findRegisteredProject(directory);
+	const check = await openDesignCheck(project?.directory ?? directory);
 	async function readRecords(setDirectory: string): Promise<string[]> {
 		const read = (file: string): Promise<string> => check.read(file, setDirectory);
 		const { design } = await readDesignSources(setDirectory, read, async (file) =>
@@ -51,13 +50,11 @@ async function authoredRecordIds(directory: string): Promise<string[]> {
 	const localIds = await readRecords(directory);
 	if (!project) return localIds;
 
-	const file = join(project, 'project.ts');
-	const manifest = readProjectManifest(file, await check.read(file, project));
+	const { directory: projectDirectory, manifest } = project;
 	const sets = Object.entries(manifest.designs);
-	if (!sets.some(([, path]) => dirname(path) === directory)) return localIds;
 	const milestoneIds = await Promise.all(
 		sets.map(async ([name, path]): Promise<string[]> => {
-			const setDirectory = dirname(path);
+			const setDirectory = await realpath(dirname(path));
 			const ids = setDirectory === directory ? localIds : await readRecords(setDirectory);
 			return ids.map((id): string => `${name}/${id}`);
 		}),
@@ -69,7 +66,7 @@ async function authoredRecordIds(directory: string): Promise<string[]> {
 		].map(async ({ path, kind }): Promise<string[]> =>
 			path === undefined
 				? []
-				: readDesignItems(path, await check.read(path, project), kind).map(
+				: readDesignItems(path, await check.read(path, projectDirectory), kind).map(
 						({ id }) => `project/${id}`,
 					),
 		),
