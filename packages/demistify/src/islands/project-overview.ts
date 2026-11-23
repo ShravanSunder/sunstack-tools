@@ -83,7 +83,7 @@ function renderDelivery(
 	const state = document.createElement('strong');
 	state.textContent = deliveryStateLabels[delivery.state];
 	if (delivery.kind === 'later') {
-		parent.append(delivery.title, ' · ', state);
+		parent.append(`${delivery.id} · ${delivery.title} · `, state);
 		return;
 	}
 	parent.append(

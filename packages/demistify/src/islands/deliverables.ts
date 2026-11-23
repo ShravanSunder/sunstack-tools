@@ -146,6 +146,7 @@ export class DeliverablesIsland extends HTMLElement {
 			const row = body.insertRow();
 			const title = document.createElement('th');
 			title.scope = 'row';
+			row.append(title);
 			if (item.kind === 'later') {
 				title.textContent = `${item.id} · ${item.title}`;
 				row.insertCell().textContent = deliveryStateLabels.later;
@@ -160,7 +161,6 @@ export class DeliverablesIsland extends HTMLElement {
 					item.links.plan.fragment,
 				),
 			);
-			row.append(title);
 			const summary = document.createElement('strong');
 			summary.textContent = deliveryStateLabels[item.state];
 			const state = row.insertCell();
