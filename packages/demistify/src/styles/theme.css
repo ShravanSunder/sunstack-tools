@@ -2,6 +2,7 @@
 :root {
 	--surface-page: #f5f6f8;
 	--surface-content: #ffffff;
+	--surface-code: #eceff3;
 	--ink: #18202b;
 	--diagram-foreground: #18202b;
 	--ink-soft: #4a5566;
@@ -99,6 +100,7 @@
 		color-scheme: dark;
 		--surface-page: #191919;
 		--surface-content: #171d26;
+		--surface-code: #232b37;
 		--ink: #f1efed;
 		--diagram-foreground: #f1efed;
 		--ink-soft: #a5afbd;
@@ -143,6 +145,7 @@
 	color-scheme: dark;
 	--surface-page: #191919;
 	--surface-content: #171d26;
+	--surface-code: #232b37;
 	--ink: #f1efed;
 	--diagram-foreground: #f1efed;
 	--ink-soft: #a5afbd;
