@@ -311,7 +311,8 @@ export class ChoiceIsland extends HTMLElement {
 		this.options = rendered;
 		this.replaceChildren(this.source, fieldset);
 		if (face && beside) {
-			this.prepend(recordStateLine(face, this.questionId, beside));
+			const waitingSection = !settled && Boolean(this.closest('ex-section[holds="needs-owner"]'));
+			this.prepend(recordStateLine(face, this.questionId, beside, waitingSection));
 			appendRecordBasis(this, face);
 			this.removeAttribute('title');
 			this.classList.add('ex-bound-choice');

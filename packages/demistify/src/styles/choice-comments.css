@@ -122,7 +122,8 @@ ex-option .ex-choice-title-row > .ex-choice-details-button {
 	container-type: inline-size;
 }
 ex-choice.ex-choice-default-width:has(> .ex-choice-beside-fieldset):not(
-		:has(> fieldset > .ex-choice-detail-layout > .ex-choice-detail-panels > :not([hidden]))
+		:has(> fieldset > .ex-choice-detail-layout > .ex-choice-detail-panels > :not([hidden])),
+		.ex-bound-choice:has(> fieldset > [data-width='canvas'])
 	) {
 	max-inline-size: var(--width-reading);
 	margin-inline: 0 auto;
@@ -734,5 +735,17 @@ ex-choice.ex-choice-cards ex-option:has(:focus-visible) > .ex-entity-comment {
 	padding: 0;
 }
 .ex-bound-choice > :is(.ex-record-basis, .ex-record-dependents) {
+	max-inline-size: var(--width-reading);
+}
+
+.ex-bound-choice.ex-choice-default-width:has(> fieldset > [data-width='canvas'])
+	> .ex-record-state-line,
+.ex-bound-choice.ex-choice-default-width:has(> fieldset > [data-width='canvas'])
+	> fieldset
+	> :is(
+		legend,
+		p:not([data-width='canvas']),
+		.ex-choice-detail-layout:not(:has(.ex-choice-detail-panel:not([hidden])))
+	) {
 	max-inline-size: var(--width-reading);
 }

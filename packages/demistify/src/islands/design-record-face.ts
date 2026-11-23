@@ -85,13 +85,14 @@ export function recordStateLine(
 	face: RecordFace,
 	placement: string,
 	beside: ChoiceDetailPanel,
+	stateShownBySection = false,
 ): HTMLElement {
 	const { state, icon, tone, basis, date, weight } = recordState(face);
 	const row = document.createElement('div');
 	row.className = 'ex-record-state-line';
 	const stateText = createHead('div', 'ex-record-state-text', {
-		title: state,
-		icon,
+		title: stateShownBySection ? undefined : state,
+		icon: stateShownBySection ? undefined : icon,
 		tone: undefined,
 	});
 	row.append(stateText);
