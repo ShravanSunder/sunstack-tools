@@ -4,6 +4,8 @@ The document owns navigation. Pages move between HTML files, the outline jumps t
 
 ## Share collection navigation through JSON
 
+A typed design milestone generates this JSON from `design.ts`; author its Pages, Map and Walkthroughs there, as [typed-design.md](typed-design.md#map-and-walkthrough-by-record-id) teaches.
+
 For a collection, author Pages, Map and complete Walkthroughs once. Each page loads the same JSON:
 
 ```html

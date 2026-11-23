@@ -1,184 +1,194 @@
-# Track design records across a site
+# Typed design records
 
-Use this optional workflow when agents need to refer to requirements, rules, decisions, and planned checks by ID. Write the HTML by hand with the components that answer the reader's questions. Give each record a real HTML ID so a handoff can link straight to the explanation.
+Use typed records when agents refer to a milestone's needs, rules, decisions and checks by ID. A record is the only home of its text. Pages hold explanation and diagrams, and place records by ID where the reader needs them.
+
+## Commands
 
 ```sh
-demistify design init docs/projects/2026-11-router/milestones/2026-11-messages
-demistify design check docs/projects/2026-11-router/milestones/2026-11-messages --site-root docs/projects/2026-11-router
+demistify design init <milestone>
+demistify design types [milestone]
+demistify design check [milestone] [--site-root <directory>]
+demistify brief <deliverable> [directory] [--site-root <directory>]
+demistify open <page.html> [--site-root <directory>]
 ```
 
-Use the CLI from the selected Demistify binding. With a local npm installation, prefix each invocation with `npm exec --`. With the published archive, use the exact `pnpm dlx` URL from the matching entry guide and append the same `design` arguments.
+Run the CLI from the selected Demistify binding: prefix `npm exec --` for a local install, or use the exact `pnpm dlx` URL from the matching entry guide. To save `brief` output without pnpm's progress line, run `pnpm --silent dlx <url> brief …`.
 
-1. `init` writes `design.ts`, `design-decisions.ts`, `design-assumptions.ts`, `design-delivery.ts`, and their generated authoring support. It takes Pages, Map, and Walkthroughs from an existing authored `navigation.json`. For a new set, use the seeded page list and author the HTML pages yourself. Keep `design.ts` a literal data object. Decisions and assumptions live in separate literal arrays. Their type imports resolve to the local declaration.
-2. Add records with a stable ID, a title, a destination on a declared page, and source links. Rules cite the needs they serve. Realizations and planned checks cite the rules they address. Give each planned check at least three `given` / `expect` cases.
-3. Use `<ex-nav src="./navigation.generated.json">` on owned pages, with the relative path adjusted for nested pages. Point record and plan destinations to existing reviewed passages when they already have stable HTML IDs. Add each such page to the set’s `pages` and keep its own navigation binding. Use an explicit `--site-root` containing the set and its reviewed pages. A set can declare only reviewed pages. Preview a shared navigation site over HTTP.
-4. Run `check` to validate the authored inputs, local targets, and Demistify markup. It writes `design.generated.json` for record lookup, `navigation.generated.json` for navigation, and `deliverables.generated.json` for delivery progress. Edit the TypeScript or HTML sources and rerun the checker to refresh these files.
+- `init` writes `design.ts`, `design-decisions.ts`, `design-assumptions.ts`, `design-delivery.ts` and the generated SDK, seeding Pages, Map and Walkthroughs from an existing `navigation.json`. You write the HTML pages.
+- `types` regenerates `design-sdk.generated.ts` and `design-schema.d.ts`. Git ignores both, so run it after a fresh checkout and after adding or renaming an ID, for the editor. `check`, `brief` and `open` build what they need without it.
+- `check` validates records, links, placements and pages, then prints each deliverable's state. It is read-only; `--write` saves the ignored `*.generated.json` files for a static server.
+- `open` serves pages with records filled in and data built. Restart it after editing records.
 
-An HTML fragment check verifies that the authored ID exists. A heading ID covers the heading and its content until the next equal or higher heading in its section. A container ID covers the entire element. Editing a governing passage reopens evidence tied to its old scope revision.
+Pass `--site-root` with the enclosing docs directory when pages or evidence link outside the milestone folder.
 
-Source excerpts can summarize a source. For an exact quotation from a local HTML passage, add `verbatim: true` to its source reference. The checker compares decoded text after collapsing whitespace and checks only the cited passage when the link contains a fragment.
+IF the milestone belongs to a project with several milestones or shared decisions, load `typed-design-projects.md` and return the project root, its registered milestones and the `project check` result.
+
+## Write records
+
+Import the helpers from the milestone's generated SDK. Each helper supplies the record's `kind`. The CLI reads these files as literal data and never executes them.
 
 ```ts
-{
-  href: '../../reviewed/queue.html#cancel-before-claim',
-  excerpt: 'A cancelled job cannot acquire a worker claim.',
-  verbatim: true,
-}
+// design.ts
+import { defineCheck, defineDesign, defineNeed, defineRealization, defineRule } from './design-sdk.generated.ts';
+
+export default defineDesign({
+  pages: [{ id: 'home', title: 'Messages', href: 'index.html', icon: 'envelope' }],
+  mapGroups: [{ description: 'Why a row leaves the inbox', icon: 'clock', target: { record: 'R1' } }],
+  records: [
+    defineNeed({ id: 'N1', statement: 'A reader never sees a message after central has withdrawn it.' }),
+    defineRule({
+      id: 'R1',
+      title: 'Inbox expiry',
+      statement: 'An inbox row expires at its arrival time plus the time left that central sent.',
+      serves: 'N1',
+      governedBy: ['D1'],
+      reliesOn: ['A1'],
+      cases: [{ given: 'time left 0 or below', expect: 'reject the row' }],
+    }),
+    defineRealization({ id: 'M1', statement: 'The Mac stores the expiry time with each inbox row.', realizes: 'R1' }),
+    defineCheck({
+      id: 'V1',
+      statement: 'An expired row is gone from the inbox query.',
+      checks: 'R1',
+      journey: 'inbox-expiry integration test',
+      unverified: 'Clock skew between central and the Mac',
+      cases: [
+        { given: 'time left 60 s, read at 61 s', expect: 'no row' },
+        { given: 'time left 60 s, read at 59 s', expect: 'one row' },
+        { given: 'time left 0', expect: 'row rejected on arrival' },
+      ],
+    }),
+  ],
+});
 ```
 
-If a check is forcibly interrupted while writing, remove the leftover `.demistify-design.lock` only after the checking process has ended, then rerun the check to regenerate the outputs.
+| Record | Helper | Fields |
+| --- | --- | --- |
+| Need | `defineNeed` | `statement` |
+| Rule | `defineRule` | `statement`; optional `serves` (needs), `governedBy`, `reliesOn`, `cases` |
+| Realization | `defineRealization` | `statement`, `realizes` (rules) |
+| Planned check | `defineCheck` | `statement`, `checks` (one rule or several), `journey`, `unverified`, three or more `cases` |
+| Decision | `defineDecision` in `design-decisions.ts` | `authority`; optional `supersedes`, `sources` |
+| Assumption | `defineAssumption` in `design-assumptions.ts` | `statement`, `status`; optional `sources`, `resolution` |
 
-### Split a milestone’s records by subject
+Write a rule as one sentence and put its detail in `cases`. `title` is an optional short label for the Tree, Map and outline, which otherwise show the statement. `governedBy` names decisions and `reliesOn` names assumptions; add them only where the record depends on that item. The check rejects a link to the wrong kind of record.
 
-Keep a small set inline. If it grows, put each subject’s authored records in a literal array inside the same milestone. In `records/delivery.ts`, use `import type { DesignRecord } from '../design-schema.d.ts'` and `export default […] as const satisfies readonly DesignRecord[]`, with the actual record objects inside the array.
+A large milestone can move a subject's records to `records/<subject>.ts`, exporting an array of helper calls that import from `../design-sdk.generated.ts`. Spread the default import directly inside `records`. IDs and links still span the milestone.
 
-In `design.ts`, add `import delivery from './records/delivery.ts'` and include `...delivery` directly inside the `records` array alongside inline records. Keep destination and source links relative to `design.ts`. IDs and relationships still span the whole milestone. Run `design types` to refresh the generated declaration before using the `DesignRecord` type.
+### Decisions and assumptions
 
-## Record decisions and assumptions
+A decision holds the owner's words in its `authority`:
 
-Give each material decision or assumption a stable ID and an owning HTML passage. Write the explanation, options and tradeoffs directly in HTML. Write decisions in `design-decisions.ts` and assumptions in `design-assumptions.ts`. Keep their stable IDs and point to them from the governing item in `design.ts`.
-
-| Record | What to enter |
+| Authority | Fields |
 | --- | --- |
-| Decision → Lead | A `choice` with `authority.state: 'lead-decided'`, the `lead`, their `decision` and `rationale`, `decidedOn` as a calendar date, and `sourceKind` of `author` or `contract`. Cite the contract when it provides the authority. |
-| Decision → Owner | A `choice` with `authority.state: 'owner-decided'`, `owner: 'owner'`, the `decision`, `decidedOn`, and `sourceKind` of `owner-words` or `owner-accepted`. Cite where the owner gave the answer or approved the wording in `sources`. |
-| Open owner question | A `choice` with `authority.state: 'owner-open'`, `owner: 'owner'`, and the `question`. |
-| Assumption | An `assumption` with the `statement` the work relies on and `status` of `open`, `confirmed`, or `refuted`. Add a `resolution` with the evidence `href` and `excerpt` when the assumption is confirmed or refuted. |
+| Owner decided | `state: 'owner-decided'`, `owner: 'owner'`, `decision`, `decidedOn` (a date), `sourceKind: 'owner-words'` or `'owner-accepted'` |
+| Open owner question | `state: 'owner-open'`, `owner: 'owner'`, `question` |
+| Lead decided | `state: 'lead-decided'`, `lead`, `decision`, `rationale`, `decidedOn`, `sourceKind: 'author'` or `'contract'` |
 
-A rule, realization or planned check uses `governed-by` to link to a decision and `relies-on` to link to an assumption. Use these links only where the work depends on the item. If the HTML passage already has a design-item or decision authority marker, it must agree with the typed record. The checker validates the shape and source links. The Lead checks who made the decision and what the source supports.
+```ts
+// design-decisions.ts
+import { defineDecision } from './design-sdk.generated.ts';
 
-The Implementer and Verifier log observations, blockers, evidence and recommendations in Show Me Your Work. If they find something that might change the agreed design or commit substantial rework, they bring it to the Lead before proceeding with affected work. The Lead alone judges whether it breaks the shared mental model and decides what to bring to the owner. Record the call under the authority that actually made it. Carry an assumption into the design when the work depends on it.
+export default [
+  defineDecision({
+    id: 'D2',
+    title: 'Expired row display',
+    authority: { state: 'owner-open', owner: 'owner', question: 'Should an expired row stay visible, greyed out, until the reader scrolls?' },
+  }),
+];
+```
 
-## Compose a delivery plan
+`design-assumptions.ts` has the same shape: `defineAssumption({ id: 'A1', statement: 'Central and the Mac clocks differ by under five seconds.', status: 'open' })`. A `confirmed` or `refuted` assumption needs `resolution: { href, excerpt }` pointing at local evidence. `sources` take the same shape; add `verbatim: true` and the check confirms the excerpt appears in the cited HTML passage.
 
-The Lead registers the deliverable modules and prerequisites in `design-delivery.ts`. Each pair works in one file under `deliverables/`. For an existing design, run `demistify design types <directory>` to refresh its generated authoring support. Update the page’s navigation binding when migrating from the earlier output filename.
+A new decision can declare `supersedes: 'D1'` and keep the old one in the file. Only an owner decision can replace an owner decision, and the check rejects a live link to a superseded one.
 
-```typescript
+## Place records on pages
+
+Place a record with an empty element. The placement is the anchor: `open` adds `id="R1"` and the statement to the served HTML, so any page can link to `#R1`. The source stays as written.
+
+```html
+<ex-nav for="content" src="./navigation.generated.json"></ex-nav>
+<ex-document id="content">
+  <h2>Inbox expiry</h2>
+  <p data-design-record="R1"></p>
+  <p>The sweep runs on one timer per inbox, so a burst of arrivals does not multiply wakeups.</p>
+  <ex-tree data-design-need="N1"></ex-tree>
+</ex-document>
+```
+
+- Use `p`, `div`, `span`, `li`, `dt`, `dd`, `td`, `th`, `blockquote` or a heading. A long statement in a heading fills the outline and wraps badly on a phone, so put a full rule in a `p` under an ordinary heading.
+- Write no text, `id` or `title` on the placement. The check fails on copied text, a hand-written anchor, an unknown ID or a second placement of one record.
+- A record need not be placed. Briefs and deliverables still list it, without a link.
+- `<ex-tree data-design-need="N1"></ex-tree>` draws the need and the rules that serve it, linked to their placements.
+- Each page in the milestone keeps one `ex-nav` whose `src` resolves to its `navigation.generated.json`.
+
+Bind a Choice to an open owner decision. The record supplies the question, anchor and decision identity; you write the options. The check rejects a bound Choice on a settled decision, or with its own `title` or `data-decision`.
+
+```html
+<ex-choice data-design-record="D2">
+  <ex-option id="hide-at-once" title="Hide at once">
+    <template slot="summary">The row disappears when it expires.</template>
+  </ex-option>
+  <ex-option id="grey-until-scroll" title="Grey until scroll">
+    <template slot="summary">The row stays, greyed, until the reader scrolls.</template>
+    <div slot="details"><p>Moves DEL-02 into the core plan.</p></div>
+  </ex-option>
+</ex-choice>
+```
+
+## Map and Walkthrough by record ID
+
+A Map node or Walkthrough step in `design.ts` targets `{ record: 'R1' }` and links to that record's placement. A record-bound Map node may omit `title` but keeps its `description` and `icon`. A Walkthrough step keeps its narration: `steps: [{ target: { record: 'N1' }, narration: 'Start with the need.' }]`. A mistyped ID fails the check with `TS2322`.
+
+## Plan deliverables
+
+`design-delivery.ts` lists one module per deliverable under `deliverables/`, each with optional `dependsOn` prerequisites. A `core` deliverable has a scope and is checked. A `later` one is only `defineDeliverable({ kind: 'later', id: 'DEL-02', title: 'Grey out expired rows' })`: listed, not checked, and without a brief.
+
+```ts
 // design-delivery.ts
 import design from './design.ts';
 import { defineDelivery } from './design-sdk.generated.ts';
-import preventCancelledJobs from './deliverables/del-01-prevent-cancelled-job-from-running.ts';
+import expireRows from './deliverables/del-01-expire-inbox-rows.ts';
+import greyRows from './deliverables/del-02-grey-expired-rows.ts';
 
-export default defineDelivery(design, [{ deliverable: preventCancelledJobs }]);
+export default defineDelivery(design, [{ deliverable: expireRows }, { deliverable: greyRows }]);
 ```
 
-```typescript
-// deliverables/del-01-prevent-cancelled-job-from-running.ts
+```ts
+// deliverables/del-01-expire-inbox-rows.ts
 import { defineDeliverable } from '../design-sdk.generated.ts';
 
 export default defineDeliverable({
+  kind: 'core',
   id: 'DEL-01',
-  title: 'Prevent cancelled jobs from running',
+  title: 'Expire inbox rows',
   destination: { page: 'index.html', fragment: 'DEL-01' },
   scope: {
-    rules: ['R3'],
-    implementationTasks: ['guard-handler'],
-    verificationChecks: ['V3'],
+    rules: ['R1'],
+    designItems: ['M1'],
+    implementationTasks: ['store-expiry', 'sweep-expired'],
+    verificationChecks: ['V1'],
   },
 });
 ```
 
-Give the pair the deliverable ID and file. The Implementer records completed tasks, the candidate, and evidence. The Verifier checks that the observed build matches `implementation.candidate` and records `verification: { build, scopeRevision, outcomes }`. Read `scopeRevision` directly from the deliverable in fresh generated data. Key outcomes by check ID and link evidence or state the blocker.
+`destination` names a real `id` on a declared page, such as `<h2 id="DEL-01">`. `designItems` lists realizations, and each scoped check must cover a scoped rule. Progress goes in the same module:
 
-An unanswered governing owner question or a refuted assumption blocks the affected deliverable. The Lead can authorize reversible work under an open assumption. That deliverable stays open until the assumption is confirmed, even when its checks passed. The reader links to the governing items so the pair can open the right passage.
+- `implementation: { completedTasks, candidate, evidence }`: finished tasks, the build, evidence links.
+- `verification: { build, outcomes }`, keyed by check ID. An outcome is `{ kind: 'passed' | 'failed', observation, evidence }` or `{ kind: 'blocked', reason }`. When the assigned checks change, move the old receipt to `verificationHistory`.
 
-When a deliverable is ready for acceptance, record `acceptances: [{ deliverableId, build, scopeRevision, evidence }]` in `design.ts`. Use a script to fill the build and scope from the checked deliverable. When assigned checks change, keep earlier verification in `verificationHistory`.
+Record acceptance in `design.ts` as `acceptances: [{ deliverableId: 'DEL-01', build: 'build-87', evidence: 'acceptance.md' }]`, where `build` equals the implementation candidate. The check holds a core deliverable short of acceptance while:
 
-In the authored HTML page, place the delivery overview where the reader needs the current state:
+- its scope has no rules or no tasks, a task is open, or no candidate is recorded;
+- a scoped rule serves no need, or no assigned check covers it;
+- a check outcome is missing, failed, blocked, or recorded on another build;
+- a governing open owner question or refuted assumption blocks the work, or a governing assumption is still open;
+- a prerequisite is not accepted.
 
-```html
-<ex-deliverables src="./deliverables.generated.json" label="Delivery progress"></ex-deliverables>
-```
+Known loss: the check does not flag a rule that changed after acceptance. Treat such an edit as new scope and verify it again.
 
-The view shows state, open checks, evidence and links back to the design. Serve the page and generated files over HTTP.
+Show progress with `<ex-deliverables src="./deliverables.generated.json" label="Delivery progress"></ex-deliverables>`: each deliverable's state, open checks and evidence, linked to the governing records.
 
-## Check a project across Leads
+## Brief a deliverable
 
-Keep a project root above its named design milestones. Put each set's four authoring files in its own spec directory. The project manifest registers the sets and the shared records it needs.
-
-```text
-docs/projects/2026-11-router/
-  project.ts
-  project-decisions.ts
-  project-assumptions.ts
-  agents-identity.ts
-  milestones/
-    2026-11-messages/
-      design.ts
-      design-decisions.ts
-      design-assumptions.ts
-      design-delivery.ts
-      deliverables/
-    2026-11-sessions/
-      design.ts
-      design-decisions.ts
-      design-assumptions.ts
-      design-delivery.ts
-      deliverables/
-```
-
-```typescript
-// project.ts
-import messages from './milestones/2026-11-messages/design.ts';
-import sessions from './milestones/2026-11-sessions/design.ts';
-import decisions from './project-decisions.ts';
-import assumptions from './project-assumptions.ts';
-import identities from './agents-identity.ts';
-
-export default {
-  designs: { messages, sessions },
-  decisions,
-  assumptions,
-  identities,
-};
-```
-
-Each shared records file exports an array of its own record kind. Use type-only imports from a generated `design-schema.d.ts` inside the project for editor checking. Keep a project's decision and assumption files optional. To move a file inside the project, retain its name and update its explicit import and relative links. A project may register no designs or shared inputs. For example, `export default {};` generates an empty project view. The checker reads the registered inputs.
-
-```typescript
-// agents-identity.ts
-import { agentId } from './milestones/2026-11-messages/design-sdk.generated.ts';
-
-const messagesLead = agentId('replace-with-the-lead-session-id');
-const messagesBuilder = agentId('replace-with-the-builder-session-id');
-
-export default {
-  owner: 'owner',
-  agents: { 'messages-lead': messagesLead, 'messages-builder': messagesBuilder },
-};
-```
-
-Declare each `agentId` in a top-level `const` and use its alias in the delivery plan. Keep the session ID in the identity file.
-
-```typescript
-export default defineDelivery(
-  design,
-  [{ deliverable: cancelMessage, dependsOn: ['sessions/DEL-01'] }],
-  { lead: 'messages-lead' },
-);
-```
-
-Set `builder: 'messages-builder'` in the deliverable module to show its Implementer. In a project, register both role aliases in `agents-identity.ts`. The generated views show aliases and keep session IDs in the authoring input. Builder changes leave scope revisions intact. The milestone Lead still records acceptance. In a standalone set, use an authored role label.
-
-Link a design item to a shared decision as `project/D1`, a shared assumption as `project/A1`, or a record in another registered design as `sessions/D4`. A new decision can declare `supersedes: 'D4'` and keep the previous record in the file. Update any affected governing link after checking what the replacement changes. The checker catches live links to a superseded decision and cycles in supersession or delivery prerequisites.
-
-```sh
-demistify project check docs/projects/2026-11-router --site-root docs
-demistify project check docs/projects/2026-11-router --site-root docs --write
-```
-
-The first command checks the project and lists open owner questions and delivery status. Add `--write` to refresh `project.generated.json` and the three generated files in each milestone. The site root can include reviewed HTML and evidence outside the project. Keep the manifest, identity file, and other TypeScript inputs inside the project.
-
-For receipt automation, use `project check --write` to refresh the data. Use `design check` for self-contained sets.
-
-When readers need a project-wide view, place this binding in a hand-authored page served alongside the generated JSON.
-
-```html
-<ex-project-overview src="./project.generated.json"></ex-project-overview>
-```
-
-The overview links owner questions, milestones, deliverables, and records to their authored pages. Use `ex-deliverables` for the delivery details of a single milestone.
-
-After updating the CLI for an existing project, run `demistify design types <milestone>` for every registered milestone. The command replaces the generated declarations and SDK, including the SDK imported by `agents-identity.ts`. Then run the read-only project check and add `--write` when ready to refresh the view.
-
-For a draft that still embeds choices or assumptions in `design.ts`, move them to the separate record files and rename `delivery.ts` to `design-delivery.ts`. Preserve record IDs, HTML destinations, and sources.
+`demistify brief DEL-01 <milestone>` prints Markdown with the deliverable's title, prerequisites, scoped rules and checks with their cases, tasks, and any open owner question or open assumption in its scope. It saves nothing and adds no words the records lack. Give a helper the brief instead of restating rules.
