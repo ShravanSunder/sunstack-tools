@@ -69,7 +69,7 @@ const oldHtml = `<!doctype html><html lang="en"><head><title>Old design</title>
 <script type="module" src="https://demistify.getagentstudio.dev/v1/runtime.js"></script></head>
 <body><ex-nav for="content" src="navigation.generated.json"></ex-nav><ex-document id="content"><h1>Old design</h1>
 <p><a href="#evidence">Evidence index</a></p>
-<h3 id="N1">Reader need</h3><p>The reader needs the current result.</p>
+<ex-callout title="Reader context"><h3 id="N1">Reader need</h3><p>The reader needs the current result.</p></ex-callout>
 <h3 id="R1">Visible result</h3><p>Explain where the result appears.</p>
 <h3 id="R2">Detailed result</h3><p>See <a href="#evidence">the observed output</a>.</p>
 <table><tbody><tr id="V1"><td>V1 · Read the output record</td><td>Check the current result.</td></tr></tbody></table>
@@ -181,6 +181,9 @@ it('plans without writing and migrates a copy with row and verbatim evidence anc
 		const outSet = join(outProject, 'phase');
 		const html = await readFile(join(outSet, 'index.html'), 'utf8');
 		expect(html).toContain('<p data-design-record="R1"></p>');
+		expect(html).toMatch(
+			/<ex-callout title="Reader context">[\s\S]*?<p data-design-record="N1"><\/p>[\s\S]*?<\/ex-callout>/u,
+		);
 		expect(html).toContain('<p data-design-record="V1"></p>');
 		expect(html).toContain('<h3 id="D1">Owner decision</h3>');
 		expect(html).toContain('<p data-design-record="phase/D1"></p>');
@@ -386,8 +389,16 @@ it('retains quoted container evidence and keeps public project record links at t
 			],
 		});
 		expect(await readFile(page, 'utf8')).toBe(html);
+		const dryRun = [...command.slice(0, -2), '--dry-run'];
+		const nested = html
+			.replace('<details id="D1">', '<ex-callout title="Enclosing callout"><details id="D1">')
+			.replace('</details>', '</details></ex-callout>');
+		await writeFile(page, nested);
+		await expect(run(process.execPath, dryRun)).rejects.toThrow(
+			/cannot place a record inside <ex-callout>/,
+		);
 		await writeFile(page, html.replace('<h1>Decisions</h1>', '<h1 id="D1-source">Decisions</h1>'));
-		await expect(run(process.execPath, [...command.slice(0, -2), '--dry-run'])).rejects.toThrow(
+		await expect(run(process.execPath, dryRun)).rejects.toThrow(
 			/source anchor #D1-source already exists/,
 		);
 	} finally {

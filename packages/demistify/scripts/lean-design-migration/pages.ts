@@ -344,7 +344,7 @@ export function planPage(options: {
 					`${file}#${fragment}: source anchor #${evidence.split.anchor} already exists.`,
 				);
 		}
-		if (insideCallout(node))
+		if (evidence && insideCallout(node))
 			throw new Error(`${file}#${fragment}: cannot place a record inside <ex-callout>.`);
 		const offset = evidence ? node.sourceCodeLocation?.endTag?.endOffset : insertionOffset(node);
 		if (offset === undefined) {
