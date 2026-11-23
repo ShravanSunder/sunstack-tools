@@ -1,6 +1,5 @@
 import { decisionDetailsId, type RecordFace } from '../core/design-record-view.ts';
 import { createHead } from '../core/head.ts';
-import { ChoiceDetailPanel } from './choice-detail-panel.ts';
 
 export const choiceRecordFaces = new WeakMap<HTMLElement, RecordFace>();
 
@@ -83,23 +82,18 @@ const kindLabel = {
 
 export function recordStateLine(
 	face: RecordFace,
-	placement: string,
-	beside: ChoiceDetailPanel,
 	stateShownBySection = false,
-): HTMLElement {
+): HTMLElement | undefined {
 	const { state, icon, tone, basis, date, weight } = recordState(face);
-	const row = document.createElement('div');
-	row.className = 'ex-record-state-line';
-	const stateText = createHead('div', 'ex-record-state-text', {
+	const row = createHead('div', 'ex-record-state-line', {
 		title: stateShownBySection ? undefined : state,
 		icon: stateShownBySection ? undefined : icon,
 		tone: undefined,
 	});
-	row.append(stateText);
 	row.dataset['recordTone'] = tone;
-	if (basis) stateText.append(textNode('span', basis));
+	if (basis) row.append(textNode('span', basis));
 	if (state === 'Needs you' && face.held)
-		stateText.append(
+		row.append(
 			textNode('small', face.held === 1 ? '1 deliverable waits' : `${face.held} deliverables wait`),
 		);
 	if (date) {
@@ -111,28 +105,19 @@ export function recordStateLine(
 		const time = document.createElement('time');
 		time.dateTime = date;
 		time.textContent = dateLabel;
-		stateText.append(time);
+		row.append(time);
 	}
 	if (weight) {
 		const chip = textNode('span', weight);
 		chip.className = 'chip ex-head-tag';
-		stateText.append(chip);
+		row.append(chip);
 	}
 	if (face.ruledBy) {
 		const kind = textNode('span', kindLabel[face.ruledBy]);
 		kind.className = 'ex-record-governs';
-		stateText.append(kind);
+		row.append(kind);
 	}
-	const detail = document.createElement('div');
-	const back = document.createElement('a');
-	back.href = '#' + encodeURIComponent(placement);
-	back.textContent = 'Back to the record';
-	detail.append(back);
-	appendRecordBasis(detail, face);
-	const trigger = beside.add(detail, face.record.title ?? placement, decisionDetailsId(placement));
-	trigger.classList.add('ex-choice-details-button', 'ex-record-detail-button');
-	row.append(trigger);
-	return row;
+	return row.childElementCount ? row : undefined;
 }
 
 function recordBasis(face: RecordFace): HTMLElement | undefined {
@@ -156,6 +141,7 @@ function recordBasis(face: RecordFace): HTMLElement | undefined {
 
 export function appendRecordBasis(parent: HTMLElement, face: RecordFace): void {
 	const basis = recordBasis(face);
+	let firstLine = basis;
 	if (basis) parent.append(basis);
 	if (face.dependents.length) {
 		const line = textNode('p', '');
@@ -166,24 +152,24 @@ export function appendRecordBasis(parent: HTMLElement, face: RecordFace): void {
 			face.dependents.map(({ label }) => label).join(' · '),
 		);
 		parent.append(line);
+		firstLine ??= line;
 	}
+	firstLine ??= parent.querySelector<HTMLElement>('legend, .ex-record-statement') ?? undefined;
+	if (firstLine) firstLine.id = decisionDetailsId(parent.id);
 }
 
 export function renderRecordCard(card: HTMLElement, face: RecordFace): void {
 	if (face.record.kind === 'choice') return;
-	const beside = new ChoiceDetailPanel();
-	const row = recordStateLine(face, card.id, beside);
+	const row = recordStateLine(face);
 	const state = recordState(face);
 	card.setAttribute('tone', state.tone);
 	card.setAttribute('prepared', '');
 	card.setAttribute('zoom', 'none');
 	const statement = textNode('h4', face.record.statement);
 	statement.className = 'ex-record-statement';
-	card.prepend(row, statement);
+	card.prepend(statement);
+	if (row) card.prepend(row);
 	appendRecordBasis(card, face);
-	card.before(beside.layout);
-	beside.options.append(card);
-	beside.layout.classList.add('ex-record-card-layout', 'ex-choice-beside-fieldset');
 }
 
 export function inlineRecordStatus(
