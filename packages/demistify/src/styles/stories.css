@@ -39,19 +39,23 @@ ex-section {
 	font: 600 var(--text-lg)/1.4 var(--font-display);
 }
 ex-section.ex-section-floating {
+	--section-sticky-gap: var(--space-2);
 	margin-block: var(--space-8);
 	padding: 0;
 	border: 0;
 	border-radius: 0;
 	background: none;
+	font: inherit;
+	line-height: 1.55;
 }
 .ex-section-floating > .ex-section-head {
+	top: calc(var(--ex-document-toolbar-height, 0px) + var(--section-sticky-gap));
 	box-sizing: border-box;
 	margin: 0 0 var(--space-4);
 	padding: var(--space-2) var(--space-3);
-	border: 1px solid var(--rule);
-	border-block-start: 2px solid var(--surface-category, var(--rule));
+	border: 1px solid var(--surface-category, var(--rule));
 	border-radius: var(--radius-md);
+	box-shadow: var(--shadow-float);
 }
 .ex-section-head.ex-comment-target {
 	position: sticky;
@@ -96,7 +100,8 @@ ex-story {
 }
 ex-section :is([id], ex-mermaid, ex-tree, ex-code, ex-pre, ex-gallery) {
 	scroll-margin-top: calc(
-		var(--ex-document-toolbar-height, 0px) + var(--ex-section-header-height, 0px) + var(--space-3)
+		var(--ex-document-toolbar-height, 0px) + var(--ex-section-header-height, 0px) +
+			var(--section-sticky-gap, 0px) + var(--space-3)
 	);
 }
 ex-story + ex-story,

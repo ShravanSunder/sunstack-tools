@@ -27,11 +27,10 @@ export class SectionIsland extends HTMLElement {
 				reportIssue(this, 'A section has at most one native smaller-stories fold, at its end.');
 				return;
 			}
-			const usesStoryLayout = this.closest('ex-document')?.querySelector('ex-story');
-			this.classList.toggle(
-				'ex-section-floating',
-				!usesStoryLayout && !this.querySelector('ex-story, details[slot="smaller"]'),
+			const hasStory = [...this.querySelectorAll('ex-story')].some(
+				(story): boolean => story.closest('ex-section') === this,
 			);
+			this.classList.toggle('ex-section-floating', !hasStory && smallerGroups.length === 0);
 			const title = this.getAttribute('title') ?? '';
 			if (!this.id || !title.trim()) {
 				reportIssue(this, 'A section needs its stable id and title.');
