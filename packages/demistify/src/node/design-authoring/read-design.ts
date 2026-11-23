@@ -4,6 +4,7 @@ import typescript from 'typescript';
 import { z } from 'zod';
 
 import { assumptionRecord, decisionRecord } from '../../core/decision-record.ts';
+import { recordItemValidationError } from './record-item-diagnostics.ts';
 import { authoredDesignSchema } from './schema.ts';
 import type { AuthoredDesign, DesignCore, DesignRecord } from './schema.ts';
 
@@ -366,21 +367,22 @@ export function readDesignItems(
 	file: string,
 	text: string,
 	kind: 'choice' | 'assumption',
-	sdkFile = join(dirname(file), deliverySdkFilename),
+	projectDirectory = dirname(file),
 ): DesignRecord[] {
-	const input = readDefaultRecords(file, text, sdkFile);
+	const input = readDefaultRecords(file, text, join(dirname(file), deliverySdkFilename));
 	const validated =
 		kind === 'choice'
 			? z.array(decisionRecord).safeParse(input)
 			: z.array(assumptionRecord).safeParse(input);
 	if (validated.success) return validated.data;
-	throw recordValidationError(file, input, validated.error, false);
+	throw recordItemValidationError(relative(projectDirectory, file), input, validated.error);
 }
 
 export async function readDesignSources(
 	directory: string,
 	read: (file: string) => Promise<string>,
 	readOptional: (file: string) => Promise<string | undefined>,
+	projectDirectory = directory,
 ): Promise<{
 	design: DesignCore;
 	designFile: string;
@@ -403,10 +405,12 @@ export async function readDesignSources(
 		...authored,
 		records: [
 			...authored.records,
-			...(decisions === undefined ? [] : readDesignItems(decisionFile, decisions, 'choice')),
+			...(decisions === undefined
+				? []
+				: readDesignItems(decisionFile, decisions, 'choice', projectDirectory)),
 			...(assumptions === undefined
 				? []
-				: readDesignItems(assumptionFile, assumptions, 'assumption')),
+				: readDesignItems(assumptionFile, assumptions, 'assumption', projectDirectory)),
 		],
 	};
 	return { design, designFile, designText, sources };

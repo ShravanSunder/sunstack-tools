@@ -684,22 +684,28 @@ ex-choice.ex-choice-cards ex-option:has(:focus-visible) > .ex-entity-comment {
 }
 
 .ex-record-state-line {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	align-items: start;
+	gap: var(--space-2);
+	margin-block: var(--space-3);
+}
+.ex-record-state-text {
 	display: flex;
 	align-items: center;
 	flex-wrap: wrap;
 	gap: var(--space-1) var(--space-2);
-	margin-block: var(--space-3);
+	min-height: var(--space-8);
 	color: var(--ink-soft);
 	font: 400 var(--text-md)/1.4 var(--font-body);
 }
-.ex-record-state-line > strong {
+.ex-record-state-text > strong {
+	font-size: var(--text-lg);
+	font-weight: 600;
 	color: var(--ink);
 }
-.ex-record-state-line[data-record-tone='risk'] > :is(strong, i) {
+.ex-record-state-line[data-record-tone='risk'] .ex-record-state-text > :is(strong, i) {
 	color: var(--tone-risk);
-}
-.ex-record-state-line > .ex-record-detail-button {
-	margin-inline-start: auto;
 }
 .ex-choice-details-button.ex-record-detail-button {
 	display: inline-grid;

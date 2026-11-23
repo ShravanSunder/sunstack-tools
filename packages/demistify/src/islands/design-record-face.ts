@@ -63,7 +63,11 @@ function recordState({ record, replacement }: RecordFace): StateLine {
 	return {
 		state: `${authority.by.alias} decided`,
 		icon: isContract ? 'file' : 'robot',
-		basis: isContract ? 'from contract' : 'own call',
+		basis: isContract
+			? 'from contract'
+			: authority.weight === 'design'
+				? 'own call · not reviewed by you'
+				: 'own call',
 		tone: isContract || authority.weight !== 'design' ? 'decision' : 'risk',
 		date: authority.decidedOn,
 		...(authority.weight !== 'design' && { weight: authority.weight }),
@@ -83,11 +87,18 @@ export function recordStateLine(
 	beside: ChoiceDetailPanel,
 ): HTMLElement {
 	const { state, icon, tone, basis, date, weight } = recordState(face);
-	const row = createHead('div', 'ex-record-state-line', { title: state, icon, tone: undefined });
+	const row = document.createElement('div');
+	row.className = 'ex-record-state-line';
+	const stateText = createHead('div', 'ex-record-state-text', {
+		title: state,
+		icon,
+		tone: undefined,
+	});
+	row.append(stateText);
 	row.dataset['recordTone'] = tone;
-	if (basis) row.append(textNode('span', basis));
+	if (basis) stateText.append(textNode('span', basis));
 	if (state === 'Needs you' && face.held)
-		row.append(
+		stateText.append(
 			textNode('small', face.held === 1 ? '1 deliverable waits' : `${face.held} deliverables wait`),
 		);
 	if (date) {
@@ -99,17 +110,17 @@ export function recordStateLine(
 		const time = document.createElement('time');
 		time.dateTime = date;
 		time.textContent = dateLabel;
-		row.append(time);
+		stateText.append(time);
 	}
 	if (weight) {
 		const chip = textNode('span', weight);
 		chip.className = 'chip ex-head-tag';
-		row.append(chip);
+		stateText.append(chip);
 	}
 	if (face.ruledBy) {
 		const kind = textNode('span', kindLabel[face.ruledBy]);
 		kind.className = 'ex-record-governs';
-		row.append(kind);
+		stateText.append(kind);
 	}
 	const detail = document.createElement('div');
 	const back = document.createElement('a');

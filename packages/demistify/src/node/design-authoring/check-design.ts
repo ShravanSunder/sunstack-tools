@@ -364,6 +364,7 @@ export async function openDesignCheck(siteRoot: string): Promise<DesignCheck> {
 			setDirectory,
 			readOwnedInput,
 			readOptionalOwnedInput,
+			authoringRoot ?? setDirectory,
 		);
 		const deliverySource = await readDeliveryEntries(
 			designFile,

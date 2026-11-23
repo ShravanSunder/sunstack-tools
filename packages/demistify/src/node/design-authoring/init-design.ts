@@ -66,9 +66,12 @@ async function authoredRecordIds(directory: string): Promise<string[]> {
 		].map(async ({ path, kind }): Promise<string[]> =>
 			path === undefined
 				? []
-				: readDesignItems(path, await check.read(path, projectDirectory), kind).map(
-						({ id }) => `project/${id}`,
-					),
+				: readDesignItems(
+						path,
+						await check.read(path, projectDirectory),
+						kind,
+						projectDirectory,
+					).map(({ id }) => `project/${id}`),
 		),
 	);
 	return [...localIds, ...milestoneIds.flat(), ...shared.flat()];

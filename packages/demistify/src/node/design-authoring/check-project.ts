@@ -292,7 +292,7 @@ export async function loadProject(directory: string, siteRoot?: string): Promise
 	): Promise<SharedRecordSource[]> {
 		if (file === undefined) return [];
 		const text = await readAuthoringInput(file);
-		const records = readDesignItems(file, text, kind);
+		const records = readDesignItems(file, text, kind, root);
 		const declarations = projectRecordTypeImports(file, text, root).map(
 			(path): [string, string] => [path, designTypeSource],
 		);
