@@ -98,21 +98,32 @@ async function sidecar(
 		: [{ file: path, text, records: readLegacySidecar(path, text, kind) }];
 }
 
-async function milestone(namespace: string, file: string, read: SourceReader): Promise<Milestone> {
+async function milestone(
+	namespace: string,
+	registered: string,
+	read: SourceReader,
+): Promise<Milestone> {
+	const dir = dirname(registered);
+	const file = join(dir, 'design.ts');
+	if (registered !== file) await required(read, registered);
 	const text = await required(read, file);
-	const dir = dirname(file);
 	const [deliveries, decisions, assumptions] = await Promise.all([
 		readLegacyDelivery(file, text, read),
 		sidecar(read, join(dir, 'design-decisions.ts'), 'choice'),
 		sidecar(read, join(dir, 'design-assumptions.ts'), 'assumption'),
 	]);
-	const moduleFiles = await readdir(join(dir, 'deliverables')).catch((error: unknown): string[] => {
+	const inventory = await readdir(join(dir, 'deliverables'), {
+		recursive: true,
+		withFileTypes: true,
+	}).catch((error: unknown) => {
 		if (missing(error)) return [];
 		throw error;
 	});
-	for (const module of moduleFiles)
-		if (module.endsWith('.ts') && !deliveries.modules.has(join(dir, 'deliverables', module)))
-			throw new Error(`Unregistered deliverable module: ${dir}/deliverables/${module}.`);
+	for (const entry of inventory) {
+		const module = join(entry.parentPath, entry.name);
+		if (!entry.isDirectory() && entry.name.endsWith('.ts') && !deliveries.modules.has(module))
+			throw new Error(`Unregistered deliverable module: ${module}.`);
+	}
 	return {
 		namespace,
 		file,
@@ -316,6 +327,8 @@ async function planMigration({ source, project }: MigrationInputs): Promise<{
 	const sets = await Promise.all(
 		Object.entries(manifest.designs).map(([namespace, file]) => milestone(namespace, file, read)),
 	);
+	if (new Set(sets.map(({ file }) => file)).size !== sets.length)
+		throw new Error('Register each design directory only once.');
 	const shared = (
 		await Promise.all([
 			sidecar(read, manifest.decisions, 'choice'),

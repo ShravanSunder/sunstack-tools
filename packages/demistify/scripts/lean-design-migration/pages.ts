@@ -1,6 +1,6 @@
 import { dirname, relative, sep } from 'node:path';
 
-import { parse, type DefaultTreeAdapterMap } from 'parse5';
+import { parse, parseFragment, type DefaultTreeAdapterMap } from 'parse5';
 
 import { escapeHtml } from '../../src/core/html-text.ts';
 import { resolveDesignLink } from '../../src/node/design-authoring/design-location.ts';
@@ -64,14 +64,13 @@ function ruleWords(text: string): number {
 	return text.match(/\S+/gu)?.length ?? 0;
 }
 
-const derivedEnding =
-	/\s+(?:Governed by|Relies on|Checks)\s+[A-Z][A-Z0-9-]*\d+(?:(?:,\s*(?:and\s+)?|\s+and\s+)[A-Z][A-Z0-9-]*\d+)*(?:;\s*(?:relies on|governed by)\s+[A-Z][A-Z0-9-]*\d+(?:(?:,\s*(?:and\s+)?|\s+and\s+)[A-Z][A-Z0-9-]*\d+)*)?\.\s*$/iu;
+const derivedSentence =
+	/\s+(?:Governed by|Relies on|Checks)\s+[A-Z][A-Z0-9-]*\d+(?:(?:,\s*(?:and\s+)?|\s+and\s+)[A-Z][A-Z0-9-]*\d+)*(?:;\s*(?:relies on|governed by)\s+[A-Z][A-Z0-9-]*\d+(?:(?:,\s*(?:and\s+)?|\s+and\s+)[A-Z][A-Z0-9-]*\d+)*)?\./giu;
 
-function withoutDerivedEnding(paragraph: string, record: LegacyRecord): string {
-	const ending = derivedEnding.exec(paragraph);
-	if (!ending || !('relationships' in record)) return paragraph.trim();
+function matchesRelationships(sentence: string, record: LegacyRecord): boolean {
+	if (!('relationships' in record)) return false;
 	const relationships = record.relationships;
-	const followsLinks = ending[0].split(';').every((clause): boolean => {
+	return sentence.split(';').every((clause): boolean => {
 		const verb = clause.trim();
 		const relation = /^governed/iu.test(verb)
 			? 'governed-by'
@@ -86,7 +85,16 @@ function withoutDerivedEnding(paragraph: string, record: LegacyRecord): string {
 			)
 		);
 	});
-	return followsLinks ? paragraph.slice(0, ending.index).trim() : paragraph.trim();
+}
+
+function withoutDerivedEnding(paragraph: string, record: LegacyRecord): string {
+	const text = paragraph.trim();
+	const ending = [...text.matchAll(derivedSentence)].at(-1);
+	return ending &&
+		ending.index + ending[0].length === text.length &&
+		matchesRelationships(ending[0], record)
+		? text.slice(0, ending.index).trim()
+		: text;
 }
 
 function ruleParaphraseWords(
@@ -113,23 +121,62 @@ function ruleParaphraseWords(
 	return cell ? ruleWords(normalizeExcerpt(nodeText(cell, true))) : undefined;
 }
 
+type CheckPassage =
+	| { statement: string; source: 'paragraph'; edit: Edit }
+	| { statement: string; source: 'table row' };
+
+function checkParagraph(
+	html: string,
+	paragraph: HtmlElement,
+	record: LegacyRecord,
+): CheckPassage | undefined {
+	const location = paragraph.sourceCodeLocation;
+	if (!location?.startTag || !location.endTag) return undefined;
+	const start = location.startTag.endOffset;
+	const end = location.endTag.startOffset;
+	const markup = paragraph.childNodes.find((child): boolean => !('value' in child));
+	const markupStart = markup?.sourceCodeLocation?.startOffset;
+	if (markup && markupStart === undefined) return undefined;
+	const leadingText = html.slice(start, markupStart ?? end);
+	const clauses = [...leadingText.matchAll(derivedSentence)].filter(
+		(match): boolean =>
+			/^\s+Checks\b/iu.test(match[0]) && /[.!?]$/u.test(leadingText.slice(0, match.index)),
+	);
+	const [clause] = clauses;
+	if (
+		clauses.length > 1 ||
+		(clause
+			? !matchesRelationships(clause[0], record)
+			: !!markup || /[.!?]\s+Checks\b/iu.test(leadingText))
+	)
+		return undefined;
+	const statement = normalizeExcerpt(
+		nodeText(parseFragment(clause ? leadingText.slice(0, clause.index) : leadingText)),
+	);
+	// These paragraphs introduce separate proof rows.
+	if (
+		!statement ||
+		/^(?:Nothing below has been run\b|From the confirmation review\b)/iu.test(statement)
+	)
+		return undefined;
+	const context = clause ? html.slice(start + clause.index + clause[0].length, end).trim() : '';
+	const edit =
+		context || paragraph.attrs.length
+			? { start, end, text: context }
+			: { start: location.startOffset, end: location.endOffset, text: '' };
+	return { statement, source: 'paragraph', edit };
+}
+
 function checkStatement(
+	html: string,
 	record: LegacyRecord,
 	node: HtmlElement,
 	next: HtmlElement | undefined,
-): { statement: string; source: 'paragraph' | 'table row' } | undefined {
+): CheckPassage | undefined {
 	if (record.kind !== 'planned-check' || record.destination.fragment !== record.id)
 		return undefined;
-	if (/^h[1-6]$/u.test(node.tagName) && next?.tagName === 'p') {
-		const paragraph = normalizeExcerpt(nodeText(next, true));
-		const statement = withoutDerivedEnding(paragraph, record);
-		// An introduction to proof rows does not state the check.
-		if (
-			statement &&
-			!/^(?:Nothing below has been run\b|From the confirmation review\b)/iu.test(statement)
-		)
-			return { statement, source: 'paragraph' };
-	}
+	if (/^h[1-6]$/u.test(node.tagName) && next?.tagName === 'p')
+		return checkParagraph(html, next, record);
 	if (node.tagName === 'tr') {
 		const firstCell = node.childNodes.find(
 			(child): child is HtmlElement =>
@@ -143,16 +190,16 @@ function checkStatement(
 	return undefined;
 }
 
-function includeLinks(html: string, paragraph: HtmlElement): string {
+function passageLinks(anchor: HtmlElement, nextParagraph: HtmlElement | undefined): string[] {
 	const links: string[] = [];
 	function visit(node: HtmlNode): void {
-		if (isElement(node) && node.tagName === 'a' && node.sourceCodeLocation) {
-			const { startOffset, endOffset } = node.sourceCodeLocation;
-			links.push(html.slice(startOffset, endOffset));
-		} else if ('childNodes' in node) node.childNodes.forEach(visit);
+		const href = isElement(node) && node.tagName === 'a' ? attribute(node, 'href') : undefined;
+		if (href) links.push(href);
+		if ('childNodes' in node) node.childNodes.forEach(visit);
 	}
-	visit(paragraph);
-	return links.join(' ');
+	visit(anchor);
+	if (nextParagraph && /^h[1-6]$/u.test(anchor.tagName)) visit(nextParagraph);
+	return links;
 }
 
 function insertionOffset(element: HtmlElement): number | undefined {
@@ -228,6 +275,7 @@ export function planPage(options: {
 		if (!node) throw new Error(`${file}#${fragment}: old record destination is absent.`);
 		const next = nextElement(node);
 		const nextParagraph = next?.tagName === 'p' ? next : undefined;
+		const existingLinks = passageLinks(node, nextParagraph);
 		const offset = insertionOffset(node);
 		const snippets: string[] = [];
 		for (const { namespace: owner, record, file: designFile } of group) {
@@ -236,7 +284,7 @@ export function planPage(options: {
 				owner === namespace &&
 				(!old.ids.has(record.id) || (fragment === record.id && !preservedAnchors.has(fragment)));
 			const anchor = offset === undefined ? undefined : usesLocalId ? record.id : id;
-			const ownCheck = checkStatement(record, node, next);
+			const ownCheck = checkStatement(html, record, node, next);
 			const isExpectedPassage = node.tagName === 'h3' && !!nextParagraph && fragment === record.id;
 			const sources: { href: string; added: boolean }[] = [];
 			if (anchor) {
@@ -245,7 +293,7 @@ export function planPage(options: {
 					for (const source of record.sources) {
 						const target = resolveDesignLink(source.href, designFile, site);
 						if (target?.file === file && target.fragment === fragment) continue;
-						const alreadyLinked = old.links.some((href): boolean => {
+						const alreadyLinked = existingLinks.some((href): boolean => {
 							const existing = resolveDesignLink(href, file, site);
 							return target
 								? existing?.file === target.file && existing.fragment === target.fragment
@@ -259,23 +307,8 @@ export function planPage(options: {
 					}
 				}
 			}
-			const paragraphLocation = nextParagraph?.sourceCodeLocation;
-			if (
-				ownCheck?.source === 'paragraph' &&
-				nextParagraph &&
-				paragraphLocation?.startTag &&
-				paragraphLocation.endTag &&
-				anchor
-			) {
-				const links = includeLinks(html, nextParagraph);
-				const edit = links
-					? {
-							start: paragraphLocation.startTag.endOffset,
-							end: paragraphLocation.endTag.startOffset,
-							text: links,
-						}
-					: { start: paragraphLocation.startOffset, end: paragraphLocation.endOffset, text: '' };
-				edits.push(edit);
+			if (ownCheck?.source === 'paragraph' && anchor) {
+				edits.push(ownCheck.edit);
 			} else if (
 				isExpectedPassage &&
 				nextParagraph &&

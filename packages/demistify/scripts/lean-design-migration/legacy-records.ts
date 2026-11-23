@@ -19,6 +19,7 @@ import {
 	recordReference,
 	type DesignRecord,
 } from '../../src/node/design-authoring/schema.ts';
+import { containsPath } from '../../src/node/local-site.ts';
 
 const nonempty = z.string().min(1);
 const sourceReference = z.strictObject({
@@ -176,7 +177,7 @@ export async function readLegacyDelivery(
 		designText,
 		async (path) => {
 			const text = await read(path);
-			if (text !== undefined && dirname(path) === deliveryDirectory) originals.set(path, text);
+			if (text !== undefined && containsPath(deliveryDirectory, path)) originals.set(path, text);
 			return text;
 		},
 		new Map(),
@@ -204,6 +205,20 @@ export async function readLegacyDelivery(
 	).map((entry) =>
 		Object.assign({}, entry, { deliverable: leanDeliverable(entry.deliverable, designFile) }),
 	);
+	const rewritten = await readDeliveryEntries(
+		designFile,
+		designText,
+		async (path) => modules.get(path) ?? read(path),
+		new Map(),
+	);
+	try {
+		parseDeliveryEntries(rewritten.entries);
+	} catch (error) {
+		throw new Error(
+			`${directory}: expected all legacy deliverables to be declared in imported modules.`,
+			{ cause: error },
+		);
+	}
 	return { entries: parseDeliveryEntries(entries), modules };
 }
 

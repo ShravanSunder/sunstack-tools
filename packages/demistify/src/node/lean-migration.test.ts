@@ -12,6 +12,11 @@ const script = fileURLToPath(
 	new URL('../../scripts/migrate-lean-design-records.ts', import.meta.url),
 );
 const cli = fileURLToPath(new URL('../../bin/demistify.ts', import.meta.url));
+const plannedCases = [
+	{ given: 'Result exists', expect: 'The result is visible.' },
+	{ given: 'Result was updated', expect: 'The latest result is visible.' },
+	{ given: 'No result exists', expect: 'The reader sees the empty state.' },
+];
 
 const oldDesign = {
 	pages: [{ id: 'home', title: 'Old design', href: 'index.html', icon: 'file' }],
@@ -31,32 +36,47 @@ const oldDesign = {
 			title: 'Visible result',
 			statement: 'Always display the result.',
 			destination: { page: 'index.html', fragment: 'R1' },
-			sources: [{ href: 'index.html#R1', excerpt: 'Visible result.' }],
+			sources: [{ href: 'index.html#evidence', excerpt: 'Read the observed output.' }],
 			relationships: [{ relation: 'serves', targetId: 'N1' }],
 		},
 		{
-			id: 'V1',
-			kind: 'planned-check',
-			title: 'Observe the result',
-			status: 'planned',
-			destination: { page: 'index.html', fragment: 'V1' },
-			sources: [{ href: 'index.html#V1', excerpt: 'Observe the result.' }],
-			relationships: [{ relation: 'checks', targetId: 'R1' }],
-			cases: [
-				{ given: 'Result exists', expect: 'The result is visible.' },
-				{ given: 'Result was updated', expect: 'The latest result is visible.' },
-				{ given: 'No result exists', expect: 'The reader sees the empty state.' },
-			],
+			id: 'R2',
+			kind: 'rule',
+			title: 'Detailed result',
+			statement: 'Explain the current result.',
+			destination: { page: 'index.html', fragment: 'R2' },
+			sources: [{ href: 'index.html#evidence', excerpt: 'Read the observed output.' }],
+			relationships: [{ relation: 'serves', targetId: 'N1' }],
 		},
+		...[
+			{ id: 'V1', title: 'Observe the result' },
+			{ id: 'V2', title: 'Contextual link' },
+			{ id: 'V3', title: 'Inline check title' },
+		].map(({ id, title }) => ({
+			id,
+			kind: 'planned-check',
+			title,
+			status: 'planned',
+			destination: { page: 'index.html', fragment: id },
+			sources: [{ href: 'index.html#' + id, excerpt: title }],
+			relationships: [{ relation: 'checks', targetId: 'R1' }],
+			cases: plannedCases,
+		})),
 	],
 };
 const oldHtml = `<!doctype html><html lang="en"><head><title>Old design</title>
 <link rel="stylesheet" href="https://demistify.getagentstudio.dev/v1/theme.css">
 <script type="module" src="https://demistify.getagentstudio.dev/v1/runtime.js"></script></head>
 <body><ex-nav for="content" src="navigation.generated.json"></ex-nav><ex-document id="content"><h1>Old design</h1>
+<p><a href="#evidence">Evidence index</a></p>
 <h3 id="N1">Reader need</h3><p>The reader needs the current result.</p>
 <h3 id="R1">Visible result</h3><p>Explain where the result appears.</p>
+<h3 id="R2">Detailed result</h3><p>See <a href="#evidence">the observed output</a>.</p>
 <table><tbody><tr id="V1"><td>V1 · Read the output record</td><td>Check the current result.</td></tr></tbody></table>
+<h3 id="V2">Contextual link</h3><p>Observe the result. Checks R1. Read <a href="#evidence">the evidence</a> for the next case.</p>
+<h3 id="V3">Inline check title</h3><p>Compare the <a href="#evidence">saved record</a> before proceeding.</p>
+<h3 id="evidence">Observed output</h3><p>Read the observed output.</p>
+<h3 id="DEL-01">Delivery</h3><p>Verify the output.</p>
 <h3 id="D1">Owner decision</h3><p>Keep the matching result available.</p>
 <a href="#R1">Read the rule</a><a href="#D1">Read the decision</a></ex-document></body></html>`;
 const oldDecision = [
@@ -102,7 +122,7 @@ it('plans without writing and migrates a copy with row and verbatim evidence anc
 		]);
 		const command = [script, '--source', input, '--project', 'project', '--output', output];
 		const dryRun = await run(process.execPath, [...command, '--dry-run']);
-		expect(JSON.parse(dryRun.stdout)).toMatchObject({ dryRun: true, unchangedRuleStatements: 1 });
+		expect(JSON.parse(dryRun.stdout)).toMatchObject({ dryRun: true, unchangedRuleStatements: 2 });
 		await expect(stat(output)).rejects.toMatchObject({ code: 'ENOENT' });
 		expect(await readFile(join(set, 'index.html'), 'utf8')).toBe(oldHtml);
 		expect(await readFile(join(set, 'design.ts'), 'utf8')).toBe(oldSource);
@@ -129,7 +149,7 @@ it('plans without writing and migrates a copy with row and verbatim evidence anc
 		await expect(stat(outside)).rejects.toMatchObject({ code: 'ENOENT' });
 		await unlink(ignoreFile);
 
-		await run(process.execPath, command);
+		const migrated = await run(process.execPath, command);
 		const outProject = join(output, 'project');
 		const outSet = join(outProject, 'phase');
 		const html = await readFile(join(outSet, 'index.html'), 'utf8');
@@ -137,7 +157,30 @@ it('plans without writing and migrates a copy with row and verbatim evidence anc
 		expect(html).toContain('<p data-design-record="V1"></p>');
 		expect(html).toContain('<h3 id="D1">Owner decision</h3>');
 		expect(html).toContain('<p data-design-record="phase/D1"></p>');
-		expect(await readFile(join(outSet, 'design.ts'), 'utf8')).toContain('Read the output record');
+		expect
+			.soft(html)
+			.toContain('<p>Read <a href="#evidence">the evidence</a> for the next case.</p>');
+		expect
+			.soft(html)
+			.toContain('<p>Compare the <a href="#evidence">saved record</a> before proceeding.</p>');
+		expect(html).toContain('<p><a href="#evidence">Evidence index</a></p>');
+		expect
+			.soft(html)
+			.toMatch(
+				/data-design-record="R1"><\/p>\s*<p><a href="index.html#evidence">Read the observed output\.<\/a>/,
+			);
+		expect(html).toMatch(
+			/data-design-record="R2"><\/p>\s*<p>See <a href="#evidence">the observed output<\/a>/,
+		);
+		const design = await readFile(join(outSet, 'design.ts'), 'utf8');
+		expect(design).toContain('Read the output record');
+		expect(design).toContain('"statement": "Observe the result."');
+		expect(design).toContain('"statement": "Inline check title"');
+		const report: unknown = JSON.parse(migrated.stdout);
+		const fallback: unknown = expect.arrayContaining([
+			{ id: 'phase/V3', field: 'statement', source: 'old title' },
+		]);
+		expect(report).toMatchObject({ defaults: fallback });
 		await expect(stat(join(outSet, 'navigation.generated.json'))).rejects.toMatchObject({
 			code: 'ENOENT',
 		});
@@ -149,3 +192,76 @@ it('plans without writing and migrates a copy with row and verbatim evidence anc
 		await rm(scratch, { recursive: true, force: true });
 	}
 }, 30_000);
+
+it.each(['design.ts', 'design-delivery.ts'])(
+	'converts a nested deliverable when the manifest imports %s',
+	async (manifestEntry): Promise<void> => {
+		const scratch = await mkdtemp(join(tmpdir(), 'demistify-lean-delivery-'));
+		try {
+			const input = join(scratch, 'input');
+			const output = join(scratch, 'output');
+			const project = join(input, 'project');
+			const set = join(project, 'phase');
+			const deliverables = join(set, 'deliverables', 'topic');
+			const baseDeliverable = {
+				id: 'DEL-01',
+				title: 'Delivery',
+				destination: { page: 'index.html', fragment: 'DEL-01' },
+				scope: { rules: ['R1'], implementationTasks: ['task'], verificationChecks: ['V1'] },
+			};
+			const coreSource =
+				"import { defineDeliverable } from '../../design-sdk.generated.ts';\n" +
+				'export default defineDeliverable(' +
+				JSON.stringify(baseDeliverable) +
+				');';
+			const entryFile = join(set, 'design-delivery.ts');
+			const entryImports =
+				"import design from './design.ts';\n" +
+				"import core from './deliverables/topic/core.ts';\n" +
+				"import { defineDelivery } from './design-sdk.generated.ts';\n";
+			await mkdir(deliverables, { recursive: true });
+			await Promise.all([
+				writeFile(
+					join(project, 'project.ts'),
+					"import phase from './phase/" +
+						manifestEntry +
+						"'; export default { designs: { phase } };",
+				),
+				writeFile(join(set, 'index.html'), oldHtml),
+				writeFile(join(set, 'design.ts'), 'export default ' + JSON.stringify(oldDesign)),
+				writeFile(
+					entryFile,
+					entryImports + 'export default defineDelivery(design, [{ deliverable: core }]);',
+				),
+				writeFile(join(deliverables, 'core.ts'), coreSource),
+			]);
+			const command = [script, '--source', input, '--project', 'project', '--output', output];
+			await run(process.execPath, command);
+			const converted = join(output, 'project', 'phase', 'deliverables', 'topic', 'core.ts');
+			expect(await readFile(converted, 'utf8')).toContain('"kind": "core"');
+			expect(await readFile(join(deliverables, 'core.ts'), 'utf8')).toBe(coreSource);
+			const checked = await run(process.execPath, [
+				cli,
+				'project',
+				'check',
+				join(output, 'project'),
+			]);
+			expect(checked.stdout).toContain('phase/DEL-01 · planned · Delivery');
+			const unsupportedOutput = join(scratch, 'unsupported');
+			await writeFile(
+				entryFile,
+				entryImports +
+					'export default defineDelivery(design, [{ deliverable: ' +
+					JSON.stringify(baseDeliverable) +
+					' }]);',
+			);
+			await expect(
+				run(process.execPath, [...command.slice(0, -1), unsupportedOutput]),
+			).rejects.toThrow(/expected all legacy deliverables to be declared in imported modules/);
+			await expect(stat(unsupportedOutput)).rejects.toMatchObject({ code: 'ENOENT' });
+		} finally {
+			await rm(scratch, { recursive: true, force: true });
+		}
+	},
+	30_000,
+);
