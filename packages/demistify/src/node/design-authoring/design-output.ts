@@ -43,7 +43,6 @@ export interface GeneratedFile {
 export async function planGeneratedJson(
 	file: string,
 	value: unknown,
-	sameValue: (current: unknown, next: unknown) => boolean = isDeepStrictEqual,
 ): Promise<GeneratedFile | undefined> {
 	await refuseTrackedOutput(file);
 	const existing = await lstat(file).catch((error: unknown) => {
@@ -52,14 +51,15 @@ export async function planGeneratedJson(
 	});
 	if (existing && !existing.isFile()) throw new Error(`Expected a generated file at ${file}.`);
 	const previous = existing ? await readFile(file, 'utf8') : undefined;
+	const text = `${JSON.stringify(value, null, 2)}\n`;
 	if (previous !== undefined) {
 		try {
-			if (sameValue(JSON.parse(previous), value)) return undefined;
+			if (isDeepStrictEqual(JSON.parse(previous), JSON.parse(text))) return undefined;
 		} catch {
 			// A malformed previous output can be regenerated from validated inputs.
 		}
 	}
-	return { file, previous, text: `${JSON.stringify(value, null, 2)}\n` };
+	return { file, previous, text };
 }
 
 /** Preflight all outputs, then stage their replacements and rollback copies together. */

@@ -267,6 +267,80 @@ it('composes typed work files into one delivery graph and keeps the last output 
 	}
 }, 90_000);
 
+function briefRecordIds(markdown: string): (string | undefined)[] {
+	return [...markdown.matchAll(/^- \*\*([^*]+)\*\*/gm)].map((match) => match[1]);
+}
+
+it('keeps the shared check gates in each brief and scopes rules and acceptance to each deliverable', async (): Promise<void> => {
+	const directory = await mkdtemp(join(tmpdir(), 'demistify-shared-check-'));
+	try {
+		await mkdir(join(directory, 'deliverables'));
+		await Promise.all([
+			writeFile(
+				join(directory, 'design.ts'),
+				designSource
+					.replace("serves: 'U3' },", "serves: 'U3', governedBy: ['D1'] },")
+					.replace("checks: 'R3',", "checks: ['R3', 'R12'], reliesOn: ['A1'],")
+					.replace(
+						'/* Lead acceptance */',
+						`acceptances: [{ deliverableId: 'DEL-01', build: 'build-87', evidence: 'evidence.txt' }],`,
+					),
+			),
+			writeFile(join(directory, 'index.html'), page),
+			writeFile(
+				join(directory, 'design-delivery.ts'),
+				rootSource.replace(", dependsOn: ['DEL-01']", ''),
+			),
+			writeFile(
+				join(directory, 'deliverables/del-01-prevent-cancelled-job-from-running.ts'),
+				complete,
+			),
+			writeFile(
+				join(directory, 'deliverables/del-02-report-job-already-started.ts'),
+				blocked.replaceAll('V12', 'V3'),
+			),
+			writeFile(
+				join(directory, 'design-decisions.ts'),
+				`export default [{ kind: 'choice', id: 'D1', authority: {
+				state: 'owner-open', owner: 'owner', question: 'What should a claimed job report?' } }];`,
+			),
+			writeFile(
+				join(directory, 'design-assumptions.ts'),
+				`export default [{ kind: 'assumption', id: 'A1', status: 'open', statement: 'The queue fixture supports both cases.' }];`,
+			),
+			writeFile(join(directory, 'evidence.txt'), 'The fixture exercised both rules.'),
+		]);
+		const brief = async (id: string): Promise<string> =>
+			(await run(process.execPath, [cli, 'brief', id, directory])).stdout;
+		const first = await brief('DEL-01');
+		const second = await brief('DEL-02');
+
+		expect(briefRecordIds(first)).toEqual(['R3', 'V3', 'A1']);
+		expect(briefRecordIds(second)).toEqual(['R12', 'V3', 'D1', 'A1']);
+
+		const check = [cli, 'design', 'check', directory, '--write'];
+		await run(process.execPath, check);
+		const readView = async (): Promise<DeliverablesView> =>
+			parseDeliverablesView(await readFile(join(directory, 'deliverables.generated.json'), 'utf8'));
+		const open = await readView();
+		expect(coreDelivery(open, 'DEL-01')).toMatchObject({
+			state: 'design-blocked',
+			reasons: ['Confirm assumption A1 before acceptance.'],
+		});
+		expect(coreDelivery(open, 'DEL-02').reasons).toContain('D1 requires an owner decision.');
+		await writeFile(
+			join(directory, 'design-assumptions.ts'),
+			`export default [{ kind: 'assumption', id: 'A1', status: 'confirmed', statement: 'The queue fixture supports both cases.', resolution: { href: 'evidence.txt', excerpt: 'Both rules ran.' } }];`,
+		);
+		await run(process.execPath, check);
+		const confirmed = await readView();
+		expect(confirmed.deliverables['DEL-01']?.state).toBe('accepted');
+		expect(confirmed.deliverables['DEL-02']?.state).toBe('design-blocked');
+	} finally {
+		await rm(directory, { recursive: true, force: true });
+	}
+}, 30_000);
+
 it('keeps scoped acceptance open until the owner answers and the governing assumption is confirmed', async (): Promise<void> => {
 	const directory = await mkdtemp(join(tmpdir(), 'demistify-design-authority-'));
 	try {

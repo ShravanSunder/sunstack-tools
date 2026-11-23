@@ -161,15 +161,20 @@ export function governingRecords(
 	records: ReadonlyMap<string, DesignRecord>,
 ): DesignRecord[] {
 	const linkedRecords = new Map<string, DesignRecord>();
+	const { rules, designItems, verificationChecks } = deliverable.scope;
+	const scopedRules = new Set(rules);
 	function includeRecord(scopeId: string): void {
 		if (linkedRecords.has(scopeId)) return;
 		const record = records.get(scopeId);
 		if (!record) throw new Error(`${deliverable.id}: missing governing design record ${scopeId}.`);
 		linkedRecords.set(scopeId, record);
-		for (const { targetId } of recordRelationships(record)) includeRecord(targetId);
+		for (const { relation, targetId } of recordRelationships(record)) {
+			if ((relation === 'checks' || relation === 'realizes') && !scopedRules.has(targetId))
+				continue;
+			includeRecord(targetId);
+		}
 	}
 
-	const { rules, designItems, verificationChecks } = deliverable.scope;
 	for (const scopeId of [...rules, ...designItems, ...verificationChecks]) includeRecord(scopeId);
 	return [...linkedRecords.values()];
 }

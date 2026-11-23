@@ -10,6 +10,7 @@ import {
 	unlink,
 	writeFile,
 } from 'node:fs/promises';
+import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -199,6 +200,10 @@ it('resolves Map and Walkthrough record references to the same checked Choice', 
 		await run(process.execPath, check);
 		const outputFile = join(directory, 'navigation.generated.json');
 		const generated = await readFile(outputFile, 'utf8');
+		const written = await stat(outputFile);
+		await run(process.execPath, check);
+		expect(await readFile(outputFile, 'utf8')).toBe(generated);
+		expect(await stat(outputFile)).toMatchObject({ ino: written.ino, mtimeMs: written.mtimeMs });
 		const target = { page: 'home', fragment: 'D1' };
 		const source = await readFile(join(directory, 'design.generated.json'), 'utf8');
 		expect(JSON.parse(source)).toMatchObject({ records: [{ id: 'N1' }, { id: 'D1' }] });
@@ -235,6 +240,68 @@ it('resolves Map and Walkthrough record references to the same checked Choice', 
 		await rm(directory, { recursive: true, force: true });
 	}
 }, 90_000);
+
+it('checks Map and Walkthrough IDs from a widened default record module in TypeScript and the CLI', async (): Promise<void> => {
+	const directory = await mkdtemp(join(tmpdir(), 'demistify-widened-records-'));
+	try {
+		const designFile = join(directory, 'design.ts');
+		const source = `import { defineDesign, defineNeed } from './design-sdk.generated.ts';
+import notes from './notes.ts';
+export default defineDesign({
+  pages: [{ id: 'home', title: 'Home', href: 'index.html', icon: 'file' }],
+  records: [...notes, defineNeed({ id: 'N2', statement: 'Read the current state.' })],
+  mapGroups: [{ description: 'Review the scope.', icon: 'file', target: { record: 'N1' } }],
+  walkthroughs: [{ id: 'start', title: 'Start', description: 'Review the scope.',
+    steps: [{ target: { record: 'N1' }, narration: 'Read the note.' }] }],
+});`;
+		await Promise.all([
+			writeFile(designFile, source),
+			writeFile(
+				join(directory, 'notes.ts'),
+				`import type { DesignRecord } from './design-schema.d.ts';
+export default [{ id: 'N1', kind: 'need', statement: 'Readers can find the scope.' }] satisfies readonly DesignRecord[];`,
+			),
+			writeFile(
+				join(directory, 'index.html'),
+				page.replace(/<h2 data-design-record=[\s\S]*?<\/p>/, '<h2 data-design-record="N1"></h2>'),
+			),
+		]);
+		await run(process.execPath, [cli, 'design', 'types', directory]);
+		const compiler = createRequire(import.meta.url).resolve('typescript/lib/tsc.js');
+		const compile = [
+			compiler,
+			'--noEmit',
+			'--strict',
+			'--skipLibCheck',
+			'--allowImportingTsExtensions',
+			'--module',
+			'nodenext',
+			designFile,
+		];
+		const check = [cli, 'design', 'check', directory];
+		await run(process.execPath, compile);
+		await run(process.execPath, check);
+		const diagnostic = /TS(?:2322|2820)[^\n]*N9/;
+		const invalidMap = source.replace("record: 'N1'", "record: 'N9'");
+		const invalidWalkthrough = source.replace(
+			"record: 'N1' }, narration",
+			"record: 'N9' }, narration",
+		);
+		for (const invalid of [invalidMap, invalidWalkthrough]) {
+			// oxlint-disable-next-line no-await-in-loop -- verify each independently mistyped authored design.
+			await writeFile(designFile, invalid);
+			// oxlint-disable-next-line no-await-in-loop -- TypeScript writes diagnostics to stdout.
+			await expect(run(process.execPath, compile)).rejects.toHaveProperty(
+				'stdout',
+				expect.stringMatching(diagnostic),
+			);
+			// oxlint-disable-next-line no-await-in-loop -- the CLI must enforce the same ID type.
+			await expect(run(process.execPath, check)).rejects.toThrow(diagnostic);
+		}
+	} finally {
+		await rm(directory, { recursive: true, force: true });
+	}
+}, 30_000);
 
 it('checks explicitly imported record arrays and rejects invalid split inputs without replacing snapshots', async (): Promise<void> => {
 	const directory = await mkdtemp(join(tmpdir(), 'demistify-design-records-'));

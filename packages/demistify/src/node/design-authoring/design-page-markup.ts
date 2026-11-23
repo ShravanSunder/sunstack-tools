@@ -41,6 +41,32 @@ const recordTextTags = new Set([
 	'ex-choice',
 ]);
 
+export function hasDesignBindings(html: string): boolean {
+	const generatedSources = new Map([
+		['ex-nav', 'navigation.generated.json'],
+		['ex-deliverables', 'deliverables.generated.json'],
+		['ex-project-overview', 'project.generated.json'],
+	]);
+	function visit(node: DefaultTreeAdapterMap['node']): boolean {
+		if ('attrs' in node) {
+			const source = generatedSources.get(node.tagName);
+			for (const { name, value } of node.attrs) {
+				if (
+					name === 'data-design-record' ||
+					(name === 'data-design-need' && node.tagName === 'ex-tree')
+				)
+					return true;
+				if (name !== 'src' || !source) continue;
+				const href = value.trim();
+				if (!/^(?:[a-z][a-z0-9+.-]*:|\/\/)/i.test(href) && href.split('/').at(-1) === source)
+					return true;
+			}
+		}
+		return 'childNodes' in node && node.childNodes.some(visit);
+	}
+	return visit(parse(html));
+}
+
 export function readPageMarkup(html: string, file: string): PageMarkup {
 	const result: PageMarkup = {
 		ids: new Set(),

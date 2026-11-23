@@ -112,7 +112,7 @@ export function defineAssumption<const TRecord extends AssumptionInput>(record: 
 	return { ...record, kind: 'assumption' };
 }
 
-type RecordReference<TId extends string> = TId | KnownRecordId;
+type RecordReference<TId extends string> = KnownRecordId | (string extends TId ? never : TId);
 export function defineDesign<const TRecords extends readonly DesignRecord[]>(
 	design: Omit<DesignCore<RecordReference<NoInfer<TRecords[number]['id']>>>, 'records'> & {
 		readonly records: TRecords;

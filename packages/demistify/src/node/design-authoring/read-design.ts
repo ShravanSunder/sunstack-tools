@@ -270,12 +270,15 @@ interface ReadDesignResult {
 	readonly recordSources: ReadonlyMap<string, string>;
 }
 
-/** Compose explicit record arrays before validating the design, without executing author modules. */
-export async function readDesign(
-	file: string,
-	text: string,
-	readOwnedInput: (file: string) => Promise<string>,
-): Promise<ReadDesignResult> {
+interface DesignDeclaration {
+	readonly source: typescript.SourceFile;
+	readonly designLiteral: typescript.ObjectLiteralExpression;
+	readonly helpers: ReadonlyMap<string, string>;
+	readonly sdkFile: string;
+	readonly recordImports: readonly typescript.ImportDeclaration[];
+}
+
+function readDesignDeclaration(file: string, text: string): DesignDeclaration {
 	const { source, imports, expression } = authoredModule(file, text);
 	const sdkFile = join(dirname(file), deliverySdkFilename);
 	const sdkImports = imports.filter(
@@ -296,16 +299,37 @@ export async function readDesign(
 	if (!typescript.isObjectLiteralExpression(designLiteral))
 		throw new Error(`${file}: expected a literal design object or defineDesign call.`);
 
+	const recordImports = imports.filter(
+		(statement): boolean => !statement.importClause?.isTypeOnly && !sdkImports.includes(statement),
+	);
+	return { source, designLiteral, helpers, sdkFile, recordImports };
+}
+
+export function readDesignPages(file: string, text: string): AuthoredDesign['pages'] {
+	const { source, designLiteral } = readDesignDeclaration(file, text);
+	const fields = readObjectLiteral(designLiteral, source, {
+		readProperty: (name, value): unknown =>
+			name === 'pages' ? readLiteral(value, source) : undefined,
+	});
+	return authoredDesignSchema.shape.pages.parse(fields['pages']);
+}
+
+/** Compose explicit record arrays before validating the design, without executing author modules. */
+export async function readDesign(
+	file: string,
+	text: string,
+	readOwnedInput: (file: string) => Promise<string>,
+): Promise<ReadDesignResult> {
+	const { source, designLiteral, helpers, sdkFile, recordImports } = readDesignDeclaration(
+		file,
+		text,
+	);
+
 	const recordModules = await Promise.all(
-		imports
-			.filter(
-				(statement): boolean =>
-					!statement.importClause?.isTypeOnly && !sdkImports.includes(statement),
-			)
-			.map(async (statement) => {
-				const { binding, file: recordPath } = resolveRecordImport(statement, file);
-				return { binding, file: recordPath, text: await readOwnedInput(recordPath) };
-			}),
+		recordImports.map(async (statement) => {
+			const { binding, file: recordPath } = resolveRecordImport(statement, file);
+			return { binding, file: recordPath, text: await readOwnedInput(recordPath) };
+		}),
 	);
 	const arraysByBinding = new Map(
 		recordModules.map((record) => [
