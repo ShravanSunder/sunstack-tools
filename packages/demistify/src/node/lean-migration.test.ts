@@ -296,3 +296,101 @@ it.each(['design.ts', 'design-delivery.ts'])(
 	},
 	30_000,
 );
+
+it('retains quoted container evidence and keeps public project record links at the placement', async (): Promise<void> => {
+	const scratch = await mkdtemp(join(tmpdir(), 'demistify-evidence-container-'));
+	try {
+		const input = join(scratch, 'input');
+		const project = join(input, 'project');
+		const output = join(scratch, 'output');
+		const page = join(project, 'index.html');
+		const html = `<!doctype html><html lang="en"><head><title>Decisions</title>
+<link rel="stylesheet" href="https://demistify.getagentstudio.dev/v1/theme.css">
+<script type="module" src="https://demistify.getagentstudio.dev/v1/runtime.js"></script></head>
+<body><ex-document id="content"><h1>Decisions</h1>
+<details id="D1"><summary>Owner decision</summary>
+<ex-callout title="Owner wording"><p>Keep the matching result available.</p></ex-callout></details>
+<ex-callout id="A1" title="Confirmed assumption"><p>The reader has permission.</p>
+<p>Confirmed on the primary reader.</p></ex-callout>
+<p><a href="#D1">Read the decision</a> and <a href="#A1">read the assumption</a>.</p>
+<ex-project-overview src="./project.generated.json"></ex-project-overview></ex-document></body></html>`;
+		await mkdir(project, { recursive: true });
+		await Promise.all([
+			writeFile(page, html),
+			writeFile(
+				join(project, 'project.ts'),
+				"import decisions from './project-decisions.ts'; import assumptions from './project-assumptions.ts'; export default { decisions, assumptions };",
+			),
+			writeFile(
+				join(project, 'project-decisions.ts'),
+				`export default ${JSON.stringify(oldDecision)};`,
+			),
+			writeFile(
+				join(project, 'project-assumptions.ts'),
+				'export default ' +
+					JSON.stringify([
+						{
+							id: 'A1',
+							kind: 'assumption',
+							title: 'Reader permission',
+							statement: 'The reader has permission.',
+							destination: { page: 'index.html', fragment: 'A1' },
+							status: 'confirmed',
+							sources: [
+								{ href: './index.html#A1', excerpt: 'The reader has permission.', verbatim: true },
+							],
+							resolution: {
+								href: 'index.html#A1',
+								excerpt: 'Confirmed on the primary reader.',
+								verbatim: true,
+							},
+						},
+					]) +
+					';',
+			),
+		]);
+		const command = [script, '--source', input, '--project', 'project', '--output', output];
+		const { stdout } = await run(process.execPath, command);
+		const outProject = join(output, 'project');
+		const converted = await readFile(join(outProject, 'index.html'), 'utf8');
+		expect(converted).toContain('<details id="D1-source">');
+		expect(converted).toMatch(
+			/<\/details>\s*<span id="D1"><\/span>\s*<p data-design-record="project\/D1"><\/p>/,
+		);
+		expect(converted).toContain('<ex-callout id="A1-source"');
+		expect(converted).toMatch(
+			/<\/ex-callout>\s*<span id="A1"><\/span>\s*<p data-design-record="project\/A1"><\/p>/,
+		);
+		expect(converted).toContain('<a href="#D1">Read the decision</a>');
+		expect(converted).toContain('<a href="#A1">read the assumption</a>');
+		expect(await readFile(join(outProject, 'project-decisions.ts'), 'utf8')).toContain(
+			'"href": "index.html#D1-source"',
+		);
+		const assumptions = await readFile(join(outProject, 'project-assumptions.ts'), 'utf8');
+		expect(assumptions).toContain('"href": "./index.html#A1-source"');
+		expect(assumptions).toContain('"href": "index.html#A1-source"');
+		expect((await run(process.execPath, [cli, 'project', 'check', outProject])).stdout).toContain(
+			'Checked 0 project design(s).',
+		);
+		const report: unknown = JSON.parse(stdout);
+		expect(report).toMatchObject({
+			passages: [
+				{
+					id: 'project/D1',
+					sourceSplit: {
+						anchor: 'D1-source',
+						retargeted: [{ from: 'index.html#D1', to: 'index.html#D1-source' }],
+					},
+				},
+				{ id: 'project/A1', sourceSplit: { anchor: 'A1-source' } },
+			],
+		});
+		expect(await readFile(page, 'utf8')).toBe(html);
+		await writeFile(page, html.replace('<h1>Decisions</h1>', '<h1 id="D1-source">Decisions</h1>'));
+		await expect(run(process.execPath, [...command.slice(0, -2), '--dry-run'])).rejects.toThrow(
+			/source anchor #D1-source already exists/,
+		);
+	} finally {
+		await rm(scratch, { recursive: true, force: true });
+	}
+}, 30_000);
