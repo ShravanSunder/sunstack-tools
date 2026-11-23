@@ -26,7 +26,7 @@ interface Edit {
 export interface PageChange {
 	readonly id: string;
 	readonly oldAnchor: string;
-	readonly anchor: string | undefined;
+	readonly anchor: string;
 	readonly layout: string;
 	readonly statement: string | undefined;
 	readonly statementSource: 'paragraph' | 'table row' | undefined;
@@ -273,47 +273,50 @@ export function planPage(options: {
 	for (const [fragment, group] of groups) {
 		const node = elements.get(fragment);
 		if (!node) throw new Error(`${file}#${fragment}: old record destination is absent.`);
+		const offset = insertionOffset(node);
+		if (offset === undefined) {
+			const recordIds = group.map(({ namespace: owner, record }) => `${owner}/${record.id}`);
+			throw new Error(
+				`${file}#${fragment}: no safe placement for ${recordIds.join(', ')} at <${node.tagName}>.`,
+			);
+		}
 		const next = nextElement(node);
 		const nextParagraph = next?.tagName === 'p' ? next : undefined;
 		const existingLinks = passageLinks(node, nextParagraph);
-		const offset = insertionOffset(node);
 		const snippets: string[] = [];
 		for (const { namespace: owner, record, file: designFile } of group) {
 			const id = `${owner}/${record.id}`;
 			const usesLocalId =
 				owner === namespace &&
 				(!old.ids.has(record.id) || (fragment === record.id && !preservedAnchors.has(fragment)));
-			const anchor = offset === undefined ? undefined : usesLocalId ? record.id : id;
+			const anchor = usesLocalId ? record.id : id;
 			const ownCheck = checkStatement(html, record, node, next);
 			const isExpectedPassage = node.tagName === 'h3' && !!nextParagraph && fragment === record.id;
 			const sources: { href: string; added: boolean }[] = [];
-			if (anchor) {
-				snippets.push(`<p data-design-record="${escapeHtml(anchor)}"></p>`);
-				if (record.kind !== 'choice' && record.kind !== 'assumption') {
-					for (const source of record.sources) {
-						const target = resolveDesignLink(source.href, designFile, site);
-						if (target?.file === file && target.fragment === fragment) continue;
-						const alreadyLinked = existingLinks.some((href): boolean => {
-							const existing = resolveDesignLink(href, file, site);
-							return target
-								? existing?.file === target.file && existing.fragment === target.fragment
-								: href === source.href;
-						});
-						sources.push({ href: source.href, added: !alreadyLinked });
-						if (!alreadyLinked)
-							snippets.push(
-								`<p><a href="${escapeHtml(rebaseSource(designFile, file, source.href, site))}">${escapeHtml(source.excerpt)}</a></p>`,
-							);
-					}
+			snippets.push(`<p data-design-record="${escapeHtml(anchor)}"></p>`);
+			if (record.kind !== 'choice' && record.kind !== 'assumption') {
+				for (const source of record.sources) {
+					const target = resolveDesignLink(source.href, designFile, site);
+					if (target?.file === file && target.fragment === fragment) continue;
+					const alreadyLinked = existingLinks.some((href): boolean => {
+						const existing = resolveDesignLink(href, file, site);
+						return target
+							? existing?.file === target.file && existing.fragment === target.fragment
+							: href === source.href;
+					});
+					sources.push({ href: source.href, added: !alreadyLinked });
+					if (!alreadyLinked)
+						snippets.push(
+							`<p><a href="${escapeHtml(rebaseSource(designFile, file, source.href, site))}">${escapeHtml(source.excerpt)}</a></p>`,
+						);
 				}
 			}
-			if (ownCheck?.source === 'paragraph' && anchor) {
+			if (ownCheck?.source === 'paragraph') {
 				edits.push(ownCheck.edit);
 			} else if (
 				isExpectedPassage &&
 				nextParagraph &&
-				(record.kind === 'need' || record.kind === 'rule') &&
-				anchor
+				(record.kind === 'need' || record.kind === 'rule')
 			) {
 				removeDerivedProse(edits, html, nextParagraph, record);
 			}
@@ -330,20 +333,18 @@ export function planPage(options: {
 				sources,
 			});
 		}
-		if (offset !== undefined && snippets.length) {
-			edits.push({ start: offset, end: offset, text: `\n${snippets.join('\n')}\n` });
-			if (
-				!preservedAnchors.has(fragment) &&
-				changes.some((item): boolean => item.oldAnchor === fragment && item.anchor === fragment)
-			) {
-				const idLocation = node.sourceCodeLocation?.attrs?.['id'];
-				if (!idLocation) throw new Error(`${file}#${fragment}: could not move the old id.`);
-				const start =
-					html[idLocation.startOffset - 1] === ' '
-						? idLocation.startOffset - 1
-						: idLocation.startOffset;
-				edits.push({ start, end: idLocation.endOffset, text: '' });
-			}
+		edits.push({ start: offset, end: offset, text: `\n${snippets.join('\n')}\n` });
+		if (
+			!preservedAnchors.has(fragment) &&
+			changes.some((item): boolean => item.oldAnchor === fragment && item.anchor === fragment)
+		) {
+			const idLocation = node.sourceCodeLocation?.attrs?.['id'];
+			if (!idLocation) throw new Error(`${file}#${fragment}: could not move the old id.`);
+			const start =
+				html[idLocation.startOffset - 1] === ' '
+					? idLocation.startOffset - 1
+					: idLocation.startOffset;
+			edits.push({ start, end: idLocation.endOffset, text: '' });
 		}
 	}
 	let revised = html;

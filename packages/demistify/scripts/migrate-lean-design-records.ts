@@ -263,7 +263,7 @@ function retargetNavigation(
 	const idsByAnchor = new Map<string, string>();
 	for (const [id, { file, record }] of registry) {
 		const destination = declaredDesignPagePath(record.destination.page, file, site);
-		if (record.destination.fragment === record.id && placements.get(id)?.anchor)
+		if (record.destination.fragment === record.id && placements.has(id))
 			idsByAnchor.set(`${destination}#${record.id}`, id);
 	}
 	function targetFor<TTarget extends NonNullable<LegacyDesign['mapGroups'][number]['target']>>(
@@ -491,7 +491,7 @@ async function planMigration({ source, project, generatorOwned }: MigrationInput
 				namespace,
 				directory: relative(source, directory),
 				records: pages.length,
-				placements: pages.filter(({ anchor }): boolean => anchor !== undefined).length,
+				placements: pages.length,
 				pagesChanged: [...changedPages].filter((path): boolean => containsPath(directory, path))
 					.length,
 				words: await counts(directory, read, edits),

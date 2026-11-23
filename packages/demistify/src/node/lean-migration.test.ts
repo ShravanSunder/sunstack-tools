@@ -150,6 +150,19 @@ it('plans without writing and migrates a copy with row and verbatim evidence anc
 		await expect(stat(output)).rejects.toMatchObject({ code: 'ENOENT' });
 		await writeFile(join(set, 'design.ts'), oldSource);
 
+		const pageFile = join(set, 'index.html');
+		const unsupportedPage = oldHtml.replace(
+			'<h3 id="R1">Visible result</h3>',
+			'<div id="R1">Visible result</div>',
+		);
+		await writeFile(pageFile, unsupportedPage);
+		const placementError = /index\.html#R1: no safe placement for phase\/R1 at <div>/;
+		await expect(run(process.execPath, command)).rejects.toThrow(placementError);
+		await expect(run(process.execPath, [...command, '--dry-run'])).rejects.toThrow(placementError);
+		await expect(stat(output)).rejects.toMatchObject({ code: 'ENOENT' });
+		expect(await readFile(pageFile, 'utf8')).toBe(unsupportedPage);
+		await writeFile(pageFile, oldHtml);
+
 		const outside = join(scratch, 'outside-ignore');
 		const ignoreFile = join(project, '.gitignore');
 		await symlink(outside, ignoreFile);
