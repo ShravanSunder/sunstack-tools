@@ -116,6 +116,10 @@ export async function stageRelease(options: StageReleaseOptions): Promise<Staged
 			throw new Error('The same package version has different assets; declare a new release.');
 		previousFiles.set(`v${major}/${path}`, bytes);
 	}
+	// Retire the mutable call-stack guide without changing assets in other supported majors.
+	const retiredGuide = 'authoring/references/design-documents.md';
+	if (existing && existing.version !== options.version && !incoming.has(retiredGuide))
+		previousFiles.delete(`v${major}/${retiredGuide}`);
 	// Retain earlier hashed dependencies for modules still running in already-open pages.
 	const prefix = `v${major}/`;
 	const files: ReleaseFile[] = Array.from(previousFiles.entries())
