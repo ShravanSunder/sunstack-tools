@@ -2,6 +2,8 @@
 
 A Walkthrough serves guided explanation, not a download link or local disclosure. Keep optional prose in `details` and ordinary page/file links as links. Required `title` and `description` explain the path's purpose; stable `id` makes it addressable. A boolean flag such as `variations` is enabled by presence: remove it to disable it, rather than writing `variations="false"`.
 
+In a typed design milestone, declare Walkthroughs in `design.ts` with record targets, as [typed-design.md](typed-design.md#map-and-walkthrough-by-record-id) teaches.
+
 Inspect the existing content before writing a path: island IDs, Markdown headings, diagram-local node names and any containing tab/detail/layer. Content lives there once; presentations only reference it.
 
 Keep `<ex-nav></ex-nav>` on the page even when it has only one path and no collection links. It supplies the visible Walkthroughs launcher; the path declaration below stays hidden. When verification is requested or a concrete defect is being diagnosed, start the path with that launch control.

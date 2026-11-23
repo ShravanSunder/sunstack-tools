@@ -12,7 +12,7 @@ afterEach(async (): Promise<void> => {
 test('empty delivery progress shows only its status', async (): Promise<void> => {
 	const { document: fixture, frame } = await openFixture('ui');
 	const progress = fixture.createElement('ex-deliverables');
-	const view = { version: 1, snapshotRevision: 'a'.repeat(64), deliverables: {} };
+	const view = { version: 1, deliverables: {} };
 	progress.setAttribute('src', `data:application/json,${encodeURIComponent(JSON.stringify(view))}`);
 	requiredElement(fixture, 'ex-document').append(progress);
 	const overview = fixtureLocator(frame, progress);
@@ -20,8 +20,51 @@ test('empty delivery progress shows only its status', async (): Promise<void> =>
 		.element(overview.getByText('No deliverables planned.', { exact: true }))
 		.toBeVisible();
 	expect(progress.textContent).toBe('No deliverables planned.');
-	expect(progress.querySelector(`[title="${view.snapshotRevision}"]`)).toBeNull();
 });
+
+test.each([1400, 390])(
+	'later delivery shows its ID and title without scoped work at %ipx',
+	async (width): Promise<void> => {
+		await page.viewport(width, 1000);
+		const { document: fixture, frame } = await openFixture('ui');
+		const content = requiredElement(fixture, 'ex-document');
+		const id = 'jobs/DEL-LATER';
+		const title = 'Expand queue coverage';
+		const deliverables = { [id]: { kind: 'later', id, title, state: 'later' } };
+		const progress = fixture.createElement('ex-deliverables');
+		const project = fixture.createElement('ex-project-overview');
+		progress.setAttribute(
+			'src',
+			`data:application/json,${encodeURIComponent(JSON.stringify({ version: 1, deliverables }))}`,
+		);
+		project.setAttribute(
+			'src',
+			`data:application/json,${encodeURIComponent(
+				JSON.stringify({
+					version: 1,
+					designs: { jobs: { path: 'design.ts', title: 'Jobs' } },
+					records: [],
+					deliverables,
+				}),
+			)}`,
+		);
+		content.append(progress, project);
+
+		const label = `${id} · ${title}`;
+		const row = fixtureLocator(frame, progress).getByRole('row', { name: `${label} Later` });
+		await expect.element(row.getByRole('rowheader', { name: label, exact: true })).toBeVisible();
+		await expect.element(row.getByRole('cell', { name: 'Later', exact: true })).toBeVisible();
+		expect(
+			[...requiredElement(progress, 'tbody tr').children].map((cell) => cell.textContent),
+		).toEqual([label, 'Later', '']);
+		expect(progress.querySelector('tbody :is(a, details)')).toBeNull();
+
+		const overview = fixtureLocator(frame, project);
+		await expect.element(overview.getByText(`${label} · Later`, { exact: true })).toBeVisible();
+		expect(project.querySelector('li :is(a, details)')).toBeNull();
+		expect(fixture.documentElement.scrollWidth).toBeLessThanOrEqual(width);
+	},
+);
 
 test.each([1400, 390])(
 	'project decision history and owner actions remain readable at %ipx',

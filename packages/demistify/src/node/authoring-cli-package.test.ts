@@ -19,6 +19,10 @@ it('runs the packed authoring commands outside a checkout without browser depend
 	try {
 		await run('tar', ['-xzf', archive, '-C', directory]);
 		const cli = join(directory, 'package/demistify.js');
+		const help = await run(process.execPath, [cli, '--help'], { cwd: directory });
+		expect(help.stdout).toContain(
+			'demistify brief <deliverable> [directory] [--site-root <directory>]',
+		);
 		const source = join(directory, 'guide.source.html');
 		const reader = join(directory, 'guide.html');
 		await writeFile(join(directory, 'guide.md'), '## Ownership\n\nThe Registry owns the record.');
@@ -73,7 +77,8 @@ it('runs the typed design command in the packed executable with its declared com
 			`${pageHead}<ex-nav for="content" src="./navigation.generated.json"></ex-nav><ex-document id="content"><h1>Guide</h1></ex-document>`,
 		);
 		const cli = join(installed, 'demistify.js');
-		await run(process.execPath, [cli, 'design', 'init'], { cwd: directory });
+		const initialized = await run(process.execPath, [cli, 'design', 'init'], { cwd: directory });
+		expect(initialized.stdout).toContain('Supply the declared HTML page (index.html by default)');
 		const decisionsFile = join(directory, 'design-decisions.ts');
 		const decisions = await readFile(decisionsFile, 'utf8');
 		expect(decisions).toContain('satisfies readonly DesignDecision[]');
@@ -88,7 +93,9 @@ it('runs the typed design command in the packed executable with its declared com
 			run(process.execPath, [cli, 'design', 'init'], { cwd: directory }),
 		).rejects.toThrow(/EEXIST/);
 		expect(await readFile(decisionsFile, 'utf8')).toContain('// Kept on a second init.');
-		const checked = await run(process.execPath, [cli, 'design', 'check'], { cwd: directory });
+		const checked = await run(process.execPath, [cli, 'design', 'check', '--write'], {
+			cwd: directory,
+		});
 		expect(checked.stdout).toContain('Checked 1 authored page(s), 1 navigation page(s)');
 		expect(await readFile(join(directory, 'design.generated.json'), 'utf8')).toContain(
 			'"records": []',

@@ -6,7 +6,7 @@ const projectRecord = z.looseObject({
 	id: z.string().min(1),
 	kind: z.enum(['need', 'rule', 'realization', 'planned-check', 'choice', 'assumption']),
 	title: z.string().min(1),
-	destination: z.object({ page: localDeliveryHref, fragment: z.string().min(1) }),
+	destination: z.object({ page: localDeliveryHref, fragment: z.string().min(1) }).optional(),
 	authority: z
 		.looseObject({
 			state: z.string(),

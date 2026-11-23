@@ -1,13 +1,12 @@
-import typescript from 'typescript';
 import { expect, it } from 'vitest';
 
 import { parseDeliverablesView } from '../../core/deliverables-view.ts';
 import { projectDelivery } from './delivery-model.ts';
-import type { DeliveryProjection } from './delivery-model.ts';
 import { deliverySdkSource } from './delivery-sdk-source.ts';
+import { designTypeSource } from './design-type-source.ts';
+import { checkAuthoringTypes } from './read-design.ts';
 import { designSchema } from './schema.ts';
 
-const source = { href: 'sources.md', excerpt: 'The agreed cancellation behavior.' };
 const design = designSchema.parse({
 	pages: [{ id: 'design', title: 'Design', href: 'design.html', icon: 'file' }],
 	mapGroups: [],
@@ -17,26 +16,24 @@ const design = designSchema.parse({
 			kind: 'need',
 			title: 'Cancel queued work',
 			statement: 'Operators can cancel queued work.',
-			destination: { page: 'design.html', fragment: 'NEED-01' },
-			sources: [source],
 		},
 		{
 			id: 'RULE-01',
 			kind: 'rule',
 			title: 'Respect cancellation',
 			statement: 'Cancelled work stays cancelled.',
-			destination: { page: 'design.html', fragment: 'RULE-01' },
-			sources: [source],
-			relationships: [{ relation: 'serves', targetId: 'NEED-01' }],
+
+			serves: 'NEED-01',
 		},
 		{
 			id: 'CHECK-01',
 			kind: 'planned-check',
 			title: 'Try cancelled work',
-			status: 'planned',
-			destination: { page: 'design.html', fragment: 'CHECK-01' },
-			sources: [source],
-			relationships: [{ relation: 'checks', targetId: 'RULE-01' }],
+			statement: 'Exercise cancellation on the worker.',
+			journey: 'Worker queue tests',
+			unverified: 'Live traffic',
+
+			checks: 'RULE-01',
 			cases: [
 				{ given: 'Cancelled before claim', expect: 'Job is skipped' },
 				{ given: 'Cancelled during claim', expect: 'Claim is rejected' },
@@ -47,10 +44,10 @@ const design = designSchema.parse({
 });
 
 it('type-checks scoped SDK results and included prerequisites against literal IDs', (): void => {
-	const file = 'design-sdk.generated.ts';
-	const authoringSource = `${deliverySdkSource}
-const scopeRevision = '${'a'.repeat(64)}';
+	const file = '/design.ts';
+	const authoringSource = `import { defineDelivery, defineDeliverable, defineDesign, defineNeed } from './design-sdk.generated.ts';
 const context = {
+	kind: 'core',
 	title: 'Skip cancelled work',
 	destination: { page: 'plan.html', fragment: 'DEL-01' },
 	scope: { implementationTasks: ['TASK-01'], verificationChecks: ['CHECK-01'] },
@@ -59,8 +56,8 @@ const first = defineDeliverable({
 	...context,
 	id: 'DEL-01',
 	implementation: { completedTasks: ['TASK-01'] },
-	verification: { build: 'build-a', scopeRevision, outcomes: { 'CHECK-01': { kind: 'blocked', reason: 'Unavailable' } } },
-	verificationHistory: [{ build: 'build-old', scopeRevision, outcomes: { 'CHECK-OLD': { kind: 'passed', observation: 'Previous check passed.', evidence: 'old.txt' } } }],
+	verification: { build: 'build-a', outcomes: { 'CHECK-01': { kind: 'blocked', reason: 'Unavailable' } } },
+	verificationHistory: [{ build: 'build-old', outcomes: { 'CHECK-OLD': { kind: 'passed', observation: 'Previous check passed.', evidence: 'old.txt' } } }],
 });
 const firstId: 'DEL-01' = first.id;
 const second = defineDeliverable({ ...context, id: 'DEL-02' });
@@ -70,51 +67,37 @@ defineDelivery({}, [{ deliverable: second, dependsOn: [firstId] }, { deliverable
 // @ts-expect-error implementation task outside scope
 defineDeliverable({ ...context, id: 'DEL-01', implementation: { completedTasks: ['TASK-99'] } });
 // @ts-expect-error verification check outside scope
-defineDeliverable({ ...context, id: 'DEL-01', verification: { build: 'build-a', scopeRevision, outcomes: { 'CHECK-99': { kind: 'blocked', reason: 'Unavailable' } } } });
+defineDeliverable({ ...context, id: 'DEL-01', verification: { build: 'build-a', outcomes: { 'CHECK-99': { kind: 'blocked', reason: 'Unavailable' } } } });
 // @ts-expect-error a passed outcome requires an observation and evidence
-defineDeliverable({ ...context, id: 'DEL-01', verification: { build: 'build-a', scopeRevision, outcomes: { 'CHECK-01': { kind: 'passed' } } } });
-// @ts-expect-error verification requires a scope revision
-defineDeliverable({ ...context, id: 'DEL-01', verification: { build: 'build-a' } });
+defineDeliverable({ ...context, id: 'DEL-01', verification: { build: 'build-a', outcomes: { 'CHECK-01': { kind: 'passed' } } } });
+
 // @ts-expect-error prerequisite omitted from this delivery
 defineDelivery({}, [{ deliverable: second, dependsOn: [firstId] }]);
+const need = defineNeed({ id: 'N1', statement: 'Read the records.' });
+const thematic = { pages: [{ id: 'home', href: 'index.html', title: 'Home', icon: 'file' }], records: [need] } as const;
+defineDesign({ ...thematic, mapGroups: [{ description: 'Known', icon: 'file', target: { record: 'N1' } }] });
+defineDesign({ ...thematic, mapGroups: [
+	// @ts-expect-error unknown record ID
+	{ description: 'Unknown', icon: 'file', target: { record: 'N2' } },
+] });
 `;
-	const options: typescript.CompilerOptions = {
-		strict: true,
-		exactOptionalPropertyTypes: true,
-		skipLibCheck: true,
-		noEmit: true,
-		types: [],
-	};
-	const host = typescript.createCompilerHost(options);
-	const virtualHost: typescript.CompilerHost = {
-		...host,
-		getSourceFile(
-			fileName,
-			target,
-			onError,
-			shouldCreateNewSourceFile,
-		): typescript.SourceFile | undefined {
-			return fileName === file
-				? typescript.createSourceFile(fileName, authoringSource, target, true)
-				: host.getSourceFile(fileName, target, onError, shouldCreateNewSourceFile);
-		},
-	};
-	const program = typescript.createProgram([file], options, virtualHost);
-
-	expect(
-		typescript
-			.getPreEmitDiagnostics(program)
-			.map((diagnostic): string =>
-				typescript.flattenDiagnosticMessageText(diagnostic.messageText, '\n'),
-			),
-	).toEqual([]);
+	expect(() =>
+		checkAuthoringTypes(
+			[file],
+			new Map([
+				[file, authoringSource],
+				['/design-sdk.generated.ts', deliverySdkSource],
+				['/design-schema.d.ts', designTypeSource],
+			]),
+		),
+	).not.toThrow();
 });
-const recordRevisions = new Map([
-	['NEED-01', 'b'.repeat(64)],
-	['RULE-01', 'c'.repeat(64)],
-	['CHECK-01', 'd'.repeat(64)],
-]);
+const recordDestinations = new Map(
+	design.records.map(({ id }) => [id, { page: 'design.html', fragment: id }]),
+);
+
 const candidateDraft = {
+	kind: 'core',
 	id: 'DEL-01',
 	title: 'Skip cancelled work',
 	destination: { page: 'plan.html', fragment: 'DEL-01' },
@@ -126,22 +109,9 @@ const candidateDraft = {
 	implementation: { completedTasks: ['TASK-01'], candidate: 'build-a', evidence: ['change.md'] },
 };
 const dependentDraft = { ...candidateDraft, id: 'DEL-02', title: 'Report already started work' };
-const draft = projectDelivery(
-	design,
-	[{ deliverable: dependentDraft, dependsOn: ['DEL-01'] }, { deliverable: candidateDraft }],
-	recordRevisions,
-);
-
-function scopeRevisionOf(projection: DeliveryProjection, id: string): string {
-	const view = projection.deliverables[id];
-	if (!view) throw new Error(`Expected a projected deliverable ${id}.`);
-	return view.scopeRevision;
-}
-
-const scopeRevision = scopeRevisionOf(draft, 'DEL-01');
 const verification = {
 	build: 'build-a',
-	scopeRevision,
+
 	outcomes: {
 		'CHECK-01': { kind: 'passed', observation: 'Job was skipped.', evidence: 'receipt.md' },
 	},
@@ -149,12 +119,12 @@ const verification = {
 const candidate = { ...candidateDraft, verification };
 const dependent = {
 	...dependentDraft,
-	verification: { ...verification, scopeRevision: scopeRevisionOf(draft, 'DEL-02') },
+	verification,
 };
 const acceptance = {
 	deliverableId: 'DEL-01',
 	build: 'build-a',
-	scopeRevision,
+
 	evidence: 'acceptance.md',
 };
 const entries = [{ deliverable: dependent, dependsOn: ['DEL-01'] }, { deliverable: candidate }];
@@ -166,13 +136,13 @@ it('rejects an unrelated check and blocks a matching acceptance for uncovered ru
 	const otherRule = {
 		...rule,
 		id: 'RULE-02',
-		destination: { ...rule.destination, fragment: 'RULE-02' },
 	};
 	const otherCheck = {
 		...check,
-		relationships: [{ relation: 'checks' as const, targetId: otherRule.id }],
+		checks: otherRule.id,
 	};
-	const revisions = new Map(recordRevisions).set(otherRule.id, '0'.repeat(64));
+
+	const destinations = recordDestinations;
 	const twoRules = { ...design, records: [...design.records, otherRule] };
 	const unrelatedDesign = {
 		...twoRules,
@@ -180,54 +150,37 @@ it('rejects an unrelated check and blocks a matching acceptance for uncovered ru
 	};
 
 	expect(() =>
-		projectDelivery(unrelatedDesign, [{ deliverable: candidateDraft }], revisions),
+		projectDelivery(unrelatedDesign, [{ deliverable: candidateDraft }], destinations),
 	).toThrow(/DEL-01.*CHECK-01.*scoped rule/i);
 
 	const expanded = {
 		...candidateDraft,
 		scope: { ...candidateDraft.scope, rules: ['RULE-01', 'RULE-02'] },
 	};
-	const expandedRevision = scopeRevisionOf(
-		projectDelivery(twoRules, [{ deliverable: expanded }], revisions),
-		'DEL-01',
-	);
-	const completed = {
-		...expanded,
-		verification: { ...verification, scopeRevision: expandedRevision },
-	};
-	const receipt = { ...acceptance, scopeRevision: expandedRevision };
+	const completed = { ...expanded, verification };
+	const receipt = acceptance;
 	const uncovered = projectDelivery(
 		{ ...twoRules, acceptances: [receipt] },
 		[{ deliverable: completed }],
-		revisions,
+		destinations,
 	);
 	expect(uncovered.deliverables['DEL-01']?.state).toBe('awaiting-verification');
-	expect(uncovered.deliverables['DEL-01']?.reasons.join(' ')).toContain('RULE-02');
+	expect(uncovered.deliverables['DEL-01']).toMatchObject({
+		reasons: ['Assign planned verification checks for scoped rules RULE-02.'],
+	});
 
 	const sharedCheck = {
 		...check,
-		relationships: [...check.relationships, ...otherCheck.relationships],
+		checks: ['RULE-01', 'RULE-02'],
 	};
 	const sharedDesign = {
 		...twoRules,
 		records: twoRules.records.map((record) => (record.id === check.id ? sharedCheck : record)),
 	};
-	const sharedRevisions = new Map(revisions).set(check.id, '1'.repeat(64));
-	const sharedRevision = scopeRevisionOf(
-		projectDelivery(sharedDesign, [{ deliverable: expanded }], sharedRevisions),
-		'DEL-01',
-	);
 	const covered = projectDelivery(
-		{ ...sharedDesign, acceptances: [{ ...receipt, scopeRevision: sharedRevision }] },
-		[
-			{
-				deliverable: {
-					...completed,
-					verification: { ...verification, scopeRevision: sharedRevision },
-				},
-			},
-		],
-		sharedRevisions,
+		{ ...sharedDesign, acceptances: [receipt] },
+		[{ deliverable: completed }],
+		destinations,
 	);
 	expect(covered.deliverables['DEL-01']?.state).toBe('accepted');
 });
@@ -238,34 +191,33 @@ it('preserves archived verification and Lead evidence on the versioned wire', ()
 	const replacement = {
 		...check,
 		id: 'CHECK-02',
-		destination: { ...check.destination, fragment: 'CHECK-02' },
 	};
 	const revisedDesign = {
 		...design,
 		records: [...design.records.filter(({ id }): boolean => id !== check.id), replacement],
 	};
-	const revisions = new Map(recordRevisions).set(replacement.id, '1'.repeat(64));
+
+	const destinations = recordDestinations;
 	const draftWithHistory = {
 		...candidateDraft,
 		scope: { ...candidateDraft.scope, verificationChecks: [replacement.id] },
 		verificationHistory: [verification],
 	};
-	const view = projectDelivery(revisedDesign, [{ deliverable: draftWithHistory }], revisions);
-	const newRevision = scopeRevisionOf(view, 'DEL-01');
+	const view = projectDelivery(revisedDesign, [{ deliverable: draftWithHistory }], destinations);
+
 	const currentVerification = {
 		...verification,
-		scopeRevision: newRevision,
 		outcomes: { [replacement.id]: verification.outcomes['CHECK-01'] },
 	};
-	const currentAcceptance = { ...acceptance, scopeRevision: newRevision };
+	const currentAcceptance = { ...acceptance };
 	const result = projectDelivery(
 		{ ...revisedDesign, acceptances: [currentAcceptance] },
 		[{ deliverable: { ...draftWithHistory, verification: currentVerification } }],
-		revisions,
+		destinations,
 	);
-	const snapshotRevision = '2'.repeat(64);
+
 	const snapshot = parseDeliverablesView(
-		JSON.stringify({ version: 1, snapshotRevision, deliverables: result.deliverables }),
+		JSON.stringify({ version: 1, deliverables: result.deliverables }),
 	);
 
 	expect(view.deliverables['DEL-01']).toMatchObject({
@@ -275,126 +227,57 @@ it('preserves archived verification and Lead evidence on the versioned wire', ()
 	expect(view.evidence).toContain('receipt.md');
 	expect(snapshot).toMatchObject({
 		version: 1,
-		snapshotRevision,
 		deliverables: {
 			'DEL-01': {
 				state: 'accepted',
 				progress: { acceptance: currentAcceptance },
-				verification: { scopeRevision: newRevision, history: [verification] },
+				verification: { history: [verification] },
 			},
 		},
 	});
-	expect(() => parseDeliverablesView(JSON.stringify({ version: 1, deliverables: {} }))).toThrow(
-		/snapshotRevision/,
-	);
 });
 
-it('reopens an accepted candidate when its governing scope revision changes', (): void => {
-	const designWithAcceptance = { ...design, acceptances: [acceptance] };
-	const changedRevisions = new Map(recordRevisions).set('NEED-01', 'e'.repeat(64));
-	const previouslyAccepted = projectDelivery(designWithAcceptance, entries, recordRevisions);
-	const projected = projectDelivery(designWithAcceptance, entries, changedRevisions);
-	const currentRevision = scopeRevisionOf(projected, 'DEL-01');
-	const current = {
-		...candidate,
-		verification: { ...verification, scopeRevision: currentRevision },
+it('retains acceptance across statement edits on the same build', (): void => {
+	const changed = {
+		...design,
+		acceptances: [acceptance],
+		records: design.records.map((record) =>
+			record.kind === 'rule' ? { ...record, statement: 'Cancelled work stays terminal.' } : record,
+		),
 	};
-	const reverified = projectDelivery(
-		designWithAcceptance,
-		[{ deliverable: current }],
-		changedRevisions,
-	);
-	const refreshedAcceptance = {
-		...acceptance,
-		scopeRevision: currentRevision,
-		evidence: 'refresh.md',
-	};
-	const reaccepted = projectDelivery(
-		{ ...design, acceptances: [acceptance, refreshedAcceptance] },
-		[{ deliverable: current }],
-		changedRevisions,
-	);
 
-	expect(previouslyAccepted.deliverables['DEL-01']).toMatchObject({
+	expect(
+		projectDelivery(changed, entries, recordDestinations).deliverables['DEL-01'],
+	).toMatchObject({
 		state: 'accepted',
-		scopeRevision,
+		progress: { acceptance },
 	});
-	expect(currentRevision).toMatch(/^[a-f0-9]{64}$/);
-	expect(currentRevision).not.toEqual(scopeRevision);
-	expect(projected.deliverables['DEL-01']).toMatchObject({
-		state: 'awaiting-verification',
-		verification: {
-			build: 'build-a',
-			scopeRevision,
-			checks: [{ id: 'CHECK-01', state: 'stale', outcome: { kind: 'passed' } }],
-		},
-	});
-	expect(projected.deliverables['DEL-01']?.reasons).toContain(
-		'The earlier Lead acceptance needs review.',
-	);
-	expect(projected.deliverables['DEL-02']).toMatchObject({ state: 'dependency-blocked' });
-	expect(reverified.deliverables['DEL-01']).toMatchObject({
-		state: 'ready-for-acceptance',
-		scopeRevision: currentRevision,
-	});
-	expect(reaccepted.deliverables['DEL-01']).toMatchObject({
-		state: 'accepted',
-		progress: { acceptance: refreshedAcceptance },
-	});
-	expect(reaccepted.evidence).toEqual(expect.arrayContaining(['acceptance.md', 'refresh.md']));
-	expect(reaccepted.deliverables['DEL-01']?.reasons).toEqual([
-		'The Lead accepted candidate build-a.',
-	]);
 });
 
-it('retains a verification scope when scoped task and prerequisite lists are reordered', (): void => {
-	const work = {
-		...candidateDraft,
-		scope: { ...candidateDraft.scope, implementationTasks: ['TASK-01', 'TASK-02'] },
+it('reports a scoped rule without a need and lists later work without scope checks', (): void => {
+	const changed = {
+		...design,
+		acceptances: [acceptance],
+		records: design.records.map((record) =>
+			record.kind === 'rule' ? { ...record, serves: undefined } : record,
+		),
 	};
-	const prerequisites = [
-		{ deliverable: { ...candidateDraft, id: 'DEL-02' } },
-		{ deliverable: { ...candidateDraft, id: 'DEL-03' } },
-	];
-	const first = projectDelivery(
-		design,
-		[...prerequisites, { deliverable: work, dependsOn: ['DEL-02', 'DEL-03'] }],
-		recordRevisions,
-	);
-	const reordered = {
-		...work,
-		scope: { ...work.scope, implementationTasks: ['TASK-02', 'TASK-01'] },
-	};
-	const second = projectDelivery(
-		design,
-		[...prerequisites, { deliverable: reordered, dependsOn: ['DEL-03', 'DEL-02'] }],
-		recordRevisions,
-	);
-	expect(scopeRevisionOf(second, 'DEL-01')).toBe(scopeRevisionOf(first, 'DEL-01'));
-});
-
-it('reopens the same build when a completed task is added to its declared scope', (): void => {
-	const changedScope = {
-		...candidate,
-		scope: { ...candidate.scope, implementationTasks: ['TASK-01', 'TASK-02'] },
-		implementation: { ...candidate.implementation, completedTasks: ['TASK-01', 'TASK-02'] },
-	};
-	const projected = projectDelivery(
-		{ ...design, acceptances: [acceptance] },
-		[{ deliverable: changedScope }],
-		recordRevisions,
-	);
-
-	expect(scopeRevisionOf(projected, 'DEL-01')).not.toBe(scopeRevision);
-	expect(projected.deliverables['DEL-01']).toMatchObject({
+	const later = { kind: 'later', id: 'DEL-LATER', title: 'Consider additional queues' };
+	const result = projectDelivery(changed, [...entries, { deliverable: later }], recordDestinations);
+	expect(result.deliverables['DEL-01']).toMatchObject({
 		state: 'awaiting-verification',
-		verification: { checks: [{ id: 'CHECK-01', state: 'stale', outcome: { kind: 'passed' } }] },
+		reasons: ['Link scoped rules to a need: RULE-01.'],
 	});
+	expect(result.deliverables['DEL-LATER']).toEqual({ ...later, state: 'later' });
 });
 
 it('requires a Lead receipt for the current build to clear a prerequisite', (): void => {
-	const before = projectDelivery(design, entries, recordRevisions);
-	const after = projectDelivery({ ...design, acceptances: [acceptance] }, entries, recordRevisions);
+	const before = projectDelivery(design, entries, recordDestinations);
+	const after = projectDelivery(
+		{ ...design, acceptances: [acceptance] },
+		entries,
+		recordDestinations,
+	);
 
 	expect(before.deliverables).toMatchObject({
 		'DEL-01': { state: 'ready-for-acceptance' },
@@ -409,7 +292,13 @@ it('requires a Lead receipt for the current build to clear a prerequisite', (): 
 		'DEL-02': {
 			state: 'ready-for-acceptance',
 			links: {
-				verificationChecks: [{ id: 'CHECK-01', page: 'design.html', fragment: 'CHECK-01' }],
+				verificationChecks: [
+					{
+						id: 'CHECK-01',
+						label: 'Try cancelled work',
+						destination: { page: 'design.html', fragment: 'CHECK-01' },
+					},
+				],
 			},
 		},
 	});
@@ -429,13 +318,13 @@ it('keeps stale verification visible, and replaces its credit with the current c
 		...next,
 		verification: {
 			build: 'build-b',
-			scopeRevision,
+
 			outcomes: { 'CHECK-01': { kind: 'blocked', reason: 'Environment unavailable.' } },
 		},
 	};
 
 	expect(
-		projectDelivery(designWithAcceptance, [{ deliverable: next }], recordRevisions).deliverables,
+		projectDelivery(designWithAcceptance, [{ deliverable: next }], recordDestinations).deliverables,
 	).toMatchObject({
 		'DEL-01': {
 			state: 'awaiting-verification',
@@ -446,7 +335,7 @@ it('keeps stale verification visible, and replaces its credit with the current c
 		},
 	});
 	expect(
-		projectDelivery(designWithAcceptance, [{ deliverable: currentBlock }], recordRevisions)
+		projectDelivery(designWithAcceptance, [{ deliverable: currentBlock }], recordDestinations)
 			.deliverables,
 	).toMatchObject({
 		'DEL-01': {
@@ -482,7 +371,7 @@ it('keeps changed candidates and incomplete scoped work open despite a Lead rece
 		},
 	};
 	const project = (deliverable: typeof candidate): unknown =>
-		projectDelivery(designWithAcceptance, [{ deliverable }], recordRevisions).deliverables[
+		projectDelivery(designWithAcceptance, [{ deliverable }], recordDestinations).deliverables[
 			'DEL-01'
 		];
 
@@ -496,20 +385,24 @@ it('keeps changed candidates and incomplete scoped work open despite a Lead rece
 
 it('rejects invalid dependency graphs and role results with a deliverable ID in the error', (): void => {
 	expect(() =>
-		projectDelivery(design, [{ deliverable: candidate, dependsOn: ['DEL-99'] }], recordRevisions),
+		projectDelivery(
+			design,
+			[{ deliverable: candidate, dependsOn: ['DEL-99'] }],
+			recordDestinations,
+		),
 	).toThrow(/DEL-01.*unknown prerequisite.*DEL-99/i);
 	expect(() =>
 		projectDelivery(
 			design,
 			[...entries.slice(0, 1), { deliverable: candidate, dependsOn: ['DEL-02'] }],
-			recordRevisions,
+			recordDestinations,
 		),
 	).toThrow(/cycle.*DEL-02.*DEL-01.*DEL-02/i);
 	expect(() =>
 		projectDelivery(
 			design,
 			[{ deliverable: candidate }, { deliverable: candidate }],
-			recordRevisions,
+			recordDestinations,
 		),
 	).toThrow(/DEL-01.*duplicate/i);
 	expect(() =>
@@ -520,7 +413,7 @@ it('rejects invalid dependency graphs and role results with a deliverable ID in 
 					deliverable: { ...candidate, implementation: { completedTasks: ['TASK-99'] } },
 				},
 			],
-			recordRevisions,
+			recordDestinations,
 		),
 	).toThrow(/DEL-01.*unknown implementation task.*TASK-99/i);
 	expect(() =>
@@ -532,13 +425,13 @@ it('rejects invalid dependency graphs and role results with a deliverable ID in 
 						...candidate,
 						verification: {
 							build: 'build-a',
-							scopeRevision,
+
 							outcomes: { 'CHECK-99': candidate.verification.outcomes['CHECK-01'] },
 						},
 					},
 				},
 			],
-			recordRevisions,
+			recordDestinations,
 		),
 	).toThrow(/DEL-01.*unknown verification check.*CHECK-99/i);
 });

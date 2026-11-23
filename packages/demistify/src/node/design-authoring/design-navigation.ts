@@ -1,77 +1,70 @@
-import type {
-	NavigationTarget,
-	SharedMapNode,
-	SharedNavigation,
+import {
+	sharedNavigationSchema,
+	type NavigationTarget,
+	type SharedMapNode,
+	type SharedNavigation,
 } from '../../core/shared-navigation.ts';
-import { normalizeExcerpt, type PageMarkup } from './design-page-markup.ts';
-import type {
-	AuthoredMapNode,
-	AuthoredNavigationTarget,
-	DesignCore,
-	DesignRecord,
+import { qualifyRecord } from './record-projection.ts';
+import {
+	recordLabel,
+	type AuthoredMapNode,
+	type AuthoredNavigationTarget,
+	type DesignCore,
+	type DesignRecord,
 } from './schema.ts';
 
-interface ResolvedRecord {
-	readonly record: DesignRecord;
-	readonly file: string;
+interface NavigationRecords {
+	readonly source: string;
+	readonly records: ReadonlyMap<string, DesignRecord>;
+	readonly namespace?: string | undefined;
 }
-
-type GeneratedNavigation = Omit<SharedNavigation, 'walkthroughs'> &
-	Partial<Pick<SharedNavigation, 'walkthroughs'>>;
 
 export function compileDesignNavigation(
 	design: Pick<DesignCore, 'pages' | 'mapGroups' | 'walkthroughs'>,
-	targetForRecord: (reference: string) => NavigationTarget,
-): GeneratedNavigation {
-	function resolveTarget(target: AuthoredNavigationTarget): NavigationTarget {
-		return 'page' in target ? target : targetForRecord(target.record);
+	{ source, records, namespace }: NavigationRecords,
+	targetForRecord?: (id: string) => NavigationTarget | undefined,
+): SharedNavigation {
+	function resolveRecord(reference: string): DesignRecord {
+		if (!namespace && reference.includes('/'))
+			throw new Error(`Qualified reference ${reference} requires demistify project check.`);
+		const record = records.get(qualifyRecord(namespace, reference));
+		if (!record) throw new Error(`${source}: unknown design record ${reference}.`);
+		return record;
+	}
+
+	function resolveTarget(target: AuthoredNavigationTarget): NavigationTarget | undefined {
+		if ('page' in target) return target;
+		const record = resolveRecord(target.record);
+		return targetForRecord?.(record.id);
 	}
 
 	function resolveMapNode(node: AuthoredMapNode): SharedMapNode {
-		const { target, children, ...label } = node;
+		const { title, target, children, ...label } = node;
+		const record = target && 'record' in target ? resolveRecord(target.record) : undefined;
+		const resolvedTitle = title ?? (record && recordLabel(record));
+		if (!resolvedTitle) throw new Error('A Map node without a record needs a title.');
+		const destination = record ? targetForRecord?.(record.id) : target && resolveTarget(target);
 		return {
 			...label,
-			...(target && { target: resolveTarget(target) }),
+			title: resolvedTitle,
+			...(destination && { target: destination }),
 			children: children.map(resolveMapNode),
 		};
 	}
 
-	return {
+	return sharedNavigationSchema.parse({
 		version: 1,
 		pages: design.pages,
 		map: design.mapGroups.map(resolveMapNode),
-		...(design.walkthroughs === undefined
-			? {}
-			: {
-					walkthroughs: design.walkthroughs.map((route) => ({
-						...route,
-						steps: route.steps.map((step) => ({
-							...step,
-							target: resolveTarget(step.target),
-						})),
-					})),
-				}),
-	};
-}
-
-export function checkDecisionChoices(options: {
-	readonly choices: PageMarkup['decisionChoices'];
-	readonly file: string;
-	readonly displayPath: string;
-	readonly resolveRecord: (reference: string) => ResolvedRecord;
-}): void {
-	const { choices, file, displayPath, resolveRecord } = options;
-	for (const { id, reference, title } of choices) {
-		const { record, file: decisionFile } = resolveRecord(reference);
-		if (record.kind !== 'choice' || record.authority.state !== 'owner-open')
-			throw new Error(
-				`${displayPath}: Choice ${id} must bind to an open owner decision: ${reference}.`,
-			);
-		if (decisionFile !== file || record.destination.fragment !== id)
-			throw new Error(`${displayPath}: Choice ${id} must be the HTML destination of ${reference}.`);
-		if (normalizeExcerpt(title) !== normalizeExcerpt(record.authority.question))
-			throw new Error(
-				`${displayPath}: Choice ${id} must ask the question recorded in ${reference}.`,
-			);
-	}
+		walkthroughs: (design.walkthroughs ?? []).map(({ id, title, description, steps }) => ({
+			id,
+			title,
+			description,
+			steps: steps.map(({ target, narration, icon }) => ({
+				narration,
+				icon,
+				target: resolveTarget(target),
+			})),
+		})),
+	});
 }

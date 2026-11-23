@@ -70,7 +70,9 @@ export async function localSiteFile(root: string, url: URL): Promise<string> {
 
 export async function serveLocalSite(
 	root: string,
-	options: { readonly browserAssetsOnly?: boolean } = {},
+	options: {
+		readonly browserAssetsOnly?: boolean;
+	} = {},
 ): Promise<{ readonly server: Server; readonly origin: string }> {
 	const server = createServer((request, response): void => {
 		const address = server.address();

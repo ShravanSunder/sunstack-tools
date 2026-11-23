@@ -9,9 +9,11 @@ import {
 	sharedWalkthroughStepSchema,
 } from '../../core/shared-navigation.ts';
 
-const nonEmptyText = z.string().trim().min(1);
-const recordId = z.string().regex(/^[A-Za-z][A-Za-z0-9-]*$/);
-const recordReference = z.string().regex(/^(?:[A-Za-z][A-Za-z0-9-]*\/)?[A-Za-z][A-Za-z0-9-]*$/);
+export const nonEmptyText = z.string().trim().min(1);
+export const recordId = z.string().regex(/^[A-Za-z][A-Za-z0-9-]*$/);
+export const recordReference = z
+	.string()
+	.regex(/^(?:[A-Za-z][A-Za-z0-9-]*\/)?[A-Za-z][A-Za-z0-9-]*$/);
 const authoredNavigationTarget = z.union([
 	navigationTargetSchema,
 	z.strictObject({ record: recordReference }),
@@ -19,6 +21,7 @@ const authoredNavigationTarget = z.union([
 const authoredMapNode = sharedMapNodeSchema
 	.pick({ title: true, description: true, icon: true })
 	.extend({
+		title: nonEmptyText.optional(),
 		target: authoredNavigationTarget.optional(),
 		get children(): z.ZodDefault<z.ZodArray<typeof authoredMapNode>> {
 			return z.array(authoredMapNode).default([]);
@@ -29,7 +32,7 @@ const authoredWalkthrough = sharedWalkthroughSchema.extend({
 });
 export type AuthoredNavigationTarget = z.infer<typeof authoredNavigationTarget>;
 export type AuthoredMapNode = z.infer<typeof authoredMapNode>;
-const relativeHref = z
+export const relativeHref = z
 	.string()
 	.min(1)
 	.refine(
@@ -41,7 +44,7 @@ const relativeFile = relativeHref.refine(
 	(value) => !/[?#]/.test(value),
 	'must be a safe relative path',
 );
-const htmlDestination = z.strictObject({
+export const htmlDestination = z.strictObject({
 	page: relativeFile,
 	fragment: recordId,
 });
@@ -50,78 +53,47 @@ const sourceReference = z.strictObject({
 	excerpt: nonEmptyText,
 	verbatim: z.literal(true).optional(),
 });
-const servesRelationship = z.strictObject({
-	relation: z.literal('serves'),
-	targetId: recordReference,
-});
-const designDependencies = [
-	z.strictObject({ relation: z.literal('governed-by'), targetId: recordReference }),
-	z.strictObject({ relation: z.literal('relies-on'), targetId: recordReference }),
-] as const;
-const realizesRelationship = z.strictObject({
-	relation: z.literal('realizes'),
-	targetId: recordReference,
-});
-const checksRelationship = z.strictObject({
-	relation: z.literal('checks'),
-	targetId: recordReference,
-});
 const recordBase = {
 	id: recordId,
-	title: nonEmptyText,
-	destination: htmlDestination,
-	sources: z.array(sourceReference).min(1),
+	title: nonEmptyText.optional(),
 };
+const designStatement = { ...recordBase, statement: nonEmptyText };
+const dependencies = {
+	governedBy: z.array(recordReference).optional(),
+	reliesOn: z.array(recordReference).optional(),
+};
+const cases = z.array(z.strictObject({ given: nonEmptyText, expect: nonEmptyText }));
+const referenceList = z.union([recordReference, z.array(recordReference).min(1)]);
 
-const needRecord = z.strictObject({
-	...recordBase,
-	kind: z.literal('need'),
-	statement: nonEmptyText,
-});
+const needRecord = z.strictObject({ ...designStatement, kind: z.literal('need') });
 const ruleRecord = z.strictObject({
-	...recordBase,
+	...designStatement,
+	...dependencies,
 	kind: z.literal('rule'),
-	statement: nonEmptyText,
-	relationships: z
-		.array(z.discriminatedUnion('relation', [servesRelationship, ...designDependencies]))
-		.refine(
-			(links) => links.some((link) => link.relation === 'serves'),
-			'a rule must serve at least one need',
-		),
+	serves: referenceList.optional(),
+	cases: cases.optional(),
 });
 const realizationRecord = z.strictObject({
-	...recordBase,
+	...designStatement,
+	...dependencies,
 	kind: z.literal('realization'),
-	relationships: z
-		.array(z.discriminatedUnion('relation', [realizesRelationship, ...designDependencies]))
-		.refine(
-			(links) => links.some((link) => link.relation === 'realizes'),
-			'a realization must realize at least one rule',
-		),
-	explanation: nonEmptyText,
-	status: z.literal('proposed'),
+	realizes: referenceList,
 });
 const plannedCheckRecord = z.strictObject({
-	...recordBase,
+	...designStatement,
+	...dependencies,
 	kind: z.literal('planned-check'),
-	relationships: z
-		.array(z.discriminatedUnion('relation', [checksRelationship, ...designDependencies]))
-		.refine(
-			(links) => links.some((link) => link.relation === 'checks'),
-			'a planned check must check at least one rule',
-		),
-	status: z.literal('planned'),
-	cases: z
-		.array(
-			z.strictObject({
-				given: nonEmptyText,
-				expect: nonEmptyText,
-			}),
-		)
-		.min(3),
+	checks: referenceList,
+	journey: nonEmptyText,
+	unverified: nonEmptyText,
+	cases: cases.min(3),
 });
+
+const ownerWords = z
+	.string()
+	.refine((value): boolean => value.trim().length > 0, 'must contain text');
 const settledDecision = {
-	decision: nonEmptyText,
+	decision: ownerWords,
 	decidedOn: z.iso.date(),
 };
 const choiceAuthority = z.discriminatedUnion('state', [
@@ -134,7 +106,7 @@ const choiceAuthority = z.discriminatedUnion('state', [
 	z.strictObject({
 		state: z.literal('owner-open'),
 		owner: z.literal('owner'),
-		question: nonEmptyText,
+		question: ownerWords,
 	}),
 	z.strictObject({
 		state: z.literal('lead-decided'),
@@ -147,6 +119,7 @@ const choiceAuthority = z.discriminatedUnion('state', [
 export const choiceRecord = z.strictObject({
 	...recordBase,
 	kind: z.literal('choice'),
+	sources: z.array(sourceReference).optional(),
 	authority: choiceAuthority,
 	supersedes: recordReference.optional(),
 });
@@ -154,6 +127,7 @@ export const assumptionRecord = z
 	.strictObject({
 		...recordBase,
 		kind: z.literal('assumption'),
+		sources: z.array(sourceReference).optional(),
 		statement: nonEmptyText,
 		status: z.enum(['open', 'confirmed', 'refuted']),
 		resolution: sourceReference.optional(),
@@ -186,3 +160,42 @@ export const designSchema = authoredDesignSchema.extend({
 export type AuthoredDesign = z.infer<typeof authoredDesignSchema>;
 export type DesignCore = z.infer<typeof designSchema>;
 export type DesignRecord = DesignCore['records'][number];
+
+export function recordStatement(record: DesignRecord): string {
+	if (record.kind !== 'choice') return record.statement;
+	return record.authority.state === 'owner-open'
+		? record.authority.question
+		: record.authority.decision;
+}
+
+export function recordLabel(record: DesignRecord): string {
+	return record.title ?? recordStatement(record);
+}
+
+type RecordRelation = 'serves' | 'governed-by' | 'relies-on' | 'realizes' | 'checks';
+export interface RecordRelationship {
+	readonly relation: RecordRelation;
+	readonly targetId: string;
+}
+
+export function recordRelationships(record: DesignRecord): RecordRelationship[] {
+	if (record.kind === 'choice' || record.kind === 'assumption' || record.kind === 'need') return [];
+	const primary =
+		record.kind === 'rule'
+			? record.serves
+			: record.kind === 'realization'
+				? record.realizes
+				: record.checks;
+	const relation: RecordRelation =
+		record.kind === 'rule' ? 'serves' : record.kind === 'realization' ? 'realizes' : 'checks';
+	return [
+		...(typeof primary === 'string' ? [primary] : (primary ?? [])).map(
+			(targetId): RecordRelationship => ({ relation, targetId }),
+		),
+		...(record.governedBy ?? []).map((targetId) => ({
+			relation: 'governed-by' as const,
+			targetId,
+		})),
+		...(record.reliesOn ?? []).map((targetId) => ({ relation: 'relies-on' as const, targetId })),
+	];
+}

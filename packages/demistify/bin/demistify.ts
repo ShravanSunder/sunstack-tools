@@ -98,10 +98,26 @@ async function main(): Promise<number> {
 		write(await checkProject(directory, { siteRoot: values['site-root'], write: values.write }));
 		return 0;
 	}
+	if (command === 'brief') {
+		const usage = 'Usage: demistify brief <deliverable> [directory] [--site-root <directory>]';
+		const { values, positionals } = parseArgs({
+			args: rest,
+			allowPositionals: true,
+			options: { 'site-root': { type: 'string' }, help: { type: 'boolean', short: 'h' } },
+		});
+		const [reference, directory = '.'] = positionals;
+		if (values.help || !reference || positionals.length > 2) {
+			write(usage);
+			return values.help ? 0 : 1;
+		}
+		const { deliveryBrief } = await import('../src/node/design-authoring/delivery-brief.ts');
+		write(await deliveryBrief(reference, directory, values['site-root']));
+		return 0;
+	}
 	if (command === 'design') {
 		const [action, ...args] = rest;
 		const usage =
-			'Usage: demistify design init [directory]\n       demistify design types [directory]\n       demistify design check [directory] [--site-root <directory>]';
+			'Usage: demistify design init [directory]\n       demistify design types [directory]\n       demistify design check [directory] [--site-root <directory>] [--write]';
 		if (!action || action === '--help') {
 			write(usage);
 			return 0;
@@ -109,26 +125,40 @@ async function main(): Promise<number> {
 		const { values, positionals } = parseArgs({
 			args,
 			allowPositionals: true,
-			options: { 'site-root': { type: 'string' }, help: { type: 'boolean' } },
+			options: {
+				'site-root': { type: 'string' },
+				write: { type: 'boolean' },
+				help: { type: 'boolean' },
+			},
 		});
 		if (values.help) {
 			write(usage);
 			return 0;
 		}
 		const [directory = '.'] = positionals;
-		if (positionals.length <= 1 && action === 'init' && values['site-root'] === undefined) {
+		if (
+			positionals.length <= 1 &&
+			action === 'init' &&
+			values['site-root'] === undefined &&
+			!values.write
+		) {
 			const { initDesignSet } = await import('../src/node/design-authoring/init-design.ts');
 			write(await initDesignSet(directory));
 			return 0;
 		}
-		if (positionals.length <= 1 && action === 'types' && values['site-root'] === undefined) {
+		if (
+			positionals.length <= 1 &&
+			action === 'types' &&
+			values['site-root'] === undefined &&
+			!values.write
+		) {
 			const { refreshDesignTypes } = await import('../src/node/design-authoring/init-design.ts');
 			write(await refreshDesignTypes(directory));
 			return 0;
 		}
 		if (positionals.length <= 1 && action === 'check') {
 			const { checkDesignSet } = await import('../src/node/design-authoring/check-design.ts');
-			write(await checkDesignSet(directory, values['site-root']));
+			write(await checkDesignSet(directory, values['site-root'], values.write));
 			return 0;
 		}
 		write(usage);
@@ -202,9 +232,9 @@ async function main(): Promise<number> {
 	}
 	if (command !== 'check') {
 		write(
-			'Usage: demistify check [--fix] [--render] [--no-diagrams] <page.html …>\n       demistify check --hook\n       demistify open <page.html> [--site-root <directory>] [--no-browser]\n       demistify design --help\n       demistify project check [directory] [--site-root <directory>] [--write]',
+			'Usage: demistify check [--fix] [--render] [--no-diagrams] <page.html …>\n       demistify check --hook\n       demistify open <page.html> [--site-root <directory>] [--no-browser]\n       demistify design --help\n       demistify brief <deliverable> [directory] [--site-root <directory>]\n       demistify project check [directory] [--site-root <directory>] [--write]',
 		);
-		return command ? 1 : 0;
+		return !command || ['--help', '-h', 'help'].includes(command) ? 0 : 1;
 	}
 	const flags = new Set(rest.filter((argument): boolean => argument.startsWith('--')));
 	const optionsFor = (page: string): CheckOptions => ({
@@ -268,4 +298,7 @@ async function main(): Promise<number> {
 	return errors > 0 ? 1 : 0;
 }
 
-process.exitCode = await main();
+process.exitCode = await main().catch((error: unknown): number => {
+	process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
+	return 1;
+});

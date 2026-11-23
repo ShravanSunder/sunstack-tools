@@ -1,7 +1,42 @@
+import { execFile } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { lstat, open, readFile, rename, unlink, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
-import { isDeepStrictEqual } from 'node:util';
+import { basename, dirname, join } from 'node:path';
+import { isDeepStrictEqual, promisify } from 'node:util';
+
+const run = promisify(execFile);
+
+export async function gitOutputRoot(directory: string): Promise<string | undefined> {
+	for (let candidate = directory; ; candidate = dirname(candidate)) {
+		// oxlint-disable-next-line no-await-in-loop -- search for the nearest Git checkout boundary.
+		const git = await lstat(join(candidate, '.git')).catch((error: unknown) => {
+			if (!missing(error)) throw error;
+			return undefined;
+		});
+		if (git) return candidate;
+		if (candidate === dirname(candidate)) return undefined;
+	}
+}
+
+export async function isTrackedOutput(file: string): Promise<boolean> {
+	const directory = dirname(file);
+	if (!(await gitOutputRoot(directory))) return false;
+	const { stdout } = await run(
+		'git',
+		['--literal-pathspecs', 'ls-files', '-z', '--', basename(file)],
+		{
+			cwd: directory,
+		},
+	);
+	return stdout.length > 0;
+}
+
+export async function refuseTrackedOutput(file: string): Promise<void> {
+	if (await isTrackedOutput(file))
+		throw new Error(
+			`Generated output is tracked: ${file}. Remove it from the Git index before using --write.`,
+		);
+}
 
 function missing(error: unknown): boolean {
 	return error instanceof Error && 'code' in error && error.code === 'ENOENT';
@@ -13,25 +48,66 @@ export interface GeneratedFile {
 	text: string;
 }
 
-export async function planGeneratedJson(
+export async function readOutputFile(
 	file: string,
-	value: unknown,
-	sameValue: (current: unknown, next: unknown) => boolean = isDeepStrictEqual,
-): Promise<GeneratedFile | undefined> {
+	description = 'generated file',
+): Promise<string | undefined> {
 	const existing = await lstat(file).catch((error: unknown) => {
 		if (!missing(error)) throw error;
 		return undefined;
 	});
-	if (existing && !existing.isFile()) throw new Error(`Expected a generated file at ${file}.`);
-	const previous = existing ? await readFile(file, 'utf8') : undefined;
-	if (previous !== undefined) {
-		try {
-			if (sameValue(JSON.parse(previous), value)) return undefined;
-		} catch {
-			// A malformed previous output can be regenerated from validated inputs.
-		}
+	if (existing && !existing.isFile()) throw new Error(`Expected a ${description} at ${file}.`);
+	return existing ? readFile(file, 'utf8') : undefined;
+}
+
+export async function planGeneratedText(
+	file: string,
+	text: string,
+	options: { readonly omitIfAbsent?: boolean } = {},
+): Promise<GeneratedFile | undefined> {
+	await refuseTrackedOutput(file);
+	const previous = await readOutputFile(file);
+	if ((previous === undefined && options.omitIfAbsent) || previous === text) return undefined;
+	return { file, previous, text };
+}
+
+export async function planGeneratedJson(
+	file: string,
+	value: unknown,
+): Promise<GeneratedFile | undefined> {
+	await refuseTrackedOutput(file);
+	const previous = await readOutputFile(file);
+	const text = `${JSON.stringify(value, null, 2)}\n`;
+	if (sameGeneratedJson(previous, text)) return undefined;
+	return { file, previous, text };
+}
+
+function sameGeneratedJson(previous: string | undefined, text: string): boolean {
+	if (previous === undefined) return false;
+	try {
+		return isDeepStrictEqual(JSON.parse(previous), JSON.parse(text));
+	} catch {
+		return false;
 	}
-	return { file, previous, text: `${JSON.stringify(value, null, 2)}\n` };
+}
+
+export async function generatedJsonIsCurrent(file: string, value: unknown): Promise<boolean> {
+	const previous = await readOutputFile(file).catch((): undefined => undefined);
+	return sameGeneratedJson(previous, JSON.stringify(value));
+}
+
+export async function generatedTextIsCurrent(
+	file: string,
+	text: string,
+	omitIfAbsent: boolean,
+): Promise<boolean> {
+	// An unreadable output needs attention, even when an absent output would be valid.
+	try {
+		const previous = await readOutputFile(file);
+		return previous === text || (previous === undefined && omitIfAbsent);
+	} catch {
+		return false;
+	}
 }
 
 /** Preflight all outputs, then stage their replacements and rollback copies together. */

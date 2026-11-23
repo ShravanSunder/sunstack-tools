@@ -113,6 +113,9 @@ dist
 .tern-port
 
 # Demistify generated artifacts and local scratch
+*.generated.json
+design-sdk.generated.ts
+design-schema.d.ts
 tmp/
 apps/demistify-poc/public/experiments/
 

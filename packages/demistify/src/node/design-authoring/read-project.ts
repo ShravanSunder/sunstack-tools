@@ -1,9 +1,11 @@
+import { readFile, realpath } from 'node:fs/promises';
 import { basename, dirname, isAbsolute, relative, resolve, sep } from 'node:path';
 
 import typescript from 'typescript';
 import { z } from 'zod';
 
-import { deliverySdkSource } from './delivery-sdk-source.ts';
+import { containsPath } from '../local-site.ts';
+import { findDesignInput } from './design-location.ts';
 import { designDeclarationFilename, readLiteral, unwrapExpression } from './read-design.ts';
 
 const alias = z.string().regex(/^[A-Za-z][A-Za-z0-9-]*$/);
@@ -89,6 +91,58 @@ export function readProjectManifest(file: string, text: string): ProjectManifest
 	return manifest;
 }
 
+interface RegisteredProject {
+	readonly directory: string;
+	readonly manifest: ProjectManifest;
+}
+
+async function registeredManifest(
+	root: string,
+	directory: string,
+): Promise<ProjectManifest | undefined> {
+	const file = resolve(root, 'project.ts');
+	if (!containsPath(root, await realpath(file))) return undefined;
+	const text = await readFile(file, 'utf8');
+	let manifest: ProjectManifest;
+	try {
+		manifest = readProjectManifest(file, text);
+	} catch {
+		// A neighboring project.ts may be application code.
+		return undefined;
+	}
+	const designDirectories = Object.values(manifest.designs).map((input) => dirname(input));
+	if (designDirectories.includes(directory)) return manifest;
+	const registered = await Promise.all(
+		designDirectories.map((designDirectory) =>
+			realpath(designDirectory).catch((error: unknown): undefined => {
+				if (
+					error instanceof Error &&
+					'code' in error &&
+					['ENOENT', 'ENOTDIR'].includes(String(error.code))
+				)
+					return undefined;
+				throw error;
+			}),
+		),
+	);
+	return registered.includes(directory) ? manifest : undefined;
+}
+
+export async function findRegisteredProject(
+	directory: string,
+): Promise<RegisteredProject | undefined> {
+	for (let start = directory; ;) {
+		// oxlint-disable-next-line no-await-in-loop -- the nearest actual registration owns the design.
+		const root = await findDesignInput(start, 'project.ts');
+		if (!root) return undefined;
+		// oxlint-disable-next-line no-await-in-loop -- an unrelated declaration may hide a registered ancestor.
+		const manifest = await registeredManifest(root, directory);
+		if (manifest) return { directory: root, manifest };
+		start = dirname(root);
+		if (start === root) return undefined;
+	}
+}
+
 export function projectRecordTypeImports(file: string, text: string, root: string): string[] {
 	const { body } = moduleBody(file, text);
 	return [
@@ -129,11 +183,7 @@ export async function readProjectIdentities(
 				basename(path) !== 'design-sdk.generated.ts'
 			)
 				throw new Error(`${file}: import agentId from the matching generated design SDK.`);
-			// oxlint-disable-next-line no-await-in-loop -- only the one allowed helper is verified.
-			if ((await read(path)) !== deliverySdkSource)
-				throw new Error(
-					`${file}: ${path} is out of date. Run demistify design types "${dirname(path)}" with the same CLI, then recheck the project.`,
-				);
+
 			helper = binding.name.text;
 			continue;
 		}
