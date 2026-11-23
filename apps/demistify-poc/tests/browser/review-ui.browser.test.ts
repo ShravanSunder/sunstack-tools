@@ -12,7 +12,7 @@ afterEach(async (): Promise<void> => {
 test('empty delivery progress shows only its status', async (): Promise<void> => {
 	const { document: fixture, frame } = await openFixture('ui');
 	const progress = fixture.createElement('ex-deliverables');
-	const view = { version: 1, snapshotRevision: 'a'.repeat(64), deliverables: {} };
+	const view = { version: 1, deliverables: {} };
 	progress.setAttribute('src', `data:application/json,${encodeURIComponent(JSON.stringify(view))}`);
 	requiredElement(fixture, 'ex-document').append(progress);
 	const overview = fixtureLocator(frame, progress);
@@ -20,7 +20,6 @@ test('empty delivery progress shows only its status', async (): Promise<void> =>
 		.element(overview.getByText('No deliverables planned.', { exact: true }))
 		.toBeVisible();
 	expect(progress.textContent).toBe('No deliverables planned.');
-	expect(progress.querySelector(`[title="${view.snapshotRevision}"]`)).toBeNull();
 });
 
 test.each([1400, 390])(
