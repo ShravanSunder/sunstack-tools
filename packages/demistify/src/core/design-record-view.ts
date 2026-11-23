@@ -25,7 +25,7 @@ export function recordSourceHref(source: string, filename: string): string | und
 	if (/^(?:[a-z][a-z0-9+.-]*:|\/)/iu.test(href)) return undefined;
 	const path = decodeURIComponent(href.split(/[?#]/u, 1)[0] ?? '');
 	if (path.startsWith('/') || path.includes('\\')) return undefined;
-	const segments = path.split('/');
+	const segments = path.split('/').filter(Boolean);
 	if (segments.at(-1) !== filename) return undefined;
 	return segments.map(encodeURIComponent).join('/');
 }

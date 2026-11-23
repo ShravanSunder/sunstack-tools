@@ -9,20 +9,17 @@ import { reportIssue } from '../core/issues.ts';
 const placementSelector = '[data-design-record], ex-tree[data-design-need]';
 
 function recordsSource(): URL | undefined {
-	const implicit =
-		(
-			[
-				['ex-nav[src]', 'navigation.generated.json'],
-				['ex-project-overview[src]', 'project.generated.json'],
-			] as const
-		)
-			.map(([selector, filename]): string[] =>
-				Array.from(document.querySelectorAll(selector)).flatMap((element): string[] => {
-					const source = recordSourceHref(element.getAttribute('src') ?? '', filename);
-					return source === undefined ? [] : [source];
-				}),
-			)
-			.find((sources): boolean => sources.length > 0) ?? [];
+	let implicit: string[] = [];
+	for (const [selector, filename] of [
+		['ex-nav[src]', 'navigation.generated.json'],
+		['ex-project-overview[src]', 'project.generated.json'],
+	] as const) {
+		implicit = Array.from(document.querySelectorAll(selector)).flatMap((element): string[] => {
+			const source = recordSourceHref(element.getAttribute('src') ?? '', filename);
+			return source === undefined ? [] : [source];
+		});
+		if (implicit.length) break;
+	}
 	const markers = document.querySelectorAll<HTMLMetaElement>('meta[name="demistify-records"]');
 	if (implicit.length > 1 || (implicit.length === 0 && markers.length !== 1)) return undefined;
 	const [binding] = implicit;

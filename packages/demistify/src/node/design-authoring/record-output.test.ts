@@ -37,6 +37,16 @@ it.each([
 	},
 	{ name: 'the marker as fallback', html: marker, expected: projectOutput },
 	{
+		name: 'a marker with repeated separators',
+		html: marker.replace('../records.generated.js', '..//records.generated.js'),
+		expected: projectOutput,
+	},
+	{
+		name: 'navigation with an invalid lower-priority hint',
+		html: nav + overview.replace('project.generated.json', '%GG/project.generated.json'),
+		expected: navOutput,
+	},
+	{
 		name: 'an encoded marker as fallback',
 		html: marker.replace('records.generated.js', '%72ecords.generated.js'),
 		expected: projectOutput,
