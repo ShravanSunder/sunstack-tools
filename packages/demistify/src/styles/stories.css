@@ -41,7 +41,7 @@ ex-section {
 ex-section.ex-section-floating {
 	--section-sticky-gap: var(--space-2);
 	margin-block: var(--space-8);
-	border-block-start: 0;
+	border: 0;
 	font: inherit;
 	line-height: 1.55;
 }
@@ -49,11 +49,11 @@ ex-section.ex-section-floating {
 	top: calc(var(--ex-document-toolbar-height, 0px) + var(--section-sticky-gap));
 	box-sizing: border-box;
 	margin-block: calc(-1 * var(--space-5)) var(--space-4);
-	margin-inline: calc(-1 * var(--space-5) - 1px);
-	padding: var(--space-2) calc(var(--space-5) - 1px);
+	margin-inline: calc(-1 * var(--space-5));
+	padding: var(--space-2) calc(var(--space-5) - 2px);
 	border: 2px solid var(--surface-category, var(--rule));
 	border-block-end-width: 1px;
-	border-radius: var(--radius-md) var(--radius-md) 0 0;
+	border-radius: var(--radius-md) var(--radius-md) var(--radius-sm) var(--radius-sm);
 }
 .ex-section-head.ex-comment-target {
 	position: sticky;
