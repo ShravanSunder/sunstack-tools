@@ -50,9 +50,8 @@ ex-section.ex-section-floating {
 	box-sizing: border-box;
 	margin-block: calc(-1 * var(--space-5)) var(--space-4);
 	margin-inline: calc(-1 * var(--space-5));
-	padding: var(--space-2) calc(var(--space-5) - 2px);
-	border: 2px solid var(--surface-category, var(--rule));
-	border-block-end-width: 1px;
+	padding: var(--space-2) calc(var(--space-5) - 1px);
+	border: 1px solid var(--surface-category, var(--rule));
 	border-radius: var(--radius-md);
 }
 ex-section.ex-section-floating:not(:has(> ex-section-item)) {
