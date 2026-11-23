@@ -191,6 +191,10 @@ export class MapIsland extends HTMLElement {
 			const label = link.closest('.ex-tree-node')?.querySelector('.ex-tree-label');
 			if (!label) continue;
 			let count = label.querySelector(':scope > .ex-map-count');
+			if (section.classList.contains('ex-section-floating')) {
+				count?.remove();
+				continue;
+			}
 			if (!count) {
 				count = document.createElement('span');
 				count.className = 'ex-map-count';

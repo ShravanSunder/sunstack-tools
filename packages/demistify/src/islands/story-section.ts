@@ -27,6 +27,11 @@ export class SectionIsland extends HTMLElement {
 				reportIssue(this, 'A section has at most one native smaller-stories fold, at its end.');
 				return;
 			}
+			const usesStoryLayout = this.closest('ex-document')?.querySelector('ex-story');
+			this.classList.toggle(
+				'ex-section-floating',
+				!usesStoryLayout && !this.querySelector('ex-story, details[slot="smaller"]'),
+			);
 			const title = this.getAttribute('title') ?? '';
 			if (!this.id || !title.trim()) {
 				reportIssue(this, 'A section needs its stable id and title.');
@@ -39,8 +44,6 @@ export class SectionIsland extends HTMLElement {
 				icon: readIcon(this),
 				tone: readTone(this, undefined),
 			});
-			this.count = document.createElement('span');
-			this.count.className = 'ex-section-count';
 			const titleText = header.querySelector('strong');
 			const heading = document.createElement('span');
 			heading.className = 'ex-section-heading';
@@ -48,7 +51,11 @@ export class SectionIsland extends HTMLElement {
 				titleText.before(heading);
 				heading.append(titleText);
 			} else header.append(heading);
-			heading.append(this.count);
+			if (!this.classList.contains('ex-section-floating')) {
+				this.count = document.createElement('span');
+				this.count.className = 'ex-section-count';
+				heading.append(this.count);
+			}
 			this.prepend(header);
 			const smaller = this.querySelector(':scope > details[slot="smaller"]');
 			if (smaller instanceof HTMLDetailsElement)
@@ -57,17 +64,19 @@ export class SectionIsland extends HTMLElement {
 		}
 		const header = this.querySelector(':scope > .ex-section-head');
 		if (!header) return;
-		this.control ??= createDisclosureControl(this, this.dataset['title'] ?? 'section');
-		header.append(this.control.button);
-		const refresh = (): void => {
-			const membership = readSectionMembership(this);
-			const text = ` · ${membership.primary}${membership.smaller ? ` + ${membership.smaller} smaller` : ''}`;
-			if (this.count && this.count.textContent !== text) this.count.textContent = text;
-		};
-		this.observer?.disconnect();
-		this.observer = new MutationObserver(refresh);
-		this.observer.observe(this, { childList: true, subtree: true });
-		refresh();
+		if (!this.classList.contains('ex-section-floating')) {
+			this.control ??= createDisclosureControl(this, this.dataset['title'] ?? 'section');
+			header.append(this.control.button);
+			const refresh = (): void => {
+				const membership = readSectionMembership(this);
+				const text = ` · ${membership.primary}${membership.smaller ? ` + ${membership.smaller} smaller` : ''}`;
+				if (this.count && this.count.textContent !== text) this.count.textContent = text;
+			};
+			this.observer?.disconnect();
+			this.observer = new MutationObserver(refresh);
+			this.observer.observe(this, { childList: true, subtree: true });
+			refresh();
+		}
 		const measureHeader = (): void => {
 			this.style.setProperty(
 				'--ex-section-header-height',
