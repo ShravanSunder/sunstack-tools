@@ -145,7 +145,9 @@ async function fillBindings(elements: readonly HTMLElement[]): Promise<void> {
 		message.setAttribute('role', 'status');
 		message.textContent =
 			'Design records are unavailable. Run demistify project check --write (or demistify design check --write for a single milestone), then reload.';
-		(document.querySelector('ex-document') ?? document.body).prepend(message);
+		const scope = document.querySelector('ex-document');
+		if (scope) scope.before(message);
+		else document.body.prepend(message);
 	}
 }
 
