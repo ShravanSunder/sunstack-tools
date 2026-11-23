@@ -107,6 +107,10 @@ it('holds acceptance for an explicitly scoped need and keeps missing realization
 		const deliverables = join(directory, 'deliverables');
 		const designFile = join(directory, 'design.ts');
 		const coreFile = join(deliverables, 'del-01-prevent-cancelled-job-from-running.ts');
+		const fortyWords =
+			'The U.S. queue records 3.14 seconds for the current result and keeps the last completed result available for operators until a new result becomes visible in the same queue without exposing temporary worker state or incomplete processing details during recovery.';
+		const fortyOneWords = fortyWords.replace('during recovery.', 'during routine recovery.');
+		const bothLimits = `${fortyWords} Done.`;
 		const authored = designSource
 			.replace(
 				'  records: [',
@@ -127,6 +131,14 @@ it('holds acceptance for an explicitly scoped need and keeps missing realization
 			writeFile(coreFile, core),
 			writeFile(join(directory, 'index.html'), page),
 			writeFile(join(directory, 'evidence.txt'), 'The fixture exercised handler entry.'),
+			writeFile(
+				join(directory, 'design-decisions.ts'),
+				`export default [{ id: 'D9', kind: 'choice', authority: { state: 'owner-open', owner: 'owner', question: ${JSON.stringify(bothLimits)} } }];`,
+			),
+			writeFile(
+				join(directory, 'design-assumptions.ts'),
+				`export default [{ id: 'A9', kind: 'assumption', status: 'open', statement: ${JSON.stringify(bothLimits)} }];`,
+			),
 			writeFile(join(deliverables, 'del-02-report-job-already-started.ts'), blocked),
 			writeFile(
 				join(deliverables, 'later.ts'),
@@ -163,21 +175,44 @@ export default defineDeliverable({ kind: 'later', id: 'DEL-03', title: 'Review f
 		expect(initialBrief).toContain(realizationNote);
 		expect(initialBrief).not.toMatch(/U6|R12|V12|DEL-03/);
 
-		const coveredDesign = authored.replace("serves: ['U3', 'U4']", "serves: ['U3', 'U4', 'U5']");
+		const coveredDesign = authored
+			.replace("serves: ['U3', 'U4']", "serves: ['U3', 'U4', 'U5']")
+			.replace("'Operators know whether a job has started.'", JSON.stringify(fortyWords))
+			.replace("'An unscoped need has an informational note.'", JSON.stringify(fortyOneWords))
+			.replace("'The worker never starts a cancelled job.'", JSON.stringify(bothLimits))
+			.replace(
+				"'A committed claim is reported.'",
+				"'A committed claim is reported. The caller sees the result.'",
+			)
+			.replace(
+				"'Observe handler entry after cancellation.'",
+				"'Observe handler entry after cancellation. Compare the caller response.'",
+			);
 		await writeFile(designFile, coveredDesign);
 		const covered = (await run(process.execPath, check)).stdout;
 		expect(covered).toContain('DEL-01 · accepted');
 		expect(covered).toContain(unservedNeedNote);
 		expect(covered).toContain(realizationNote);
 		expect(covered).not.toContain('Link scoped rules to scoped needs: U5.');
+		expect(covered).toContain(
+			'R3: statement is 41 words; keep one sentence and move detail to cases.',
+		);
+		expect(covered).toContain('U6: statement is 41 words; keep one sentence.');
+		expect(covered).toContain('M12: statement has 2 sentences; keep one sentence.');
+		expect(covered).toContain(
+			'V3: statement has 2 sentences; keep one sentence and move detail to cases.',
+		);
+		expect(covered.match(/R3: statement /g)).toHaveLength(1);
+		expect(covered).not.toMatch(/(?:U5|D9|A9): statement /);
 		const view = await readFile(join(directory, 'deliverables.generated.json'), 'utf8');
-		expect(view).not.toMatch(/No realization|No rule serves|U6/);
+		expect(view).not.toMatch(/No realization|No rule serves|U6|statement (?:is|has)/);
 		const accepted = coreDelivery(parseDeliverablesView(view), 'DEL-01');
 		expect(accepted.state).toBe('accepted');
 		expect(accepted.reasons).toEqual(['The Lead accepted candidate build-87.']);
 		const coveredBrief = (await run(process.execPath, brief)).stdout;
+		expect(coveredBrief).toContain(bothLimits);
 		expect(coveredBrief).toContain(realizationNote);
-		expect(coveredBrief).not.toMatch(/U6|No rule serves/);
+		expect(coveredBrief).not.toMatch(/U6|No rule serves|statement (?:is|has)/);
 		expect(coveredBrief).not.toContain('Link scoped rules to scoped needs: U5.');
 
 		await writeFile(coreFile, core.replace("needs: ['U5']", "needs: ['R3']"));

@@ -147,7 +147,7 @@ it('qualifies need coverage and deduplicates scoped rule notes across a checked 
 	const historyRealization = {
 		id: 'M1',
 		kind: 'realization',
-		statement: 'History returns the stored result.',
+		statement: 'History returns the stored result. It retains the latest value.',
 		realizes: 'R1',
 	};
 	const realizedHistory = designSource(false, receipt).replace(
@@ -207,12 +207,13 @@ it('qualifies need coverage and deduplicates scoped rule notes across a checked 
 		expect(first).toContain('queue/DEL-02 · ready-for-acceptance');
 		expect(first).toContain('history/DEL-01 · accepted');
 		expect(first).toContain(`Design notes\n  ${unservedNeedNote}`);
+		expect(first).toContain('history/M1: statement has 2 sentences; keep one sentence.');
 		expect(first.split(unservedNeedNote)).toHaveLength(2);
 		expect(first).not.toMatch(/(?:queue|history)\/U1: No rule serves/);
 		expect(first.split(note)).toHaveLength(2);
 		expect(first).not.toContain('history/R1: No realization');
 		expect(await readFile(join(root, 'project.generated.json'), 'utf8')).not.toMatch(
-			/No rule serves|No realization/,
+			/No rule serves|No realization|statement (?:is|has)/,
 		);
 		const brief = [cli, 'brief', 'queue/DEL-01', root];
 		const firstBrief = (await run(process.execPath, brief)).stdout;
@@ -220,7 +221,7 @@ it('qualifies need coverage and deduplicates scoped rule notes across a checked 
 		expect(firstBrief).toContain('**history/U1** Caller sees the current result.');
 		expect(firstBrief).toContain(note);
 		expect(firstBrief).not.toMatch(
-			/history\/R1|history\/M1|queue\/DEL-02|history\/U2|No rule serves/,
+			/history\/R1|history\/M1|queue\/DEL-02|history\/U2|No rule serves|statement (?:is|has)/,
 		);
 
 		await writeFile(

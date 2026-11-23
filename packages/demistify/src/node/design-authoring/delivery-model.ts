@@ -80,6 +80,23 @@ export function realizationNotes(coverage: Iterable<DeliveryCoverage>): string[]
 	return [...ruleIds].map((id): string => `${id}: No realization names this rule.`);
 }
 
+const statementWordLimit = 40;
+const englishSentences = new Intl.Segmenter('en', { granularity: 'sentence' });
+
+function statementLengthNote(record: DesignRecord): string | undefined {
+	if (record.kind === 'choice' || record.kind === 'assumption') return undefined;
+	const { id, statement } = record;
+	const guidance =
+		record.kind === 'rule' || record.kind === 'planned-check'
+			? 'keep one sentence and move detail to cases.'
+			: 'keep one sentence.';
+	const wordCount = statement.trim().split(/\s+/u).length;
+	if (wordCount > statementWordLimit) return `${id}: statement is ${wordCount} words; ${guidance}`;
+	const sentenceCount = [...englishSentences.segment(statement)].length;
+	if (sentenceCount > 1) return `${id}: statement has ${sentenceCount} sentences; ${guidance}`;
+	return undefined;
+}
+
 export function designCheckNotes(
 	records: readonly DesignRecord[],
 	delivery: DeliveryProjection,
@@ -96,6 +113,10 @@ export function designCheckNotes(
 		...[...unservedNeeds].map((id): string => `${id}: No rule serves this need.`),
 		...realizationNotes(delivery.coverage.values()),
 	];
+	for (const record of records) {
+		const note = statementLengthNote(record);
+		if (note) notes.push(note);
+	}
 	return notes.length ? ['Design notes', ...notes.map((note): string => `  ${note}`)] : [];
 }
 
