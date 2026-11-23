@@ -1,9 +1,14 @@
-import { type DeliverableView, parseDeliverablesView } from '../core/deliverables-view.ts';
+import {
+	type CoreDeliverableView,
+	type DeliverableView,
+	parseDeliverablesView,
+} from '../core/deliverables-view.ts';
 import { reportIssue } from '../core/issues.ts';
 import { registerReviewSource, type ReviewSourceResult } from '../core/review-document.ts';
 
 export const deliveryStateLabels = {
 	planned: 'Planned',
+	later: 'Later',
 	'implementation-in-progress': 'Implementation in progress',
 	'design-blocked': 'Blocked by design',
 	'awaiting-verification': 'Awaiting verification',
@@ -29,7 +34,7 @@ export function linkTo(
 }
 
 export function deliveryDetails(
-	item: DeliverableView,
+	item: CoreDeliverableView,
 	source: URL,
 	showAssignments = true,
 ): HTMLElement {
@@ -71,13 +76,16 @@ export function deliveryDetails(
 	}
 	for (const [index, href] of item.implementation.evidence.entries())
 		add('').append(linkTo(source, href, `Implementation evidence ${index + 1}`));
-	for (const link of [
+	for (const { id, label, destination } of [
 		...item.links.rules,
 		...item.links.designItems,
 		...item.links.governingItems,
 		...item.links.verificationChecks,
-	])
-		add('').append(linkTo(source, link.page, link.id, link.fragment));
+	]) {
+		const title = `${id} · ${label}`;
+		if (destination) add('').append(linkTo(source, destination.page, title, destination.fragment));
+		else add(title);
+	}
 	details.append(list);
 	return details;
 }
@@ -138,6 +146,12 @@ export class DeliverablesIsland extends HTMLElement {
 			const row = body.insertRow();
 			const title = document.createElement('th');
 			title.scope = 'row';
+			if (item.kind === 'later') {
+				title.textContent = `${item.id} · ${item.title}`;
+				row.insertCell().textContent = deliveryStateLabels.later;
+				row.insertCell();
+				continue;
+			}
 			title.append(
 				linkTo(
 					source,

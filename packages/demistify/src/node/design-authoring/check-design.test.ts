@@ -1,5 +1,15 @@
 import { execFile } from 'node:child_process';
-import { mkdir, mkdtemp, readFile, rename, rm, symlink, unlink, writeFile } from 'node:fs/promises';
+import {
+	mkdir,
+	mkdtemp,
+	readFile,
+	rename,
+	rm,
+	stat,
+	symlink,
+	unlink,
+	writeFile,
+} from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -13,7 +23,7 @@ const page = `<!doctype html><html lang="en">
 <head><title>Design</title><link rel="stylesheet" href="https://demistify.getagentstudio.dev/v1/theme.css">
 <script type="module" src="https://demistify.getagentstudio.dev/v1/runtime.js"></script></head>
 <body><ex-nav for="content" src="./navigation.generated.json"></ex-nav><ex-document id="content">
-<h1>Design</h1><h2 id="NeedOverview">Read the overview</h2><p><a href="../overview.html#scope">Overview</a> and <a href="../overview.html#details--from-markdown">details</a></p>
+<h1>Design</h1><h2 data-design-record="NeedOverview"></h2><p><a href="../overview.html#scope">Overview</a> and <a href="../overview.html#details--from-markdown">details</a></p>
 </ex-document></body></html>`;
 const overview = `<!doctype html><html lang="en">
 <head><title>Overview</title><script type="module" src="https://demistify.getagentstudio.dev/v1/runtime.js"></script></head>
@@ -73,21 +83,20 @@ it('checks a real adjacent page and source inside an explicitly selected site ro
 			'"records": []',
 			`"records": [{
 				id: 'NeedOverview', kind: 'need', title: 'Shared scope', statement: 'Readers can open the site overview.',
-				destination: { page: 'index.html', fragment: 'NeedOverview' },
-				sources: [{ href: '../overview.html#scope', excerpt: 'Site scope' }]
+
 			}]`,
 		);
 		await writeFile(definition, withRecord);
-		const check = [cli, 'design', 'check', deliverable, '--site-root', site];
+		const check = [cli, 'design', 'check', deliverable, '--site-root', site, '--write'];
 		const result = await run(process.execPath, check);
 		expect(result.stdout).toContain(
 			'Checked 1 authored page(s), 2 navigation page(s), and 1 design record(s).',
 		);
 		const output = await readFile(join(deliverable, 'design.generated.json'), 'utf8');
 		expect(JSON.parse(output)).toMatchObject({
-			recordDestinations: { NeedOverview: 'index.html#NeedOverview' },
+			recordDestinations: { NeedOverview: { page: 'index.html', fragment: 'NeedOverview' } },
 		});
-		expect(await readFile(navigationPath, 'utf8')).toBe(originalNavigation);
+		expect(JSON.parse(await readFile(navigationPath, 'utf8'))).toMatchObject(navigation);
 		expect(await readFile(definition, 'utf8')).toBe(withRecord);
 		expect(await readFile(join(deliverable, 'index.html'), 'utf8')).toBe(page);
 		const legacyEntry = join(deliverable, 'delivery.ts');
@@ -120,24 +129,14 @@ it('checks a real adjacent page and source inside an explicitly selected site ro
 		await writeFile(join(directory, 'outside.html'), overview);
 		await symlink(join(directory, 'outside.html'), join(site, 'escaped.html'));
 		await writeFile(
-			definition,
-			withRecord.replace('../overview.html#scope', '../escaped.html#scope'),
+			join(deliverable, 'index.html'),
+			page.replaceAll('../overview.html', '../escaped.html'),
 		);
 		await expect(run(process.execPath, check)).rejects.toThrow(
 			'Local target resolves outside the site root: escaped.html',
 		);
-		await symlink(join(site, 'overview.html'), join(deliverable, 'alias.html'));
-		await writeFile(
-			definition,
-			withRecord.replace(
-				"page: 'index.html', fragment: 'NeedOverview'",
-				"page: 'alias.html', fragment: 'scope'",
-			),
-		);
-		await expect(run(process.execPath, check)).rejects.toThrow(
-			'Record NeedOverview must point to a declared HTML page.',
-		);
-		expect(await readFile(navigationPath, 'utf8')).toBe(originalNavigation);
+		await writeFile(join(deliverable, 'index.html'), page);
+		expect(JSON.parse(await readFile(navigationPath, 'utf8'))).toMatchObject(navigation);
 		expect(await readFile(join(deliverable, 'design.generated.json'), 'utf8')).toBe(output);
 		await writeFile(definition, withRecord.replace("'Shared scope'", "'Updated shared scope'"));
 		const lock = join(deliverable, '.demistify-design.lock');
@@ -163,25 +162,27 @@ it('resolves Map and Walkthrough record references to the same checked Choice', 
 		const designFile = join(directory, 'design.ts');
 		const pageFile = join(directory, 'index.html');
 		const choice =
-			'<ex-choice id="cancel-policy" title="Stop claimed work?" data-decision="D1"><ex-option id="only-queued" title="Stop queued work"><template slot="summary">Claimed work continues.</template></ex-option><ex-option id="also-running" title="Request a running stop"><template slot="summary">The worker receives a stop request.</template></ex-option></ex-choice>';
+			'<ex-choice data-design-record="D1"><ex-option id="only-queued" title="Stop queued work"><template slot="summary">Claimed work continues.</template></ex-option><ex-option id="also-running" title="Request a running stop"><template slot="summary">The worker receives a stop request.</template></ex-option></ex-choice>';
 		const design = (await readFile(designFile, 'utf8')).replace(
 			'"mapGroups": []',
 			`"mapGroups": [
 			{ title: 'Cancellation', description: 'See what a choice would change.', icon: 'file', target: { record: 'D1' } }
 		], "walkthroughs": [
 			{ id: 'cancel-route', title: 'Cancellation', description: 'Follow a queued job.',
-			  steps: [{ target: { record: 'D1' }, narration: 'Decide what to do after the job is claimed.' }] }
+			  steps: [{ target: { record: 'D1' }, narration: 'Decide what to do after the job is claimed.' },
+				    { target: { record: 'N1' }, narration: 'Remember the need even without a placement.' }] }
 		]`,
 		);
 		const designWithSharedPassage = design.replace(
 			'"records": []',
 			`"records": [{
 				id: 'N1', kind: 'need', title: 'Stop work', statement: 'The caller can request cancellation.',
-				destination: { page: 'index.html', fragment: 'cancel-policy' },
-				sources: [{ href: 'index.html#NeedOverview', excerpt: 'Read the overview' }]
+
 			}]`,
 		);
-		const html = page.replace(/<p><a href="\.\.\/overview[\s\S]*?<\/p>/, choice);
+		const html = page
+			.replace('<h2 data-design-record="NeedOverview"></h2>', '<h2>Read the overview</h2>')
+			.replace(/<p><a href="\.\.\/overview[\s\S]*?<\/p>/, choice);
 		await Promise.all([
 			writeFile(designFile, designWithSharedPassage),
 			writeFile(pageFile, html),
@@ -190,29 +191,44 @@ it('resolves Map and Walkthrough record references to the same checked Choice', 
 				`export default [{
 				id: 'D1', kind: 'choice', title: 'Cancellation after claim',
 				authority: { state: 'owner-open', owner: 'owner', question: 'Stop claimed work?' },
-				destination: { page: 'index.html', fragment: 'cancel-policy' },
-				sources: [{ href: 'index.html#NeedOverview', excerpt: 'Read the overview' }]
+
 			}];`,
 			),
 		]);
-		const check = [cli, 'design', 'check', directory];
+		const check = [cli, 'design', 'check', directory, '--write'];
 		await run(process.execPath, check);
 		const outputFile = join(directory, 'navigation.generated.json');
 		const generated = await readFile(outputFile, 'utf8');
-		const target = { page: 'home', fragment: 'cancel-policy' };
+		const target = { page: 'home', fragment: 'D1' };
+		const source = await readFile(join(directory, 'design.generated.json'), 'utf8');
+		expect(JSON.parse(source)).toMatchObject({ records: [{ id: 'N1' }, { id: 'D1' }] });
+		expect(JSON.parse(source)).toMatchObject({
+			recordDestinations: { ['D1']: { fragment: 'D1' } },
+		});
+		expect(source).not.toContain('"N1": {');
 		expect(JSON.parse(generated)).toMatchObject({
 			map: [{ target }],
-			walkthroughs: [{ steps: [{ target }] }],
+			walkthroughs: [
+				{ steps: [{ target }, { narration: 'Remember the need even without a placement.' }] },
+			],
 		});
 
-		await writeFile(pageFile, html.replace('data-decision="D1"', 'data-decision="D2"'));
+		await writeFile(pageFile, html.replace('data-design-record="D1"', 'data-design-record="D2"'));
 		await expect(run(process.execPath, check)).rejects.toThrow(/unknown design record D2/);
-		await writeFile(pageFile, html.replace('Stop claimed work?', 'A different question?'));
+		await writeFile(
+			pageFile,
+			html.replace('</ex-document>', '<p data-design-record="D1"></p></ex-document>'),
+		);
 		await expect(run(process.execPath, check)).rejects.toThrow(
-			/must ask the question recorded in D1/,
+			/Duplicate HTML id or record placement.*D1/,
 		);
 		await writeFile(pageFile, html);
 		await writeFile(designFile, designWithSharedPassage.replace("record: 'D1'", "record: 'D2'"));
+		await expect(run(process.execPath, check)).rejects.toThrow(/TS2322.*D2/s);
+		await writeFile(
+			designFile,
+			designWithSharedPassage.replace("record: 'D1'", "record: 'D2' as 'D1'"),
+		);
 		await expect(run(process.execPath, check)).rejects.toThrow(/unknown design record D2/);
 		expect(await readFile(outputFile, 'utf8')).toBe(generated);
 	} finally {
@@ -223,13 +239,13 @@ it('resolves Map and Walkthrough record references to the same checked Choice', 
 it('checks explicitly imported record arrays and rejects invalid split inputs without replacing snapshots', async (): Promise<void> => {
 	const directory = await mkdtemp(join(tmpdir(), 'demistify-design-records-'));
 	const milestone = join(directory, 'milestone');
-	const check = [cli, 'design', 'check', milestone, '--site-root', directory];
+	const check = [cli, 'design', 'check', milestone, '--site-root', directory, '--write'];
 	try {
 		await run(process.execPath, [cli, 'design', 'init', milestone]);
 		await mkdir(join(milestone, 'records'));
 		await writeFile(
 			join(milestone, 'index.html'),
-			page.replace(/<p><a href[\s\S]*?<\/p>/, '<h2 id="RuleOverview">Keep the overview</h2>'),
+			page.replace(/<p><a href[\s\S]*?<\/p>/, '<h2 data-design-record="RuleOverview"></h2>'),
 		);
 		const designPath = join(milestone, 'design.ts');
 		const recordPath = join(milestone, 'records', 'overview.ts');
@@ -238,16 +254,12 @@ it('checks explicitly imported record arrays and rejects invalid split inputs wi
 			'"records": []',
 			`"records": [...overview, {
 				id: 'RuleOverview', kind: 'rule', title: 'Keep the overview', statement: 'Retain the overview.',
-				destination: { page: 'index.html', fragment: 'RuleOverview' },
-				sources: [{ href: 'index.html#NeedOverview', excerpt: 'Overview' }],
-				relationships: [{ relation: 'serves', targetId: 'NeedOverview' }],
+				serves: 'NeedOverview',
 			}]`,
 		)}`;
 		const records = `import type { DesignRecord } from '../design-schema.d.ts';
 export default [{
 	id: 'NeedOverview', kind: 'need', title: 'Shared scope', statement: 'Readers can open the overview.',
-	destination: { page: 'index.html', fragment: 'NeedOverview' },
-	sources: [{ href: 'index.html#NeedOverview', excerpt: 'Overview' }],
 }] as const satisfies readonly DesignRecord[];`;
 		await Promise.all([writeFile(designPath, authored), writeFile(recordPath, records)]);
 		await run(process.execPath, check);
@@ -255,13 +267,10 @@ export default [{
 		const checked = await readFile(snapshot, 'utf8');
 		expect(JSON.parse(checked)).toMatchObject({
 			recordDestinations: {
-				NeedOverview: 'index.html#NeedOverview',
-				RuleOverview: 'index.html#RuleOverview',
+				NeedOverview: { page: 'index.html', fragment: 'NeedOverview' },
+				RuleOverview: { page: 'index.html', fragment: 'RuleOverview' },
 			},
-			records: [
-				{ id: 'NeedOverview' },
-				{ id: 'RuleOverview', relationships: [{ relation: 'serves', targetId: 'NeedOverview' }] },
-			],
+			records: [{ id: 'NeedOverview' }, { id: 'RuleOverview', serves: 'NeedOverview' }],
 		});
 
 		const inlineRecord = records.slice(
@@ -302,9 +311,17 @@ export default { designs: { milestone } };`,
 			records.replace('satisfies readonly DesignRecord[]', 'satisfies readonly never[]'),
 		);
 		await expect(run(process.execPath, check)).rejects.toThrow(/records\/overview\.ts.*TS2322/s);
+		const sentinel = join(directory, 'authored-code-ran.txt');
+		await writeFile(
+			recordPath,
+			`import { writeFileSync } from 'node:fs';
+export default (() => { writeFileSync(${JSON.stringify(sentinel)}, 'ran'); return []; })();`,
+		);
+		await expect(run(process.execPath, check)).rejects.toThrow(/records\/overview\.ts/);
+		await expect(stat(sentinel)).rejects.toMatchObject({ code: 'ENOENT' });
 		await writeFile(recordPath, 'export default (() => [])();');
 		await expect(run(process.execPath, check)).rejects.toThrow(
-			/records\/overview\.ts.*expected a data literal/,
+			/records\/overview\.ts.*export a literal array of records/,
 		);
 		await writeFile(recordPath, records);
 		await writeFile(designPath, authored.replace('...overview', '...overview.slice()'));

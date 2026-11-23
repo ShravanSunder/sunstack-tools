@@ -25,8 +25,8 @@ export const walkthroughAddressKeys = [
 interface RouteStep {
 	/** Another page holding the target, or undefined when the target is on this page. */
 	readonly page: string | undefined;
-	/** The target id on its page; empty for the top of the page. */
-	readonly targetId: string;
+	/** The target id, empty for the top of a page, or undefined for narration alone. */
+	readonly targetId: string | undefined;
 	readonly narration: string;
 	readonly open: OpenMode | undefined;
 	readonly icon: string | undefined;
@@ -278,7 +278,7 @@ class RoutePlayer {
 				const variation = new URL(location.href).searchParams.get('ex-variation');
 				if (variation) next.searchParams.set('ex-variation', variation);
 			}
-			next.hash = step.targetId;
+			next.hash = step.targetId ?? '';
 			location.assign(next.href);
 			return;
 		}
@@ -300,12 +300,20 @@ class RoutePlayer {
 		address.searchParams.set('ex-route', route.id);
 		address.searchParams.set('ex-name', route.label);
 		address.searchParams.set('ex-step', String(index));
-		address.hash = step.targetId;
+		if (step.targetId !== undefined) address.hash = step.targetId;
 		if (address.href !== location.href) history.pushState(null, '', address);
+		if (step.targetId === undefined) {
+			this.galleryWalkthrough?.dispose();
+			this.galleryWalkthrough = undefined;
+			if (this.tracedDiagram) setTrace(this.tracedDiagram, undefined);
+			this.tracedDiagram = undefined;
+			return;
+		}
+		const targetId = step.targetId;
 		const gallery = [...document.querySelectorAll('ex-gallery')].find(
 			(owner): owner is GalleryIsland =>
 				owner instanceof GalleryIsland &&
-				owner.walkthroughCaptures().some((capture): boolean => capture.id === step.targetId),
+				owner.walkthroughCaptures().some((capture): boolean => capture.id === targetId),
 		);
 		if (this.galleryWalkthrough?.gallery !== gallery) {
 			this.galleryWalkthrough?.dispose();
@@ -323,19 +331,19 @@ class RoutePlayer {
 					})
 				: undefined;
 		}
-		const galleryTarget = this.galleryWalkthrough?.show(step.targetId);
+		const galleryTarget = this.galleryWalkthrough?.show(targetId);
 		void (
 			galleryTarget
 				? Promise.resolve(galleryTarget)
-				: step.targetId
-					? resolveTarget(step.targetId, pending.signal)
+				: targetId
+					? resolveTarget(targetId, pending.signal)
 					: Promise.resolve(document.body)
 		).then((target): void => {
 			if (pending.signal.aborted) return;
 			if (!target) {
 				pending.abort();
 				this.narration.hidden = false;
-				this.narration.textContent = `Target unavailable: ${step.targetId}`;
+				this.narration.textContent = `Target unavailable: ${targetId}`;
 				return;
 			}
 			target.classList.add('ex-route-focus');
@@ -371,7 +379,7 @@ class RoutePlayer {
  */
 type EncodedStep = [
 	page: string | null,
-	targetId: string,
+	targetId: string | null,
 	narration: string,
 	open: OpenMode | 0,
 	icon: string | null,
@@ -380,8 +388,8 @@ type EncodedStep = [
 function encodeRoute(route: Route): string {
 	const here = location.href.split(/[?#]/)[0] ?? location.href;
 	const steps = route.steps.map((step): EncodedStep => [
-		step.page ?? here,
-		step.targetId,
+		step.targetId === undefined ? null : (step.page ?? here),
+		step.targetId ?? null,
 		step.narration,
 		step.open ?? 0,
 		step.icon ?? null,
@@ -408,7 +416,7 @@ function decodeRoute(encoded: string): RouteStep[] | undefined {
 			const pageUrl = typeof page === 'string' ? page : undefined;
 			return {
 				page: pageUrl === undefined || pageOf(new URL(pageUrl)) === here ? undefined : pageUrl,
-				targetId: typeof targetId === 'string' ? targetId : '',
+				targetId: typeof targetId === 'string' ? targetId : undefined,
 				narration: typeof narration === 'string' ? narration : '',
 				open: open === 'sidebar' ? 'sidebar' : open === 'modal' ? 'modal' : undefined,
 				icon: typeof icon === 'string' ? resolveSubjectIcon(icon) : undefined,

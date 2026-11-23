@@ -4,14 +4,16 @@ import typescript from 'typescript';
 import { z } from 'zod';
 
 import { deliverySdkSource } from './delivery-sdk-source.ts';
+import { designTypesFor } from './design-type-source.ts';
 import {
 	checkAuthoringTypes,
 	designDeclarationFilename,
+	deliverySdkFilename,
 	readLiteral,
 	unwrapExpression,
 } from './read-design.ts';
 
-export const deliverySdkFilename = 'design-sdk.generated.ts';
+export { deliverySdkFilename } from './read-design.ts';
 export const deliveryEntryFilename = 'design-delivery.ts';
 
 type HelperName = 'defineDelivery' | 'defineDeliverable';
@@ -20,6 +22,7 @@ const deliveryOptions = z.strictObject({ lead: z.string().min(1) });
 
 export interface AuthoredDelivery {
 	readonly entries: unknown;
+	readonly checkTypes: (knownRecordIds: readonly string[]) => void;
 	readonly lead?: string;
 }
 
@@ -100,7 +103,6 @@ function calledHelper(
 export async function readDeliveryEntries(
 	designFile: string,
 	designText: string,
-	declaration: string | undefined,
 	readSource: SourceReader,
 	designSources: ReadonlyMap<string, string>,
 ): Promise<AuthoredDelivery> {
@@ -109,20 +111,18 @@ export async function readDeliveryEntries(
 		throw new Error(`Rename delivery.ts to ${deliveryEntryFilename} before checking this design.`);
 	const entryFile = join(directory, deliveryEntryFilename);
 	const sources = new Map([...designSources, [designFile, designText]]);
-	if (declaration !== undefined)
-		sources.set(join(directory, designDeclarationFilename), declaration);
-	const entryText = await readSource(entryFile);
-	if (entryText === undefined) {
-		checkAuthoringTypes([designFile, ...designSources.keys()], sources);
-		return { entries: [] };
-	}
-	sources.set(entryFile, entryText);
 	const sdkFile = join(directory, deliverySdkFilename);
-	if ((await readSource(sdkFile)) !== deliverySdkSource)
-		throw new Error(
-			`${deliverySdkFilename} is missing or stale. Run demistify design types first.`,
-		);
 	sources.set(sdkFile, deliverySdkSource);
+	const entryText = await readSource(entryFile);
+	function checkTypes(knownRecordIds: readonly string[]): void {
+		sources.set(join(directory, designDeclarationFilename), designTypesFor(knownRecordIds));
+		checkAuthoringTypes(
+			[designFile, ...designSources.keys(), ...(entryText === undefined ? [] : [entryFile])],
+			sources,
+		);
+	}
+	if (entryText === undefined) return { entries: [], checkTypes };
+	sources.set(entryFile, entryText);
 
 	async function readDeliverable(file: string): Promise<unknown> {
 		const text = await readSource(file);
@@ -194,9 +194,9 @@ export async function readDeliveryEntries(
 			bindings.set(name, await readDeliverable(file));
 		}),
 	);
-	checkAuthoringTypes([entryFile, ...designSources.keys()], sources);
 	return {
 		entries: readLiteral(declaredEntries, entry.source, bindings),
+		checkTypes,
 		...(declaredOptions === undefined
 			? {}
 			: deliveryOptions.parse(readLiteral(declaredOptions, entry.source))),

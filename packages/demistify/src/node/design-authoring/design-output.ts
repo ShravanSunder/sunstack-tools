@@ -1,7 +1,34 @@
+import { execFile } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { lstat, open, readFile, rename, unlink, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
-import { isDeepStrictEqual } from 'node:util';
+import { basename, dirname, join } from 'node:path';
+import { isDeepStrictEqual, promisify } from 'node:util';
+
+const run = promisify(execFile);
+
+async function refuseTrackedOutput(file: string): Promise<void> {
+	const directory = dirname(file);
+	for (let candidate = directory; ; candidate = dirname(candidate)) {
+		// oxlint-disable-next-line no-await-in-loop -- search for the nearest Git checkout boundary.
+		const git = await lstat(join(candidate, '.git')).catch((error: unknown) => {
+			if (!missing(error)) throw error;
+			return undefined;
+		});
+		if (git) break;
+		if (candidate === dirname(candidate)) return;
+	}
+	const { stdout } = await run(
+		'git',
+		['--literal-pathspecs', 'ls-files', '-z', '--', basename(file)],
+		{
+			cwd: directory,
+		},
+	);
+	if (stdout)
+		throw new Error(
+			`Generated output is tracked: ${file}. Remove it from the Git index before using --write.`,
+		);
+}
 
 function missing(error: unknown): boolean {
 	return error instanceof Error && 'code' in error && error.code === 'ENOENT';
@@ -18,6 +45,7 @@ export async function planGeneratedJson(
 	value: unknown,
 	sameValue: (current: unknown, next: unknown) => boolean = isDeepStrictEqual,
 ): Promise<GeneratedFile | undefined> {
+	await refuseTrackedOutput(file);
 	const existing = await lstat(file).catch((error: unknown) => {
 		if (!missing(error)) throw error;
 		return undefined;

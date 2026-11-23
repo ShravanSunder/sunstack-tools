@@ -78,7 +78,9 @@ export function sharedWalkthroughDestinations(
 		const first = route.steps[0];
 		if (!first) throw new Error('A Walkthrough needs a first stop.');
 		const address = new URL(
-			navigationTargetHref(source.navigation, first.target, source.sourceUrl),
+			first.target
+				? navigationTargetHref(source.navigation, first.target, source.sourceUrl)
+				: new URL(home.href, source.sourceUrl).href,
 		);
 		address.searchParams.set('ex-tour', new URL(home.href, source.sourceUrl).href);
 		address.searchParams.set('ex-route', route.id);
@@ -110,6 +112,14 @@ export function mountSharedNavigation(source: LoadedNavigation, scope: HTMLEleme
 		home: homeUrl,
 		variations: false,
 		steps: route.steps.map((step) => {
+			if (!step.target)
+				return {
+					page: undefined,
+					targetId: undefined,
+					narration: step.narration,
+					open: undefined,
+					icon: step.icon,
+				};
 			const address = new URL(navigationTargetHref(navigation, step.target, sourceUrl));
 			const fragment = decodeURIComponent(address.hash.slice(1));
 			address.hash = '';

@@ -1,64 +1,15 @@
 import { randomUUID } from 'node:crypto';
-import { mkdir, readFile, rename, unlink, writeFile } from 'node:fs/promises';
-import { join, resolve } from 'node:path';
+import { mkdir, readFile, realpath, rename, unlink, writeFile } from 'node:fs/promises';
+import { dirname, join, resolve } from 'node:path';
 
 import { sharedNavigationSchema } from '../../core/shared-navigation.ts';
-import { subjectIcons } from '../../core/subject-icons.ts';
+import { openDesignCheck } from './check-design.ts';
 import { deliverySdkSource } from './delivery-sdk-source.ts';
+import { findDesignInput } from './design-location.ts';
+import { designTypeSource, designTypesFor } from './design-type-source.ts';
 import { deliveryEntryFilename, deliverySdkFilename } from './read-delivery.ts';
-import { designDeclarationFilename } from './read-design.ts';
-
-const designTypeSource = `// Authoring types for Demistify design, decision and assumption files.
-type SubjectIcon = ${subjectIcons.map((icon): string => JSON.stringify(icon)).join(' | ')};
-type Target = { page: string; fragment?: string };
-type NavigationTarget = Target | { record: string };
-type Page = { id: string; title: string; href: string; icon: SubjectIcon };
-type MapNode = {
-  title: string;
-  description: string;
-  icon: SubjectIcon;
-  target?: NavigationTarget;
-  children?: readonly MapNode[];
-};
-type Walkthrough = {
-  id: string;
-  title: string;
-  description: string;
-  steps: readonly { target: NavigationTarget; narration: string; icon?: SubjectIcon }[];
-};
-type SourceReference = { href: string; excerpt: string; verbatim?: true };
-type RecordFields = {
-  id: string;
-  title: string;
-  destination: Required<Target>;
-  sources: readonly SourceReference[];
-};
-type Relationship<Relation extends string> = { relation: Relation; targetId: string };
-type DesignDependency = 'governed-by' | 'relies-on';
-type SettledDecision = { decision: string; decidedOn: string };
-type Authority =
-  | ({ state: 'owner-decided'; owner: 'owner'; sourceKind: 'owner-words' | 'owner-accepted' } & SettledDecision)
-  | { state: 'owner-open'; owner: 'owner'; question: string }
-  | ({ state: 'lead-decided'; lead: string; sourceKind: 'author' | 'contract'; rationale: string } & SettledDecision);
-export type DesignRecord = RecordFields & (
-  | { kind: 'need'; statement: string }
-  | { kind: 'rule'; statement: string; relationships: readonly Relationship<'serves' | DesignDependency>[] }
-  | { kind: 'realization'; explanation: string; status: 'proposed'; relationships: readonly Relationship<'realizes' | DesignDependency>[] }
-  | { kind: 'planned-check'; status: 'planned'; relationships: readonly Relationship<'checks' | DesignDependency>[];
-      cases: readonly { given: string; expect: string }[] }
-);
-export type DesignDecision = RecordFields & { kind: 'choice'; authority: Authority; supersedes?: string };
-export type DesignAssumption = RecordFields & { kind: 'assumption'; statement: string } & (
-  { status: 'open'; resolution?: never } | { status: 'confirmed' | 'refuted'; resolution: SourceReference }
-);
-export type DesignCore = {
-  pages: readonly Page[];
-  mapGroups: readonly MapNode[];
-  walkthroughs?: readonly Walkthrough[];
-  records: readonly DesignRecord[];
-  acceptances?: readonly { deliverableId: string; build: string; scopeRevision: string; evidence: string }[];
-};
-`;
+import { designDeclarationFilename, readDesignItems, readDesignSources } from './read-design.ts';
+import { readProjectManifest } from './read-project.ts';
 
 const authoringSupport = [
 	[designDeclarationFilename, designTypeSource],
@@ -79,12 +30,55 @@ import { defineDelivery } from './${deliverySdkFilename}';
 export default defineDelivery(design, []);
 `;
 
+async function authoredRecordIds(directory: string): Promise<string[]> {
+	const project = await findDesignInput(directory, 'project.ts');
+	const check = await openDesignCheck(project ?? directory);
+	async function readRecords(setDirectory: string): Promise<string[]> {
+		const read = (file: string): Promise<string> => check.read(file, setDirectory);
+		const { design } = await readDesignSources(setDirectory, read, async (file) =>
+			read(file).catch((error: unknown): undefined => {
+				if (error instanceof Error && 'code' in error && error.code === 'ENOENT') return undefined;
+				throw error;
+			}),
+		);
+		return design.records.map(({ id }) => id);
+	}
+	const localIds = await readRecords(directory);
+	if (!project) return localIds;
+
+	const file = join(project, 'project.ts');
+	const manifest = readProjectManifest(file, await check.read(file, project));
+	const sets = Object.entries(manifest.designs);
+	if (!sets.some(([, path]) => dirname(path) === directory)) return localIds;
+	const milestoneIds = await Promise.all(
+		sets.map(async ([name, path]): Promise<string[]> => {
+			const setDirectory = dirname(path);
+			const ids = setDirectory === directory ? localIds : await readRecords(setDirectory);
+			return ids.map((id): string => `${name}/${id}`);
+		}),
+	);
+	const shared = await Promise.all(
+		[
+			{ path: manifest.decisions, kind: 'choice' as const },
+			{ path: manifest.assumptions, kind: 'assumption' as const },
+		].map(async ({ path, kind }): Promise<string[]> =>
+			path === undefined
+				? []
+				: readDesignItems(path, await check.read(path, project), kind).map(
+						({ id }) => `project/${id}`,
+					),
+		),
+	);
+	return [...localIds, ...milestoneIds.flat(), ...shared.flat()];
+}
+
 /** Refresh editor support for an existing authored design. */
 export async function refreshDesignTypes(directory: string): Promise<string> {
-	const setDirectory = resolve(directory);
-	await readFile(join(setDirectory, 'design.ts'));
+	const setDirectory = await realpath(resolve(directory));
+	const ids = await authoredRecordIds(setDirectory);
 	await Promise.all(
-		authoringSupport.map(async ([name, text]) => {
+		authoringSupport.map(async ([name, source]) => {
+			const text = name === designDeclarationFilename ? designTypesFor(ids) : source;
 			const file = join(setDirectory, name);
 			const temporary = `${file}.${randomUUID()}.tmp`;
 			await writeFile(temporary, text, { flag: 'wx' });
@@ -119,7 +113,7 @@ export async function initDesignSet(directory: string): Promise<string> {
 	};
 	const created: string[] = [];
 	try {
-		const designSource = `import type { DesignCore } from './${designDeclarationFilename}';\n\nexport default ${JSON.stringify(design, null, 2)} as const satisfies DesignCore;\n`;
+		const designSource = `import { defineDesign } from './${deliverySdkFilename}';\n\nexport default defineDesign(${JSON.stringify(design, null, 2)});\n`;
 		const initialFiles = [
 			...authoringSupport,
 			['design.ts', designSource],
@@ -137,5 +131,5 @@ export async function initDesignSet(directory: string): Promise<string> {
 		await Promise.all(created.map((file) => unlink(file)));
 		throw error;
 	}
-	return `Created design.ts, design-decisions.ts, design-assumptions.ts, ${deliveryEntryFilename} and generated SDK support in ${setDirectory}. Add records and run demistify design check.`;
+	return `Created design.ts, design-decisions.ts, design-assumptions.ts, ${deliveryEntryFilename} and generated SDK support in ${setDirectory}. Supply the declared HTML page (index.html by default), then run demistify design check.`;
 }

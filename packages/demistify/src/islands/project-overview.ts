@@ -29,13 +29,14 @@ function appendItem(list: HTMLUListElement): HTMLLIElement {
 	return item;
 }
 
-function recordLink(source: URL, record: ProjectRecord, title = record.title): HTMLAnchorElement {
-	return linkTo(
-		source,
-		record.destination.page,
-		`${record.id} · ${title}`,
-		record.destination.fragment,
-	);
+function recordLink(
+	source: URL,
+	record: ProjectRecord,
+	title = record.title,
+): HTMLAnchorElement | string {
+	const label = `${record.id} · ${title}`;
+	const destination = record.destination;
+	return destination ? linkTo(source, destination.page, label, destination.fragment) : label;
 }
 
 function renderDecision(list: HTMLUListElement, source: URL, decision: ProjectDecision): void {
@@ -81,6 +82,10 @@ function renderDelivery(
 ): void {
 	const state = document.createElement('strong');
 	state.textContent = deliveryStateLabels[delivery.state];
+	if (delivery.kind === 'later') {
+		parent.append(delivery.title, ' · ', state);
+		return;
+	}
 	parent.append(
 		linkTo(source, delivery.links.plan.page, delivery.title, delivery.links.plan.fragment),
 		' · ',
@@ -99,7 +104,9 @@ function renderDelivery(
 			const item = appendItem(list);
 			item.append('Prerequisite ');
 			item.append(
-				required ? linkTo(source, required.links.plan.page, id, required.links.plan.fragment) : id,
+				required?.kind === 'core'
+					? linkTo(source, required.links.plan.page, id, required.links.plan.fragment)
+					: id,
 			);
 		}
 	}

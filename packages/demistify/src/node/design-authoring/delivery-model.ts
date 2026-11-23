@@ -1,52 +1,61 @@
-import { createHash } from 'node:crypto';
-
 import { z } from 'zod';
 
-import { scopeRevisionSchema, verificationReceiptSchema } from '../../core/deliverables-view.ts';
-import type { DeliverableView } from '../../core/deliverables-view.ts';
-import { designSchema } from './schema.ts';
+import {
+	verificationReceiptSchema,
+	type CoreDeliverableView,
+	type DeliverableView,
+} from '../../core/deliverables-view.ts';
+import {
+	htmlDestination,
+	nonEmptyText as text,
+	recordId,
+	relativeHref as evidenceHref,
+	recordReference as address,
+	recordLabel,
+	recordRelationships,
+} from './schema.ts';
 import type { DesignCore, DesignRecord } from './schema.ts';
 
-const [recordSchema] = designSchema.shape.records.element.options;
-const { id: recordId, title: text, destination } = recordSchema.shape;
-const evidenceHref = recordSchema.shape.sources.element.shape.href;
 const scopedIds = z.array(recordId).default([]);
-const address = z.string().regex(/^[A-Za-z][A-Za-z0-9-]*(?:\/[A-Za-z][A-Za-z0-9-]*)?$/);
 const scopedAddresses = z.array(address).default([]);
 const deliveryEntry = z.strictObject({
 	dependsOn: scopedAddresses,
-	deliverable: z.strictObject({
-		id: address,
-		title: text,
-		builder: recordId.optional(),
-		destination,
-		scope: z.strictObject({
-			rules: scopedAddresses,
-			designItems: scopedAddresses,
-			implementationTasks: scopedIds,
-			verificationChecks: scopedAddresses,
+	deliverable: z.discriminatedUnion('kind', [
+		z.strictObject({
+			kind: z.literal('core'),
+			id: address,
+			title: text,
+			builder: recordId.optional(),
+			destination: htmlDestination,
+			scope: z.strictObject({
+				rules: scopedAddresses,
+				designItems: scopedAddresses,
+				implementationTasks: scopedIds,
+				verificationChecks: scopedAddresses,
+			}),
+			implementation: z
+				.strictObject({
+					completedTasks: scopedIds,
+					candidate: text.optional(),
+					evidence: z.array(evidenceHref).default([]),
+				})
+				.optional(),
+			verification: verificationReceiptSchema
+				.extend({ outcomes: verificationReceiptSchema.shape.outcomes.default({}) })
+				.optional(),
+			verificationHistory: z.array(verificationReceiptSchema).default([]),
 		}),
-		implementation: z
-			.strictObject({
-				completedTasks: scopedIds,
-				candidate: text.optional(),
-				evidence: z.array(evidenceHref).default([]),
-			})
-			.optional(),
-		verification: verificationReceiptSchema
-			.extend({ outcomes: verificationReceiptSchema.shape.outcomes.default({}) })
-			.optional(),
-		verificationHistory: z.array(verificationReceiptSchema).default([]),
-	}),
+		z.strictObject({ kind: z.literal('later'), id: address, title: text }),
+	]),
 });
 
 export type DeliveryEntry = z.infer<typeof deliveryEntry>;
-type Deliverable = DeliveryEntry['deliverable'];
+export type CoreDeliverable = Extract<DeliveryEntry['deliverable'], { kind: 'core' }>;
 type Acceptance = NonNullable<DesignCore['acceptances']>[number];
-type DeliveryProgress = DeliverableView['progress'];
-type VerificationCheck = DeliverableView['verification']['checks'][number];
-type Destination = DeliverableView['links']['plan'];
-type RecordDestination = DeliverableView['links']['rules'][number];
+type DeliveryProgress = CoreDeliverableView['progress'];
+type VerificationCheck = CoreDeliverableView['verification']['checks'][number];
+export type Destination = CoreDeliverableView['links']['plan'];
+type RecordDestination = CoreDeliverableView['links']['rules'][number];
 
 export interface DeliveryProjection {
 	readonly deliverables: Readonly<Record<string, DeliverableView>>;
@@ -79,32 +88,35 @@ function checkUniqueIds(deliverableId: string, ids: readonly string[], label: st
 }
 
 interface ResolvedScope {
-	readonly links: Omit<DeliverableView['links'], 'governingItems'>;
-	readonly coverageGap?: string;
+	readonly links: Omit<CoreDeliverableView['links'], 'governingItems'>;
+	readonly coverageGaps: readonly string[];
 }
 
 function resolveScope(
-	deliverable: Deliverable,
+	deliverable: CoreDeliverable,
 	records: ReadonlyMap<string, DesignRecord>,
+	destinations: ReadonlyMap<string, Destination>,
 ): ResolvedScope {
 	const { id, scope } = deliverable;
 	const uncoveredRules = new Set(scope.rules);
 	const scopedRules = new Set(scope.rules);
+	const rulesWithoutNeeds: string[] = [];
 	function resolve(ids: readonly string[], kind: DesignRecord['kind']): RecordDestination[] {
 		checkUniqueIds(id, ids, kind);
 		return ids.map((scopeId): RecordDestination => {
 			const record = records.get(scopeId);
 			if (record?.kind !== kind)
 				throw new Error(`${id}: ${scopeId} must resolve to a design record of kind ${kind}.`);
+			if (record.kind === 'rule' && record.serves === undefined) rulesWithoutNeeds.push(scopeId);
 			if (record.kind === 'planned-check') {
-				const coveredRules = record.relationships.filter(({ targetId }): boolean =>
-					scopedRules.has(targetId),
+				const coveredRules = recordRelationships(record).filter(
+					({ relation, targetId }): boolean => relation === 'checks' && scopedRules.has(targetId),
 				);
 				if (!coveredRules.length)
 					throw new Error(`${id}: verification check ${scopeId} must cover a scoped rule.`);
 				for (const { targetId } of coveredRules) uncoveredRules.delete(targetId);
 			}
-			return { id: scopeId, ...record.destination };
+			return deliveryRecordLink(record, destinations);
 		});
 	}
 	const links = {
@@ -115,12 +127,23 @@ function resolveScope(
 	};
 	return {
 		links,
-		...(uncoveredRules.size
-			? {
-					coverageGap: `Assign planned verification checks for scoped rules ${[...uncoveredRules].join(', ')}.`,
-				}
-			: {}),
+		coverageGaps: [
+			...(rulesWithoutNeeds.length
+				? [`Link scoped rules to a need: ${rulesWithoutNeeds.join(', ')}.`]
+				: []),
+			...(uncoveredRules.size
+				? [`Assign planned verification checks for scoped rules ${[...uncoveredRules].join(', ')}.`]
+				: []),
+		],
 	};
+}
+
+function deliveryRecordLink(
+	record: DesignRecord,
+	destinations: ReadonlyMap<string, Destination>,
+): RecordDestination {
+	const destination = destinations.get(record.id);
+	return { id: record.id, label: recordLabel(record), ...(destination && { destination }) };
 }
 
 interface DesignBlocker {
@@ -129,70 +152,43 @@ interface DesignBlocker {
 }
 
 interface GoverningDesign {
-	readonly scopeRevisions: readonly [string, ...string[]];
 	readonly governingItems: RecordDestination[];
 	readonly designBlockers: readonly DesignBlocker[];
 }
 
-function resolveGoverningDesign(
-	{ deliverable, dependsOn }: DeliveryEntry,
+export function governingRecords(
+	deliverable: CoreDeliverable,
 	records: ReadonlyMap<string, DesignRecord>,
-	revisionInputs: {
-		readonly current: ReadonlyMap<string, string>;
-		readonly legacy: readonly ReadonlyMap<string, string>[];
-	},
-): GoverningDesign {
-	const { id, scope, destination: planDestination } = deliverable;
-	const linkedRecords = new Set<string>();
-	// The checker has validated the relationship kinds before calling the projector.
+): DesignRecord[] {
+	const linkedRecords = new Map<string, DesignRecord>();
 	function includeRecord(scopeId: string): void {
 		if (linkedRecords.has(scopeId)) return;
 		const record = records.get(scopeId);
-		if (!record) throw new Error(`${id}: missing governing design record ${scopeId}.`);
-		linkedRecords.add(scopeId);
-		if ('relationships' in record) {
-			for (const { targetId } of record.relationships) includeRecord(targetId);
-		}
+		if (!record) throw new Error(`${deliverable.id}: missing governing design record ${scopeId}.`);
+		linkedRecords.set(scopeId, record);
+		for (const { targetId } of recordRelationships(record)) includeRecord(targetId);
 	}
 
-	for (const scopeId of [...scope.rules, ...scope.designItems, ...scope.verificationChecks])
-		includeRecord(scopeId);
-	const recordIds = [...linkedRecords].toSorted();
-	const canonicalScope = {
-		rules: scope.rules.toSorted(),
-		designItems: scope.designItems.toSorted(),
-		implementationTasks: scope.implementationTasks.toSorted(),
-		verificationChecks: scope.verificationChecks.toSorted(),
-	};
-	const revisionFor = (recordRevisions: ReadonlyMap<string, string>): string => {
-		const revisions = recordIds.map((scopeId): [string, string] => {
-			const revision = scopeRevisionSchema.safeParse(recordRevisions.get(scopeId));
-			if (!revision.success)
-				throw new Error(`${id}: could not check governing design record ${scopeId}.`);
-			return [scopeId, revision.data];
-		});
-		return createHash('sha256')
-			.update(
-				JSON.stringify({
-					id,
-					scope: canonicalScope,
-					destination: planDestination,
-					dependsOn: dependsOn.toSorted(),
-					revisions,
-				}),
-			)
-			.digest('hex');
-	};
+	const { rules, designItems, verificationChecks } = deliverable.scope;
+	for (const scopeId of [...rules, ...designItems, ...verificationChecks]) includeRecord(scopeId);
+	return [...linkedRecords.values()];
+}
+
+function resolveGoverningDesign(
+	deliverable: CoreDeliverable,
+	records: ReadonlyMap<string, DesignRecord>,
+	destinations: ReadonlyMap<string, Destination>,
+): GoverningDesign {
 	const governingItems: RecordDestination[] = [];
 	const designBlockers: DesignBlocker[] = [];
-	for (const scopeId of recordIds) {
-		const record = records.get(scopeId);
+	for (const record of governingRecords(deliverable, records)) {
+		const scopeId = record.id;
 		if (record?.kind === 'choice') {
-			governingItems.push({ id: scopeId, ...record.destination });
+			governingItems.push(deliveryRecordLink(record, destinations));
 			if (record.authority.state === 'owner-open')
 				designBlockers.push({ blocksWork: true, reason: `${scopeId} requires an owner decision.` });
 		} else if (record?.kind === 'assumption') {
-			governingItems.push({ id: scopeId, ...record.destination });
+			governingItems.push(deliveryRecordLink(record, destinations));
 			if (record.status === 'refuted')
 				designBlockers.push({
 					blocksWork: true,
@@ -205,17 +201,12 @@ function resolveGoverningDesign(
 				});
 		}
 	}
-	return {
-		scopeRevisions: [
-			revisionFor(revisionInputs.current),
-			...revisionInputs.legacy.map(revisionFor),
-		],
-		governingItems,
-		designBlockers,
-	};
+	return { governingItems, designBlockers };
 }
 
-function projectImplementation(deliverable: Deliverable): DeliverableView['implementation'] {
+function projectImplementation(
+	deliverable: CoreDeliverable,
+): CoreDeliverableView['implementation'] {
 	const { id, scope, implementation } = deliverable;
 	const completedTasks = implementation?.completedTasks ?? [];
 	checkUniqueIds(id, scope.implementationTasks, 'implementation task in scope');
@@ -235,10 +226,7 @@ function projectImplementation(deliverable: Deliverable): DeliverableView['imple
 	};
 }
 
-function projectVerification(
-	deliverable: Deliverable,
-	scopeRevisions: readonly string[],
-): DeliverableView['verification'] {
+function projectVerification(deliverable: CoreDeliverable): CoreDeliverableView['verification'] {
 	const { id, scope, implementation, verification, verificationHistory } = deliverable;
 	const outcomes = new Map(Object.entries(verification?.outcomes ?? {}));
 	for (const checkId of outcomes.keys()) {
@@ -249,9 +237,7 @@ function projectVerification(
 	const build = verification?.build;
 	const candidate = implementation?.candidate;
 	return {
-		...(verification === undefined
-			? {}
-			: { build: verification.build, scopeRevision: verification.scopeRevision }),
+		...(verification === undefined ? {} : { build: verification.build }),
 		...(verificationHistory.length ? { history: verificationHistory } : {}),
 		checks: scope.verificationChecks.map((checkId): VerificationCheck => {
 			const outcome = outcomes.get(checkId);
@@ -266,13 +252,6 @@ function projectVerification(
 						: 'Record the implementation candidate.',
 					outcome,
 				};
-			if (!scopeRevisions.includes(verification?.scopeRevision ?? ''))
-				return {
-					id: checkId,
-					state: 'stale',
-					reason: 'Recheck this outcome against the current design.',
-					outcome,
-				};
 			if (outcome.kind === 'blocked')
 				return { id: checkId, state: 'blocked', reason: outcome.reason, outcome };
 			if (outcome.kind === 'failed') return { id: checkId, state: 'failed', outcome };
@@ -282,18 +261,16 @@ function projectVerification(
 }
 
 interface ProgressInputs {
-	readonly deliverable: Deliverable;
-	readonly scopeRevisions: readonly string[];
+	readonly deliverable: CoreDeliverable;
 	readonly coverageGap: string | undefined;
 	readonly designBlockers: readonly DesignBlocker[];
-	readonly implementation: DeliverableView['implementation'];
-	readonly verification: DeliverableView['verification'];
+	readonly implementation: CoreDeliverableView['implementation'];
+	readonly verification: CoreDeliverableView['verification'];
 	readonly acceptances: readonly Acceptance[];
 }
 
 function projectProgress({
 	deliverable,
-	scopeRevisions,
 	coverageGap,
 	designBlockers,
 	implementation,
@@ -346,20 +323,13 @@ function projectProgress({
 	if (verification.checks.some(({ state }): boolean => state !== 'passed'))
 		return {
 			state: 'awaiting-verification',
-			reason:
-				verification.build === candidate &&
-				!scopeRevisions.includes(verification.scopeRevision ?? '')
-					? 'Recheck the current build against the current design.'
-					: 'Record the verification results for the current build.',
+			reason: 'Record the verification results for the current build.',
 		};
 
 	const acceptanceBlocker = designBlockers[0];
 	if (acceptanceBlocker) return { state: 'design-blocked', reason: acceptanceBlocker.reason };
 
-	const currentBuildReceipts = acceptances.filter(({ build }) => build === candidate);
-	const acceptance =
-		currentBuildReceipts.find((receipt) => receipt.scopeRevision === scopeRevisions[0]) ??
-		currentBuildReceipts.find((receipt) => scopeRevisions.includes(receipt.scopeRevision));
+	const acceptance = acceptances.find(({ build }) => build === candidate);
 	if (acceptance)
 		return {
 			state: 'accepted',
@@ -380,10 +350,10 @@ function deliverablesInDependencyOrder(
 	const visited = new Set<string>();
 
 	function visit(entry: DeliveryEntry): void {
-		const {
-			deliverable: { id },
-			dependsOn,
-		} = entry;
+		const { deliverable, dependsOn } = entry;
+		const { id } = deliverable;
+		if (deliverable.kind === 'later' && dependsOn.length)
+			throw new Error(`${id}: only core deliverables can declare prerequisites.`);
 		if (visited.has(id)) return;
 		if (currentPath.has(id)) {
 			const path = [...currentPath];
@@ -414,15 +384,11 @@ export function parseDeliveryEntries(entries: unknown): DeliveryEntry[] {
 
 export function projectDelivery(
 	design: DesignCore,
-	entries: unknown,
-	recordRevisions: ReadonlyMap<string, string>,
-	options: {
-		readonly trackPrerequisiteRevisions?: boolean;
-		readonly legacyRecordRevisions?: readonly ReadonlyMap<string, string>[];
-	} = {},
+	input: unknown,
+	recordDestinations: ReadonlyMap<string, Destination>,
 ): DeliveryProjection {
 	const byId = new Map<string, DeliveryEntry>();
-	for (const entry of parseDeliveryEntries(entries)) {
+	for (const entry of parseDeliveryEntries(input)) {
 		const { id } = entry.deliverable;
 		if (byId.has(id)) throw new Error(`${id}: duplicate deliverable ID.`);
 		byId.set(id, entry);
@@ -431,16 +397,12 @@ export function projectDelivery(
 	const acceptancesById = new Map<string, Acceptance[]>();
 	const evidence = new Set<string>();
 	for (const acceptance of design.acceptances ?? []) {
-		const { deliverableId, build, scopeRevision } = acceptance;
-		if (!byId.has(deliverableId))
-			throw new Error(`${deliverableId}: acceptance names an unknown deliverable.`);
+		const { deliverableId, build } = acceptance;
+		if (byId.get(deliverableId)?.deliverable.kind !== 'core')
+			throw new Error(`${deliverableId}: acceptance must name a core deliverable.`);
 		const previous = acceptancesById.get(deliverableId) ?? [];
-		if (
-			previous.some(
-				(receipt): boolean => receipt.build === build && receipt.scopeRevision === scopeRevision,
-			)
-		)
-			throw new Error(`${deliverableId}: duplicate Lead acceptance for the same build and design.`);
+		if (previous.some((receipt) => receipt.build === build))
+			throw new Error(`${deliverableId}: duplicate Lead acceptance for the same build.`);
 		acceptancesById.set(deliverableId, [...previous, acceptance]);
 		evidence.add(acceptance.evidence);
 	}
@@ -448,50 +410,30 @@ export function projectDelivery(
 	const records = new Map(design.records.map((record) => [record.id, record]));
 	const destinations: Destination[] = [];
 	const byDependencyOrder = new Map<string, DeliverableView>();
-	const revisionsByDelivery = new Map<string, readonly string[]>();
-	for (const entry of deliverablesInDependencyOrder(byId)) {
-		const { deliverable, dependsOn } = entry;
-		const { id, title, builder } = deliverable;
-		const { links: scopeLinks, coverageGap } = resolveScope(deliverable, records);
-		const governing = resolveGoverningDesign(entry, records, {
-			current: recordRevisions,
-			legacy: options.legacyRecordRevisions ?? [],
-		});
-		const { governingItems, designBlockers } = governing;
-		const includePrerequisites = (revision: string, index: number): string =>
-			options.trackPrerequisiteRevisions && dependsOn.length
-				? createHash('sha256')
-						.update(
-							JSON.stringify([
-								revision,
-								dependsOn.toSorted().map((prerequisiteId) => {
-									const prerequisite = byDependencyOrder.get(prerequisiteId);
-									return [
-										prerequisiteId,
-										revisionsByDelivery.get(prerequisiteId)?.[index],
-										prerequisite?.implementation.candidate,
-									];
-								}),
-							]),
-						)
-						.digest('hex')
-				: revision;
-		const [scopeRevision, ...legacyRevisions] = [
-			includePrerequisites(governing.scopeRevisions[0], 0),
-			...governing.scopeRevisions
-				.slice(1)
-				.map((revision, index) => includePrerequisites(revision, index + 1)),
-		];
-		const scopeRevisions = [scopeRevision, ...legacyRevisions];
-		revisionsByDelivery.set(id, scopeRevisions);
+	for (const { deliverable, dependsOn } of deliverablesInDependencyOrder(byId)) {
+		const { id, title } = deliverable;
+		if (deliverable.kind === 'later') {
+			byDependencyOrder.set(id, { kind: 'later', id, title, state: 'later' });
+			continue;
+		}
+		const { builder } = deliverable;
+		const { links: scopeLinks, coverageGaps } = resolveScope(
+			deliverable,
+			records,
+			recordDestinations,
+		);
+		const { governingItems, designBlockers } = resolveGoverningDesign(
+			deliverable,
+			records,
+			recordDestinations,
+		);
 		const links = { ...scopeLinks, governingItems };
 		const implementation = projectImplementation(deliverable);
-		const verification = projectVerification(deliverable, scopeRevisions);
+		const verification = projectVerification(deliverable);
 		const acceptances = acceptancesById.get(id) ?? [];
 		const progress = projectProgress({
 			deliverable,
-			scopeRevisions,
-			coverageGap,
+			coverageGap: coverageGaps[0],
 			designBlockers,
 			implementation,
 			verification,
@@ -502,21 +444,19 @@ export function projectDelivery(
 		);
 
 		const reasons = [...new Set([progress.reason, ...designBlockers.map(({ reason }) => reason)])];
-		if (coverageGap && coverageGap !== progress.reason) reasons.push(coverageGap);
+		for (const gap of coverageGaps) if (gap !== progress.reason) reasons.push(gap);
 		if (unmetPrerequisites.length)
 			reasons.unshift(`Awaiting acceptance of prerequisites: ${unmetPrerequisites.join(', ')}.`);
 		if (progress.state !== 'accepted') {
 			if (acceptances.some(({ build }) => build !== implementation.candidate))
 				reasons.push('The earlier Lead acceptance is for a different build.');
-			if (acceptances.some((receipt): boolean => !scopeRevisions.includes(receipt.scopeRevision)))
-				reasons.push('The earlier Lead acceptance needs review.');
 		}
 
 		byDependencyOrder.set(id, {
+			kind: 'core',
 			id,
 			title,
 			...(builder === undefined ? {} : { builder }),
-			scopeRevision,
 			dependsOn,
 			state: unmetPrerequisites.length ? 'dependency-blocked' : progress.state,
 			reasons,
@@ -525,12 +465,7 @@ export function projectDelivery(
 			verification,
 			links,
 		});
-		destinations.push(
-			links.plan,
-			...links.rules,
-			...links.designItems,
-			...links.verificationChecks,
-		);
+		destinations.push(links.plan);
 		for (const href of implementation.evidence) evidence.add(href);
 		for (const check of verification.checks) {
 			if ('outcome' in check && 'evidence' in check.outcome) evidence.add(check.outcome.evidence);

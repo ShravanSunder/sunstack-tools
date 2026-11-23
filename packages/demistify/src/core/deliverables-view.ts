@@ -11,14 +11,9 @@ export const localDeliveryHref = z
 			!/[\\\p{Cc}]/u.test(href),
 		'must be a relative link',
 	);
-export const scopeRevisionSchema = z
-	.string()
-	.regex(/^[a-f0-9]{64}$/, 'Expected a lowercase SHA-256 hex digest.');
-
 export const deliveryAcceptanceSchema = z.strictObject({
 	deliverableId: recordId,
 	build: text,
-	scopeRevision: scopeRevisionSchema,
 	evidence: localDeliveryHref,
 });
 
@@ -34,12 +29,15 @@ const verificationOutcome = z.discriminatedUnion('kind', [
 
 export const verificationReceiptSchema = z.strictObject({
 	build: text,
-	scopeRevision: scopeRevisionSchema,
 	outcomes: z.record(recordId, verificationOutcome),
 });
 
 const destination = z.strictObject({ page: localDeliveryHref, fragment: recordId });
-const recordDestination = destination.extend({ id: recordId });
+const recordDestination = z.strictObject({
+	id: recordId,
+	label: text,
+	destination: destination.optional(),
+});
 const check = z.discriminatedUnion('state', [
 	z.strictObject({ id: recordId, state: z.literal('missing'), reason: text }),
 	z.strictObject({
@@ -74,11 +72,11 @@ const progress = z.discriminatedUnion('state', [
 		acceptance: deliveryAcceptanceSchema,
 	}),
 ]);
-export const deliverableViewSchema = z.strictObject({
+const coreDeliverableView = z.strictObject({
+	kind: z.literal('core'),
 	id: recordId,
 	title: text,
 	builder: z.string().min(1).optional(),
-	scopeRevision: scopeRevisionSchema,
 	dependsOn: z.array(recordId),
 	state: z.union([openProgressState, z.enum(['accepted', 'dependency-blocked'])]),
 	reasons: z.array(text),
@@ -90,7 +88,6 @@ export const deliverableViewSchema = z.strictObject({
 	}),
 	verification: z.strictObject({
 		build: text.optional(),
-		scopeRevision: scopeRevisionSchema.optional(),
 		checks: z.array(check),
 		history: z.array(verificationReceiptSchema).optional(),
 	}),
@@ -103,13 +100,24 @@ export const deliverableViewSchema = z.strictObject({
 	}),
 });
 
+const laterDeliverableView = z.strictObject({
+	kind: z.literal('later'),
+	id: recordId,
+	title: text,
+	state: z.literal('later'),
+});
+export const deliverableViewSchema = z.discriminatedUnion('kind', [
+	coreDeliverableView,
+	laterDeliverableView,
+]);
+
 export const deliverablesViewSchema = z.strictObject({
 	version: z.literal(1),
-	snapshotRevision: scopeRevisionSchema,
 	deliverables: z.record(recordId, deliverableViewSchema),
 });
 
 export type DeliverableView = z.infer<typeof deliverableViewSchema>;
+export type CoreDeliverableView = Extract<DeliverableView, { kind: 'core' }>;
 export type DeliverablesView = z.infer<typeof deliverablesViewSchema>;
 
 /** Read the versioned data emitted by the design checker. */

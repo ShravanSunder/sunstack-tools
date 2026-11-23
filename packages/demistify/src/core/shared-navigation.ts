@@ -21,7 +21,7 @@ export const sharedMapNodeSchema = z.strictObject({
 });
 
 export const sharedWalkthroughStepSchema = z.strictObject({
-	target: navigationTargetSchema,
+	target: navigationTargetSchema.optional(),
 	narration: z.string().min(1),
 	icon: navigationIcon.optional(),
 });
@@ -71,7 +71,7 @@ export const sharedNavigationSchema = z
 			if (routeIds.has(route.id))
 				context.addIssue({ code: 'custom', message: `Duplicate walkthrough id: ${route.id}` });
 			routeIds.add(route.id);
-			for (const step of route.steps) checkTarget(step.target);
+			for (const step of route.steps) if (step.target) checkTarget(step.target);
 		}
 	});
 

@@ -1,121 +1,123 @@
 import { parse, type DefaultTreeAdapterMap } from 'parse5';
 
-import type { DesignRecord } from './schema.ts';
+interface MarkupRange {
+	readonly start: number;
+	readonly end: number;
+}
 
-interface AuthoredFragment {
-	readonly source: string;
-	readonly heading?: true;
-	readonly designItem: string | undefined;
-	readonly authority: string | undefined;
+export interface RecordBinding {
+	readonly reference: string;
+	readonly tag: string;
+	readonly startTag: MarkupRange;
+	readonly endTag: MarkupRange;
 }
 
 export interface PageMarkup {
-	ids: Map<string, AuthoredFragment>;
-	links: string[];
-	navigationSources: string[];
-	deliverySources: string[];
-	decisionChoices: { id: string; reference: string; title: string }[];
+	readonly ids: Set<string>;
+	readonly links: string[];
+	readonly navigationSources: string[];
+	readonly deliverySources: string[];
+	readonly placements: RecordBinding[];
+	readonly trees: RecordBinding[];
 	hasDocumentBase: boolean;
 }
 
+const recordTextTags = new Set([
+	'p',
+	'span',
+	'div',
+	'h1',
+	'h2',
+	'h3',
+	'h4',
+	'h5',
+	'h6',
+	'li',
+	'dt',
+	'dd',
+	'td',
+	'th',
+	'blockquote',
+	'ex-choice',
+]);
+
 export function readPageMarkup(html: string, file: string): PageMarkup {
 	const result: PageMarkup = {
-		ids: new Map(),
+		ids: new Set(),
 		links: [],
 		navigationSources: [],
 		deliverySources: [],
-		decisionChoices: [],
+		placements: [],
+		trees: [],
 		hasDocumentBase: false,
 	};
-	const sections = new Set(['article', 'aside', 'body', 'ex-document', 'main', 'nav', 'section']);
-	interface Heading {
-		readonly rank: number;
-		readonly id: string | undefined;
-		readonly start: number;
-	}
-	const groups: { headings: Heading[]; end: number }[] = [];
-	const preformattedText: { start: number; end: number }[] = [];
-	function visit(
-		node: DefaultTreeAdapterMap['node'],
-		headings: Heading[],
-		inPreformattedText = false,
-	): void {
-		let currentHeadings = headings;
-		const preservesWhitespace =
-			inPreformattedText ||
-			('tagName' in node && ['pre', 'listing', 'textarea'].includes(node.tagName));
-		if (preservesWhitespace && 'value' in node && node.sourceCodeLocation) {
-			const { startOffset, endOffset } = node.sourceCodeLocation;
-			preformattedText.push({ start: startOffset, end: endOffset });
-		}
+	function visit(node: DefaultTreeAdapterMap['node']): void {
 		if ('attrs' in node) {
 			const get = (name: string): string | undefined =>
-				node.attrs.find((attribute): boolean => attribute.name === name)?.value;
+				node.attrs.find(({ name: attribute }): boolean => attribute === name)?.value;
 			const id = get('id');
+			const reference = get('data-design-record');
+			const need = get('data-design-need');
+			const anchor = reference ?? id;
+			if (anchor) {
+				if (result.ids.has(anchor))
+					throw new Error(`Duplicate HTML id or record placement "${anchor}" in ${file}.`);
+				result.ids.add(anchor);
+			}
+			if (reference !== undefined || need !== undefined) {
+				const location = node.sourceCodeLocation;
+				const tag = node.tagName;
+				if (!location?.startTag || !location.endTag)
+					throw new Error(`${file}: <${tag}> bindings need explicit closing tags.`);
+				const { startTag, endTag } = location;
+				const range = (part: typeof startTag): MarkupRange => ({
+					start: part.startOffset,
+					end: part.endOffset,
+				});
+				if (reference !== undefined) {
+					if (!recordTextTags.has(tag))
+						throw new Error(`${file}: <${tag}> cannot hold a record placement.`);
+					if (
+						id !== undefined ||
+						(tag === 'ex-choice' &&
+							(get('title') !== undefined || get('data-decision') !== undefined))
+					)
+						throw new Error(`${file}: ${reference} supplies its own anchor and Choice question.`);
+					if (tag !== 'ex-choice' && html.slice(startTag.endOffset, endTag.startOffset).trim())
+						throw new Error(`${file}: record placement ${reference} must be empty.`);
+					result.placements.push({
+						reference,
+						tag,
+						startTag: range(startTag),
+						endTag: range(endTag),
+					});
+				}
+				if (need !== undefined) {
+					if (
+						tag !== 'ex-tree' ||
+						reference !== undefined ||
+						get('navigation') !== undefined ||
+						get('title') !== undefined ||
+						html.slice(startTag.endOffset, endTag.startOffset).trim()
+					)
+						throw new Error(`${file}: add data-design-need to an empty ex-tree.`);
+					result.trees.push({
+						reference: need,
+						tag,
+						startTag: range(startTag),
+						endTag: range(endTag),
+					});
+				}
+			}
 			const href = get('href');
-			const location = node.sourceCodeLocation;
-			if (sections.has(node.tagName)) {
-				currentHeadings = [];
-				groups.push({
-					headings: currentHeadings,
-					end: location?.endTag?.startOffset ?? location?.endOffset ?? html.length,
-				});
-			}
-			if (/^h[1-6]$/.test(node.tagName) && location)
-				currentHeadings.push({
-					rank: Number(node.tagName.slice(1)),
-					id,
-					start: location.startOffset,
-				});
-			if (id) {
-				if (result.ids.has(id)) throw new Error(`Duplicate HTML id "${id}" in ${file}.`);
-				const source = node.sourceCodeLocation;
-				result.ids.set(id, {
-					source: source ? html.slice(source.startOffset, source.endOffset) : '',
-					designItem: get('data-design-item'),
-					authority: get('data-authority'),
-				});
-			}
 			if (href) result.links.push(href);
 			if (node.tagName === 'base' && href !== undefined) result.hasDocumentBase = true;
 			if (node.tagName === 'ex-nav') result.navigationSources.push(get('src') ?? '');
 			if (node.tagName === 'ex-deliverables') result.deliverySources.push(get('src') ?? '');
-			if (node.tagName === 'ex-choice') {
-				const reference = get('data-decision');
-				if (reference !== undefined)
-					result.decisionChoices.push({
-						id: id ?? '',
-						reference: reference.trim(),
-						title: get('title') ?? '',
-					});
-			}
 		}
-		if ('childNodes' in node) {
-			for (const child of node.childNodes) visit(child, currentHeadings, preservesWhitespace);
-		}
+		if ('childNodes' in node) node.childNodes.forEach(visit);
 	}
-	const documentHeadings: Heading[] = [];
-	groups.push({ headings: documentHeadings, end: html.length });
-	visit(parse(html, { sourceCodeLocationInfo: true }), documentHeadings);
-
-	for (const { headings, end } of groups) {
-		const nextByRank = Array.from({ length: 6 }, (): number => end);
-		for (const { rank, id, start } of headings.toReversed()) {
-			const fragment = id ? result.ids.get(id) : undefined;
-			if (id && fragment) {
-				const passageEnd = Math.min(...nextByRank.slice(0, rank));
-				const preservesWhitespace = preformattedText.some(
-					(text): boolean => text.start < passageEnd && text.end >= passageEnd,
-				);
-				result.ids.set(id, {
-					...fragment,
-					source: html.slice(start, passageEnd),
-					...(preservesWhitespace ? {} : { heading: true }),
-				});
-			}
-			nextByRank[rank - 1] = start;
-		}
-	}
+	visit(parse(html, { sourceCodeLocationInfo: true }));
 	return result;
 }
 
@@ -145,34 +147,56 @@ export function normalizeExcerpt(text: string): string {
 	return text.replace(/\s+/gu, ' ').trim();
 }
 
-export function passageText(html: string): string {
+type PageNode = DefaultTreeAdapterMap['node'];
+type PageElement = DefaultTreeAdapterMap['element'];
+
+function elementId(element: PageElement): string | undefined {
+	return element.attrs.find(({ name }) => name === 'id' || name === 'data-design-record')?.value;
+}
+
+function sectionOwner(element: PageElement): PageElement | undefined {
+	const sections = new Set(['article', 'aside', 'body', 'ex-document', 'main', 'nav', 'section']);
+	let parent = element.parentNode;
+	while (parent) {
+		if ('tagName' in parent && sections.has(parent.tagName)) return parent;
+		parent = 'parentNode' in parent ? parent.parentNode : null;
+	}
+	return undefined;
+}
+
+function fragmentMarkup(html: string, fragment: string): string {
+	const elements: PageElement[] = [];
+	function collect(node: PageNode): void {
+		if ('attrs' in node) elements.push(node);
+		if ('childNodes' in node) node.childNodes.forEach(collect);
+	}
+	collect(parse(html, { sourceCodeLocationInfo: true }));
+	const target = elements.find((element) => elementId(element) === fragment);
+	const location = target?.sourceCodeLocation;
+	if (!target || !location) return '';
+	if (!/^h[1-6]$/.test(target.tagName)) return html.slice(location.startOffset, location.endOffset);
+	const owner = sectionOwner(target);
+	const containingEnd = owner?.sourceCodeLocation?.endTag?.startOffset ?? html.length;
+	const next = elements.find(
+		(element) =>
+			/^h[1-6]$/.test(element.tagName) &&
+			element.tagName <= target.tagName &&
+			(element.sourceCodeLocation?.startOffset ?? -1) > location.startOffset &&
+			sectionOwner(element) === owner,
+	);
+	return html.slice(location.startOffset, next?.sourceCodeLocation?.startOffset ?? containingEnd);
+}
+
+export function passageText(html: string, fragment?: string): string {
 	const parts: string[] = [];
-	function visit(node: DefaultTreeAdapterMap['node']): void {
-		if ('value' in node) parts.push(node.value);
+	function visit(node: PageNode): void {
 		if ('tagName' in node && excludedTextTags.has(node.tagName)) return;
+		if ('value' in node) parts.push(node.value);
 		const boundary = 'tagName' in node && textBoundaryTags.has(node.tagName);
 		if (boundary) parts.push(' ');
 		if ('childNodes' in node) node.childNodes.forEach(visit);
 		if (boundary) parts.push(' ');
 	}
-	visit(parse(html));
+	visit(parse(fragment === undefined ? html : fragmentMarkup(html, fragment)));
 	return normalizeExcerpt(parts.join(''));
-}
-
-export function checkDesignItemMarkup(
-	record: DesignRecord,
-	fragment: AuthoredFragment | undefined,
-): void {
-	if (!fragment || (record.kind !== 'choice' && record.kind !== 'assumption')) return;
-	const itemKind = record.kind === 'choice' ? 'decision' : 'assumption';
-	if (fragment.designItem !== undefined && fragment.designItem !== itemKind)
-		throw new Error(
-			`${record.id}: expected data-design-item="${itemKind}" on its HTML destination.`,
-		);
-
-	if (record.kind !== 'choice' || fragment.authority === undefined) return;
-	const { authority } = record;
-	const expected = authority.state === 'owner-open' ? 'unknown' : authority.sourceKind;
-	if (fragment.authority !== expected)
-		throw new Error(`${record.id}: expected data-authority="${expected}" on its HTML destination.`);
 }

@@ -3,7 +3,6 @@ import { basename, dirname, isAbsolute, relative, resolve, sep } from 'node:path
 import typescript from 'typescript';
 import { z } from 'zod';
 
-import { deliverySdkSource } from './delivery-sdk-source.ts';
 import { designDeclarationFilename, readLiteral, unwrapExpression } from './read-design.ts';
 
 const alias = z.string().regex(/^[A-Za-z][A-Za-z0-9-]*$/);
@@ -129,11 +128,7 @@ export async function readProjectIdentities(
 				basename(path) !== 'design-sdk.generated.ts'
 			)
 				throw new Error(`${file}: import agentId from the matching generated design SDK.`);
-			// oxlint-disable-next-line no-await-in-loop -- only the one allowed helper is verified.
-			if ((await read(path)) !== deliverySdkSource)
-				throw new Error(
-					`${file}: ${path} is out of date. Run demistify design types "${dirname(path)}" with the same CLI, then recheck the project.`,
-				);
+
 			helper = binding.name.text;
 			continue;
 		}

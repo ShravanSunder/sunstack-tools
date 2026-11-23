@@ -1,7 +1,5 @@
-import { createHash } from 'node:crypto';
-import { lstat, readFile, realpath } from 'node:fs/promises';
+import { readFile, realpath } from 'node:fs/promises';
 import { dirname, extname, isAbsolute, join, relative, resolve, sep } from 'node:path';
-import { isDeepStrictEqual } from 'node:util';
 
 import { deliverablesViewSchema } from '../../core/deliverables-view.ts';
 import {
@@ -16,24 +14,23 @@ import {
 	type DeliveryEntry,
 	type DeliveryProjection,
 } from './delivery-model.ts';
-import { checkDecisionChoices, compileDesignNavigation } from './design-navigation.ts';
-import { commitDesignOutputs, planGeneratedJson, type GeneratedFile } from './design-output.ts';
+import { compileDesignNavigation } from './design-navigation.ts';
+import { commitDesignOutputs, planGeneratedJson } from './design-output.ts';
 import {
-	checkDesignItemMarkup,
 	normalizeExcerpt,
 	passageText,
 	readPageMarkup,
 	type PageMarkup,
 } from './design-page-markup.ts';
 import { readDeliveryEntries } from './read-delivery.ts';
-import { readDesign, readDesignItems } from './read-design.ts';
-import type { DesignCore, DesignRecord } from './schema.ts';
+import { readDesignSources } from './read-design.ts';
 import {
-	deliveryRevisionInputs,
-	readScopeBoundaries,
-	recordScopeRevision,
-	type RecordScopeRevision,
-} from './scope-boundary.ts';
+	prepareRecordPage,
+	projectedDestinations,
+	projectRecords,
+	type RecordProjection,
+} from './record-projection.ts';
+import { recordRelationships, type DesignCore, type DesignRecord } from './schema.ts';
 
 function containsPath(root: string, file: string): boolean {
 	const child = relative(root, file);
@@ -88,8 +85,7 @@ export function checkRecordRelationships(records: readonly DesignRecord[]): void
 		}
 	}
 	for (const record of records) {
-		if (!('relationships' in record)) continue;
-		for (const link of record.relationships) {
+		for (const link of recordRelationships(record)) {
 			const kind = relatedKind[link.relation];
 			const replacement = link.relation === 'governed-by' && replacements.get(link.targetId);
 			if (replacement)
@@ -109,44 +105,45 @@ interface PreparedDesign {
 	readonly lead?: string;
 	readonly design: DesignCore;
 	readonly entries: readonly DeliveryEntry[];
+	readonly checkTypes: (knownRecordIds: readonly string[]) => void;
 	readonly firstPage: { readonly href: string; readonly title: string };
 	readonly pages: readonly { file: string; owned: boolean }[];
-	readonly recordRevisions: ReadonlyMap<string, RecordScopeRevision>;
-	readonly plan: (
-		delivery: DeliveryProjection,
-		projectSource?: ProjectNavigationSource,
-	) => Promise<{
-		readonly result: string;
-		readonly outputs: () => Promise<readonly (GeneratedFile | undefined)[]>;
-	}>;
+	readonly plan: (delivery: DeliveryProjection, scope: PlanDesignScope) => Promise<DesignPlan>;
 }
 
-interface ProjectNavigationSource {
-	readonly file: string;
-	readonly text: string;
-	readonly records: ReadonlyMap<string, DesignRecord>;
+interface PlanDesignScope {
+	readonly projection: RecordProjection;
+	readonly preparedPages: ReadonlyMap<string, string>;
+	readonly namespace?: string;
+	readonly projectSource?: { readonly file: string; readonly text: string };
 }
 
-interface ChoiceCheckScope {
-	readonly pages: ReadonlyMap<string, string | undefined>;
-	readonly records: ReadonlyMap<string, DesignRecord>;
-	readonly sourceFile: string;
-	readonly project?: true;
+interface DesignPlan {
+	readonly result: string;
+	readonly generated: ReadonlyMap<string, unknown>;
+}
+
+export interface CheckedDesignBuild extends DesignPlan {
+	readonly preparedPages: ReadonlyMap<string, string>;
+	readonly design: DesignCore;
+	readonly entries: readonly DeliveryEntry[];
+	readonly delivery: DeliveryProjection;
 }
 
 interface DesignCheck {
 	readonly read: (file: string, authoringRoot?: string) => Promise<string>;
 	readonly checkEvidence: (href: string, sourceFile: string) => Promise<void>;
-	readonly inspectRecords: (
+	readonly checkRecordSources: (
 		records: readonly DesignRecord[],
 		sourceFile: string,
-		options?: { pages?: ReadonlySet<string>; previousBoundaries?: ReadonlyMap<string, string> },
-	) => Promise<Map<string, RecordScopeRevision>>;
-	readonly readScopeBoundaries: (
-		file: string,
-		location: 'design' | 'project',
-	) => Promise<ReadonlyMap<string, string>>;
-	readonly checkChoices: (scope: ChoiceCheckScope) => Promise<void>;
+	) => Promise<void>;
+	readonly projectPages: (
+		records: readonly DesignRecord[],
+		pages: ReadonlyMap<string, string | undefined>,
+	) => Promise<{
+		readonly projection: RecordProjection;
+		readonly preparedPages: ReadonlyMap<string, string>;
+	}>;
 	readonly prepare: (directory: string, authoringRoot?: string) => Promise<PreparedDesign>;
 	readonly verify: () => Promise<void>;
 }
@@ -240,117 +237,55 @@ export async function openDesignCheck(siteRoot: string): Promise<DesignCheck> {
 		}
 	}
 
-	async function inspectRecords(
+	async function checkRecordSources(
 		records: readonly DesignRecord[],
 		sourceFile: string,
-		{
-			pages,
-			previousBoundaries,
-		}: { pages?: ReadonlySet<string>; previousBoundaries?: ReadonlyMap<string, string> } = {},
-	): Promise<Map<string, RecordScopeRevision>> {
-		return new Map(
-			await Promise.all(
-				records.map(async (record) => {
-					const destination = resolveLink(record.destination.page, sourceFile);
-					if (!destination || !isHtml(destination.file) || (pages && !pages.has(destination.file)))
-						throw new Error(`Record ${record.id} must point to a declared HTML page.`);
-					await checkDestination(destination.file, record.destination.fragment, true);
-					const sources =
-						record.kind === 'assumption' && record.resolution
-							? [...record.sources, record.resolution]
-							: record.sources;
-					await Promise.all(
-						sources.map(async (source) => {
-							const target = resolveLink(source.href, sourceFile);
-							if (!target) throw new Error(`Source reference must be local: ${source.href}`);
-							await checkDestination(target.file, target.fragment, source.verbatim === true);
-							if (source.verbatim) {
-								if (!isHtml(target.file))
-									throw new Error(
-										`${record.id}: verbatim excerpts require an HTML source: ${source.href}`,
-									);
-								const cited = target.fragment
-									? (await readPage(target.file)).ids.get(target.fragment)?.source
-									: await readSiteFile(target.file);
-								if (!cited || !passageText(cited).includes(normalizeExcerpt(source.excerpt)))
-									throw new Error(
-										`${record.id}: verbatim excerpt does not appear in ${source.href}.`,
-									);
-							}
-						}),
-					);
-					const passage = (await readPage(destination.file)).ids.get(record.destination.fragment);
-					checkDesignItemMarkup(record, passage);
-					const revision = recordScopeRevision({
-						record,
-						source: passage?.source ?? '',
-						heading: passage?.heading === true,
-						previousBoundary: previousBoundaries?.get(record.id),
-					});
-					return [record.id, revision] as const;
-				}),
-			),
-		);
-	}
-
-	async function readPreviousBoundaries(
-		file: string,
-		location: 'design' | 'project',
-	): Promise<ReadonlyMap<string, string>> {
-		const existing = await lstat(file).catch((error: unknown) => {
-			if (missing(error)) return undefined;
-			throw error;
-		});
-		return existing?.isFile() ? readScopeBoundaries(await readSiteFile(file), location) : new Map();
-	}
-
-	async function checkChoices(scope: ChoiceCheckScope): Promise<void> {
-		const { records, sourceFile, project } = scope;
-		const externalFragments = new Map<string, Set<string>>();
-		for (const record of records.values()) {
-			if (!project && record.kind !== 'choice') continue;
-			const target = resolveLink(record.destination.page, sourceFile);
-			if (!target || scope.pages.has(target.file)) continue;
-			const fragments = externalFragments.get(target.file) ?? new Set<string>();
-			fragments.add(record.destination.fragment);
-			externalFragments.set(target.file, fragments);
-		}
-		const pages = new Map(scope.pages);
-		for (const file of externalFragments.keys()) pages.set(file, undefined);
+	): Promise<void> {
 		await Promise.all(
-			[...pages].map(async ([file, namespace]) => {
-				const { decisionChoices } = await readPage(file);
-				const fragments = project ? undefined : externalFragments.get(file);
-				checkDecisionChoices({
-					choices: fragments
-						? decisionChoices.filter(({ id }) => fragments.has(id))
-						: decisionChoices,
-					file,
-					displayPath: label(file),
-					resolveRecord(reference) {
-						const qualified = reference.includes('/');
-						if (qualified && !project)
-							throw new Error(`Qualified reference ${reference} requires demistify project check.`);
-						if (project && !namespace && !qualified)
-							throw new Error(
-								`${label(file)}: use a qualified decision ID on a shared page: ${reference}.`,
-							);
-						const id = namespace && !qualified ? `${namespace}/${reference}` : reference;
-						const record = records.get(id);
-						const destination = record && resolveLink(record.destination.page, sourceFile);
-						if (!record || !destination)
-							throw new Error(`${label(file)}: unknown design record ${id}.`);
-						return { record, file: destination.file };
-					},
+			records.flatMap((record) => {
+				const sources =
+					record.kind === 'choice' || record.kind === 'assumption' ? (record.sources ?? []) : [];
+				const resolution = record.kind === 'assumption' ? record.resolution : undefined;
+				return [...sources, ...(resolution ? [resolution] : [])].map(async (source) => {
+					const target = resolveLink(source.href, sourceFile);
+					if (!target) throw new Error(`Source reference must be local: ${source.href}`);
+					await checkDestination(target.file, target.fragment, source.verbatim === true);
+					if (!source.verbatim) return;
+					if (!isHtml(target.file))
+						throw new Error(
+							`${record.id}: verbatim excerpts require an HTML source: ${source.href}`,
+						);
+					const text = passageText(await readSiteFile(target.file), target.fragment || undefined);
+					if (!text.includes(normalizeExcerpt(source.excerpt)))
+						throw new Error(`${record.id}: verbatim excerpt does not appear in ${source.href}.`);
 				});
 			}),
 		);
 	}
 
+	async function projectPages(
+		records: readonly DesignRecord[],
+		pages: ReadonlyMap<string, string | undefined>,
+	): ReturnType<DesignCheck['projectPages']> {
+		const authored = await Promise.all(
+			[...pages].map(async ([file, namespace]) => ({
+				file,
+				namespace,
+				markup: await readPage(file),
+				html: await readSiteFile(file),
+			})),
+		);
+		const projection = projectRecords(records, authored);
+		return {
+			projection,
+			preparedPages: new Map(
+				authored.map((page) => [page.file, prepareRecordPage({ ...page, projection })]),
+			),
+		};
+	}
+
 	async function prepare(directory: string, authoringRoot?: string): Promise<PreparedDesign> {
 		const setDirectory = await resolveSiteFile(resolve(directory), authoringRoot);
-		const designFile = join(setDirectory, 'design.ts');
-		const declarationFile = join(setDirectory, 'design-schema.d.ts');
 		const navigationFile = join(setDirectory, 'navigation.generated.json');
 		const deliverablesFile = join(setDirectory, 'deliverables.generated.json');
 		async function readOwnedInput(file: string): Promise<string> {
@@ -364,38 +299,16 @@ export async function openDesignCheck(siteRoot: string): Promise<DesignCheck> {
 				if (missing(error)) return undefined;
 				throw error;
 			});
-		const decisionFile = join(setDirectory, 'design-decisions.ts');
-		const assumptionFile = join(setDirectory, 'design-assumptions.ts');
-		const [designText, declaration, decisions, assumptions] = await Promise.all([
-			readOwnedInput(designFile),
-			readOptionalOwnedInput(declarationFile),
-			readOptionalOwnedInput(decisionFile),
-			readOptionalOwnedInput(assumptionFile),
-		]);
-		const { design: authored, recordSources } = await readDesign(
-			designFile,
-			designText,
+		const { design, designFile, designText, sources } = await readDesignSources(
+			setDirectory,
 			readOwnedInput,
+			readOptionalOwnedInput,
 		);
-		const designSources = new Map(recordSources);
-		if (decisions !== undefined) designSources.set(decisionFile, decisions);
-		if (assumptions !== undefined) designSources.set(assumptionFile, assumptions);
-		const design: DesignCore = {
-			...authored,
-			records: [
-				...authored.records,
-				...(decisions === undefined ? [] : readDesignItems(decisionFile, decisions, 'choice')),
-				...(assumptions === undefined
-					? []
-					: readDesignItems(assumptionFile, assumptions, 'assumption')),
-			],
-		};
 		const deliverySource = await readDeliveryEntries(
 			designFile,
 			designText,
-			declaration,
 			readOptionalOwnedInput,
-			designSources,
+			sources,
 		);
 		const entries = parseDeliveryEntries(deliverySource.entries);
 		for (const {
@@ -429,56 +342,36 @@ export async function openDesignCheck(siteRoot: string): Promise<DesignCheck> {
 			await Promise.all(node.children.map(checkMapNode));
 		};
 		const generatedDesign = join(setDirectory, 'design.generated.json');
-		const previousBoundaries = await readPreviousBoundaries(generatedDesign, 'design');
-		const recordRevisions = await inspectRecords(design.records, designFile, {
-			pages: declaredPages,
-			previousBoundaries,
-		});
-		const storedRevisions = Object.fromEntries(
-			[...recordRevisions].map(([id, entry]) => [id, entry.current]),
-		);
-		const localRecords = new Map(design.records.map((record) => [record.id, record]));
+		await checkRecordSources(design.records, designFile);
 		async function plan(
 			delivery: DeliveryProjection,
-			projectSource?: ProjectNavigationSource,
-		): ReturnType<PreparedDesign['plan']> {
-			function resolveRecord(reference: string): { record: DesignRecord; file: string } {
+			{ projection, preparedPages, namespace, projectSource }: PlanDesignScope,
+		): Promise<DesignPlan> {
+			const navigation = compileDesignNavigation(design, (reference) => {
 				const qualified = reference.includes('/');
-				if (qualified && !projectSource)
+				if (qualified && !namespace)
 					throw new Error(`Qualified reference ${reference} requires demistify project check.`);
-				const record = qualified
-					? projectSource?.records.get(reference)
-					: localRecords.get(reference);
+				const id = namespace && !qualified ? `${namespace}/${reference}` : reference;
+				const record = projection.records.get(id);
 				if (!record) throw new Error(`${label(designFile)}: unknown design record ${reference}.`);
-				const target = resolveLink(
-					record.destination.page,
-					qualified && projectSource ? projectSource.file : designFile,
-				);
-				if (!target) throw new Error(`Record ${reference} must point to a local HTML page.`);
-				return { record, file: target.file };
-			}
-			const navigation = compileDesignNavigation(design, (reference): NavigationTarget => {
-				const destination = resolveRecord(reference);
+				const destination = projection.placements.get(id);
+				if (!destination) return { record };
 				const page = pageIdsByFile.get(destination.file);
 				if (!page)
 					throw new Error(
 						`${label(designFile)}: declare ${label(destination.file)} in pages to navigate to ${reference}.`,
 					);
-				return { page, fragment: destination.record.destination.fragment };
+				return { record, target: { page, fragment: destination.fragment } };
 			});
 			const validatedNavigation = sharedNavigationSchema.parse(navigation);
 			await Promise.all([
 				...validatedNavigation.map.map(checkMapNode),
 				...validatedNavigation.walkthroughs.flatMap((route) =>
-					route.steps.map((step) => checkNavigationTarget(step.target)),
+					route.steps.flatMap((step) => (step.target ? [checkNavigationTarget(step.target)] : [])),
 				),
 			]);
-			const snapshotRevision = createHash('sha256')
-				.update(JSON.stringify([storedRevisions, navigation, delivery.deliverables]))
-				.digest('hex');
 			const deliverables = deliverablesViewSchema.parse({
 				version: 1,
-				snapshotRevision,
 				deliverables: delivery.deliverables,
 			});
 			await Promise.all([
@@ -531,17 +424,20 @@ export async function openDesignCheck(siteRoot: string): Promise<DesignCheck> {
 							if (target) await checkDestination(target.file, target.fragment);
 						}),
 					);
-					const findings = await checkHtml(await readSiteFile(file), {
+					const findings = await checkHtml(preparedPages.get(file) ?? (await readSiteFile(file)), {
 						readSource: async (path) => {
 							const target = resolveLink(path, file);
 							if (!target) return undefined;
 							if (target.file === navigationFile) return navigationText;
 							if (target.file === deliverablesFile) return deliverablesText;
 							if (target.file === projectSource?.file) return projectSource.text;
-							return readSiteFile(target.file).catch((error: unknown): undefined => {
-								if (!missing(error)) throw error;
-								return undefined;
-							});
+							return (
+								preparedPages.get(target.file) ??
+								readSiteFile(target.file).catch((error: unknown): undefined => {
+									if (!missing(error)) throw error;
+									return undefined;
+								})
+							);
 						},
 					});
 					return { file: label(file), findings };
@@ -559,42 +455,32 @@ export async function openDesignCheck(siteRoot: string): Promise<DesignCheck> {
 				throw new Error(details);
 
 			const recordDestinations = Object.fromEntries(
-				design.records.map(({ id, destination }) => [
-					id,
-					`${destination.page}#${destination.fragment}`,
-				]),
+				[...projectedDestinations(projection, setDirectory)].flatMap(([id, destination]) => {
+					if (namespace && !id.startsWith(`${namespace}/`)) return [];
+					return [[namespace ? id.slice(namespace.length + 1) : id, destination]];
+				}),
 			);
-			const outputs = (): Promise<(GeneratedFile | undefined)[]> =>
-				Promise.all([
-					planGeneratedJson(generatedDesign, {
-						version: 1,
-						snapshotRevision,
-						pages: design.pages,
-						records: design.records,
-						recordDestinations,
-						recordRevisions: storedRevisions,
-						boundaryWhitespace: Object.fromEntries(
-							[...recordRevisions].flatMap(([id, entry]) =>
-								entry.boundaryWhitespace === undefined ? [] : [[id, entry.boundaryWhitespace]],
-							),
-						),
-					}),
-					planGeneratedJson(navigationFile, navigation, (current): boolean => {
-						const parsed = sharedNavigationSchema.safeParse(current);
-						return parsed.success && isDeepStrictEqual(parsed.data, validatedNavigation);
-					}),
-					planGeneratedJson(deliverablesFile, deliverables),
-				]);
+			const generated = new Map<string, unknown>([
+				[
+					generatedDesign,
+					{ version: 1, pages: design.pages, records: design.records, recordDestinations },
+				],
+				[navigationFile, navigation],
+				[deliverablesFile, deliverables],
+			]);
 			const result = [
 				details,
 				`Checked ${ownedPages.size} authored page(s), ${pages.length} navigation page(s), and ${design.records.length} design record(s).`,
-				...Object.values(delivery.deliverables).map(({ id, state, title, reasons }): string =>
-					[`${id} · ${state} · ${title}`, ...(state === 'accepted' ? [] : reasons)].join('\n  '),
+				...Object.values(delivery.deliverables).map((item): string =>
+					[
+						`${item.id} · ${item.state} · ${item.title}`,
+						...(item.kind === 'core' && item.state !== 'accepted' ? item.reasons : []),
+					].join('\n  '),
 				),
 			]
 				.filter(Boolean)
 				.join('\n');
-			return { result, outputs };
+			return { result, generated };
 		}
 		return {
 			directory: setDirectory,
@@ -602,7 +488,7 @@ export async function openDesignCheck(siteRoot: string): Promise<DesignCheck> {
 			pages,
 			design,
 			entries,
-			recordRevisions,
+			checkTypes: deliverySource.checkTypes,
 			plan,
 			...(deliverySource.lead === undefined ? {} : { lead: deliverySource.lead }),
 		};
@@ -640,46 +526,76 @@ export async function openDesignCheck(siteRoot: string): Promise<DesignCheck> {
 			return readSiteFile(file);
 		},
 		checkEvidence,
-		checkChoices,
-		inspectRecords,
-		readScopeBoundaries: readPreviousBoundaries,
+		checkRecordSources,
+		projectPages,
 		prepare,
 		verify,
 	};
 }
 
-export async function checkDesignSet(directory: string, siteRoot?: string): Promise<string> {
+export async function buildDesignSet(
+	directory: string,
+	options: { readonly siteRoot?: string | undefined; readonly write?: boolean | undefined } = {},
+): Promise<CheckedDesignBuild> {
 	const setDirectory = await realpath(resolve(directory));
-	const check = await openDesignCheck(siteRoot ?? setDirectory);
+	const check = await openDesignCheck(options.siteRoot ?? setDirectory);
 	const set = await check.prepare(setDirectory);
 	const qualified =
 		set.design.records
 			.flatMap((record) => [
-				...('relationships' in record ? record.relationships.map(({ targetId }) => targetId) : []),
+				...recordRelationships(record).map(({ targetId }) => targetId),
 				...(record.kind === 'choice' && record.supersedes ? [record.supersedes] : []),
 			])
 			.find((reference): boolean => reference.includes('/')) ??
 		set.entries
 			.flatMap(({ dependsOn, deliverable }) => [
 				...dependsOn,
-				...deliverable.scope.rules,
-				...deliverable.scope.designItems,
-				...deliverable.scope.verificationChecks,
+				...(deliverable.kind === 'core'
+					? [
+							...deliverable.scope.rules,
+							...deliverable.scope.designItems,
+							...deliverable.scope.verificationChecks,
+						]
+					: []),
 			])
 			.find((reference): boolean => reference.includes('/'));
 	if (qualified)
 		throw new Error(`Qualified reference ${qualified} requires demistify project check.`);
+	set.checkTypes(set.design.records.map(({ id }) => id));
 	checkRecordRelationships(set.design.records);
-	await check.checkChoices({
-		pages: new Map(set.pages.filter(({ owned }) => owned).map(({ file }) => [file, undefined])),
-		records: new Map(set.design.records.map((record) => [record.id, record])),
-		sourceFile: join(setDirectory, 'design.ts'),
-	});
-	const revisions = deliveryRevisionInputs(set.recordRevisions);
-	const delivery = projectDelivery(set.design, set.entries, revisions.current, {
-		legacyRecordRevisions: revisions.legacy,
-	});
-	const { result, outputs } = await set.plan(delivery);
-	await commitDesignOutputs([set.directory], [{ verify: check.verify, plan: outputs }]);
-	return result;
+	const { projection, preparedPages } = await check.projectPages(
+		set.design.records,
+		new Map(set.pages.map(({ file }) => [file, undefined])),
+	);
+	const delivery = projectDelivery(
+		set.design,
+		set.entries,
+		projectedDestinations(projection, setDirectory),
+	);
+	const plan = await set.plan(delivery, { projection, preparedPages });
+	if (options.write) await writeDesignBuild([set.directory], check.verify, plan.generated);
+	else await check.verify();
+	return { ...plan, design: set.design, entries: set.entries, preparedPages, delivery };
+}
+
+export async function writeDesignBuild(
+	directories: readonly string[],
+	verify: () => Promise<void>,
+	generated: ReadonlyMap<string, unknown>,
+): Promise<void> {
+	await commitDesignOutputs(directories, [
+		{
+			verify,
+			plan: () =>
+				Promise.all([...generated].map(([file, value]) => planGeneratedJson(file, value))),
+		},
+	]);
+}
+
+export async function checkDesignSet(
+	directory: string,
+	siteRoot?: string,
+	write = false,
+): Promise<string> {
+	return (await buildDesignSet(directory, { siteRoot, write })).result;
 }

@@ -1,12 +1,22 @@
-import { basename, dirname, isAbsolute, relative, resolve, sep } from 'node:path';
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 
 import typescript from 'typescript';
 import { z } from 'zod';
 
 import { assumptionRecord, authoredDesignSchema, choiceRecord } from './schema.ts';
-import type { AuthoredDesign, DesignRecord } from './schema.ts';
+import type { AuthoredDesign, DesignCore, DesignRecord } from './schema.ts';
 
 export const designDeclarationFilename = 'design-schema.d.ts';
+export const deliverySdkFilename = 'design-sdk.generated.ts';
+
+const recordHelperKinds: ReadonlyMap<string, DesignRecord['kind']> = new Map([
+	['defineNeed', 'need'],
+	['defineRule', 'rule'],
+	['defineRealization', 'realization'],
+	['defineCheck', 'planned-check'],
+	['defineDecision', 'choice'],
+	['defineAssumption', 'assumption'],
+]);
 
 export function unwrapExpression(input: typescript.Expression): typescript.Expression {
 	let expression = input;
@@ -106,11 +116,74 @@ function authoredModule(
 	};
 }
 
-function readDefaultLiteral(file: string, text: string): unknown {
+function sdkBindings(
+	imports: readonly typescript.ImportDeclaration[],
+	file: string,
+	sdkFile: string,
+): ReadonlyMap<string, string> {
+	const bindings = new Map<string, string>();
+	for (const statement of imports) {
+		const { importClause, moduleSpecifier, attributes } = statement;
+		if (importClause?.isTypeOnly) continue;
+		const named = importClause?.namedBindings;
+		if (
+			!typescript.isStringLiteral(moduleSpecifier) ||
+			!moduleSpecifier.text.startsWith('.') ||
+			resolve(dirname(file), moduleSpecifier.text) !== sdkFile ||
+			importClause?.name ||
+			!named ||
+			!typescript.isNamedImports(named) ||
+			attributes
+		)
+			throw new Error(`${file}: expected named imports from the generated design SDK.`);
+		for (const binding of named.elements) {
+			if (binding.isTypeOnly) continue;
+			const name = (binding.propertyName ?? binding.name).text;
+			if (
+				(name !== 'defineDesign' && !recordHelperKinds.has(name)) ||
+				bindings.has(binding.name.text)
+			)
+				throw new Error(`${file}: unsupported record helper ${name}.`);
+			bindings.set(binding.name.text, name);
+		}
+	}
+	return bindings;
+}
+
+function readRecord(
+	input: typescript.Expression,
+	source: typescript.SourceFile,
+	bindings: ReadonlyMap<string, string>,
+): unknown {
+	const expression = unwrapExpression(input);
+	if (!typescript.isCallExpression(expression)) return readLiteral(expression, source);
+	const helper =
+		typescript.isIdentifier(expression.expression) && bindings.get(expression.expression.text);
+	const kind = helper && recordHelperKinds.get(helper);
+	const [argument] = expression.arguments;
+	if (
+		!kind ||
+		!argument ||
+		expression.arguments.length !== 1 ||
+		!typescript.isObjectLiteralExpression(unwrapExpression(argument))
+	)
+		throw new Error(`${source.fileName}: use an imported record helper with one literal object.`);
+	const value = unwrapExpression(argument);
+	if (!typescript.isObjectLiteralExpression(value)) throw new Error('Expected a literal record.');
+	const fields = readObjectLiteral(value, source, {
+		readProperty: (_name, term): unknown => readLiteral(term, source),
+	});
+	if (Object.hasOwn(fields, 'kind'))
+		throw new Error(`${source.fileName}: a record helper supplies its kind.`);
+	return { ...fields, kind };
+}
+
+function readDefaultRecords(file: string, text: string, sdkFile: string): unknown {
 	const { source, imports, expression } = authoredModule(file, text);
-	if (imports.some(({ importClause }): boolean => !importClause?.isTypeOnly))
-		throw new Error(`${file}: only type-only imports are allowed in a literal record file.`);
-	return readLiteral(expression, source);
+	const bindings = sdkBindings(imports, file, sdkFile);
+	if (!typescript.isArrayLiteralExpression(expression))
+		throw new Error(`${file}: export a literal array of records.`);
+	return expression.elements.map((entry): unknown => readRecord(entry, source, bindings));
 }
 
 function recordValidationError(
@@ -165,8 +238,8 @@ function resolveRecordImport(
 
 type AuthoredRecord = AuthoredDesign['records'][number];
 
-function readRecordArray(file: string, text: string): AuthoredRecord[] {
-	const input = readDefaultLiteral(file, text);
+function readRecordArray(file: string, text: string, sdkFile: string): AuthoredRecord[] {
+	const input = readDefaultRecords(file, text, sdkFile);
 	const validated = authoredDesignSchema.shape.records.safeParse(input);
 	if (validated.success) return validated.data;
 	throw recordValidationError(file, input, validated.error, false);
@@ -177,9 +250,10 @@ function composeRecordArray(
 	source: typescript.SourceFile,
 	imports: ReadonlyMap<string, AuthoredRecord[]>,
 	used: Set<string>,
+	helpers: ReadonlyMap<string, string>,
 ): unknown[] {
 	return value.elements.flatMap((element): unknown[] => {
-		if (!typescript.isSpreadElement(element)) return [readLiteral(element, source)];
+		if (!typescript.isSpreadElement(element)) return [readRecord(element, source, helpers)];
 		const binding = typescript.isIdentifier(element.expression) && element.expression.text;
 		const records = binding ? imports.get(binding) : undefined;
 		if (!binding || !records)
@@ -203,26 +277,48 @@ export async function readDesign(
 	readOwnedInput: (file: string) => Promise<string>,
 ): Promise<ReadDesignResult> {
 	const { source, imports, expression } = authoredModule(file, text);
-	if (!typescript.isObjectLiteralExpression(expression))
-		throw new Error(`${file}: expected a literal design object.`);
+	const sdkFile = join(dirname(file), deliverySdkFilename);
+	const sdkImports = imports.filter(
+		({ moduleSpecifier }) =>
+			typescript.isStringLiteral(moduleSpecifier) &&
+			resolve(dirname(file), moduleSpecifier.text) === sdkFile,
+	);
+	const helpers = sdkBindings(sdkImports, file, sdkFile);
+	const [argument] = typescript.isCallExpression(expression) ? expression.arguments : [];
+	const designLiteral =
+		typescript.isCallExpression(expression) &&
+		typescript.isIdentifier(expression.expression) &&
+		helpers.get(expression.expression.text) === 'defineDesign' &&
+		expression.arguments.length === 1 &&
+		argument
+			? unwrapExpression(argument)
+			: expression;
+	if (!typescript.isObjectLiteralExpression(designLiteral))
+		throw new Error(`${file}: expected a literal design object or defineDesign call.`);
 
 	const recordModules = await Promise.all(
 		imports
-			.filter(({ importClause }): boolean => !importClause?.isTypeOnly)
+			.filter(
+				(statement): boolean =>
+					!statement.importClause?.isTypeOnly && !sdkImports.includes(statement),
+			)
 			.map(async (statement) => {
 				const { binding, file: recordPath } = resolveRecordImport(statement, file);
 				return { binding, file: recordPath, text: await readOwnedInput(recordPath) };
 			}),
 	);
 	const arraysByBinding = new Map(
-		recordModules.map((record) => [record.binding, readRecordArray(record.file, record.text)]),
+		recordModules.map((record) => [
+			record.binding,
+			readRecordArray(record.file, record.text, sdkFile),
+		]),
 	);
 	const used = new Set<string>();
-	const input = readObjectLiteral(expression, source, {
+	const input = readObjectLiteral(designLiteral, source, {
 		readProperty(name, value): unknown {
 			const literal = unwrapExpression(value);
 			return name === 'records' && typescript.isArrayLiteralExpression(literal)
-				? composeRecordArray(literal, source, arraysByBinding, used)
+				? composeRecordArray(literal, source, arraysByBinding, used, helpers)
 				: readLiteral(value, source);
 		},
 	});
@@ -244,14 +340,50 @@ export function readDesignItems(
 	file: string,
 	text: string,
 	kind: 'choice' | 'assumption',
+	sdkFile = join(dirname(file), deliverySdkFilename),
 ): DesignRecord[] {
-	const input = readDefaultLiteral(file, text);
+	const input = readDefaultRecords(file, text, sdkFile);
 	const validated =
 		kind === 'choice'
 			? z.array(choiceRecord).safeParse(input)
 			: z.array(assumptionRecord).safeParse(input);
 	if (validated.success) return validated.data;
 	throw recordValidationError(file, input, validated.error, false);
+}
+
+export async function readDesignSources(
+	directory: string,
+	read: (file: string) => Promise<string>,
+	readOptional: (file: string) => Promise<string | undefined>,
+): Promise<{
+	design: DesignCore;
+	designFile: string;
+	designText: string;
+	sources: ReadonlyMap<string, string>;
+}> {
+	const designFile = join(directory, 'design.ts');
+	const decisionFile = join(directory, 'design-decisions.ts');
+	const assumptionFile = join(directory, 'design-assumptions.ts');
+	const [designText, decisions, assumptions] = await Promise.all([
+		read(designFile),
+		readOptional(decisionFile),
+		readOptional(assumptionFile),
+	]);
+	const { design: authored, recordSources } = await readDesign(designFile, designText, read);
+	const sources = new Map(recordSources);
+	if (decisions !== undefined) sources.set(decisionFile, decisions);
+	if (assumptions !== undefined) sources.set(assumptionFile, assumptions);
+	const design: DesignCore = {
+		...authored,
+		records: [
+			...authored.records,
+			...(decisions === undefined ? [] : readDesignItems(decisionFile, decisions, 'choice')),
+			...(assumptions === undefined
+				? []
+				: readDesignItems(assumptionFile, assumptions, 'assumption')),
+		],
+	};
+	return { design, designFile, designText, sources };
 }
 
 /** Type-check only the files the authoring loader has resolved and read. */
