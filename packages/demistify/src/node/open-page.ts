@@ -58,30 +58,19 @@ export async function openPage(
 	if ((await localSiteFile(root, localPageUrl(root, page, 'http://local'))) !== physicalPage)
 		throw new Error(`Design page changed while opening ${page}.`);
 
-	let prepared: Map<string, string> | undefined;
 	if (owner) {
 		const build =
 			owner.kind === 'project'
 				? await (
 						await import('./design-authoring/check-project.ts')
-					).buildProject(owner.directory, { siteRoot: root })
+					).buildProject(owner.directory, { siteRoot: root, write: true })
 				: await (
 						await import('./design-authoring/check-design.ts')
-					).buildDesignSet(owner.directory, { siteRoot: root });
+					).buildDesignSet(owner.directory, { siteRoot: root, write: true });
 		if (!build.preparedPages.has(page))
 			throw new Error(`Design ownership changed while opening ${page}.`);
-		prepared = new Map([
-			...build.preparedPages,
-			...[...build.generated].map(([file, value]): [string, string] => [
-				file,
-				JSON.stringify(value),
-			]),
-		]);
 	}
-	const { origin } = await serveLocalSite(root, {
-		browserAssetsOnly: true,
-		...(prepared && { prepared }),
-	});
+	const { origin } = await serveLocalSite(root, { browserAssetsOnly: true });
 	const url = localPageUrl(root, page, origin).href;
 	process.stdout.write(`Open ${url}\nPress Ctrl+C to stop the preview.\n`);
 	if (!options.noBrowser) openBrowser(url);

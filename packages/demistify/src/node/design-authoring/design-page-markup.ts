@@ -17,6 +17,8 @@ export interface PageMarkup {
 	readonly links: string[];
 	readonly navigationSources: string[];
 	readonly deliverySources: string[];
+	readonly projectOverviewSources: string[];
+	readonly recordSourceMarkers: string[];
 	readonly placements: RecordBinding[];
 	readonly trees: RecordBinding[];
 	hasDocumentBase: boolean;
@@ -52,6 +54,12 @@ export function designPreviewSources(html: string): readonly string[] | undefine
 	function visit(node: DefaultTreeAdapterMap['node']): void {
 		if ('attrs' in node) {
 			const source = generatedSources.get(node.tagName);
+			if (
+				node.tagName === 'meta' &&
+				node.attrs.some(({ name, value }) => name === 'name' && value === 'demistify-records')
+			) {
+				sources.add(node.attrs.find(({ name }) => name === 'content')?.value ?? '');
+			}
 			for (const { name, value } of node.attrs) {
 				if (
 					name === 'data-design-record' ||
@@ -78,6 +86,8 @@ export function readPageMarkup(html: string, file: string): PageMarkup {
 		links: [],
 		navigationSources: [],
 		deliverySources: [],
+		projectOverviewSources: [],
+		recordSourceMarkers: [],
 		placements: [],
 		trees: [],
 		hasDocumentBase: false,
@@ -145,6 +155,10 @@ export function readPageMarkup(html: string, file: string): PageMarkup {
 			if (node.tagName === 'base' && href !== undefined) result.hasDocumentBase = true;
 			if (node.tagName === 'ex-nav') result.navigationSources.push(get('src') ?? '');
 			if (node.tagName === 'ex-deliverables') result.deliverySources.push(get('src') ?? '');
+			if (node.tagName === 'ex-project-overview')
+				result.projectOverviewSources.push(get('src') ?? '');
+			if (node.tagName === 'meta' && get('name') === 'demistify-records')
+				result.recordSourceMarkers.push(get('content') ?? '');
 		}
 		if ('childNodes' in node) node.childNodes.forEach(visit);
 	}

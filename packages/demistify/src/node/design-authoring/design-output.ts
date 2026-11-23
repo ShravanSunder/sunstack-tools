@@ -6,17 +6,21 @@ import { isDeepStrictEqual, promisify } from 'node:util';
 
 const run = promisify(execFile);
 
-async function refuseTrackedOutput(file: string): Promise<void> {
-	const directory = dirname(file);
+export async function gitOutputRoot(directory: string): Promise<string | undefined> {
 	for (let candidate = directory; ; candidate = dirname(candidate)) {
 		// oxlint-disable-next-line no-await-in-loop -- search for the nearest Git checkout boundary.
 		const git = await lstat(join(candidate, '.git')).catch((error: unknown) => {
 			if (!missing(error)) throw error;
 			return undefined;
 		});
-		if (git) break;
-		if (candidate === dirname(candidate)) return;
+		if (git) return candidate;
+		if (candidate === dirname(candidate)) return undefined;
 	}
+}
+
+export async function isTrackedOutput(file: string): Promise<boolean> {
+	const directory = dirname(file);
+	if (!(await gitOutputRoot(directory))) return false;
 	const { stdout } = await run(
 		'git',
 		['--literal-pathspecs', 'ls-files', '-z', '--', basename(file)],
@@ -24,7 +28,11 @@ async function refuseTrackedOutput(file: string): Promise<void> {
 			cwd: directory,
 		},
 	);
-	if (stdout)
+	return stdout.length > 0;
+}
+
+export async function refuseTrackedOutput(file: string): Promise<void> {
+	if (await isTrackedOutput(file))
 		throw new Error(
 			`Generated output is tracked: ${file}. Remove it from the Git index before using --write.`,
 		);
@@ -40,17 +48,35 @@ export interface GeneratedFile {
 	text: string;
 }
 
+export async function readOutputFile(
+	file: string,
+	description = 'generated file',
+): Promise<string | undefined> {
+	const existing = await lstat(file).catch((error: unknown) => {
+		if (!missing(error)) throw error;
+		return undefined;
+	});
+	if (existing && !existing.isFile()) throw new Error(`Expected a ${description} at ${file}.`);
+	return existing ? readFile(file, 'utf8') : undefined;
+}
+
+export async function planGeneratedText(
+	file: string,
+	text: string,
+	options: { readonly omitIfAbsent?: boolean } = {},
+): Promise<GeneratedFile | undefined> {
+	await refuseTrackedOutput(file);
+	const previous = await readOutputFile(file);
+	if ((previous === undefined && options.omitIfAbsent) || previous === text) return undefined;
+	return { file, previous, text };
+}
+
 export async function planGeneratedJson(
 	file: string,
 	value: unknown,
 ): Promise<GeneratedFile | undefined> {
 	await refuseTrackedOutput(file);
-	const existing = await lstat(file).catch((error: unknown) => {
-		if (!missing(error)) throw error;
-		return undefined;
-	});
-	if (existing && !existing.isFile()) throw new Error(`Expected a generated file at ${file}.`);
-	const previous = existing ? await readFile(file, 'utf8') : undefined;
+	const previous = await readOutputFile(file);
 	const text = `${JSON.stringify(value, null, 2)}\n`;
 	if (previous !== undefined) {
 		try {

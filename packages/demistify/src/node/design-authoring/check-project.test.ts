@@ -137,6 +137,110 @@ it('checks an empty project without discovering files beside the manifest', asyn
 	}
 }, 20_000);
 
+it('writes records under the shared projects ignore scope and clears obsolete page data', async (): Promise<void> => {
+	const root = await mkdtemp(join(tmpdir(), 'demistify-record-output-'));
+	const projects = join(root, 'docs', 'projects');
+	const project = join(projects, 'example');
+	const phase = join(project, 'phase');
+	const page = join(phase, 'index.html');
+	const output = join(phase, 'records.generated.js');
+	const ignore = join(projects, '.gitignore');
+	const patterns =
+		'*.generated.json\ndesign-sdk.generated.ts\ndesign-schema.d.ts\nrecords.generated.js\n';
+	const original = fixturePage.replace(
+		'</ex-document>',
+		'<ex-tree data-design-need="U1"></ex-tree></ex-document>',
+	);
+	const check = [cli, 'project', 'check', project];
+	const git = (args: string[]): ReturnType<typeof run> => run('git', ['-C', root, ...args]);
+	try {
+		await mkdir(phase, { recursive: true });
+		await git(['init', '--quiet', '--template=']);
+		await mkdir(join(root, '.git/info'), { recursive: true });
+		await Promise.all([
+			writeFile(join(root, '.git/info/exclude'), patterns),
+			writeFile(join(project, '.gitignore'), patterns),
+			writeFile(
+				join(project, 'project.ts'),
+				"import phase from './phase/design.ts'; export default { designs: { phase } };",
+			),
+			writeFile(join(phase, 'design.ts'), designSource(false)),
+			writeFile(page, original),
+		]);
+		await run(process.execPath, check);
+		await expect(stat(ignore)).rejects.toHaveProperty('code', 'ENOENT');
+		await expect(stat(output)).rejects.toHaveProperty('code', 'ENOENT');
+		await run(process.execPath, [...check, '--write']);
+		expect(await readFile(ignore, 'utf8')).toBe(patterns);
+		expect(await readFile(join(project, '.gitignore'), 'utf8')).toBe(patterns);
+		expect(await readFile(page, 'utf8')).toBe(original);
+		expect(await readFile(output, 'utf8')).toContain('Return the current result.');
+		expect(await readFile(output, 'utf8')).toContain('[phase/R1 · Rule](<#R1>)');
+
+		const unchangedIgnore = await stat(ignore);
+		await run(process.execPath, [...check, '--write']);
+		expect((await stat(ignore)).mtimeMs).toBe(unchangedIgnore.mtimeMs);
+
+		const incomplete = '# maintained by the author\n';
+		await writeFile(ignore, incomplete);
+		await git(['add', 'docs/projects/.gitignore']);
+		const populated = await readFile(output, 'utf8');
+		await writeFile(page, fixturePage.replace(/<p data-design-record="[^"]+"><\/p>/g, ''));
+		await expect(run(process.execPath, [...check, '--write'])).rejects.toThrow(
+			/Add the generated design ignore patterns to tracked .*projects\/\.gitignore/,
+		);
+		expect(await readFile(ignore, 'utf8')).toBe(incomplete);
+		expect(await readFile(output, 'utf8')).toBe(populated);
+
+		await writeFile(join(root, '.gitignore'), patterns);
+		await run(process.execPath, [...check, '--write']);
+		expect(await readFile(ignore, 'utf8')).toBe(incomplete);
+		expect(await readFile(output, 'utf8')).toBe(
+			'document.currentScript.dataset.demistifyRecords = "{\\"version\\":1,\\"pages\\":{}}";\n',
+		);
+		await git(['add', '-f', 'docs/projects/example/phase/records.generated.js']);
+		await expect(run(process.execPath, [...check, '--write'])).rejects.toThrow(
+			/Generated output is tracked: .*records\.generated\.js/,
+		);
+	} finally {
+		await rm(root, { recursive: true, force: true });
+	}
+}, 30_000);
+
+it('initializes a design under the shared projects ignore scope without editing a tracked ignore', async (): Promise<void> => {
+	const root = await mkdtemp(join(tmpdir(), 'demistify-init-ignore-'));
+	const projects = join(root, 'docs', 'projects');
+	const project = join(projects, 'example');
+	const phase = join(project, 'phase');
+	const ignore = join(projects, '.gitignore');
+	const tracked = '# maintained by the author\n';
+	const git = (args: string[]): ReturnType<typeof run> => run('git', ['-C', root, ...args]);
+	try {
+		await mkdir(project, { recursive: true });
+		await git(['init', '--quiet', '--template=']);
+		await writeFile(join(project, 'project.ts'), 'export default {};');
+		await writeFile(ignore, tracked);
+		await git(['add', 'docs/projects/.gitignore']);
+		const init = [cli, 'design', 'init', phase];
+		await expect(run(process.execPath, init)).rejects.toThrow(
+			/Add the generated design ignore patterns to tracked .*projects\/\.gitignore/,
+		);
+		await expect(stat(join(phase, 'design.ts'))).rejects.toHaveProperty('code', 'ENOENT');
+		await writeFile(
+			join(root, '.gitignore'),
+			'*.generated.json\ndesign-sdk.generated.ts\ndesign-schema.d.ts\nrecords.generated.js\n',
+		);
+		await run(process.execPath, init);
+		expect(await readFile(ignore, 'utf8')).toBe(tracked);
+		await expect(stat(join(phase, '.gitignore'))).rejects.toHaveProperty('code', 'ENOENT');
+		expect(
+			await git(['check-ignore', 'docs/projects/example/phase/design-sdk.generated.ts']),
+		).toMatchObject({ stdout: 'docs/projects/example/phase/design-sdk.generated.ts\n' });
+	} finally {
+		await rm(root, { recursive: true, force: true });
+	}
+}, 30_000);
+
 it('qualifies need coverage and deduplicates scoped rule notes across a checked project', async (): Promise<void> => {
 	const root = await mkdtemp(join(tmpdir(), 'demistify-qualified-coverage-'));
 	const queue = join(root, 'queue');
@@ -329,7 +433,7 @@ resolution: { href: 'evidence.txt', excerpt: 'Available.' }
 			),
 			writeFile(
 				join(shared, 'index.html'),
-				'<!doctype html><title>Project evidence</title><p data-design-record="project/D1"></p><p data-design-record="project/A1"></p><p data-design-record="project/D2"></p>',
+				'<!doctype html><title>Project evidence</title><meta name="demistify-records" content="../records.generated.js"><p data-design-record="project/D1"></p><p data-design-record="project/A1"></p><p data-design-record="project/D2"></p>',
 			),
 			writeFile(join(shared, 'evidence.txt'), 'Available. Use the current result.'),
 		]);
@@ -515,6 +619,10 @@ it('uses one declared external page in two milestone scopes and confines authori
 	const authoredDelivery = (receipt?: { build: string }): string =>
 		deliverableSource(receipt).replaceAll('index.html', canonicalHref);
 	const html = fixturePage
+		.replace(
+			'</head>',
+			'<meta name="demistify-records" content="./project/records.generated.js"></head>',
+		)
 		.replace('./navigation.generated.json', './reviewed-navigation.json')
 		.replace(
 			'<p data-design-record="U1"></p><p data-design-record="R1"></p><p data-design-record="V1"></p>',

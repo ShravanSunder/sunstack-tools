@@ -1,7 +1,8 @@
 import { readFile, realpath } from 'node:fs/promises';
-import { extname, join, relative, resolve } from 'node:path';
+import { basename, dirname, extname, join, relative, resolve } from 'node:path';
 
 import { deliverablesViewSchema } from '../../core/deliverables-view.ts';
+import { designRecordsFilename, type DesignRecordView } from '../../core/design-record-view.ts';
 import type { NavigationTarget, SharedMapNode } from '../../core/shared-navigation.ts';
 import { checkHtml, documentFragmentIds, formatFindings } from '../check.ts';
 import { containsPath } from '../local-site.ts';
@@ -15,15 +16,21 @@ import {
 } from './delivery-model.ts';
 import { declaredDesignPagePath, resolveDesignLink } from './design-location.ts';
 import { compileDesignNavigation } from './design-navigation.ts';
-import { commitDesignOutputs, planGeneratedJson } from './design-output.ts';
+import { commitDesignOutputs, planGeneratedJson, planGeneratedText } from './design-output.ts';
 import {
 	normalizeExcerpt,
 	passageText,
 	readPageMarkup,
 	type PageMarkup,
 } from './design-page-markup.ts';
+import {
+	designIgnoreDirectory,
+	generatedDesignPaths,
+	planDesignIgnore,
+} from './generated-ignore.ts';
 import { readDeliveryEntries } from './read-delivery.ts';
 import { readDesignSources } from './read-design.ts';
+import { putPageRecords, recordOutputFile, recordRegistrationScript } from './record-output.ts';
 import {
 	prepareRecordPage,
 	projectedDestinations,
@@ -142,9 +149,11 @@ interface DesignCheck {
 	readonly projectPages: (
 		records: readonly DesignRecord[],
 		pages: ReadonlyMap<string, string | undefined>,
+		outputDirectories: readonly string[],
 	) => Promise<{
 		readonly projection: RecordProjection;
 		readonly preparedPages: ReadonlyMap<string, string>;
+		readonly recordOutputs: ReadonlyMap<string, DesignRecordView>;
 	}>;
 	readonly load: (directory: string, authoringRoot?: string) => Promise<LoadedDesign>;
 	readonly prepare: (set: LoadedDesign) => Promise<PreparedDesign>;
@@ -261,6 +270,7 @@ export async function openDesignCheck(siteRoot: string): Promise<DesignCheck> {
 	async function projectPages(
 		records: readonly DesignRecord[],
 		pages: ReadonlyMap<string, string | undefined>,
+		outputDirectories: readonly string[],
 	): ReturnType<DesignCheck['projectPages']> {
 		const authored = await Promise.all(
 			[...pages].map(async ([file, namespace]) => ({
@@ -271,12 +281,23 @@ export async function openDesignCheck(siteRoot: string): Promise<DesignCheck> {
 			})),
 		);
 		const projection = projectRecords(records, authored);
-		return {
-			projection,
-			preparedPages: new Map(
-				authored.map((page) => [page.file, prepareRecordPage({ ...page, projection })]),
-			),
-		};
+		const preparedPages = new Map<string, string>();
+		const recordOutputs = new Map<string, DesignRecordView>(
+			outputDirectories.map((directory) => [
+				join(directory, designRecordsFilename),
+				{ version: 1, pages: {} },
+			]),
+		);
+		for (const page of authored) {
+			const prepared = prepareRecordPage({ ...page, projection });
+			preparedPages.set(page.file, prepared.html);
+			if (prepared.records.placements.length === 0 && prepared.records.trees.length === 0) continue;
+			const output = recordOutputFile(page.markup, page.file, siteDirectory, recordOutputs);
+			const view = recordOutputs.get(output);
+			if (!view) throw new Error('No registered record output at ' + output);
+			putPageRecords(view, output, page.file, prepared.records);
+		}
+		return { projection, preparedPages, recordOutputs };
 	}
 
 	async function load(directory: string, authoringRoot?: string): Promise<LoadedDesign> {
@@ -576,9 +597,10 @@ export async function buildDesignSet(
 	const set = await loadDesignSet(directory, options.siteRoot);
 	const { check, design, entries } = set;
 	const reader = await check.prepare(set);
-	const { projection, preparedPages } = await check.projectPages(
+	const { projection, preparedPages, recordOutputs } = await check.projectPages(
 		design.records,
 		new Map(reader.pages.map(({ file }) => [file, undefined])),
+		[set.directory],
 	);
 	const delivery = projectDelivery(
 		design,
@@ -586,7 +608,14 @@ export async function buildDesignSet(
 		projectedDestinations(projection, set.directory),
 	);
 	const plan = await reader.plan(delivery, { projection, preparedPages });
-	if (options.write) await writeDesignBuild([set.directory], check.verify, plan.generated);
+	if (options.write)
+		await writeDesignBuild(
+			[set.directory],
+			check.verify,
+			plan.generated,
+			recordOutputs,
+			await designIgnoreDirectory(set.directory),
+		);
 	else await check.verify();
 	return {
 		...plan,
@@ -602,14 +631,33 @@ export async function writeDesignBuild(
 	directories: readonly string[],
 	verify: () => Promise<void>,
 	generated: ReadonlyMap<string, unknown>,
+	recordOutputs: ReadonlyMap<string, DesignRecordView>,
+	ignoreDirectory: string,
 ): Promise<void> {
-	await commitDesignOutputs(directories, [
-		{
-			verify,
-			plan: () =>
-				Promise.all([...generated].map(([file, value]) => planGeneratedJson(file, value))),
-		},
-	]);
+	const generatedPaths = generatedDesignPaths(
+		[...generated.keys()]
+			.filter((file) => basename(file) === 'design.generated.json')
+			.map((file) => dirname(file)),
+		[...generated.keys(), ...recordOutputs.keys()],
+	);
+	await commitDesignOutputs(
+		[...directories, ignoreDirectory],
+		[
+			{
+				verify,
+				plan: () =>
+					Promise.all([
+						planDesignIgnore(ignoreDirectory, generatedPaths),
+						...[...generated].map(([file, value]) => planGeneratedJson(file, value)),
+						...[...recordOutputs].map(([file, view]) =>
+							planGeneratedText(file, recordRegistrationScript(view), {
+								omitIfAbsent: Object.keys(view.pages).length === 0,
+							}),
+						),
+					]),
+			},
+		],
+	);
 }
 
 export async function checkDesignSet(

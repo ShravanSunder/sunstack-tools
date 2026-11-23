@@ -16,8 +16,8 @@ Run the CLI from the selected Demistify binding: prefix `npm exec --` for a loca
 
 - `init` writes `design.ts`, `design-decisions.ts`, `design-assumptions.ts`, `design-delivery.ts` and the generated SDK, seeding Pages, Map and Walkthroughs from an existing `navigation.json`. You write the HTML pages.
 - `types` regenerates `design-sdk.generated.ts` and `design-schema.d.ts`. Git ignores both, so run it after a fresh checkout and after adding or renaming an ID, for the editor. `check`, `brief` and `open` build what they need without it.
-- `design check` and `project check` validate typed inputs and prepared pages in memory, then print deliverable states and design notes. Run `check <page.html>` for ordinary standalone HTML. Use `--write` only to save ignored `*.generated.json` files for a static server.
-- `open` serves pages with records filled in and data built. Restart it after editing records.
+- `design check` and `project check` validate typed inputs and prepared pages in memory, then print deliverable states and design notes. Run `check <page.html>` for ordinary standalone HTML.
+- After a checkout or record edit, run `demistify project check --write` (or `demistify design check --write` for a standalone milestone). Then serve the authored HTML with any static server. `open` runs the write step for you. The matching runtime fills anchors, Choices and Trees from the ignored `records.generated.js` file. Keep placements empty. Chrome can load the record script from a local file, while shared navigation and delivery views still need HTTP.
 
 Pass `--site-root` with the enclosing docs directory when pages or evidence link outside the milestone folder.
 
@@ -104,7 +104,7 @@ A new decision can declare `supersedes: 'D1'` and keep the old one in the file. 
 
 ## Place records on pages
 
-Place a record with an empty element. The placement is the anchor: `open` adds `id="R1"` and the statement to the served HTML, so any page can link to `#R1`. The source stays as written.
+Place a record with an empty element. The placement is the anchor. After generating the views, the runtime adds `id="R1"` and the statement when the page loads, so any page can link to `#R1`. It finds the record data beside the page’s generated navigation or project overview source. A declared external page with neither binding can use `<meta name="demistify-records" content="../milestone/records.generated.js">`.
 
 ```html
 <head>

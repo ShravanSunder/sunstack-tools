@@ -25,6 +25,7 @@ import { TabsIsland } from './islands/tabs.ts';
 import { TreeIsland } from './islands/tree.ts';
 import { ArrowIsland } from './layout/arrows.ts';
 import { BoardIsland, RegionIsland } from './layout/board.ts';
+import { hydrateDesignRecords } from './layout/design-records.ts';
 import { DocumentIsland, GridIsland, installDocumentBehavior } from './layout/document.ts';
 import { FlowIsland } from './layout/flow.ts';
 import { LayersElement } from './layout/layers.ts';
@@ -32,15 +33,11 @@ import { HeadingNavigation } from './layout/navigation.ts';
 import { installRoutes, RouteElement, StepElement } from './layout/route.ts';
 import { installArrowTracing } from './layout/trace.ts';
 
-// Preserve authored source before any island upgrades replace it or add controls.
-for (const root of document.querySelectorAll<HTMLElement>('ex-document'))
-	captureReviewDocument(root);
-
 // The custom-element registry requires a distinct constructor for each name.
 class TimelineAlias extends EvidenceTraceIsland {}
 
 // A board is defined first so it arranges its children before they upgrade.
-for (const [tagName, constructor] of [
+const islands = [
 	['ex-board', BoardIsland],
 	['ex-region', RegionIsland],
 	['ex-trace', EvidenceTraceIsland],
@@ -81,12 +78,24 @@ for (const [tagName, constructor] of [
 	['ex-document', DocumentIsland],
 	['ex-nav', HeadingNavigation],
 	['ex-layers', LayersElement],
-] satisfies readonly (readonly [string, CustomElementConstructor])[]) {
-	if (!customElements.get(tagName)) customElements.define(tagName, constructor);
+] satisfies readonly (readonly [string, CustomElementConstructor])[];
+
+function startRuntime(): void {
+	// Preserve authored source before any island upgrades replace it or add controls.
+	for (const root of document.querySelectorAll<HTMLElement>('ex-document'))
+		captureReviewDocument(root);
+
+	for (const [tagName, constructor] of islands) {
+		if (!customElements.get(tagName)) customElements.define(tagName, constructor);
+	}
+
+	reportStructuralIssues();
+	installDefaultComments();
+	installDocumentBehavior();
+	if (!document.querySelector('ex-nav[src]')) installRoutes();
+	installArrowTracing();
 }
 
-reportStructuralIssues();
-installDefaultComments();
-installDocumentBehavior();
-if (!document.querySelector('ex-nav[src]')) installRoutes();
-installArrowTracing();
+const recordsReady = hydrateDesignRecords();
+if (recordsReady) void recordsReady.then(startRuntime);
+else startRuntime();

@@ -72,7 +72,6 @@ export async function serveLocalSite(
 	root: string,
 	options: {
 		readonly browserAssetsOnly?: boolean;
-		readonly prepared?: ReadonlyMap<string, string>;
 	} = {},
 ): Promise<{ readonly server: Server; readonly origin: string }> {
 	const server = createServer((request, response): void => {
@@ -90,15 +89,7 @@ export async function serveLocalSite(
 		void Promise.resolve()
 			.then(async (): Promise<void> => {
 				const url = new URL(request.url ?? '/', 'http://local');
-				const candidate = resolve(root, `.${decodeURIComponent(url.pathname)}`);
-				const prepared =
-					containsPath(root, candidate) && !hiddenPath(root, candidate)
-						? options.prepared?.get(candidate)
-						: undefined;
-				const { file, directory } =
-					prepared === undefined
-						? await resolveLocalSiteFile(root, url)
-						: { file: candidate, directory: false };
+				const { file, directory } = await resolveLocalSiteFile(root, url);
 				if (directory && !url.pathname.endsWith('/')) {
 					url.pathname += '/';
 					response
@@ -113,10 +104,7 @@ export async function serveLocalSite(
 					response.writeHead(404).end();
 					return;
 				}
-				const body =
-					request.method === 'HEAD'
-						? undefined
-						: (prepared ?? options.prepared?.get(file) ?? (await readFile(file)));
+				const body = request.method === 'HEAD' ? undefined : await readFile(file);
 				response.writeHead(200, {
 					'cache-control': 'no-store',
 					'content-type': contentType ?? 'application/octet-stream',

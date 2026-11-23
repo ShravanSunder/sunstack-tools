@@ -1,12 +1,17 @@
-import { randomUUID } from 'node:crypto';
-import { mkdir, readFile, realpath, rename, unlink, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, realpath, unlink, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 
 import { sharedNavigationSchema } from '../../core/shared-navigation.ts';
 import { openDesignCheck } from './check-design.ts';
 import { deliverySdkSource } from './delivery-sdk-source.ts';
 import { findDesignInput } from './design-location.ts';
+import { commitDesignOutputs, planGeneratedText, refuseTrackedOutput } from './design-output.ts';
 import { designTypeSource, designTypesFor } from './design-type-source.ts';
+import {
+	designIgnoreDirectory,
+	generatedDesignPaths,
+	planDesignIgnore,
+} from './generated-ignore.ts';
 import { deliveryEntryFilename, deliverySdkFilename } from './read-delivery.ts';
 import { designDeclarationFilename, readDesignItems, readDesignSources } from './read-design.ts';
 import { readProjectManifest } from './read-project.ts';
@@ -76,27 +81,43 @@ async function authoredRecordIds(directory: string): Promise<string[]> {
 export async function refreshDesignTypes(directory: string): Promise<string> {
 	const setDirectory = await realpath(resolve(directory));
 	const ids = await authoredRecordIds(setDirectory);
-	await Promise.all(
-		authoringSupport.map(async ([name, source]) => {
-			const text = name === designDeclarationFilename ? designTypesFor(ids) : source;
-			const file = join(setDirectory, name);
-			const temporary = `${file}.${randomUUID()}.tmp`;
-			await writeFile(temporary, text, { flag: 'wx' });
-			try {
-				await rename(temporary, file);
-			} catch (error) {
-				await unlink(temporary);
-				throw error;
-			}
-		}),
+	const ignoreDirectory = await designIgnoreDirectory(setDirectory);
+	await commitDesignOutputs(
+		[setDirectory, ignoreDirectory],
+		[
+			{
+				verify: async () => {
+					if (JSON.stringify(await authoredRecordIds(setDirectory)) !== JSON.stringify(ids))
+						throw new Error('Design record IDs changed while refreshing types.');
+				},
+				plan: () =>
+					Promise.all([
+						planDesignIgnore(ignoreDirectory, generatedDesignPaths([setDirectory])),
+						...authoringSupport.map(([name, source]) =>
+							planGeneratedText(
+								join(setDirectory, name),
+								name === designDeclarationFilename ? designTypesFor(ids) : source,
+							),
+						),
+					]),
+			},
+		],
 	);
 	return `Refreshed ${designDeclarationFilename} and ${deliverySdkFilename} in ${setDirectory}.`;
 }
 
 /** Start from the current Pages, Map and Walkthroughs when a sidecar already exists. */
 export async function initDesignSet(directory: string): Promise<string> {
-	const setDirectory = resolve(directory);
-	await mkdir(setDirectory, { recursive: true });
+	const requested = resolve(directory);
+	await mkdir(requested, { recursive: true });
+	const setDirectory = await realpath(requested);
+	const ignoreDirectory = await designIgnoreDirectory(setDirectory);
+	const planIgnore = (): ReturnType<typeof planDesignIgnore> =>
+		planDesignIgnore(ignoreDirectory, generatedDesignPaths([setDirectory]));
+	await Promise.all([
+		planIgnore(),
+		...authoringSupport.map(([name]) => refuseTrackedOutput(join(setDirectory, name))),
+	]);
 	const existing = await readFile(join(setDirectory, 'navigation.json'), 'utf8').catch(
 		(error: unknown): undefined => {
 			if (error instanceof Error && 'code' in error && error.code === 'ENOENT') return undefined;
@@ -127,6 +148,15 @@ export async function initDesignSet(directory: string): Promise<string> {
 			await writeFile(file, text, { flag: 'wx' });
 			created.push(file);
 		}
+		await commitDesignOutputs(
+			[setDirectory, ignoreDirectory],
+			[
+				{
+					verify: (): Promise<void> => Promise.resolve(),
+					plan: async () => [await planIgnore()],
+				},
+			],
+		);
 	} catch (error) {
 		await Promise.all(created.map((file) => unlink(file)));
 		throw error;

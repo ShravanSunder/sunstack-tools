@@ -1,5 +1,6 @@
 import { dirname, relative, sep } from 'node:path';
 
+import type { DesignRecordView } from '../../core/design-record-view.ts';
 import { escapeHtml } from '../../core/html-text.ts';
 import type { PageMarkup } from './design-page-markup.ts';
 import { recordLabel, recordRelationships, recordStatement, type DesignRecord } from './schema.ts';
@@ -77,15 +78,18 @@ export function prepareRecordPage(options: {
 	readonly namespace?: string | undefined;
 	readonly markup: PageMarkup;
 	readonly projection: RecordProjection;
-}): string {
+}): { html: string; records: DesignRecordView['pages'][string] } {
 	const { html, file, namespace, markup, projection } = options;
+	const records: DesignRecordView['pages'][string] = { placements: [], trees: [] };
 	const edits: { start: number; end: number; text: string }[] = [];
 	for (const { reference, tag, startTag, endTag } of markup.placements) {
 		const id = qualifyRecord(namespace, reference);
 		const record = projection.records.get(id);
 		if (!record) throw new Error(`${file}: unknown design record ${id}.`);
 		const anchor = ` id="${escapeHtml(reference)}"`;
-		const text = escapeHtml(recordStatement(record));
+		const statement = recordStatement(record);
+		const text = escapeHtml(statement);
+		records.placements.push({ reference, statement, ...(tag === 'ex-choice' && { decision: id }) });
 		if (tag === 'ex-choice') {
 			edits.push({
 				start: startTag.end - 1,
@@ -113,6 +117,7 @@ export function prepareRecordPage(options: {
 			`- ${label(need)}`,
 			...children.map((rule): string => `  - ${label(rule)}`),
 		].join('\n');
+		records.trees.push({ reference, markdown });
 		edits.push({
 			start: startTag.end,
 			end: endTag.start,
@@ -124,5 +129,5 @@ export function prepareRecordPage(options: {
 		(left, right): number => right.start - left.start,
 	))
 		prepared = `${prepared.slice(0, start)}${text}${prepared.slice(end)}`;
-	return prepared;
+	return { html: prepared, records };
 }

@@ -1,6 +1,16 @@
 import { execFile, spawn } from 'node:child_process';
 import { once } from 'node:events';
-import { chmod, mkdir, mkdtemp, readdir, rm, stat, symlink, writeFile } from 'node:fs/promises';
+import {
+	chmod,
+	mkdir,
+	mkdtemp,
+	readFile,
+	readdir,
+	rm,
+	stat,
+	symlink,
+	writeFile,
+} from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createInterface } from 'node:readline';
@@ -9,8 +19,25 @@ import { promisify } from 'node:util';
 
 import { expect, it } from 'vitest';
 
+import { designRecordViewSchema } from '../core/design-record-view.ts';
+
 const cli = fileURLToPath(new URL('../../bin/demistify.ts', import.meta.url));
 const run = promisify(execFile);
+
+async function recordScript(
+	response: Response,
+): Promise<ReturnType<typeof designRecordViewSchema.parse>> {
+	expect(response.status).toBe(200);
+	expect(response.headers.get('content-type')).toBe('text/javascript');
+	const script = await response.text();
+	const registration = /^document\.currentScript\.dataset\.demistifyRecords = (.+);\n$/u.exec(
+		script,
+	);
+	if (!registration?.[1]) throw new Error('Expected a generated registration script.');
+	const payload: unknown = JSON.parse(registration[1]);
+	if (typeof payload !== 'string') throw new Error('Expected the registration payload string.');
+	return designRecordViewSchema.parse(JSON.parse(payload));
+}
 
 async function withPreview(
 	page: string,
@@ -108,16 +135,24 @@ async function createExternalPageProject(
 	]);
 }
 
-it('opens a declared external page without generated files and refuses competing project claims', async (): Promise<void> => {
+it('opens exact authored bytes and writes external-page data without accepting competing owners', async (): Promise<void> => {
 	const site = await mkdtemp(join(tmpdir(), 'demistify-open-external-'));
 	const page = join(site, 'Reviewed Guide.html');
 	const project = join(site, 'project');
 	const html = '<h1>Reviewed guide</h1><h2 data-design-record="notes/N1"></h2>';
 
 	try {
-		await Promise.all([createExternalPageProject(project), writeFile(page, html)]);
+		await createExternalPageProject(project);
+		await writeFile(page, html);
+		await expect(
+			run(process.execPath, [cli, 'project', 'check', project, '--site-root', site, '--write']),
+		).rejects.toThrow(/record bindings need.*<meta name="demistify-records"/);
+		await expect(stat(join(project, 'records.generated.js'))).rejects.toHaveProperty(
+			'code',
+			'ENOENT',
+		);
 		for (const source of [
-			'',
+			'<meta name="demistify-records" content="project/records.generated.js">',
 			'<ex-project-overview src="project/project.generated.json"></ex-project-overview>',
 		]) {
 			// oxlint-disable-next-line no-await-in-loop -- exercise the same declared page with and without its project data binding.
@@ -126,16 +161,21 @@ it('opens a declared external page without generated files and refuses competing
 			await withPreview(page, site, async (url) => {
 				const response = await fetch(url);
 				expect(response.status).toBe(200);
-				expect(await response.text()).toContain(
-					'<h2 data-design-record="notes/N1" id="notes/N1">Readers can find the approved scope.</h2>',
+				expect(await response.text()).toBe(html + source);
+				const records = await recordScript(
+					await fetch(new URL('./project/records.generated.js', url)),
 				);
+				expect(records.pages['../Reviewed%20Guide.html']).toEqual({
+					placements: [
+						{ reference: 'notes/N1', statement: 'Readers can find the approved scope.' },
+					],
+					trees: [],
+				});
 				const view = await fetch(new URL('./project/project.generated.json', url));
 				expect(view.status).toBe(200);
 			});
 		}
-		await expect(stat(join(project, 'project.generated.json'))).rejects.toMatchObject({
-			code: 'ENOENT',
-		});
+		expect(await readFile(join(project, 'project.generated.json'), 'utf8')).toContain('notes/N1');
 		await writeFile(page, html);
 		await createExternalPageProject(join(site, 'other-project'));
 		await expect(
@@ -157,7 +197,7 @@ it('serves a declared HTML alias at its authored URL and refuses aliases claimed
 	const physicalDirectory = join(site, 'source');
 	const physical = join(physicalDirectory, 'guide.html');
 	const html =
-		'<h1>Guide</h1><h2 data-design-record="notes/N1"></h2><a href="./notes.md">Read notes</a>';
+		'<meta name="demistify-records" content="../project/records.generated.js"><h1>Guide</h1><h2 data-design-record="notes/N1"></h2><a href="./notes.md">Read notes</a>';
 	try {
 		await Promise.all([
 			mkdir(aliasDirectory, { recursive: true }),
@@ -173,8 +213,12 @@ it('serves a declared HTML alias at its authored URL and refuses aliases claimed
 		await run(process.execPath, [cli, 'project', 'check', project, '--site-root', site]);
 		await withPreview(alias, site, async (url) => {
 			expect(url.pathname).toBe('/published/Reviewed%20Guide.html');
-			expect(await (await fetch(url)).text()).toContain(
-				'<h2 data-design-record="notes/N1" id="notes/N1">Readers can find the approved scope.</h2>',
+			expect(await (await fetch(url)).text()).toBe(html);
+			const records = await recordScript(
+				await fetch(new URL('../project/records.generated.js', url)),
+			);
+			expect(records.pages['../published/Reviewed%20Guide.html']?.placements[0]?.reference).toBe(
+				'notes/N1',
 			);
 			expect(await (await fetch(new URL('./notes.md', url))).text()).toBe(
 				'The notes beside the declared page',
@@ -182,9 +226,7 @@ it('serves a declared HTML alias at its authored URL and refuses aliases claimed
 		});
 		await withPreview(physical, site, async (url) => {
 			expect(url.pathname).toBe('/published/Reviewed%20Guide.html');
-			expect(await (await fetch(url)).text()).toContain(
-				'id="notes/N1">Readers can find the approved scope.',
-			);
+			expect(await (await fetch(url)).text()).toBe(html);
 		});
 
 		const alternate = join(site, 'alternate.html');
@@ -236,9 +278,7 @@ it.skipIf(process.platform === 'win32' || process.getuid?.() === 0)(
 			await expect(readdir(unreadableHint)).rejects.toHaveProperty('code', 'EACCES');
 			await withPreview(physical, site, async (url) => {
 				expect(url.pathname).toBe('/published/Review.html');
-				expect(await (await fetch(url)).text()).toContain(
-					'id="notes/N1">Readers can find the approved scope.',
-				);
+				expect(await (await fetch(url)).text()).toBe(html);
 				expect(await (await fetch(new URL('./notes.md', url))).text()).toBe(
 					'Notes at the published URL.',
 				);
@@ -250,9 +290,7 @@ it.skipIf(process.platform === 'win32' || process.getuid?.() === 0)(
 					],
 				});
 			});
-			await expect(stat(join(project, 'project.generated.json'))).rejects.toMatchObject({
-				code: 'ENOENT',
-			});
+			expect(await readFile(join(project, 'project.generated.json'), 'utf8')).toContain('notes/N1');
 		} finally {
 			await chmod(unreadableHint, 0o700);
 			await rm(site, { recursive: true, force: true });
@@ -279,9 +317,7 @@ it.skipIf(process.platform === 'win32' || process.getuid?.() === 0)(
 			await chmod(unrelated, 0o000);
 			await expect(readdir(unrelated)).rejects.toHaveProperty('code', 'EACCES');
 			await withPreview(page, site, async (url) => {
-				expect(await (await fetch(url)).text()).toContain(
-					'id="notes/N1">Readers can find the approved scope.',
-				);
+				expect(await (await fetch(url)).text()).toBe(html);
 			});
 
 			await chmod(project, 0o000);

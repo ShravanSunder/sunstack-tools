@@ -19,6 +19,7 @@ import {
 } from './delivery-model.ts';
 import { compileDesignNavigation } from './design-navigation.ts';
 import { designTypeSource } from './design-type-source.ts';
+import { projectIgnoreDirectory } from './generated-ignore.ts';
 import { checkAuthoringTypes, readDesignItems } from './read-design.ts';
 import {
 	projectRecordTypeImports,
@@ -361,7 +362,12 @@ export async function buildProject(
 	);
 	if (hasProjectIndex && !pageNamespaces.has(projectIndex))
 		pageNamespaces.set(projectIndex, undefined);
-	const { projection, preparedPages } = await check.projectPages(design.records, pageNamespaces);
+	const outputDirectories = [root, ...sets.map((set) => set.directory)];
+	const { projection, preparedPages, recordOutputs } = await check.projectPages(
+		design.records,
+		pageNamespaces,
+		outputDirectories,
+	);
 	const destinations = projectedDestinations(projection, root);
 	const delivery = projectDelivery(design, entries, destinations);
 	await Promise.all(delivery.evidence.map((href) => check.checkEvidence(href, projectFile)));
@@ -404,7 +410,13 @@ export async function buildProject(
 		...plans.flatMap((plan) => [...plan.generated]),
 	]);
 	if (options.write)
-		await writeDesignBuild([root, ...sets.map((set) => set.directory)], check.verify, generated);
+		await writeDesignBuild(
+			outputDirectories,
+			check.verify,
+			generated,
+			recordOutputs,
+			projectIgnoreDirectory(root),
+		);
 	else await check.verify();
 	const questions = projectDecisions(view.records).filter(({ status }) => status === 'Open');
 	const result = [
