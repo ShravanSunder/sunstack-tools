@@ -21,7 +21,12 @@ import {
 	type LegacyRecord,
 	type SourceReader,
 } from './lean-design-migration/legacy-records.ts';
-import { planPage, type LocatedRecord, type PageChange } from './lean-design-migration/pages.ts';
+import {
+	planPage,
+	recordEvidence,
+	type LocatedRecord,
+	type PageChange,
+} from './lean-design-migration/pages.ts';
 
 interface Sidecar {
 	readonly file: string;
@@ -186,7 +191,18 @@ function convertRecord(
 ): DesignRecord {
 	const { record } = authored;
 	const { destination: _destination, sources, ...data } = record;
-	if (data.kind === 'choice' || data.kind === 'assumption') return { ...data, sources };
+	if (data.kind === 'choice' || data.kind === 'assumption') {
+		const retarget = (source: (typeof sources)[number]): (typeof sources)[number] => {
+			const replacement = page?.sourceSplit?.retargeted.find(({ from }) => from === source.href);
+			return replacement ? { ...source, href: replacement.to } : source;
+		};
+		return {
+			...data,
+			sources: sources.map(retarget),
+			...(data.kind === 'assumption' &&
+				data.resolution && { resolution: retarget(data.resolution) }),
+		};
+	}
 	if (data.kind === 'need') return data;
 	const { id, title } = data;
 	const links = convertRelationships(authored, registry, dependencyChanges);
@@ -359,10 +375,12 @@ async function planMigration({ source, project, generatorOwned }: MigrationInput
 		throw new Error('The old design records contain a duplicate ID.');
 	const pageOwners = new Map<string, string>();
 	const declaredPages = new Set([join(project, 'index.html')]);
-	const preservedAnchors = new Map<string, Set<string>>();
-	function retainAnchor(file: string, fragment: string): void {
-		const anchors = preservedAnchors.get(file) ?? new Set<string>();
-		anchors.add(fragment);
+	const preservedAnchors = new Map<string, Map<string, Set<string>>>();
+	function retainAnchor(file: string, fragment: string, owner: string): void {
+		const anchors = preservedAnchors.get(file) ?? new Map<string, Set<string>>();
+		const owners = anchors.get(fragment) ?? new Set<string>();
+		owners.add(owner);
+		anchors.set(fragment, owners);
 		preservedAnchors.set(file, anchors);
 	}
 	for (const set of sets) {
@@ -375,22 +393,17 @@ async function planMigration({ source, project, generatorOwned }: MigrationInput
 			if (deliverable.kind !== 'core') continue;
 			const { page, fragment } = deliverable.destination;
 			const file = declaredDesignPagePath(page, set.file, source);
-			retainAnchor(file, fragment);
+			retainAnchor(file, fragment, identifier(set.namespace, deliverable.id));
 		}
 	}
 	const byPage = new Map<string, LocatedRecord[]>();
 	for (const location of locations) {
-		const { record, file } = location;
-		if (record.kind === 'assumption' || record.kind === 'choice') {
-			const evidence =
-				record.kind === 'assumption' && record.resolution
-					? [...record.sources, record.resolution]
-					: record.sources;
-			for (const sourceReference of evidence) {
-				if (!sourceReference.verbatim) continue;
-				const target = resolveDesignLink(sourceReference.href, file, source);
-				if (target?.fragment) retainAnchor(target.file, target.fragment);
-			}
+		const { record, file, namespace } = location;
+		for (const sourceReference of recordEvidence(record)) {
+			if (!sourceReference.verbatim) continue;
+			const target = resolveDesignLink(sourceReference.href, file, source);
+			if (target?.fragment)
+				retainAnchor(target.file, target.fragment, identifier(namespace, record.id));
 		}
 		const page = declaredDesignPagePath(location.record.destination.page, location.file, source);
 		const group = byPage.get(page) ?? [];
@@ -412,7 +425,7 @@ async function planMigration({ source, project, generatorOwned }: MigrationInput
 			site: source,
 			namespace: pageOwners.get(file),
 			records,
-			preservedAnchors: preservedAnchors.get(file) ?? new Set(),
+			preservedAnchors: preservedAnchors.get(file) ?? new Map(),
 		});
 		for (const change of plan.changes)
 			pageChanges.set(change.id, { ...change, page: relative(source, file) });

@@ -6,6 +6,7 @@ import { escapeHtml } from '../../src/core/html-text.ts';
 import { resolveDesignLink } from '../../src/node/design-authoring/design-location.ts';
 import {
 	normalizeExcerpt,
+	passageText,
 	readPageMarkup,
 } from '../../src/node/design-authoring/design-page-markup.ts';
 import type { LegacyRecord } from './legacy-records.ts';
@@ -23,7 +24,13 @@ interface Edit {
 	readonly end: number;
 	readonly text: string;
 }
+interface SourceSplit {
+	readonly anchor: string;
+	readonly retargeted: readonly { from: string; to: string }[];
+}
+
 export interface PageChange {
+	readonly sourceSplit?: SourceSplit;
 	readonly id: string;
 	readonly oldAnchor: string;
 	readonly anchor: string;
@@ -202,6 +209,55 @@ function passageLinks(anchor: HtmlElement, nextParagraph: HtmlElement | undefine
 	return links;
 }
 
+const evidenceContainers = new Set(['details', 'section', 'div', 'blockquote', 'ex-callout']);
+
+export function recordEvidence(record: LegacyRecord): LegacyRecord['sources'] {
+	if (record.kind === 'choice') return record.sources;
+	if (record.kind !== 'assumption') return [];
+	return record.resolution ? [...record.sources, record.resolution] : record.sources;
+}
+
+function splitEvidence(
+	group: readonly LocatedRecord[],
+	options: Pick<Parameters<typeof planPage>[0], 'html' | 'file' | 'site'>,
+	element: HtmlElement,
+	fragment: string,
+): { owner: LocatedRecord; split: SourceSplit } | undefined {
+	if (!evidenceContainers.has(element.tagName)) return undefined;
+	const { html, file, site } = options;
+	for (const owner of group) {
+		if (owner.record.id !== fragment) continue;
+		const sources = recordEvidence(owner.record).filter(({ href }): boolean => {
+			const target = resolveDesignLink(href, owner.file, site);
+			return target?.file === file && target.fragment === fragment;
+		});
+		if (!sources.length) continue;
+		const text = passageText(html, fragment);
+		const matches = sources.filter(({ excerpt }) => text.includes(normalizeExcerpt(excerpt)));
+		if (!matches.length) continue;
+		if (sources.some((source) => source.verbatim && !matches.includes(source)))
+			throw new Error(`${file}#${fragment}: the container does not hold every verbatim excerpt.`);
+		const anchor = `${fragment}-source`;
+		const retargeted = [...new Set(sources.map(({ href }) => href))].map((from) => ({
+			from,
+			to: from.slice(0, from.indexOf('#') + 1) + encodeURIComponent(anchor),
+		}));
+		return { owner, split: { anchor, retargeted } };
+	}
+	return undefined;
+}
+
+function insideCallout(element: HtmlElement): boolean {
+	for (
+		let parent = element.parentNode;
+		parent;
+		parent = 'parentNode' in parent ? parent.parentNode : null
+	) {
+		if (isElement(parent) && parent.tagName === 'ex-callout') return true;
+	}
+	return false;
+}
+
 function insertionOffset(element: HtmlElement): number | undefined {
 	if (element.tagName === 'tr') {
 		const cell = element.childNodes.find(
@@ -248,7 +304,7 @@ export function planPage(options: {
 	readonly site: string;
 	readonly namespace?: string | undefined;
 	readonly records: readonly LocatedRecord[];
-	readonly preservedAnchors: ReadonlySet<string>;
+	readonly preservedAnchors: ReadonlyMap<string, ReadonlySet<string>>;
 }): PagePlan {
 	const { html, file, site, namespace, records, preservedAnchors } = options;
 	const old = readPageMarkup(html, file);
@@ -273,7 +329,24 @@ export function planPage(options: {
 	for (const [fragment, group] of groups) {
 		const node = elements.get(fragment);
 		if (!node) throw new Error(`${file}#${fragment}: old record destination is absent.`);
-		const offset = insertionOffset(node);
+		const evidence = splitEvidence(group, options, node, fragment);
+		if (evidence) {
+			const id = `${evidence.owner.namespace}/${evidence.owner.record.id}`;
+			const otherOwners = [...(preservedAnchors.get(fragment) ?? [])].filter(
+				(owner) => owner !== id,
+			);
+			if (otherOwners.length)
+				throw new Error(
+					`${file}#${fragment}: source anchor is also required by ${otherOwners.join(', ')}.`,
+				);
+			if (old.ids.has(evidence.split.anchor))
+				throw new Error(
+					`${file}#${fragment}: source anchor #${evidence.split.anchor} already exists.`,
+				);
+		}
+		if (evidence && insideCallout(node))
+			throw new Error(`${file}#${fragment}: cannot place a record inside <ex-callout>.`);
+		const offset = evidence ? node.sourceCodeLocation?.endTag?.endOffset : insertionOffset(node);
 		if (offset === undefined) {
 			const recordIds = group.map(({ namespace: owner, record }) => `${owner}/${record.id}`);
 			throw new Error(
@@ -284,15 +357,22 @@ export function planPage(options: {
 		const nextParagraph = next?.tagName === 'p' ? next : undefined;
 		const existingLinks = passageLinks(node, nextParagraph);
 		const snippets: string[] = [];
-		for (const { namespace: owner, record, file: designFile } of group) {
+		for (const location of group) {
+			const { namespace: owner, record, file: designFile } = location;
+			const sourceSplit = evidence?.owner === location ? evidence.split : undefined;
 			const id = `${owner}/${record.id}`;
 			const usesLocalId =
 				owner === namespace &&
-				(!old.ids.has(record.id) || (fragment === record.id && !preservedAnchors.has(fragment)));
+				(!old.ids.has(record.id) ||
+					(fragment === record.id &&
+						(sourceSplit !== undefined || !preservedAnchors.has(fragment))));
 			const anchor = usesLocalId ? record.id : id;
 			const ownCheck = checkStatement(html, record, node, next);
 			const isExpectedPassage = node.tagName === 'h3' && !!nextParagraph && fragment === record.id;
 			const sources: { href: string; added: boolean }[] = [];
+			// A qualified binding and its legacy public fragment need separate elements.
+			if (sourceSplit && anchor !== fragment)
+				snippets.push(`<span id="${escapeHtml(fragment)}"></span>`);
 			snippets.push(`<p data-design-record="${escapeHtml(anchor)}"></p>`);
 			if (record.kind !== 'choice' && record.kind !== 'assumption') {
 				for (const source of record.sources) {
@@ -322,6 +402,7 @@ export function planPage(options: {
 			}
 			changes.push({
 				id,
+				...(sourceSplit && { sourceSplit }),
 				oldAnchor: fragment,
 				anchor,
 				layout: isExpectedPassage
@@ -335,8 +416,9 @@ export function planPage(options: {
 		}
 		edits.push({ start: offset, end: offset, text: `\n${snippets.join('\n')}\n` });
 		if (
-			!preservedAnchors.has(fragment) &&
-			changes.some((item): boolean => item.oldAnchor === fragment && item.anchor === fragment)
+			evidence ||
+			(!preservedAnchors.has(fragment) &&
+				changes.some((item): boolean => item.oldAnchor === fragment && item.anchor === fragment))
 		) {
 			const idLocation = node.sourceCodeLocation?.attrs?.['id'];
 			if (!idLocation) throw new Error(`${file}#${fragment}: could not move the old id.`);
@@ -344,7 +426,11 @@ export function planPage(options: {
 				html[idLocation.startOffset - 1] === ' '
 					? idLocation.startOffset - 1
 					: idLocation.startOffset;
-			edits.push({ start, end: idLocation.endOffset, text: '' });
+			edits.push({
+				start,
+				end: idLocation.endOffset,
+				text: evidence ? ` id="${escapeHtml(evidence.split.anchor)}"` : '',
+			});
 		}
 	}
 	let revised = html;
