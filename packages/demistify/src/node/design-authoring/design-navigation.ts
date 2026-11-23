@@ -1,8 +1,10 @@
-import type {
-	NavigationTarget,
-	SharedMapNode,
-	SharedNavigation,
+import {
+	sharedNavigationSchema,
+	type NavigationTarget,
+	type SharedMapNode,
+	type SharedNavigation,
 } from '../../core/shared-navigation.ts';
+import { qualifyRecord } from './record-projection.ts';
 import {
 	recordLabel,
 	type AuthoredMapNode,
@@ -11,26 +13,37 @@ import {
 	type DesignRecord,
 } from './schema.ts';
 
-interface RecordNavigation {
-	readonly record: DesignRecord;
-	readonly target?: NavigationTarget | undefined;
+interface NavigationRecords {
+	readonly source: string;
+	readonly records: ReadonlyMap<string, DesignRecord>;
+	readonly namespace?: string | undefined;
 }
 
 export function compileDesignNavigation(
 	design: Pick<DesignCore, 'pages' | 'mapGroups' | 'walkthroughs'>,
-	navigationForRecord: (reference: string) => RecordNavigation,
+	{ source, records, namespace }: NavigationRecords,
+	targetForRecord?: (id: string) => NavigationTarget | undefined,
 ): SharedNavigation {
+	function resolveRecord(reference: string): DesignRecord {
+		if (!namespace && reference.includes('/'))
+			throw new Error(`Qualified reference ${reference} requires demistify project check.`);
+		const record = records.get(qualifyRecord(namespace, reference));
+		if (!record) throw new Error(`${source}: unknown design record ${reference}.`);
+		return record;
+	}
+
 	function resolveTarget(target: AuthoredNavigationTarget): NavigationTarget | undefined {
-		return 'page' in target ? target : navigationForRecord(target.record).target;
+		if ('page' in target) return target;
+		const record = resolveRecord(target.record);
+		return targetForRecord?.(record.id);
 	}
 
 	function resolveMapNode(node: AuthoredMapNode): SharedMapNode {
 		const { title, target, children, ...label } = node;
-		const record =
-			target && 'record' in target ? navigationForRecord(target.record).record : undefined;
+		const record = target && 'record' in target ? resolveRecord(target.record) : undefined;
 		const resolvedTitle = title ?? (record && recordLabel(record));
 		if (!resolvedTitle) throw new Error('A Map node without a record needs a title.');
-		const destination = target && resolveTarget(target);
+		const destination = record ? targetForRecord?.(record.id) : target && resolveTarget(target);
 		return {
 			...label,
 			title: resolvedTitle,
@@ -39,7 +52,7 @@ export function compileDesignNavigation(
 		};
 	}
 
-	return {
+	return sharedNavigationSchema.parse({
 		version: 1,
 		pages: design.pages,
 		map: design.mapGroups.map(resolveMapNode),
@@ -53,5 +66,5 @@ export function compileDesignNavigation(
 				target: resolveTarget(target),
 			})),
 		})),
-	};
+	});
 }

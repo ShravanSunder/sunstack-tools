@@ -197,6 +197,23 @@ export default defineDeliverable({ kind: 'later', id: 'DEL-03', title: 'Review f
 		);
 		expect(realizationBrief).not.toMatch(/M12|No realization|stylesheet/);
 		await expect(run(process.execPath, check)).rejects.toThrow(/theme\.css/);
+		const invalidTarget = (target: string): string =>
+			withRealization.replace(
+				'mapGroups: [],',
+				`mapGroups: [{ title: 'Review', description: 'Review the scope', icon: 'file', target: ${target} }],`,
+			);
+		await writeFile(designFile, invalidTarget("{ page: 'missing-page' }"));
+		await expect(run(process.execPath, brief)).rejects.toThrow(/Unknown page id: missing-page/);
+		await writeFile(
+			designFile,
+			withRealization.replace(
+				'mapGroups: [],',
+				`mapGroups: [], walkthroughs: [{ id: 'review', title: 'Review', description: 'Review the scope',
+steps: [{ narration: 'Review the rule', target: { record: 'R-NOT-THERE' as 'R3' } }] }],`,
+			),
+		);
+		await expect(run(process.execPath, brief)).rejects.toThrow(/unknown design record R-NOT-THERE/);
+		await writeFile(designFile, withRealization);
 		await writeFile(
 			coreFile,
 			coreWithRealization.replace("designItems: ['M3']", "designItems: ['M-BAD']"),

@@ -17,6 +17,7 @@ import {
 	deliveryDesignNotes,
 	projectDelivery,
 } from './delivery-model.ts';
+import { compileDesignNavigation } from './design-navigation.ts';
 import { designTypeSource } from './design-type-source.ts';
 import { checkAuthoringTypes, readDesignItems } from './read-design.ts';
 import {
@@ -311,9 +312,11 @@ export async function loadProject(directory: string, siteRoot?: string): Promise
 		entries.push(...set.entries.map((entry) => projectEntry(entry, set.name, href)));
 	}
 	const qualifiedIds = design.records.map(({ id }) => id);
-	for (const set of sets)
+	const records = checkRecordRelationships(design.records);
+	for (const set of sets) {
 		set.checkTypes([...qualifiedIds, ...set.design.records.map(({ id }) => id)]);
-	checkRecordRelationships(design.records);
+		compileDesignNavigation(set.design, { source: set.designFile, records, namespace: set.name });
+	}
 	return {
 		root,
 		projectFile,

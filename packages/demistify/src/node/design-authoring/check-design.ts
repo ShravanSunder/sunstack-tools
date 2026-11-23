@@ -2,11 +2,7 @@ import { readFile, realpath } from 'node:fs/promises';
 import { extname, join, relative, resolve } from 'node:path';
 
 import { deliverablesViewSchema } from '../../core/deliverables-view.ts';
-import {
-	type NavigationTarget,
-	type SharedMapNode,
-	sharedNavigationSchema,
-} from '../../core/shared-navigation.ts';
+import type { NavigationTarget, SharedMapNode } from '../../core/shared-navigation.ts';
 import { checkHtml, documentFragmentIds, formatFindings } from '../check.ts';
 import { containsPath } from '../local-site.ts';
 import {
@@ -54,7 +50,9 @@ const relatedKind = {
 	checks: 'rule',
 } as const;
 
-export function checkRecordRelationships(records: readonly DesignRecord[]): void {
+export function checkRecordRelationships(
+	records: readonly DesignRecord[],
+): ReadonlyMap<string, DesignRecord> {
 	const recordsById = new Map(records.map((record) => [record.id, record]));
 	if (recordsById.size !== records.length) throw new Error('Duplicate design record ID.');
 	const replacements = new Map<string, string>();
@@ -97,6 +95,7 @@ export function checkRecordRelationships(records: readonly DesignRecord[]): void
 				);
 		}
 	}
+	return recordsById;
 }
 
 export interface LoadedDesign {
@@ -356,26 +355,23 @@ export async function openDesignCheck(siteRoot: string): Promise<DesignCheck> {
 			delivery: DeliveryViews,
 			{ projection, preparedPages, namespace, projectSource }: PlanDesignScope,
 		): Promise<DesignPlan> {
-			const navigation = compileDesignNavigation(design, (reference) => {
-				const qualified = reference.includes('/');
-				if (qualified && !namespace)
-					throw new Error(`Qualified reference ${reference} requires demistify project check.`);
-				const id = namespace && !qualified ? `${namespace}/${reference}` : reference;
-				const record = projection.records.get(id);
-				if (!record) throw new Error(`${label(designFile)}: unknown design record ${reference}.`);
-				const destination = projection.placements.get(id);
-				if (!destination) return { record };
-				const page = pageIdsByFile.get(destination.file);
-				if (!page)
-					throw new Error(
-						`${label(designFile)}: declare ${label(destination.file)} in pages to navigate to ${reference}.`,
-					);
-				return { record, target: { page, fragment: destination.fragment } };
-			});
-			const validatedNavigation = sharedNavigationSchema.parse(navigation);
+			const navigation = compileDesignNavigation(
+				design,
+				{ source: label(designFile), records: projection.records, namespace },
+				(id) => {
+					const destination = projection.placements.get(id);
+					if (!destination) return undefined;
+					const page = pageIdsByFile.get(destination.file);
+					if (!page)
+						throw new Error(
+							`${label(designFile)}: declare ${label(destination.file)} in pages to navigate to ${id}.`,
+						);
+					return { page, fragment: destination.fragment };
+				},
+			);
 			await Promise.all([
-				...validatedNavigation.map.map(checkMapNode),
-				...validatedNavigation.walkthroughs.flatMap((route) =>
+				...navigation.map.map(checkMapNode),
+				...navigation.walkthroughs.flatMap((route) =>
 					route.steps.flatMap((step) => (step.target ? [checkNavigationTarget(step.target)] : [])),
 				),
 			]);
@@ -568,7 +564,8 @@ export async function loadDesignSet(
 	if (qualified)
 		throw new Error(`Qualified reference ${qualified} requires demistify project check.`);
 	set.checkTypes(set.design.records.map(({ id }) => id));
-	checkRecordRelationships(set.design.records);
+	const records = checkRecordRelationships(set.design.records);
+	compileDesignNavigation(set.design, { source: set.designFile, records });
 	return { ...set, check };
 }
 

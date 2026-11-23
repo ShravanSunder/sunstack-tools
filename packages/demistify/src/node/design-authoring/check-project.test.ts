@@ -353,6 +353,9 @@ resolution: { href: 'evidence.txt', excerpt: 'Available.' }
 			typedDesign.replace("'project/D2'", "'project/DX' as 'project/D2'"),
 		);
 		await expect(check(false)).rejects.toThrow(/unknown design record project\/DX/);
+		await expect(run(process.execPath, [cli, 'brief', 'messages/DEL-01', root])).rejects.toThrow(
+			/unknown design record project\/DX/,
+		);
 		await writeFile(messagesDesign, typedDesign);
 		const generatedNavigation: unknown = JSON.parse(
 			await readFile(join(messages, 'navigation.generated.json'), 'utf8'),

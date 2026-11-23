@@ -86,9 +86,11 @@ Completion: facts occur once, navigation resolves to the intended content, and p
 
 ## 4. Lint the final files once
 
-For typed design sources, run `demistify design check <milestone>` or `demistify project check <project>`. These commands validate prepared pages in memory. For ordinary standalone HTML, use `demistify check <page.html>`.
+Run the CLI shipped at the page's library binding (Node 26+). Copy the exact CLI URL printed in this binding's current published guide; do not construct the archive filename from the binding root.
 
-Run the CLI shipped at the page's library binding (Node 26+). Copy the exact CLI URL printed in this binding's current published guide; do not construct the archive filename from the binding root:
+For **typed design sources**, keep the same CLI package prefix shown below and use `design check <milestone>` or `project check <project>` in place of `check /path/page.html`. The typed check validates prepared pages in memory and is the final lint command for those pages.
+
+For **ordinary standalone HTML**, use these raw HTML check examples:
 
 <!-- Release staging binds the logical archive filename below to the built archive's content hash. -->
 
@@ -97,7 +99,7 @@ pnpm dlx https://demistify.getagentstudio.dev/v1/demistify-cli.tgz check /path/p
 # Or: npx --yes --package=https://demistify.getagentstudio.dev/v1/demistify-cli.tgz demistify check /path/page.html
 ```
 
-Use the same base as the runtime and theme. List the HTML files changed by this task in one invocation. Fix reported errors in the authoring source; rerun only after a correction. Warnings are advice, not an automatic zero-warning gate. Keep supplied facts, source files and relative links intact.
+Use the same base as the runtime and theme. For ordinary standalone HTML, list the changed HTML files in one `check` invocation. Fix reported errors in the authoring source; rerun only after a correction. Warnings are advice, not an automatic zero-warning gate. Keep supplied facts, source files and relative links intact.
 
 Routine document authoring ends with this source check. Do not install or launch Playwright, Chrome, another browser, a preview server or a device/theme matrix to certify shared components. Browser inspection is only for an explicit user request or diagnosing a concrete rendering/interaction defect; inspect the affected view only. Component regression verification belongs to library development. This workflow policy also governs the component references below.
 
