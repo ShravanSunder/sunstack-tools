@@ -38,6 +38,7 @@ interface Milestone {
 interface MigrationInputs {
 	readonly source: string;
 	readonly project: string;
+	readonly generatorOwned: readonly string[];
 }
 interface RecordConversion {
 	readonly authored: LocatedRecord;
@@ -317,13 +318,18 @@ async function counts(
 	return total;
 }
 
-async function planMigration({ source, project }: MigrationInputs): Promise<{
+async function planMigration({ source, project, generatorOwned }: MigrationInputs): Promise<{
 	readonly edits: ReadonlyMap<string, string>;
 	readonly report: Record<string, unknown>;
 }> {
 	const read = guardedReader(source);
 	const manifestFile = join(project, 'project.ts');
 	const manifest = readProjectManifest(manifestFile, await required(read, manifestFile));
+	const generatorMilestones = [...new Set(generatorOwned)].map((name) => {
+		const registered = Object.hasOwn(manifest.designs, name) ? manifest.designs[name] : undefined;
+		if (!registered) throw new Error(`Unknown generator-owned milestone namespace: ${name}.`);
+		return { name, directory: relative(source, dirname(registered)) };
+	});
 	const sets = await Promise.all(
 		Object.entries(manifest.designs).map(([namespace, file]) => milestone(namespace, file, read)),
 	);
@@ -513,6 +519,13 @@ async function planMigration({ source, project }: MigrationInputs): Promise<{
 			defaults,
 			dependencyChanges,
 			passages: [...pageChanges.values()],
+			...(generatorMilestones.length > 0 && {
+				generatorFollowUp: {
+					milestones: generatorMilestones,
+					requiredBeforeRegeneration:
+						'Update the listed generators for lean records before regenerating.',
+				},
+			}),
 			wordBoundary:
 				'Whitespace-delimited words in milestone .ts, .html and .md files, with generated JSON, SDK, and declarations excluded.',
 		},
@@ -542,12 +555,13 @@ async function main(): Promise<void> {
 			project: { type: 'string' },
 			output: { type: 'string' },
 			'dry-run': { type: 'boolean' },
+			'generator-owned': { type: 'string', multiple: true },
 			help: { type: 'boolean', short: 'h' },
 		},
 	});
 	if (values.help) {
 		process.stdout.write(
-			'Usage: node migrate-lean-design-records.ts --source DOCS --project RELATIVE_PROJECT [--output NEW_DOCS | --dry-run]\n',
+			'Usage: node migrate-lean-design-records.ts --source DOCS --project RELATIVE_PROJECT [--output NEW_DOCS | --dry-run] [--generator-owned REGISTERED_NAMESPACE]...\n',
 		);
 		return;
 	}
@@ -558,7 +572,11 @@ async function main(): Promise<void> {
 	if (!containsPath(source, project))
 		throw new Error('The project must be within the source docs tree.');
 	const output = values.output && (await newOutput(values.output, source));
-	const { edits, report } = await planMigration({ source, project });
+	const { edits, report } = await planMigration({
+		source,
+		project,
+		generatorOwned: values['generator-owned'] ?? [],
+	});
 	if (!values['dry-run'] && output) {
 		await mkdir(output);
 		await Promise.all(

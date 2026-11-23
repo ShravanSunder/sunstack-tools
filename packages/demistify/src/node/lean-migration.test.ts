@@ -121,8 +121,22 @@ it('plans without writing and migrates a copy with row and verbatim evidence anc
 			writeFile(join(set, 'navigation.generated.json'), '{"stale":true}'),
 		]);
 		const command = [script, '--source', input, '--project', 'project', '--output', output];
-		const dryRun = await run(process.execPath, [...command, '--dry-run']);
-		expect(JSON.parse(dryRun.stdout)).toMatchObject({ dryRun: true, unchangedRuleStatements: 2 });
+		const ownership = {
+			milestones: [{ name: 'phase', directory: 'project/phase' }],
+			requiredBeforeRegeneration:
+				'Update the listed generators for lean records before regenerating.',
+		};
+		await expect(
+			run(process.execPath, [...command, '--generator-owned', 'unknown']),
+		).rejects.toThrow(/Unknown generator-owned milestone namespace: unknown/);
+		await expect(stat(output)).rejects.toMatchObject({ code: 'ENOENT' });
+		const generatorArgs = ['--generator-owned', 'phase', '--generator-owned', 'phase'];
+		const dryRun = await run(process.execPath, [...command, ...generatorArgs, '--dry-run']);
+		expect(JSON.parse(dryRun.stdout)).toMatchObject({
+			dryRun: true,
+			unchangedRuleStatements: 2,
+			generatorFollowUp: ownership,
+		});
 		await expect(stat(output)).rejects.toMatchObject({ code: 'ENOENT' });
 		expect(await readFile(join(set, 'index.html'), 'utf8')).toBe(oldHtml);
 		expect(await readFile(join(set, 'design.ts'), 'utf8')).toBe(oldSource);
@@ -149,7 +163,7 @@ it('plans without writing and migrates a copy with row and verbatim evidence anc
 		await expect(stat(outside)).rejects.toMatchObject({ code: 'ENOENT' });
 		await unlink(ignoreFile);
 
-		const migrated = await run(process.execPath, command);
+		const migrated = await run(process.execPath, [...command, ...generatorArgs]);
 		const outProject = join(output, 'project');
 		const outSet = join(outProject, 'phase');
 		const html = await readFile(join(outSet, 'index.html'), 'utf8');
@@ -180,7 +194,11 @@ it('plans without writing and migrates a copy with row and verbatim evidence anc
 		const fallback: unknown = expect.arrayContaining([
 			{ id: 'phase/V3', field: 'statement', source: 'old title' },
 		]);
-		expect(report).toMatchObject({ defaults: fallback });
+		expect(report).toMatchObject({
+			dryRun: false,
+			defaults: fallback,
+			generatorFollowUp: ownership,
+		});
 		await expect(stat(join(outSet, 'navigation.generated.json'))).rejects.toMatchObject({
 			code: 'ENOENT',
 		});
