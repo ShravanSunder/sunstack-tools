@@ -152,9 +152,14 @@ it('qualifies need coverage and deduplicates scoped rule notes across a checked 
 	};
 	const realizedHistory = designSource(false, receipt).replace(
 		'"records":[',
-		`"records":[${JSON.stringify(historyRealization)},`,
+		`"records":[${JSON.stringify(historyRealization)},${JSON.stringify({
+			id: 'U2',
+			kind: 'need',
+			statement: 'Queue operators see the history record.',
+		})},`,
 	);
 	const note = 'queue/R1: No realization names this rule.';
+	const unservedNeedNote = 'history/U2: No rule serves this need.';
 	try {
 		await Promise.all([
 			mkdir(join(queue, 'deliverables'), { recursive: true }),
@@ -196,23 +201,34 @@ it('qualifies need coverage and deduplicates scoped rule notes across a checked 
 			),
 		]);
 		const check = [cli, 'project', 'check', root];
-		const first = (await run(process.execPath, check)).stdout;
+		const first = (await run(process.execPath, [...check, '--write'])).stdout;
 		expect(first).toContain('queue/DEL-01 · awaiting-verification');
 		expect(first).toContain('Link scoped rules to scoped needs: history/U1.');
 		expect(first).toContain('queue/DEL-02 · ready-for-acceptance');
 		expect(first).toContain('history/DEL-01 · accepted');
+		expect(first).toContain(`Design notes\n  ${unservedNeedNote}`);
+		expect(first.split(unservedNeedNote)).toHaveLength(2);
+		expect(first).not.toMatch(/(?:queue|history)\/U1: No rule serves/);
 		expect(first.split(note)).toHaveLength(2);
 		expect(first).not.toContain('history/R1: No realization');
+		expect(await readFile(join(root, 'project.generated.json'), 'utf8')).not.toMatch(
+			/No rule serves|No realization/,
+		);
 		const brief = [cli, 'brief', 'queue/DEL-01', root];
 		const firstBrief = (await run(process.execPath, brief)).stdout;
 		expect(firstBrief).toContain('**queue/U1** Caller sees the current result.');
 		expect(firstBrief).toContain('**history/U1** Caller sees the current result.');
 		expect(firstBrief).toContain(note);
-		expect(firstBrief).not.toMatch(/history\/R1|history\/M1|queue\/DEL-02/);
+		expect(firstBrief).not.toMatch(
+			/history\/R1|history\/M1|queue\/DEL-02|history\/U2|No rule serves/,
+		);
 
 		await writeFile(
 			queueFile,
-			designSource(false, receipt).replace('"serves":"U1"', '"serves":["U1","history/U1"]'),
+			designSource(false, receipt).replace(
+				'"serves":"U1"',
+				'"serves":["U1","history/U1","history/U2"]',
+			),
 		);
 		await writeFile(
 			historyFile,
@@ -227,7 +243,7 @@ it('qualifies need coverage and deduplicates scoped rule notes across a checked 
 		);
 		const complete = (await run(process.execPath, check)).stdout;
 		expect(complete).toContain('queue/DEL-01 · accepted');
-		expect(complete).not.toMatch(/No realization|Link scoped rules/);
+		expect(complete).not.toMatch(/No realization|No rule serves|Link scoped rules/);
 		await writeFile(
 			join(history, 'index.html'),
 			fixturePage.replace(/<script type="module"[^>]+><\/script>/, ''),

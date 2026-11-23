@@ -80,8 +80,22 @@ export function realizationNotes(coverage: Iterable<DeliveryCoverage>): string[]
 	return [...ruleIds].map((id): string => `${id}: No realization names this rule.`);
 }
 
-export function deliveryDesignNotes(delivery: DeliveryProjection): string[] {
-	const notes = realizationNotes(delivery.coverage.values());
+export function designCheckNotes(
+	records: readonly DesignRecord[],
+	delivery: DeliveryProjection,
+): string[] {
+	const unservedNeeds = new Set<string>();
+	for (const record of records) if (record.kind === 'need') unservedNeeds.add(record.id);
+	for (const record of records) {
+		if (record.kind !== 'rule') continue;
+		for (const { relation, targetId } of recordRelationships(record)) {
+			if (relation === 'serves') unservedNeeds.delete(targetId);
+		}
+	}
+	const notes = [
+		...[...unservedNeeds].map((id): string => `${id}: No rule serves this need.`),
+		...realizationNotes(delivery.coverage.values()),
+	];
 	return notes.length ? ['Design notes', ...notes.map((note): string => `  ${note}`)] : [];
 }
 

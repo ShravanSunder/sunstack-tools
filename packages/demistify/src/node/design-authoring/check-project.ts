@@ -14,7 +14,7 @@ import {
 	type DeliveryEntry,
 	type DeliveryProjection,
 	type DeliveryViews,
-	deliveryDesignNotes,
+	designCheckNotes,
 	projectDelivery,
 } from './delivery-model.ts';
 import { compileDesignNavigation } from './design-navigation.ts';
@@ -422,7 +422,7 @@ export async function buildProject(
 				]
 			: []),
 		...plans.map((plan) => plan.result),
-		...deliveryDesignNotes(delivery),
+		...designCheckNotes(design.records, delivery),
 	].join('\n');
 	return {
 		result,

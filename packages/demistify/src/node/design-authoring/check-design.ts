@@ -6,7 +6,7 @@ import type { NavigationTarget, SharedMapNode } from '../../core/shared-navigati
 import { checkHtml, documentFragmentIds, formatFindings } from '../check.ts';
 import { containsPath } from '../local-site.ts';
 import {
-	deliveryDesignNotes,
+	designCheckNotes,
 	parseDeliveryEntries,
 	projectDelivery,
 	type DeliveryEntry,
@@ -590,7 +590,7 @@ export async function buildDesignSet(
 	else await check.verify();
 	return {
 		...plan,
-		result: [plan.result, ...deliveryDesignNotes(delivery)].join('\n'),
+		result: [plan.result, ...designCheckNotes(design.records, delivery)].join('\n'),
 		design,
 		entries,
 		preparedPages,

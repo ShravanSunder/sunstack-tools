@@ -193,7 +193,7 @@ Record acceptance in `design.ts` as `acceptances: [{ deliverableId: 'DEL-01', bu
 
 Known loss: the check does not flag a rule that changed after acceptance. Treat such an edit as new scope and verify it again.
 
-The check prints an informational note for a scoped rule without a realization in the checked design or project. The note stays visible after acceptance.
+Design notes include each authored need that no rule in the checked design or project serves, even if the need is outside delivery scope. The check also notes scoped rules without a realization. These notes are informational and stay visible after acceptance.
 
 Show progress with `<ex-deliverables src="./deliverables.generated.json" label="Delivery progress"></ex-deliverables>`: each deliverable's state, open checks and evidence, linked to the governing records.
 

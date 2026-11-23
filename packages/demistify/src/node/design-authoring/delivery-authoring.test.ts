@@ -95,6 +95,7 @@ const outputNames = [
 	'deliverables.generated.json',
 ];
 const realizationNote = 'R3: No realization names this rule.';
+const unservedNeedNote = 'U6: No rule serves this need.';
 
 function beforeVerification(source: string): string {
 	return `${source.slice(0, source.indexOf('  verification:'))}});\n`;
@@ -111,7 +112,7 @@ it('holds acceptance for an explicitly scoped need and keeps missing realization
 				'  records: [',
 				`  records: [
     { id: 'U5', kind: 'need', statement: 'Operators know whether a job has started.' },
-    { id: 'U6', kind: 'need', statement: 'This unscoped need stays outside the check.' },
+						{ id: 'U6', kind: 'need', statement: 'An unscoped need has an informational note.' },
     { id: 'M12', kind: 'realization', statement: 'A committed claim is reported.', realizes: 'R12' },`,
 			)
 			.replace("serves: 'U3' },", "serves: ['U3', 'U5'] },")
@@ -152,7 +153,9 @@ export default defineDeliverable({ kind: 'later', id: 'DEL-03', title: 'Review f
 		expect(initial).toContain('Link scoped rules to scoped needs: U5.');
 		expect(initial).toContain('DEL-02 · verification-blocked');
 		expect(initial).toContain('DEL-03 · later');
-		expect(initial).not.toMatch(/U6|R12: No realization/);
+		expect(initial).toContain(`Design notes\n  ${unservedNeedNote}`);
+		expect(initial.split(unservedNeedNote)).toHaveLength(2);
+		expect(initial).not.toMatch(/(?:U3|U4|U5): No rule serves|R12: No realization/);
 		expect(initial.split(realizationNote)).toHaveLength(2);
 		const initialBrief = (await run(process.execPath, brief)).stdout;
 		expect(initialBrief).toContain('**U5** Operators know whether a job has started.');
@@ -164,13 +167,17 @@ export default defineDeliverable({ kind: 'later', id: 'DEL-03', title: 'Review f
 		await writeFile(designFile, coveredDesign);
 		const covered = (await run(process.execPath, check)).stdout;
 		expect(covered).toContain('DEL-01 · accepted');
+		expect(covered).toContain(unservedNeedNote);
 		expect(covered).toContain(realizationNote);
 		expect(covered).not.toContain('Link scoped rules to scoped needs: U5.');
 		const view = await readFile(join(directory, 'deliverables.generated.json'), 'utf8');
-		expect(view).not.toContain('No realization');
-		expect(parseDeliverablesView(view).deliverables['DEL-01']?.state).toBe('accepted');
+		expect(view).not.toMatch(/No realization|No rule serves|U6/);
+		const accepted = coreDelivery(parseDeliverablesView(view), 'DEL-01');
+		expect(accepted.state).toBe('accepted');
+		expect(accepted.reasons).toEqual(['The Lead accepted candidate build-87.']);
 		const coveredBrief = (await run(process.execPath, brief)).stdout;
 		expect(coveredBrief).toContain(realizationNote);
+		expect(coveredBrief).not.toMatch(/U6|No rule serves/);
 		expect(coveredBrief).not.toContain('Link scoped rules to scoped needs: U5.');
 
 		await writeFile(coreFile, core.replace("needs: ['U5']", "needs: ['R3']"));
