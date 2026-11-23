@@ -169,8 +169,7 @@ export function governingRecords(
 		if (!record) throw new Error(`${deliverable.id}: missing governing design record ${scopeId}.`);
 		linkedRecords.set(scopeId, record);
 		for (const { relation, targetId } of recordRelationships(record)) {
-			if ((relation === 'checks' || relation === 'realizes') && !scopedRules.has(targetId))
-				continue;
+			if (relation === 'checks' && !scopedRules.has(targetId)) continue;
 			includeRecord(targetId);
 		}
 	}
