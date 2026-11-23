@@ -1,5 +1,12 @@
 # @sunstack/demistify
 
+## 1.32.1
+
+### Patch Changes
+
+- 7e19790: Load specialized authoring references only when a page needs them. Use Trace for new source-derived call paths and keep the prepared call-stack reader working for existing pages.
+- 891b326: Preserve quoted evidence inside HTML containers during lean-record migration while keeping existing fragment links pointed at their records.
+
 ## 1.32.0
 
 ### Minor Changes
