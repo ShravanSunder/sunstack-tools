@@ -16,7 +16,13 @@ import {
 } from './delivery-model.ts';
 import { declaredDesignPagePath, resolveDesignLink } from './design-location.ts';
 import { compileDesignNavigation } from './design-navigation.ts';
-import { commitDesignOutputs, planGeneratedJson, planGeneratedText } from './design-output.ts';
+import {
+	commitDesignOutputs,
+	generatedJsonIsCurrent,
+	generatedTextIsCurrent,
+	planGeneratedJson,
+	planGeneratedText,
+} from './design-output.ts';
 import {
 	normalizeExcerpt,
 	passageText,
@@ -619,12 +625,38 @@ export async function buildDesignSet(
 	else await check.verify();
 	return {
 		...plan,
-		result: [plan.result, ...designCheckNotes(design.records, delivery)].join('\n'),
+		result: [
+			plan.result,
+			...(options.write ? [] : await generatedViewNotes('design', plan.generated, recordOutputs)),
+			...designCheckNotes(design.records, delivery),
+		].join('\n'),
 		design,
 		entries,
 		preparedPages,
 		delivery,
 	};
+}
+
+export async function generatedViewNotes(
+	kind: 'design' | 'project',
+	generated: ReadonlyMap<string, unknown>,
+	recordOutputs: ReadonlyMap<string, DesignRecordView>,
+): Promise<string[]> {
+	const current = await Promise.all([
+		...[...generated].map(([file, value]) => generatedJsonIsCurrent(file, value)),
+		...[...recordOutputs].map(([file, view]) =>
+			generatedTextIsCurrent(
+				file,
+				recordRegistrationScript(view),
+				Object.keys(view.pages).length === 0,
+			),
+		),
+	]);
+	return current.every(Boolean)
+		? []
+		: [
+				`Generated views are missing or stale. Run demistify ${kind} check --write to refresh them.`,
+			];
 }
 
 export async function writeDesignBuild(

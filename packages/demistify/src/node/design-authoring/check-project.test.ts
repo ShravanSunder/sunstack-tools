@@ -167,7 +167,10 @@ it('writes records under the shared projects ignore scope and clears obsolete pa
 			writeFile(join(phase, 'design.ts'), designSource(false)),
 			writeFile(page, original),
 		]);
-		await run(process.execPath, check);
+		const advisory =
+			'Generated views are missing or stale. Run demistify project check --write to refresh them.';
+		const missing = await run(process.execPath, check);
+		expect(missing.stdout.split(advisory)).toHaveLength(2);
 		await expect(stat(ignore)).rejects.toHaveProperty('code', 'ENOENT');
 		await expect(stat(output)).rejects.toHaveProperty('code', 'ENOENT');
 		await run(process.execPath, [...check, '--write']);
@@ -176,6 +179,18 @@ it('writes records under the shared projects ignore scope and clears obsolete pa
 		expect(await readFile(page, 'utf8')).toBe(original);
 		expect(await readFile(output, 'utf8')).toContain('Return the current result.');
 		expect(await readFile(output, 'utf8')).toContain('[phase/R1 · Rule](<#R1>)');
+
+		expect((await run(process.execPath, check)).stdout).not.toContain(advisory);
+		const freshRecords = await readFile(output, 'utf8');
+		await writeFile(
+			join(phase, 'design.ts'),
+			designSource(false).replace('Return the current result.', 'Return the latest result.'),
+		);
+		expect((await run(process.execPath, check)).stdout.split(advisory)).toHaveLength(2);
+		expect(await readFile(output, 'utf8')).toBe(freshRecords);
+		await run(process.execPath, [...check, '--write']);
+		expect(await readFile(output, 'utf8')).toContain('Return the latest result.');
+		expect((await run(process.execPath, check)).stdout).not.toContain(advisory);
 
 		const unchangedIgnore = await stat(ignore);
 		await run(process.execPath, [...check, '--write']);

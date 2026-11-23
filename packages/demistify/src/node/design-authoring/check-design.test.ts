@@ -100,6 +100,18 @@ it('checks a real adjacent page and source inside an explicitly selected site ro
 		expect(JSON.parse(await readFile(navigationPath, 'utf8'))).toMatchObject(navigation);
 		expect(await readFile(definition, 'utf8')).toBe(withRecord);
 		expect(await readFile(join(deliverable, 'index.html'), 'utf8')).toBe(page);
+		const advisory =
+			'Generated views are missing or stale. Run demistify design check --write to refresh them.';
+		const readOnly = check.slice(0, -1);
+		expect((await run(process.execPath, readOnly)).stdout).not.toContain(advisory);
+		const recordScript = join(deliverable, 'records.generated.js');
+		await unlink(recordScript);
+		expect((await run(process.execPath, readOnly)).stdout.split(advisory)).toHaveLength(2);
+		await expect(stat(recordScript)).rejects.toMatchObject({ code: 'ENOENT' });
+		await run(process.execPath, check);
+		await expect(
+			run(process.execPath, [cli, 'project', 'check', deliverable, '--site-root', site]),
+		).rejects.toThrow(/project\.ts/);
 		const legacyEntry = join(deliverable, 'delivery.ts');
 		await writeFile(legacyEntry, 'export default [];');
 		await expect(run(process.execPath, check)).rejects.toThrow(

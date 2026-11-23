@@ -78,14 +78,36 @@ export async function planGeneratedJson(
 	await refuseTrackedOutput(file);
 	const previous = await readOutputFile(file);
 	const text = `${JSON.stringify(value, null, 2)}\n`;
-	if (previous !== undefined) {
-		try {
-			if (isDeepStrictEqual(JSON.parse(previous), JSON.parse(text))) return undefined;
-		} catch {
-			// A malformed previous output can be regenerated from validated inputs.
-		}
-	}
+	if (sameGeneratedJson(previous, text)) return undefined;
 	return { file, previous, text };
+}
+
+function sameGeneratedJson(previous: string | undefined, text: string): boolean {
+	if (previous === undefined) return false;
+	try {
+		return isDeepStrictEqual(JSON.parse(previous), JSON.parse(text));
+	} catch {
+		return false;
+	}
+}
+
+export async function generatedJsonIsCurrent(file: string, value: unknown): Promise<boolean> {
+	const previous = await readOutputFile(file).catch((): undefined => undefined);
+	return sameGeneratedJson(previous, JSON.stringify(value));
+}
+
+export async function generatedTextIsCurrent(
+	file: string,
+	text: string,
+	omitIfAbsent: boolean,
+): Promise<boolean> {
+	// An unreadable output needs attention, even when an absent output would be valid.
+	try {
+		const previous = await readOutputFile(file);
+		return previous === text || (previous === undefined && omitIfAbsent);
+	} catch {
+		return false;
+	}
 }
 
 /** Preflight all outputs, then stage their replacements and rollback copies together. */

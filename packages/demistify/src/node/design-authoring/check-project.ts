@@ -5,6 +5,7 @@ import type { DeliverableView } from '../../core/deliverables-view.ts';
 import { projectDecisions, projectViewSchema } from '../../core/project-view.ts';
 import {
 	checkRecordRelationships,
+	generatedViewNotes,
 	type LoadedDesign,
 	openDesignCheck,
 	writeDesignBuild,
@@ -421,9 +422,8 @@ export async function buildProject(
 	const questions = projectDecisions(view.records).filter(({ status }) => status === 'Open');
 	const result = [
 		`Checked ${sets.length} project design(s).`,
-		options.write
-			? 'Generated views refreshed.'
-			: 'Read-only check. Add --write to refresh generated views.',
+		options.write ? 'Generated views refreshed.' : 'Read-only check.',
+		...(options.write ? [] : await generatedViewNotes('project', generated, recordOutputs)),
 		...(questions.length
 			? [
 					'Waiting on owner',
