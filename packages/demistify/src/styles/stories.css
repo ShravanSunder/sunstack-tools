@@ -47,7 +47,6 @@ ex-section.ex-section-floating {
 }
 .ex-section-floating > .ex-section-head {
 	box-sizing: border-box;
-	max-inline-size: var(--width-reading);
 	margin: 0 0 var(--space-4);
 	padding: var(--space-2) var(--space-3);
 	border: 1px solid var(--rule);
