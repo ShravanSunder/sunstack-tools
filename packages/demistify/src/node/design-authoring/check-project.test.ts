@@ -137,6 +137,109 @@ it('checks an empty project without discovering files beside the manifest', asyn
 	}
 }, 20_000);
 
+it('qualifies need coverage and deduplicates scoped rule notes across a checked project', async (): Promise<void> => {
+	const root = await mkdtemp(join(tmpdir(), 'demistify-qualified-coverage-'));
+	const queue = join(root, 'queue');
+	const history = join(root, 'history');
+	const queueFile = join(queue, 'design.ts');
+	const historyFile = join(history, 'design.ts');
+	const receipt = { build: 'build-01' };
+	const historyRealization = {
+		id: 'M1',
+		kind: 'realization',
+		statement: 'History returns the stored result.',
+		realizes: 'R1',
+	};
+	const realizedHistory = designSource(false, receipt).replace(
+		'"records":[',
+		`"records":[${JSON.stringify(historyRealization)},`,
+	);
+	const note = 'queue/R1: No realization names this rule.';
+	try {
+		await Promise.all([
+			mkdir(join(queue, 'deliverables'), { recursive: true }),
+			mkdir(join(history, 'deliverables'), { recursive: true }),
+		]);
+		const queueDeliverable = deliverableSource(receipt);
+		await Promise.all([
+			writeFile(
+				join(root, 'project.ts'),
+				`import queue from './queue/design.ts'; import history from './history/design.ts'; export default { designs: { queue, history } };`,
+			),
+			writeFile(queueFile, designSource(false, receipt)),
+			writeFile(historyFile, realizedHistory),
+			writeFile(
+				join(queue, 'index.html'),
+				fixturePage.replace('</ex-document>', '<p id="DEL-02">The shared rule</p></ex-document>'),
+			),
+			writeFile(join(history, 'index.html'), fixturePage),
+			writeFile(join(queue, 'evidence.txt'), 'Queue evidence.'),
+			writeFile(join(history, 'evidence.txt'), 'History evidence.'),
+			writeFile(join(history, 'design-delivery.ts'), deliverySource()),
+			writeFile(join(history, 'deliverables/unit.ts'), deliverableSource(receipt)),
+			writeFile(
+				join(queue, 'deliverables/unit.ts'),
+				queueDeliverable.replace('"scope":{', '"scope":{"needs":["U1","history/U1"],'),
+			),
+			writeFile(
+				join(queue, 'deliverables/other.ts'),
+				queueDeliverable.replaceAll('DEL-01', 'DEL-02'),
+			),
+			writeFile(
+				join(queue, 'design-delivery.ts'),
+				deliverySource()
+					.replace(
+						'import { defineDelivery }',
+						"import other from './deliverables/other.ts';\nimport { defineDelivery }",
+					)
+					.replace('{ deliverable: unit }]', '{ deliverable: unit }, { deliverable: other }]'),
+			),
+		]);
+		const check = [cli, 'project', 'check', root];
+		const first = (await run(process.execPath, check)).stdout;
+		expect(first).toContain('queue/DEL-01 · awaiting-verification');
+		expect(first).toContain('Link scoped rules to scoped needs: history/U1.');
+		expect(first).toContain('queue/DEL-02 · ready-for-acceptance');
+		expect(first).toContain('history/DEL-01 · accepted');
+		expect(first.split(note)).toHaveLength(2);
+		expect(first).not.toContain('history/R1: No realization');
+		const brief = [cli, 'brief', 'queue/DEL-01', root];
+		const firstBrief = (await run(process.execPath, brief)).stdout;
+		expect(firstBrief).toContain('**queue/U1** Caller sees the current result.');
+		expect(firstBrief).toContain('**history/U1** Caller sees the current result.');
+		expect(firstBrief).toContain(note);
+		expect(firstBrief).not.toMatch(/history\/R1|history\/M1|queue\/DEL-02/);
+
+		await writeFile(
+			queueFile,
+			designSource(false, receipt).replace('"serves":"U1"', '"serves":["U1","history/U1"]'),
+		);
+		await writeFile(
+			historyFile,
+			realizedHistory.replace(
+				'"records":[',
+				`"records":[${JSON.stringify({
+					...historyRealization,
+					id: 'M2',
+					realizes: 'queue/R1',
+				})},`,
+			),
+		);
+		const complete = (await run(process.execPath, check)).stdout;
+		expect(complete).toContain('queue/DEL-01 · accepted');
+		expect(complete).not.toMatch(/No realization|Link scoped rules/);
+		await writeFile(
+			join(history, 'index.html'),
+			fixturePage.replace(/<script type="module"[^>]+><\/script>/, ''),
+		);
+		const completeBrief = (await run(process.execPath, brief)).stdout;
+		expect(completeBrief).not.toMatch(/No realization|Link scoped rules|history\/M2/);
+		await expect(run(process.execPath, check)).rejects.toThrow(/runtime\.js/);
+	} finally {
+		await rm(root, { recursive: true, force: true });
+	}
+}, 30_000);
+
 it('checks explicit project records, qualified prerequisites, and Lead aliases across two designs', async (): Promise<void> => {
 	const sandbox = await mkdtemp(join(tmpdir(), 'demistify-project-check-'));
 	const root = join(sandbox, 'docs/projects/2026-11-messaging');

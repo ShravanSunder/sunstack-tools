@@ -2,9 +2,9 @@ import { realpath } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
 import { containsPath } from '../local-site.ts';
-import { buildDesignSet } from './check-design.ts';
-import { buildProject } from './check-project.ts';
-import { governingRecords } from './delivery-model.ts';
+import { loadDesignSet } from './check-design.ts';
+import { loadProject } from './check-project.ts';
+import { governingRecords, projectDelivery, realizationNotes } from './delivery-model.ts';
 import { findDesignInput } from './design-location.ts';
 import { recordStatement, type DesignRecord } from './schema.ts';
 
@@ -38,11 +38,13 @@ export async function deliveryBrief(
 		findDesignInput(start, 'project.ts', limit),
 		findDesignInput(start, 'design.ts', limit),
 	]);
-	const projectBuild = project ? await buildProject(project, { siteRoot }) : undefined;
-	const namespace = milestone && projectBuild?.milestones.get(milestone);
-	const build = projectBuild ?? (await buildDesignSet(milestone ?? start, { siteRoot }));
+	const projectModel = project ? await loadProject(project, siteRoot) : undefined;
+	const namespace = milestone && projectModel?.milestones.get(milestone);
+	const model = projectModel ?? (await loadDesignSet(milestone ?? start, siteRoot));
+	const delivery = projectDelivery(model.design, model.entries);
+	await model.check.verify();
 	const scopedId = namespace && !reference.includes('/') ? `${namespace}/${reference}` : reference;
-	const matches = build.entries.filter(
+	const matches = model.entries.filter(
 		({ deliverable: { id } }): boolean =>
 			id === scopedId || (!namespace && !reference.includes('/') && id.endsWith(`/${reference}`)),
 	);
@@ -56,13 +58,14 @@ export async function deliveryBrief(
 	if (deliverable.kind !== 'core')
 		throw new Error(`${deliverable.id} is a later deliverable with no brief.`);
 	const { scope } = deliverable;
-	const records = new Map(build.design.records.map((record) => [record.id, record]));
+	const records = new Map(model.design.records.map((record) => [record.id, record]));
 	const selected = (ids: readonly string[]): DesignRecord[] =>
 		ids.flatMap((id) => {
 			const record = records.get(id);
 			return record ? [record] : [];
 		});
 	const governance = governingRecords(deliverable, records);
+	const coverage = delivery.coverage.get(deliverable.id);
 
 	return [
 		`# ${deliverable.id} · ${deliverable.title}`,
@@ -70,7 +73,9 @@ export async function deliveryBrief(
 			'Prerequisites',
 			dependsOn.map((id): string => `- ${id}`),
 		),
+		...section('Needs', selected(scope.needs).flatMap(briefRecord)),
 		...section('Rules', selected(scope.rules).flatMap(briefRecord)),
+		...section('Realizations', selected(scope.designItems).flatMap(briefRecord)),
 		...section('Checks', selected(scope.verificationChecks).flatMap(briefRecord)),
 		...section(
 			'Tasks',
@@ -87,6 +92,14 @@ export async function deliveryBrief(
 			governance
 				.filter((record) => record.kind === 'assumption' && record.status === 'open')
 				.flatMap(briefRecord),
+		),
+		...section(
+			'Coverage gaps',
+			(coverage?.gaps ?? []).map((gap): string => `- ${gap}`),
+		),
+		...section(
+			'Design notes',
+			realizationNotes(coverage ? [coverage] : []).map((note): string => `- ${note}`),
 		),
 	].join('\n');
 }

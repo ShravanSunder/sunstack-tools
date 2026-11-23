@@ -6,6 +6,7 @@ type VerificationOutcome =
 	| { readonly kind: 'blocked'; readonly reason: string };
 
 interface DeliverableScope {
+	readonly needs?: readonly string[];
 	readonly rules?: readonly string[];
 	readonly designItems?: readonly string[];
 	readonly implementationTasks?: readonly string[];

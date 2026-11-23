@@ -3,11 +3,18 @@ import { dirname, join, relative, resolve, sep } from 'node:path';
 
 import type { DeliverableView } from '../../core/deliverables-view.ts';
 import { projectDecisions, projectViewSchema } from '../../core/project-view.ts';
-import { checkRecordRelationships, openDesignCheck, writeDesignBuild } from './check-design.ts';
+import {
+	checkRecordRelationships,
+	type LoadedDesign,
+	openDesignCheck,
+	writeDesignBuild,
+} from './check-design.ts';
 import {
 	type CoreDeliverable,
 	type DeliveryEntry,
 	type DeliveryProjection,
+	type DeliveryViews,
+	deliveryDesignNotes,
 	projectDelivery,
 } from './delivery-model.ts';
 import { designTypeSource } from './design-type-source.ts';
@@ -113,6 +120,7 @@ function projectEntry(
 			destination: { ...work.destination, page: href(work.destination.page) },
 			scope: {
 				...work.scope,
+				needs: ids(work.scope.needs),
 				rules: ids(work.scope.rules),
 				designItems: ids(work.scope.designItems),
 				verificationChecks: ids(work.scope.verificationChecks),
@@ -133,9 +141,9 @@ function scopedDeliverables(
 	deliverables: Readonly<Record<string, DeliverableView>>,
 	name: string,
 	href: (href: string) => string,
-): DeliveryProjection {
+): DeliveryViews {
 	const output: Record<string, DeliverableView> = {};
-	const destinations: DeliveryProjection['destinations'][number][] = [];
+	const destinations: DeliveryViews['destinations'][number][] = [];
 	const destination = <TLink extends { page: string }>(link: TLink): TLink => ({
 		...link,
 		page: href(link.page),
@@ -218,13 +226,27 @@ export interface CheckedProjectBuild {
 	readonly delivery: DeliveryProjection;
 }
 
-export async function buildProject(
-	directory: string,
-	options: ProjectCheckOptions = {},
-): Promise<CheckedProjectBuild> {
+interface SharedRecordSource {
+	readonly file: string;
+	readonly records: readonly DesignRecord[];
+}
+
+interface LoadedProject {
+	readonly root: string;
+	readonly projectFile: string;
+	readonly check: Awaited<ReturnType<typeof openDesignCheck>>;
+	readonly owner: string | undefined;
+	readonly sets: readonly (LoadedDesign & { readonly name: string })[];
+	readonly shared: readonly SharedRecordSource[];
+	readonly design: DesignCore;
+	readonly entries: readonly DeliveryEntry[];
+	readonly milestones: ReadonlyMap<string, string>;
+}
+
+export async function loadProject(directory: string, siteRoot?: string): Promise<LoadedProject> {
 	const root = await realpath(resolve(directory));
 	const projectFile = join(root, 'project.ts');
-	const check = await openDesignCheck(options.siteRoot ?? root);
+	const check = await openDesignCheck(siteRoot ?? root);
 	const readAuthoringInput = (file: string): Promise<string> => check.read(file, root);
 	const manifest = readProjectManifest(projectFile, await readAuthoringInput(projectFile));
 	const identities =
@@ -233,7 +255,7 @@ export async function buildProject(
 	const sets = await Promise.all(
 		Object.entries(manifest.designs).map(async ([name, file]) => {
 			await readAuthoringInput(file);
-			const set = await check.prepare(dirname(file), root);
+			const set = await check.load(dirname(file), root);
 			if (set.lead !== undefined && (!identities || !Object.hasOwn(identities.agents, set.lead)))
 				throw new Error(
 					`${name}: unknown Lead alias ${set.lead}. Register it in agents-identity.ts.`,
@@ -255,11 +277,10 @@ export async function buildProject(
 		throw new Error('Register each design directory only once.');
 
 	const design: DesignCore = { pages: [], mapGroups: [], records: [], acceptances: [] };
-	const projectOutput = join(root, 'project.generated.json');
 	async function loadShared(
 		file: string | undefined,
 		kind: 'choice' | 'assumption',
-	): Promise<DesignRecord[]> {
+	): Promise<SharedRecordSource[]> {
 		if (file === undefined) return [];
 		const text = await readAuthoringInput(file);
 		const records = readDesignItems(file, text, kind);
@@ -267,14 +288,16 @@ export async function buildProject(
 			(path): [string, string] => [path, designTypeSource],
 		);
 		checkAuthoringTypes([file], new Map([[file, text], ...declarations]));
-		await check.checkRecordSources(records, file);
-		return records.map((record) => projectRecord(record, 'project'));
+		return [{ file, records }];
 	}
-	const shared = await Promise.all([
-		loadShared(manifest.decisions, 'choice'),
-		loadShared(manifest.assumptions, 'assumption'),
-	]);
-	design.records.push(...shared.flat());
+	const shared = (
+		await Promise.all([
+			loadShared(manifest.decisions, 'choice'),
+			loadShared(manifest.assumptions, 'assumption'),
+		])
+	).flat();
+	for (const { records } of shared)
+		design.records.push(...records.map((record) => projectRecord(record, 'project')));
 	const entries: DeliveryEntry[] = [];
 	for (const set of sets) {
 		const href = (path: string): string => rebase(path, set.directory, root);
@@ -291,8 +314,33 @@ export async function buildProject(
 	for (const set of sets)
 		set.checkTypes([...qualifiedIds, ...set.design.records.map(({ id }) => id)]);
 	checkRecordRelationships(design.records);
+	return {
+		root,
+		projectFile,
+		check,
+		owner: identities ? identities.owner : undefined,
+		sets,
+		shared,
+		design,
+		entries,
+		milestones: new Map(sets.map((set) => [set.directory, set.name])),
+	};
+}
+
+export async function buildProject(
+	directory: string,
+	options: ProjectCheckOptions = {},
+): Promise<CheckedProjectBuild> {
+	const { root, projectFile, check, owner, sets, shared, design, entries, milestones } =
+		await loadProject(directory, options.siteRoot);
+	const projectOutput = join(root, 'project.generated.json');
+	const [preparedSets] = await Promise.all([
+		Promise.all(sets.map(async (set) => Object.assign({}, set, await check.prepare(set)))),
+		Promise.all(shared.map(({ file, records }) => check.checkRecordSources(records, file))),
+	]);
+
 	const pageNamespaces = new Map<string, string | undefined>();
-	for (const set of sets) {
+	for (const set of preparedSets) {
 		for (const { file, owned } of set.pages) {
 			if (owned) {
 				if (pageNamespaces.get(file)) throw new Error(`Multiple design sets own ${file}.`);
@@ -316,9 +364,9 @@ export async function buildProject(
 	await Promise.all(delivery.evidence.map((href) => check.checkEvidence(href, projectFile)));
 	const output = {
 		version: 1,
-		...(identities ? { owner: identities.owner } : {}),
+		...(owner === undefined ? {} : { owner }),
 		designs: Object.fromEntries(
-			sets.map((set) => [
+			preparedSets.map((set) => [
 				set.name,
 				{
 					path: rebase('design.ts', set.directory, root),
@@ -339,7 +387,7 @@ export async function buildProject(
 	const view = projectViewSchema.parse(output);
 	const projectSource = { file: projectOutput, text: JSON.stringify(view) };
 	const plans = await Promise.all(
-		sets.map((set) =>
+		preparedSets.map((set) =>
 			set.plan(
 				scopedDeliverables(delivery.deliverables, set.name, (href) =>
 					rebase(href, root, set.directory),
@@ -371,6 +419,7 @@ export async function buildProject(
 				]
 			: []),
 		...plans.map((plan) => plan.result),
+		...deliveryDesignNotes(delivery),
 	].join('\n');
 	return {
 		result,
@@ -379,7 +428,7 @@ export async function buildProject(
 		design,
 		entries,
 		delivery,
-		milestones: new Map(sets.map((set) => [set.directory, set.name])),
+		milestones,
 	};
 }
 

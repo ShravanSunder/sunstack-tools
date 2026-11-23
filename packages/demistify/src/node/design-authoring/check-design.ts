@@ -10,10 +10,12 @@ import {
 import { checkHtml, documentFragmentIds, formatFindings } from '../check.ts';
 import { containsPath } from '../local-site.ts';
 import {
+	deliveryDesignNotes,
 	parseDeliveryEntries,
 	projectDelivery,
 	type DeliveryEntry,
 	type DeliveryProjection,
+	type DeliveryViews,
 } from './delivery-model.ts';
 import { declaredDesignPagePath, resolveDesignLink } from './design-location.ts';
 import { compileDesignNavigation } from './design-navigation.ts';
@@ -97,15 +99,19 @@ export function checkRecordRelationships(records: readonly DesignRecord[]): void
 	}
 }
 
-interface PreparedDesign {
+export interface LoadedDesign {
 	readonly directory: string;
+	readonly designFile: string;
 	readonly lead?: string;
 	readonly design: DesignCore;
 	readonly entries: readonly DeliveryEntry[];
 	readonly checkTypes: (knownRecordIds: readonly string[]) => void;
+}
+
+interface PreparedDesign {
 	readonly firstPage: { readonly href: string; readonly title: string };
 	readonly pages: readonly { file: string; owned: boolean }[];
-	readonly plan: (delivery: DeliveryProjection, scope: PlanDesignScope) => Promise<DesignPlan>;
+	readonly plan: (delivery: DeliveryViews, scope: PlanDesignScope) => Promise<DesignPlan>;
 }
 
 interface PlanDesignScope {
@@ -141,7 +147,8 @@ interface DesignCheck {
 		readonly projection: RecordProjection;
 		readonly preparedPages: ReadonlyMap<string, string>;
 	}>;
-	readonly prepare: (directory: string, authoringRoot?: string) => Promise<PreparedDesign>;
+	readonly load: (directory: string, authoringRoot?: string) => Promise<LoadedDesign>;
+	readonly prepare: (set: LoadedDesign) => Promise<PreparedDesign>;
 	readonly verify: () => Promise<void>;
 }
 
@@ -273,10 +280,8 @@ export async function openDesignCheck(siteRoot: string): Promise<DesignCheck> {
 		};
 	}
 
-	async function prepare(directory: string, authoringRoot?: string): Promise<PreparedDesign> {
+	async function load(directory: string, authoringRoot?: string): Promise<LoadedDesign> {
 		const setDirectory = await resolveSiteFile(resolve(directory), authoringRoot);
-		const navigationFile = join(setDirectory, 'navigation.generated.json');
-		const deliverablesFile = join(setDirectory, 'deliverables.generated.json');
 		async function readOwnedInput(file: string): Promise<string> {
 			authoringRoots.set(file, setDirectory);
 			if (!containsPath(setDirectory, await resolveSiteFile(file)))
@@ -304,6 +309,23 @@ export async function openDesignCheck(siteRoot: string): Promise<DesignCheck> {
 			deliverable: { id },
 		} of entries)
 			if (id.includes('/')) throw new Error(`Deliverable ID must be local to its design: ${id}.`);
+		return {
+			directory: setDirectory,
+			designFile,
+			design,
+			entries,
+			checkTypes: deliverySource.checkTypes,
+			...(deliverySource.lead === undefined ? {} : { lead: deliverySource.lead }),
+		};
+	}
+
+	async function prepare({
+		directory: setDirectory,
+		design,
+		designFile,
+	}: LoadedDesign): Promise<PreparedDesign> {
+		const navigationFile = join(setDirectory, 'navigation.generated.json');
+		const deliverablesFile = join(setDirectory, 'deliverables.generated.json');
 		const pages = await Promise.all(
 			design.pages.map(async (page) => {
 				const file = declaredDesignPagePath(page.href, designFile, siteDirectory);
@@ -331,7 +353,7 @@ export async function openDesignCheck(siteRoot: string): Promise<DesignCheck> {
 		const generatedDesign = join(setDirectory, 'design.generated.json');
 		await checkRecordSources(design.records, designFile);
 		async function plan(
-			delivery: DeliveryProjection,
+			delivery: DeliveryViews,
 			{ projection, preparedPages, namespace, projectSource }: PlanDesignScope,
 		): Promise<DesignPlan> {
 			const navigation = compileDesignNavigation(design, (reference) => {
@@ -470,14 +492,9 @@ export async function openDesignCheck(siteRoot: string): Promise<DesignCheck> {
 			return { result, generated };
 		}
 		return {
-			directory: setDirectory,
 			firstPage: { href: firstPage.href, title: firstPage.title },
 			pages,
-			design,
-			entries,
-			checkTypes: deliverySource.checkTypes,
 			plan,
-			...(deliverySource.lead === undefined ? {} : { lead: deliverySource.lead }),
 		};
 	}
 
@@ -515,18 +532,19 @@ export async function openDesignCheck(siteRoot: string): Promise<DesignCheck> {
 		checkEvidence,
 		checkRecordSources,
 		projectPages,
+		load,
 		prepare,
 		verify,
 	};
 }
 
-export async function buildDesignSet(
+export async function loadDesignSet(
 	directory: string,
-	options: { readonly siteRoot?: string | undefined; readonly write?: boolean | undefined } = {},
-): Promise<CheckedDesignBuild> {
+	siteRoot?: string,
+): Promise<LoadedDesign & { readonly check: DesignCheck }> {
 	const setDirectory = await realpath(resolve(directory));
-	const check = await openDesignCheck(options.siteRoot ?? setDirectory);
-	const set = await check.prepare(setDirectory);
+	const check = await openDesignCheck(siteRoot ?? setDirectory);
+	const set = await check.load(setDirectory);
 	const qualified =
 		set.design.records
 			.flatMap((record) => [
@@ -539,6 +557,7 @@ export async function buildDesignSet(
 				...dependsOn,
 				...(deliverable.kind === 'core'
 					? [
+							...deliverable.scope.needs,
 							...deliverable.scope.rules,
 							...deliverable.scope.designItems,
 							...deliverable.scope.verificationChecks,
@@ -550,19 +569,36 @@ export async function buildDesignSet(
 		throw new Error(`Qualified reference ${qualified} requires demistify project check.`);
 	set.checkTypes(set.design.records.map(({ id }) => id));
 	checkRecordRelationships(set.design.records);
+	return { ...set, check };
+}
+
+export async function buildDesignSet(
+	directory: string,
+	options: { readonly siteRoot?: string | undefined; readonly write?: boolean | undefined } = {},
+): Promise<CheckedDesignBuild> {
+	const set = await loadDesignSet(directory, options.siteRoot);
+	const { check, design, entries } = set;
+	const reader = await check.prepare(set);
 	const { projection, preparedPages } = await check.projectPages(
-		set.design.records,
-		new Map(set.pages.map(({ file }) => [file, undefined])),
+		design.records,
+		new Map(reader.pages.map(({ file }) => [file, undefined])),
 	);
 	const delivery = projectDelivery(
-		set.design,
-		set.entries,
-		projectedDestinations(projection, setDirectory),
+		design,
+		entries,
+		projectedDestinations(projection, set.directory),
 	);
-	const plan = await set.plan(delivery, { projection, preparedPages });
+	const plan = await reader.plan(delivery, { projection, preparedPages });
 	if (options.write) await writeDesignBuild([set.directory], check.verify, plan.generated);
 	else await check.verify();
-	return { ...plan, design: set.design, entries: set.entries, preparedPages, delivery };
+	return {
+		...plan,
+		result: [plan.result, ...deliveryDesignNotes(delivery)].join('\n'),
+		design,
+		entries,
+		preparedPages,
+		delivery,
+	};
 }
 
 export async function writeDesignBuild(

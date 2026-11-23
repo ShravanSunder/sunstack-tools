@@ -94,10 +94,120 @@ const outputNames = [
 	'navigation.generated.json',
 	'deliverables.generated.json',
 ];
+const realizationNote = 'R3: No realization names this rule.';
 
 function beforeVerification(source: string): string {
 	return `${source.slice(0, source.indexOf('  verification:'))}});\n`;
 }
+
+it('holds acceptance for an explicitly scoped need and keeps missing realizations informational', async (): Promise<void> => {
+	const directory = await mkdtemp(join(tmpdir(), 'demistify-need-coverage-'));
+	try {
+		const deliverables = join(directory, 'deliverables');
+		const designFile = join(directory, 'design.ts');
+		const coreFile = join(deliverables, 'del-01-prevent-cancelled-job-from-running.ts');
+		const authored = designSource
+			.replace(
+				'  records: [',
+				`  records: [
+    { id: 'U5', kind: 'need', statement: 'Operators know whether a job has started.' },
+    { id: 'U6', kind: 'need', statement: 'This unscoped need stays outside the check.' },
+    { id: 'M12', kind: 'realization', statement: 'A committed claim is reported.', realizes: 'R12' },`,
+			)
+			.replace("serves: 'U3' },", "serves: ['U3', 'U5'] },")
+			.replace(
+				'/* Lead acceptance */',
+				`acceptances: [{ deliverableId: 'DEL-01', build: 'build-87', evidence: 'evidence.txt' }],`,
+			);
+		const core = complete.replace('scope: { rules:', "scope: { needs: ['U5'], rules:");
+		await mkdir(deliverables);
+		await Promise.all([
+			writeFile(designFile, authored),
+			writeFile(coreFile, core),
+			writeFile(join(directory, 'index.html'), page),
+			writeFile(join(directory, 'evidence.txt'), 'The fixture exercised handler entry.'),
+			writeFile(join(deliverables, 'del-02-report-job-already-started.ts'), blocked),
+			writeFile(
+				join(deliverables, 'later.ts'),
+				`import { defineDeliverable } from '../design-sdk.generated.ts';
+export default defineDeliverable({ kind: 'later', id: 'DEL-03', title: 'Review further work' });`,
+			),
+			writeFile(
+				join(directory, 'design-delivery.ts'),
+				rootSource
+					.replace(
+						'export default defineDelivery',
+						"import later from './deliverables/later.ts';\nexport default defineDelivery",
+					)
+					.replace(
+						"{ deliverable: reportClaim, dependsOn: ['DEL-01'] },",
+						'{ deliverable: reportClaim },\n  { deliverable: later },',
+					),
+			),
+		]);
+		const check = [cli, 'design', 'check', directory, '--write'];
+		const brief = [cli, 'brief', 'DEL-01', directory];
+		const initial = (await run(process.execPath, check)).stdout;
+		expect(initial).toContain('DEL-01 · awaiting-verification');
+		expect(initial).toContain('Link scoped rules to scoped needs: U5.');
+		expect(initial).toContain('DEL-02 · verification-blocked');
+		expect(initial).toContain('DEL-03 · later');
+		expect(initial).not.toMatch(/U6|R12: No realization/);
+		expect(initial.split(realizationNote)).toHaveLength(2);
+		const initialBrief = (await run(process.execPath, brief)).stdout;
+		expect(initialBrief).toContain('**U5** Operators know whether a job has started.');
+		expect(initialBrief).toContain('Link scoped rules to scoped needs: U5.');
+		expect(initialBrief).toContain(realizationNote);
+		expect(initialBrief).not.toMatch(/U6|R12|V12|DEL-03/);
+
+		const coveredDesign = authored.replace("serves: ['U3', 'U4']", "serves: ['U3', 'U4', 'U5']");
+		await writeFile(designFile, coveredDesign);
+		const covered = (await run(process.execPath, check)).stdout;
+		expect(covered).toContain('DEL-01 · accepted');
+		expect(covered).toContain(realizationNote);
+		expect(covered).not.toContain('Link scoped rules to scoped needs: U5.');
+		const view = await readFile(join(directory, 'deliverables.generated.json'), 'utf8');
+		expect(view).not.toContain('No realization');
+		expect(parseDeliverablesView(view).deliverables['DEL-01']?.state).toBe('accepted');
+		const coveredBrief = (await run(process.execPath, brief)).stdout;
+		expect(coveredBrief).toContain(realizationNote);
+		expect(coveredBrief).not.toContain('Link scoped rules to scoped needs: U5.');
+
+		await writeFile(coreFile, core.replace("needs: ['U5']", "needs: ['R3']"));
+		await expect(run(process.execPath, check)).rejects.toThrow(
+			/R3 must resolve to a design record of kind need/,
+		);
+		await writeFile(coreFile, core.replace("needs: ['U5']", "needs: ['U5', 'U5']"));
+		await expect(run(process.execPath, check)).rejects.toThrow(/duplicate need U5/);
+
+		const withRealization = coveredDesign.replace(
+			'  records: [',
+			`  records: [
+    { id: 'M3', kind: 'realization', statement: 'The worker reads cancellation before handler entry.', realizes: 'R3' },`,
+		);
+		const coreWithRealization = core.replace("rules: ['R3']", "rules: ['R3'], designItems: ['M3']");
+		await Promise.all([
+			writeFile(designFile, withRealization),
+			writeFile(coreFile, coreWithRealization),
+			writeFile(join(directory, 'index.html'), page.replace(/<link rel="stylesheet"[^>]+>/, '')),
+		]);
+		const realizationBrief = (await run(process.execPath, brief)).stdout;
+		expect(realizationBrief).toContain(
+			'## Realizations\n\n- **M3** The worker reads cancellation before handler entry.',
+		);
+		expect(realizationBrief).not.toMatch(/M12|No realization|stylesheet/);
+		await expect(run(process.execPath, check)).rejects.toThrow(/theme\.css/);
+		await writeFile(
+			coreFile,
+			coreWithRealization.replace("designItems: ['M3']", "designItems: ['M-BAD']"),
+		);
+		await expect(run(process.execPath, brief)).rejects.toThrow(
+			/M-BAD must resolve to a design record of kind realization/,
+		);
+	} finally {
+		await rm(directory, { recursive: true, force: true });
+	}
+}, 30_000);
 
 it('composes typed work files into one delivery graph and keeps the last output if inputs are invalid', async (): Promise<void> => {
 	const directory = await mkdtemp(join(tmpdir(), 'demistify-delivery-check-'));

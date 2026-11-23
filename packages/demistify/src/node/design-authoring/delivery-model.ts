@@ -28,6 +28,7 @@ const deliveryEntry = z.strictObject({
 			builder: recordId.optional(),
 			destination: htmlDestination,
 			scope: z.strictObject({
+				needs: scopedAddresses,
 				rules: scopedAddresses,
 				designItems: scopedAddresses,
 				implementationTasks: scopedIds,
@@ -57,10 +58,31 @@ type VerificationCheck = CoreDeliverableView['verification']['checks'][number];
 export type Destination = CoreDeliverableView['links']['plan'];
 type RecordDestination = CoreDeliverableView['links']['rules'][number];
 
-export interface DeliveryProjection {
+export interface DeliveryViews {
 	readonly deliverables: Readonly<Record<string, DeliverableView>>;
 	readonly destinations: readonly { readonly page: string; readonly fragment?: string }[];
 	readonly evidence: readonly string[];
+}
+
+interface DeliveryCoverage {
+	readonly gaps: readonly string[];
+	readonly rulesWithoutRealizations: readonly string[];
+}
+
+export interface DeliveryProjection extends DeliveryViews {
+	readonly coverage: ReadonlyMap<string, DeliveryCoverage>;
+}
+
+export function realizationNotes(coverage: Iterable<DeliveryCoverage>): string[] {
+	const ruleIds = new Set(
+		[...coverage].flatMap(({ rulesWithoutRealizations }) => rulesWithoutRealizations),
+	);
+	return [...ruleIds].map((id): string => `${id}: No realization names this rule.`);
+}
+
+export function deliveryDesignNotes(delivery: DeliveryProjection): string[] {
+	const notes = realizationNotes(delivery.coverage.values());
+	return notes.length ? ['Design notes', ...notes.map((note): string => `  ${note}`)] : [];
 }
 
 function parseEntry(input: unknown, index: number): DeliveryEntry {
@@ -100,14 +122,26 @@ function resolveScope(
 	const { id, scope } = deliverable;
 	const uncoveredRules = new Set(scope.rules);
 	const scopedRules = new Set(scope.rules);
+	const uncoveredNeeds = new Set(scope.needs);
 	const rulesWithoutNeeds: string[] = [];
+	function requireRecord(scopeId: string, kind: DesignRecord['kind']): DesignRecord {
+		const record = records.get(scopeId);
+		if (record?.kind !== kind)
+			throw new Error(`${id}: ${scopeId} must resolve to a design record of kind ${kind}.`);
+		return record;
+	}
+	checkUniqueIds(id, scope.needs, 'need');
+	for (const need of scope.needs) requireRecord(need, 'need');
 	function resolve(ids: readonly string[], kind: DesignRecord['kind']): RecordDestination[] {
 		checkUniqueIds(id, ids, kind);
 		return ids.map((scopeId): RecordDestination => {
-			const record = records.get(scopeId);
-			if (record?.kind !== kind)
-				throw new Error(`${id}: ${scopeId} must resolve to a design record of kind ${kind}.`);
-			if (record.kind === 'rule' && record.serves === undefined) rulesWithoutNeeds.push(scopeId);
+			const record = requireRecord(scopeId, kind);
+			if (record.kind === 'rule') {
+				if (record.serves === undefined) rulesWithoutNeeds.push(scopeId);
+				for (const { relation, targetId } of recordRelationships(record)) {
+					if (relation === 'serves') uncoveredNeeds.delete(targetId);
+				}
+			}
 			if (record.kind === 'planned-check') {
 				const coveredRules = recordRelationships(record).filter(
 					({ relation, targetId }): boolean => relation === 'checks' && scopedRules.has(targetId),
@@ -128,6 +162,9 @@ function resolveScope(
 	return {
 		links,
 		coverageGaps: [
+			...(uncoveredNeeds.size
+				? [`Link scoped rules to scoped needs: ${[...uncoveredNeeds].join(', ')}.`]
+				: []),
 			...(rulesWithoutNeeds.length
 				? [`Link scoped rules to a need: ${rulesWithoutNeeds.join(', ')}.`]
 				: []),
@@ -389,7 +426,7 @@ export function parseDeliveryEntries(entries: unknown): DeliveryEntry[] {
 export function projectDelivery(
 	design: DesignCore,
 	input: unknown,
-	recordDestinations: ReadonlyMap<string, Destination>,
+	recordDestinations: ReadonlyMap<string, Destination> = new Map(),
 ): DeliveryProjection {
 	const byId = new Map<string, DeliveryEntry>();
 	for (const entry of parseDeliveryEntries(input)) {
@@ -412,6 +449,16 @@ export function projectDelivery(
 	}
 
 	const records = new Map(design.records.map((record) => [record.id, record]));
+	const realizedRules = new Set(
+		design.records.flatMap((record): string[] =>
+			record.kind === 'realization'
+				? recordRelationships(record).flatMap(({ relation, targetId }) =>
+						relation === 'realizes' ? [targetId] : [],
+					)
+				: [],
+		),
+	);
+	const coverage = new Map<string, DeliveryCoverage>();
 	const destinations: Destination[] = [];
 	const byDependencyOrder = new Map<string, DeliverableView>();
 	for (const { deliverable, dependsOn } of deliverablesInDependencyOrder(byId)) {
@@ -426,6 +473,10 @@ export function projectDelivery(
 			records,
 			recordDestinations,
 		);
+		coverage.set(id, {
+			gaps: coverageGaps,
+			rulesWithoutRealizations: deliverable.scope.rules.filter((rule) => !realizedRules.has(rule)),
+		});
 		const { governingItems, designBlockers } = resolveGoverningDesign(
 			deliverable,
 			records,
@@ -481,6 +532,7 @@ export function projectDelivery(
 		}
 	}
 	return {
+		coverage,
 		deliverables: Object.fromEntries(byDependencyOrder),
 		destinations: destinations.map(({ page, fragment }) => ({ page, fragment })),
 		evidence: [...evidence],

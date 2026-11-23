@@ -86,6 +86,8 @@ Completion: facts occur once, navigation resolves to the intended content, and p
 
 ## 4. Lint the final files once
 
+For typed design sources, run `demistify design check <milestone>` or `demistify project check <project>`. These commands validate prepared pages in memory. For ordinary standalone HTML, use `demistify check <page.html>`.
+
 Run the CLI shipped at the page's library binding (Node 26+). Copy the exact CLI URL printed in this binding's current published guide; do not construct the archive filename from the binding root:
 
 <!-- Release staging binds the logical archive filename below to the built archive's content hash. -->

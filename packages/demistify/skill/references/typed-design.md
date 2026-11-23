@@ -16,7 +16,7 @@ Run the CLI from the selected Demistify binding: prefix `npm exec --` for a loca
 
 - `init` writes `design.ts`, `design-decisions.ts`, `design-assumptions.ts`, `design-delivery.ts` and the generated SDK, seeding Pages, Map and Walkthroughs from an existing `navigation.json`. You write the HTML pages.
 - `types` regenerates `design-sdk.generated.ts` and `design-schema.d.ts`. Git ignores both, so run it after a fresh checkout and after adding or renaming an ID, for the editor. `check`, `brief` and `open` build what they need without it.
-- `check` validates records, links, placements and pages, then prints each deliverable's state. It is read-only; `--write` saves the ignored `*.generated.json` files for a static server.
+- `design check` and `project check` validate typed inputs and prepared pages in memory, then print deliverable states and design notes. Run `check <page.html>` for ordinary standalone HTML. Use `--write` only to save ignored `*.generated.json` files for a static server.
 - `open` serves pages with records filled in and data built. Restart it after editing records.
 
 Pass `--site-root` with the enclosing docs directory when pages or evidence link outside the milestone folder.
@@ -107,6 +107,10 @@ A new decision can declare `supersedes: 'D1'` and keep the old one in the file. 
 Place a record with an empty element. The placement is the anchor: `open` adds `id="R1"` and the statement to the served HTML, so any page can link to `#R1`. The source stays as written.
 
 ```html
+<head>
+  <link rel="stylesheet" href="https://demistify.getagentstudio.dev/v1/theme.css">
+  <script type="module" src="https://demistify.getagentstudio.dev/v1/runtime.js"></script>
+</head>
 <ex-nav for="content" src="./navigation.generated.json"></ex-nav>
 <ex-document id="content">
   <h2>Inbox expiry</h2>
@@ -164,6 +168,7 @@ export default defineDeliverable({
   title: 'Expire inbox rows',
   destination: { page: 'index.html', fragment: 'DEL-01' },
   scope: {
+    needs: ['U1'],
     rules: ['R1'],
     designItems: ['M1'],
     implementationTasks: ['store-expiry', 'sweep-expired'],
@@ -172,7 +177,7 @@ export default defineDeliverable({
 });
 ```
 
-`destination` names a real `id` on a declared page, such as `<h2 id="DEL-01">`. `designItems` lists realizations, and each scoped check must cover a scoped rule. Progress goes in the same module:
+`destination` names a real `id` on a declared page, such as `<h2 id="DEL-01">`. Optional `needs` lists the needs this deliverable covers. `designItems` lists scoped realizations. Each scoped check must cover a scoped rule. Progress goes in the same module:
 
 - `implementation: { completedTasks, candidate, evidence }`: finished tasks, the build, evidence links.
 - `verification: { build, outcomes }`, keyed by check ID. An outcome is `{ kind: 'passed' | 'failed', observation, evidence }` or `{ kind: 'blocked', reason }`. When the assigned checks change, move the old receipt to `verificationHistory`.
@@ -181,14 +186,17 @@ Record acceptance in `design.ts` as `acceptances: [{ deliverableId: 'DEL-01', bu
 
 - its scope has no rules or no tasks, a task is open, or no candidate is recorded;
 - a scoped rule serves no need, or no assigned check covers it;
+- no scoped rule serves one of its explicitly scoped needs;
 - a check outcome is missing, failed, blocked, or recorded on another build;
 - a governing open owner question or refuted assumption blocks the work, or a governing assumption is still open;
 - a prerequisite is not accepted.
 
 Known loss: the check does not flag a rule that changed after acceptance. Treat such an edit as new scope and verify it again.
 
+The check prints an informational note for a scoped rule without a realization in the checked design or project. The note stays visible after acceptance.
+
 Show progress with `<ex-deliverables src="./deliverables.generated.json" label="Delivery progress"></ex-deliverables>`: each deliverable's state, open checks and evidence, linked to the governing records.
 
 ## Brief a deliverable
 
-`demistify brief DEL-01 <milestone>` prints Markdown with the deliverable's title, prerequisites, scoped rules and checks with their cases, tasks, and any open owner question or open assumption in its scope. It saves nothing and adds no words the records lack. Give a helper the brief instead of restating rules.
+`demistify brief DEL-01 <milestone>` prints a Markdown brief with the title, prerequisites, scoped needs, rules, realizations and checks, tasks, open owner questions and assumptions, and coverage gaps and notes. It validates the typed inputs without preparing HTML or writing files. Give the helper this brief and run the typed check to validate the pages.
