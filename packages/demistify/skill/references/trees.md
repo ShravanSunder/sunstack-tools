@@ -6,7 +6,7 @@ Choose from the input: hierarchical Markdown becomes `ex-tree`; an exact monospa
 
 ## Mind map from shared navigation
 
-In a typed design milestone, draw a need and its rules with `<ex-tree data-design-need="N1"></ex-tree>`, as [typed-design.md](typed-design.md#place-records-on-pages) teaches.
+In a typed design milestone, draw a need and its rules with `<ex-tree data-design-need="U1"></ex-tree>`, as [typed-design.md](typed-design.md#place-records-on-pages) teaches.
 
 If the reader Map and the in-page mind map should use the same categories, put the topic hierarchy in [navigation.json](navigation.md#share-collection-navigation-through-json). Add a Tree inside the `ex-document` targeted by the page's `ex-nav src`. Choose `navigation="page"` for the current document's destinations and the ancestors that explain them. Choose `navigation="collection"` for a collection overview that can take the reader across documents. The reader Map and search still offer the full collection.
 

@@ -8,7 +8,7 @@ Use typed records when agents refer to a milestone's needs, rules, decisions and
 demistify design init <milestone>
 demistify design types [milestone]
 demistify design check [milestone] [--site-root <directory>]
-demistify brief <deliverable> [directory] [--site-root <directory>]
+demistify brief <deliverable> [milestone] [--site-root <directory>]
 demistify open <page.html> [--site-root <directory>]
 ```
 
@@ -35,13 +35,13 @@ export default defineDesign({
   pages: [{ id: 'home', title: 'Messages', href: 'index.html', icon: 'envelope' }],
   mapGroups: [{ description: 'Why a row leaves the inbox', icon: 'clock', target: { record: 'R1' } }],
   records: [
-    defineNeed({ id: 'N1', statement: 'A reader never sees a message after central has withdrawn it.' }),
+    defineNeed({ id: 'U1', statement: 'A reader never sees a message after central has withdrawn it.' }),
     defineRule({
       id: 'R1',
       title: 'Inbox expiry',
       statement: 'An inbox row expires at its arrival time plus the time left that central sent.',
-      serves: 'N1',
-      governedBy: ['D1'],
+      serves: 'U1',
+      governedBy: ['D2'],
       reliesOn: ['A1'],
       cases: [{ given: 'time left 0 or below', expect: 'reject the row' }],
     }),
@@ -66,12 +66,12 @@ export default defineDesign({
 | --- | --- | --- |
 | Need | `defineNeed` | `statement` |
 | Rule | `defineRule` | `statement`; optional `serves` (needs), `governedBy`, `reliesOn`, `cases` |
-| Realization | `defineRealization` | `statement`, `realizes` (rules) |
-| Planned check | `defineCheck` | `statement`, `checks` (one rule or several), `journey`, `unverified`, three or more `cases` |
+| Realization | `defineRealization` | `statement`, `realizes` (rules); optional `governedBy`, `reliesOn` |
+| Planned check | `defineCheck` | `statement`, `checks` (one rule or several), `journey`, `unverified`, three or more `cases`; optional `governedBy`, `reliesOn` |
 | Decision | `defineDecision` in `design-decisions.ts` | `authority`; optional `supersedes`, `sources` |
 | Assumption | `defineAssumption` in `design-assumptions.ts` | `statement`, `status`; optional `sources`, `resolution` |
 
-Write a rule as one sentence and put its detail in `cases`. `title` is an optional short label for the Tree, Map and outline, which otherwise show the statement. `governedBy` names decisions and `reliesOn` names assumptions; add them only where the record depends on that item. The check rejects a link to the wrong kind of record.
+Write a rule as one sentence and put its detail in `cases`. `title` is an optional short label for the Tree, Map and outline, which otherwise show the statement. On a rule, realization or check, `governedBy` names decisions and `reliesOn` names assumptions; add them only where the record depends on that item. The check rejects a link to the wrong kind of record.
 
 A large milestone can move a subject's records to `records/<subject>.ts`, exporting an array of helper calls that import from `../design-sdk.generated.ts`. Spread the default import directly inside `records`. IDs and links still span the milestone.
 
@@ -112,14 +112,14 @@ Place a record with an empty element. The placement is the anchor: `open` adds `
   <h2>Inbox expiry</h2>
   <p data-design-record="R1"></p>
   <p>The sweep runs on one timer per inbox, so a burst of arrivals does not multiply wakeups.</p>
-  <ex-tree data-design-need="N1"></ex-tree>
+  <ex-tree data-design-need="U1"></ex-tree>
 </ex-document>
 ```
 
 - Use `p`, `div`, `span`, `li`, `dt`, `dd`, `td`, `th`, `blockquote` or a heading. A long statement in a heading fills the outline and wraps badly on a phone, so put a full rule in a `p` under an ordinary heading.
 - Write no text, `id` or `title` on the placement. The check fails on copied text, a hand-written anchor, an unknown ID or a second placement of one record.
 - A record need not be placed. Briefs and deliverables still list it, without a link.
-- `<ex-tree data-design-need="N1"></ex-tree>` draws the need and the rules that serve it, linked to their placements.
+- `<ex-tree data-design-need="U1"></ex-tree>` draws the need and the rules that serve it, linked to their placements.
 - Each page in the milestone keeps one `ex-nav` whose `src` resolves to its `navigation.generated.json`.
 
 Bind a Choice to an open owner decision. The record supplies the question, anchor and decision identity; you write the options. The check rejects a bound Choice on a settled decision, or with its own `title` or `data-decision`.
@@ -138,7 +138,7 @@ Bind a Choice to an open owner decision. The record supplies the question, ancho
 
 ## Map and Walkthrough by record ID
 
-A Map node or Walkthrough step in `design.ts` targets `{ record: 'R1' }` and links to that record's placement. A record-bound Map node may omit `title` but keeps its `description` and `icon`. A Walkthrough step keeps its narration: `steps: [{ target: { record: 'N1' }, narration: 'Start with the need.' }]`. A mistyped ID fails the check with `TS2322`.
+A Map node or Walkthrough step in `design.ts` targets `{ record: 'R1' }` and links to that record's placement. A record-bound Map node may omit `title` but keeps its `description` and `icon`. A Walkthrough step keeps its narration: `steps: [{ target: { record: 'U1' }, narration: 'Start with the need.' }]`. A mistyped ID fails the check with `TS2322`.
 
 ## Plan deliverables
 
