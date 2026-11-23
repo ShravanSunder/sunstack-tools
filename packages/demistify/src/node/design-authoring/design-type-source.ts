@@ -23,20 +23,28 @@ type RecordFields = { id: string; title?: string; statement: string };
 type RecordReference = string | readonly string[];
 type DesignDependencies = { governedBy?: readonly string[]; reliesOn?: readonly string[] };
 type Cases = readonly { given: string; expect: string }[];
-type SettledDecision = { decision: string; decidedOn: string };
-type Authority =
-  | ({ state: 'owner-decided'; owner: 'owner'; sourceKind: 'owner-words' | 'owner-accepted' } & SettledDecision)
-  | { state: 'owner-open'; owner: 'owner'; question: string }
-  | ({ state: 'lead-decided'; lead: string; sourceKind: 'author' | 'contract'; rationale: string } & SettledDecision);
+type Weight = 'design' | 'process' | 'minor';
+type AgentActor = { alias: string; role: 'lead' | 'implementer' | 'verifier' | 'reviewer' | 'advisor' };
+type SettledAuthority =
+  | { state: 'owner-decided'; sourceKind: 'owner-words' | 'owner-accepted'; decidedOn: string; source: SourceReference }
+  | ({ state: 'agent-decided'; by: AgentActor; rationale: string; decidedOn: string; weight: Weight } &
+      ({ sourceKind: 'contract'; source: SourceReference } | { sourceKind: 'author' }));
+type ChoiceOption = { id: string; title: string };
 export type DesignRecord = RecordFields & (
-  | { kind: 'need' }
+  | ({ kind: 'need' } & DesignDependencies)
   | ({ kind: 'rule'; serves?: RecordReference; cases?: Cases } & DesignDependencies)
   | ({ kind: 'realization'; realizes: RecordReference } & DesignDependencies)
   | ({ kind: 'planned-check'; checks: RecordReference; journey: string; unverified: string; cases: Cases } & DesignDependencies)
 );
-export type DesignDecision = Omit<RecordFields, 'statement'> & { kind: 'choice'; authority: Authority; supersedes?: string; sources?: readonly SourceReference[] };
-export type DesignAssumption = RecordFields & { kind: 'assumption'; sources?: readonly SourceReference[] } & (
-  { status: 'open'; resolution?: never } | { status: 'confirmed' | 'refuted'; resolution: SourceReference }
+type DecisionIdentity = Omit<RecordFields, 'statement'> & { supersedes?: string; sources?: readonly SourceReference[] };
+export type DesignDecision = DecisionIdentity & (
+  | { kind: 'choice'; question: string; options: readonly [ChoiceOption, ChoiceOption, ...ChoiceOption[]];
+      recommended: 'none' | { option: string; by: AgentActor };
+      authority: { state: 'owner-open' } | (SettledAuthority & { chosen: string; decision: string }) }
+  | { kind: 'ruling'; statement: string; authority: SettledAuthority }
+);
+export type DesignAssumption = RecordFields & { kind: 'assumption'; by: string; weight: Weight; sources?: readonly SourceReference[] } & (
+  { status: 'open'; settles: string } | { status: 'confirmed' | 'refuted'; resolution: SourceReference; settledBy: string }
 );
 export type DesignCore<TRecordId extends string = KnownRecordId> = {
   pages: readonly Page[];

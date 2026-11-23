@@ -1,8 +1,10 @@
+import { decisionDetailsId } from '../core/design-record-view.ts';
 import { createIconButton } from '../core/icons.ts';
 import { reportIssue } from '../core/issues.ts';
 import { type ChoiceResponse, choiceResponseSchema } from '../core/review-model.ts';
 import { checkAttributes } from '../vocabulary.ts';
 import { ChoiceDetailPanel } from './choice-detail-panel.ts';
+import { appendRecordBasis, choiceRecordFaces, recordStateLine } from './design-record-face.ts';
 import { copyInspectionContent, registerInspectionCopy } from './inspection-copy.ts';
 import { installIslandInspector, openIsland } from './inspector.ts';
 
@@ -66,6 +68,13 @@ export class ChoiceIsland extends HTMLElement {
 	}
 
 	private async initialize(): Promise<void> {
+		const face = choiceRecordFaces.get(this);
+		const bound = face?.record.kind === 'choice' ? face.record : undefined;
+		const settled = bound && bound.authority.state !== 'owner-open' ? bound.authority : undefined;
+		const explanation = this.querySelector<HTMLTemplateElement>(
+			':scope > template[data-record-body]',
+		);
+		explanation?.remove();
 		this.questionId = this.copiedResponse?.questionId ?? this.id.trim();
 		this.decisionId = this.copiedResponse?.decisionId ?? this.getAttribute('data-decision')?.trim();
 		this.question = this.copiedResponse?.question ?? this.getAttribute('title')?.trim() ?? '';
@@ -109,12 +118,16 @@ export class ChoiceIsland extends HTMLElement {
 		legend.textContent = this.question;
 		fieldset.append(legend);
 		const tableView = this.getAttribute('view') === 'table';
-		const detailsMode = this.getAttribute('details') ?? (tableView ? 'sidebar' : 'beside');
+		const detailsMode = bound
+			? 'beside'
+			: (this.getAttribute('details') ?? (tableView ? 'sidebar' : 'beside'));
 		const hasDetails = declarations.some((option): boolean =>
 			Boolean(option.querySelector(':scope > [slot="details"]')),
 		);
 		const beside =
-			detailsMode === 'beside' && !tableView && hasDetails ? new ChoiceDetailPanel() : undefined;
+			detailsMode === 'beside' && !tableView && (hasDetails || bound)
+				? new ChoiceDetailPanel()
+				: undefined;
 		const authoredWidth = this.getAttribute('data-width');
 		this.dataset['width'] = authoredWidth ?? (tableView || beside ? 'canvas' : 'reading');
 		this.classList.toggle('ex-choice-default-width', authoredWidth === null);
@@ -128,6 +141,7 @@ export class ChoiceIsland extends HTMLElement {
 		}
 		if (beside) {
 			fieldset.classList.add('ex-choice-beside-fieldset');
+			if (explanation) fieldset.append(explanation.content.cloneNode(true));
 			fieldset.append(beside.layout);
 		}
 		const table = document.createElement('table');
@@ -170,15 +184,19 @@ export class ChoiceIsland extends HTMLElement {
 			const target = document.createElement(tableView ? 'tr' : 'ex-option');
 			target.id = this.copiedResponse ? `${this.instanceId}-option-${index}` : optionId;
 			target.className = 'ex-choice-option';
+			const recordOption = declaration.getAttribute('data-option');
+			const chosen = Boolean(settled && settled.chosen === recordOption);
+			if (settled) target.classList.add(chosen ? 'ex-record-chosen' : 'ex-record-alternative');
 			const input = document.createElement('input');
 			input.type = this.hasAttribute('multiple') ? 'checkbox' : 'radio';
 			input.name = this.instanceId;
 			input.value = optionId;
 			input.id = `${this.instanceId}-input-${index}`;
-			input.disabled = this.copiedResponse !== undefined;
+			input.disabled = Boolean(settled) || this.copiedResponse !== undefined;
+			input.hidden = Boolean(settled);
 			input.checked =
 				this.copiedResponse?.selected.some((option): boolean => option.optionId === optionId) ??
-				false;
+				chosen;
 			const label = document.createElement('label');
 			label.htmlFor = input.id;
 			label.className = 'ex-choice-label';
@@ -195,8 +213,26 @@ export class ChoiceIsland extends HTMLElement {
 			input.setAttribute('aria-describedby', summary.id);
 			const titleRow = document.createElement('div');
 			titleRow.className = 'ex-choice-title-row';
-			titleRow.append(label);
-			const detailsSource = declaration.querySelector<HTMLElement>(':scope > [slot="details"]');
+			const optionTitle = document.createElement('span');
+			optionTitle.append(label);
+			if (
+				settled ||
+				(bound?.recommended !== 'none' && bound?.recommended?.option === recordOption)
+			) {
+				const mark = document.createElement('span');
+				mark.className = chosen ? 'ex-card-pick' : 'ex-record-option-mark';
+				mark.textContent = settled
+					? chosen
+						? 'Chosen'
+						: 'Not chosen'
+					: `Recommended · ${bound?.recommended !== 'none' ? bound?.recommended?.by.alias : ''}`;
+				optionTitle.append(mark);
+			}
+			titleRow.append(bound ? optionTitle : label);
+			const authoredDetails = declaration.querySelector<HTMLElement>(':scope > [slot="details"]');
+			const detailsSource = authoredDetails ?? (bound ? document.createElement('div') : undefined);
+			if (detailsSource && !authoredDetails)
+				detailsSource.textContent = 'No additional details are recorded.';
 			const details =
 				detailsSource && this.copiedResponse
 					? copyInspectionContent(detailsSource)
@@ -211,16 +247,30 @@ export class ChoiceIsland extends HTMLElement {
 					details.removeAttribute('slot');
 					depth.append(toggle, details);
 				} else if (beside) {
-					let panelId = `${target.id}--choice-details`;
+					let panelId =
+						bound && recordOption
+							? decisionDetailsId(this.questionId, recordOption)
+							: `${target.id}--choice-details`;
 					while (
 						this.ownerDocument.getElementById(panelId) ||
 						this.source.content.getElementById(panelId)
 					) {
 						panelId += '-panel';
 					}
-					const button = beside.add(details, optionLabel, panelId);
+					if (bound) {
+						const back = document.createElement('a');
+						back.href = '#' + encodeURIComponent(this.questionId);
+						back.textContent = 'Back to the decision';
+						details.append(back);
+					}
+					const button = beside.add(
+						details,
+						bound ? `${this.question} · ${optionLabel}` : optionLabel,
+						panelId,
+					);
 					button.classList.add('ex-choice-details-button');
-					button.append('Details');
+					if (bound) button.classList.add('ex-record-detail-button');
+					else button.append('Details');
 					titleRow.append(button);
 				} else {
 					depth = document.createElement('div');
@@ -260,12 +310,18 @@ export class ChoiceIsland extends HTMLElement {
 		}
 		this.options = rendered;
 		this.replaceChildren(this.source, fieldset);
+		if (face && beside) {
+			this.prepend(recordStateLine(face, this.questionId, beside));
+			appendRecordBasis(this, face);
+			this.removeAttribute('title');
+			this.classList.add('ex-bound-choice');
+		}
 		this.initialized = true;
 		this.normalizeDetailHeadings();
 		if (this.isConnected) this.connectControls();
 		registerInspectionCopy(this, (): HTMLElement => this.inspectionCopy());
 		this.setAttribute('label', this.question);
-		installIslandInspector(this);
+		if (!bound) installIslandInspector(this);
 		this.dispatchEvent(new Event('island-ready', { bubbles: true }));
 	}
 
@@ -288,7 +344,12 @@ export class ChoiceIsland extends HTMLElement {
 		this.events = new AbortController();
 		const { signal } = this.events;
 		this.addEventListener('island-ready', (): void => this.normalizeDetailHeadings(), { signal });
-		if (this.copiedResponse) return;
+		if (
+			this.copiedResponse ||
+			(choiceRecordFaces.get(this)?.record.kind === 'choice' &&
+				this.options.every(({ input }) => input.disabled))
+		)
+			return;
 		for (const option of this.options)
 			option.target.addEventListener(
 				'click',

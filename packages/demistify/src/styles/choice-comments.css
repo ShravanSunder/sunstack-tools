@@ -682,3 +682,51 @@ ex-choice.ex-choice-cards ex-option:has(:focus-visible) > .ex-entity-comment {
 		pointer-events: auto;
 	}
 }
+
+.ex-record-state-line {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: var(--space-1) var(--space-2);
+	margin-block: var(--space-3);
+	color: var(--ink-soft);
+	font: 400 var(--text-md)/1.4 var(--font-body);
+}
+.ex-record-state-line > strong {
+	color: var(--ink);
+}
+.ex-record-state-line[data-record-tone='risk'] > :is(strong, i) {
+	color: var(--tone-risk);
+}
+.ex-record-state-line > .ex-record-detail-button {
+	margin-inline-start: auto;
+}
+.ex-choice-details-button.ex-record-detail-button {
+	display: inline-grid;
+	place-items: center;
+	width: var(--space-8);
+	padding: 0;
+}
+.ex-record-governs,
+.ex-record-option-mark {
+	color: var(--ink-soft);
+	font-size: var(--text-sm);
+}
+.ex-choice-title-row :is(.ex-card-pick, .ex-record-option-mark) {
+	margin-inline-start: var(--space-2);
+}
+.ex-choice-option:is(.ex-record-chosen, .ex-record-alternative) {
+	grid-template-columns: minmax(0, 1fr);
+}
+.ex-choice-option.ex-record-alternative {
+	border-color: var(--rule);
+}
+.ex-record-statement {
+	margin-block: 0 var(--space-3);
+}
+.ex-record-card-layout > .ex-choice-detail-options {
+	padding: 0;
+}
+.ex-bound-choice > :is(.ex-record-basis, .ex-record-dependents) {
+	max-inline-size: var(--width-reading);
+}

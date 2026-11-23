@@ -104,11 +104,15 @@ export function defineRealization<const TRecord extends Fields<'realization'>>(r
 export function defineCheck<const TRecord extends Fields<'planned-check'>>(record: TRecord): TRecord & { readonly kind: 'planned-check' } {
 	return { ...record, kind: 'planned-check' };
 }
-export function defineDecision<const TRecord extends Omit<DesignDecision, 'kind'>>(record: TRecord): TRecord & { readonly kind: 'choice' } {
+export function defineDecision<const TRecord extends Omit<Extract<DesignDecision, { kind: 'choice' }>, 'kind'>>(record: TRecord): TRecord & { readonly kind: 'choice' } {
 	return { ...record, kind: 'choice' };
 }
 type AssumptionInput<TAssumption extends DesignAssumption = DesignAssumption> =
 	TAssumption extends DesignAssumption ? Omit<TAssumption, 'kind'> : never;
+export function defineRuling<const TRecord extends Omit<Extract<DesignDecision, { kind: 'ruling' }>, 'kind'>>(record: TRecord): TRecord & { readonly kind: 'ruling' } {
+  return { ...record, kind: 'ruling' };
+}
+
 export function defineAssumption<const TRecord extends AssumptionInput>(record: TRecord): TRecord & { readonly kind: 'assumption' } {
 	return { ...record, kind: 'assumption' };
 }

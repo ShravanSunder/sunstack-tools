@@ -11,8 +11,6 @@ import { readDeliveryEntries } from '../../src/node/design-authoring/read-delive
 import { readLiteral, unwrapExpression } from '../../src/node/design-authoring/read-design.ts';
 import {
 	authoredDesignSchema,
-	assumptionRecord,
-	choiceRecord,
 	designSchema,
 	htmlDestination,
 	recordId,
@@ -56,9 +54,42 @@ const legacyRecordSchema = z.discriminatedUnion('kind', [
 		cases: z.array(z.strictObject({ given: nonempty, expect: nonempty })).min(3),
 	}),
 ]);
-const legacyDecisions = z.array(choiceRecord.extend(legacyFields));
+const legacyDecisionBody = { decision: nonempty, decidedOn: z.iso.date() };
+const legacyDecisions = z.array(
+	z.strictObject({
+		...legacyFields,
+		kind: z.literal('choice'),
+		supersedes: recordReference.optional(),
+		authority: z.discriminatedUnion('state', [
+			z.strictObject({
+				state: z.literal('owner-open'),
+				owner: z.literal('owner'),
+				question: nonempty,
+			}),
+			z.strictObject({
+				state: z.literal('owner-decided'),
+				owner: z.literal('owner'),
+				sourceKind: z.enum(['owner-words', 'owner-accepted']),
+				...legacyDecisionBody,
+			}),
+			z.strictObject({
+				state: z.literal('lead-decided'),
+				lead: nonempty,
+				sourceKind: z.enum(['author', 'contract']),
+				rationale: nonempty,
+				...legacyDecisionBody,
+			}),
+		]),
+	}),
+);
 const legacyAssumptions = z.array(
-	assumptionRecord.safeExtend({ ...legacyFields, statement: nonempty }),
+	z.strictObject({
+		...legacyFields,
+		kind: z.literal('assumption'),
+		statement: nonempty,
+		status: z.enum(['open', 'confirmed', 'refuted']),
+		resolution: sourceReference.optional(),
+	}),
 );
 const legacyDesignSchema = authoredDesignSchema.extend({
 	records: z.array(legacyRecordSchema),
@@ -228,6 +259,7 @@ const helperByKind = {
 	realization: 'defineRealization',
 	'planned-check': 'defineCheck',
 	choice: 'defineDecision',
+	ruling: 'defineRuling',
 	assumption: 'defineAssumption',
 } satisfies Record<DesignRecord['kind'], string>;
 

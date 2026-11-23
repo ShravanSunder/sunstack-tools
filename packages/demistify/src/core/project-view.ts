@@ -4,7 +4,7 @@ import { deliverableViewSchema, localDeliveryHref } from './deliverables-view.ts
 
 const projectRecord = z.looseObject({
 	id: z.string().min(1),
-	kind: z.enum(['need', 'rule', 'realization', 'planned-check', 'choice', 'assumption']),
+	kind: z.enum(['need', 'rule', 'realization', 'planned-check', 'choice', 'ruling', 'assumption']),
 	title: z.string().min(1),
 	destination: z.object({ page: localDeliveryHref, fragment: z.string().min(1) }).optional(),
 	authority: z
@@ -53,13 +53,14 @@ export function parseProjectView(source: string): ProjectView {
 }
 
 export function projectDecisions(records: readonly ProjectRecord[]): ProjectDecision[] {
-	const decisions = records.filter(({ kind }): boolean => kind === 'choice');
+	const decisions = records.filter(({ kind }): boolean => kind === 'choice' || kind === 'ruling');
 	const replacements = new Map<string, ProjectRecord>();
 	const governed = new Map<string, Set<ProjectRecord>>();
 	for (const decision of decisions) {
 		if (
 			decision.supersedes &&
 			(decision.authority?.state === 'lead-decided' ||
+				decision.authority?.state === 'agent-decided' ||
 				decision.authority?.state === 'owner-decided')
 		)
 			replacements.set(decision.supersedes, decision);
@@ -74,12 +75,18 @@ export function projectDecisions(records: readonly ProjectRecord[]): ProjectDeci
 	}
 	return decisions.flatMap((record): ProjectDecision[] => {
 		const state = record.authority?.state;
-		if (state !== 'owner-open' && state !== 'owner-decided' && state !== 'lead-decided') return [];
+		if (
+			state !== 'owner-open' &&
+			state !== 'owner-decided' &&
+			state !== 'lead-decided' &&
+			state !== 'agent-decided'
+		)
+			return [];
 		const replacement = replacements.get(record.id);
 		return [
 			{
 				record,
-				authority: state === 'lead-decided' ? 'Lead' : 'Owner',
+				authority: state === 'lead-decided' || state === 'agent-decided' ? 'Lead' : 'Owner',
 				status: replacement ? 'Superseded' : state === 'owner-open' ? 'Open' : 'Decided',
 				replacement,
 				governedRecords: Array.from(governed.get(record.id) ?? []),

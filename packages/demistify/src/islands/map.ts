@@ -1,7 +1,7 @@
 import { classifyDocumentLink } from '../core/document-links.ts';
 import { createIconButton } from '../core/icons.ts';
 import { reportIssue } from '../core/issues.ts';
-import { readSectionMembership } from '../core/section-membership.ts';
+import { sectionItemCount } from '../core/section-membership.ts';
 import { registerReaderControl } from '../layout/reader-controls.ts';
 import { openDrawer } from './drawer.ts';
 
@@ -191,16 +191,13 @@ export class MapIsland extends HTMLElement {
 			const label = link.closest('.ex-tree-node')?.querySelector('.ex-tree-label');
 			if (!label) continue;
 			let count = label.querySelector(':scope > .ex-map-count');
-			if (section.classList.contains('ex-section-floating')) {
-				count?.remove();
-				continue;
-			}
+
 			if (!count) {
 				count = document.createElement('span');
 				count.className = 'ex-map-count';
 				label.append(count);
 			}
-			const text = ` · ${readSectionMembership(section).total}`;
+			const text = ` · ${section instanceof HTMLElement ? sectionItemCount(section) : 0}`;
 			if (count.textContent !== text) count.textContent = text;
 		}
 	}

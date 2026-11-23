@@ -2,6 +2,9 @@ import { cp, lstat, mkdir, readFile, readdir, realpath, writeFile } from 'node:f
 import { basename, dirname, extname, join, relative, resolve, sep } from 'node:path';
 import { parseArgs } from 'node:util';
 
+import { z } from 'zod';
+
+import { decisionActorField } from '../src/core/decision-record.ts';
 import {
 	declaredDesignPagePath,
 	resolveDesignLink,
@@ -40,15 +43,27 @@ interface Milestone {
 	readonly deliveries: LegacyDeliveryGraph;
 	readonly sidecars: readonly Sidecar[];
 }
+const migrationRecordInput = z.record(
+	z.string(),
+	z.strictObject({
+		[decisionActorField]: z.string().trim().min(1),
+		settles: z.string().trim().min(1).optional(),
+		settledBy: z.string().trim().min(1).optional(),
+	}),
+);
+type MigrationRecordInput = z.infer<typeof migrationRecordInput>;
+
 interface MigrationInputs {
 	readonly source: string;
 	readonly project: string;
 	readonly generatorOwned: readonly string[];
+	readonly recordInput: MigrationRecordInput;
 }
 interface RecordConversion {
 	readonly authored: LocatedRecord;
 	readonly page?: PageChange | undefined;
 	readonly journey: readonly string[];
+	readonly extra?: MigrationRecordInput[string] | undefined;
 }
 
 const ignoreGenerated = ['*.generated.json', 'design-sdk.generated.ts', 'design-schema.d.ts'];
@@ -185,22 +200,69 @@ function convertRelationships(
 }
 
 function convertRecord(
-	{ authored, page, journey }: RecordConversion,
+	{ authored, page, journey, extra }: RecordConversion,
 	registry: ReadonlyMap<string, LocatedRecord>,
 	dependencyChanges: RelationshipChanges[],
 ): DesignRecord {
 	const { record } = authored;
 	const { destination: _destination, sources, ...data } = record;
-	if (data.kind === 'choice' || data.kind === 'assumption') {
-		const retarget = (source: (typeof sources)[number]): (typeof sources)[number] => {
-			const replacement = page?.sourceSplit?.retargeted.find(({ from }) => from === source.href);
-			return replacement ? { ...source, href: replacement.to } : source;
-		};
-		return {
-			...data,
+	const retarget = (source: (typeof sources)[number]): (typeof sources)[number] => {
+		const replacement = page?.sourceSplit?.retargeted.find(({ from }) => from === source.href);
+		return replacement ? { ...source, href: replacement.to } : source;
+	};
+	if (data.kind === 'assumption') {
+		if (!extra) throw new Error(`${data.id}: supply the assumption author in --record-input.`);
+		const shared = {
+			kind: 'assumption' as const,
+			id: data.id,
+			title: data.title,
+			[decisionActorField]: extra.by,
+			statement: data.statement,
+			weight: 'design' as const,
 			sources: sources.map(retarget),
-			...(data.kind === 'assumption' &&
-				data.resolution && { resolution: retarget(data.resolution) }),
+		};
+		if (data.status === 'open' && extra.settles)
+			return { ...shared, status: data.status, settles: extra.settles };
+		if (data.status !== 'open' && extra.settledBy && data.resolution)
+			return {
+				...shared,
+				status: data.status,
+				settledBy: extra.settledBy,
+				resolution: retarget(data.resolution),
+			};
+		throw new Error(
+			`${data.id}: supply the missing assumption settlement information in --record-input.`,
+		);
+	}
+	if (data.kind === 'choice') {
+		if (data.authority.state === 'owner-open')
+			throw new Error(`${data.id}: supply at least two real options before conversion.`);
+
+		const primary = sources[0];
+		if (!primary) throw new Error(`${data.id}: supply a decision source before conversion.`);
+		const { decision, decidedOn, sourceKind } = data.authority;
+		const basis = { decidedOn, source: retarget(primary) };
+		const authority =
+			data.authority.state === 'owner-decided'
+				? { state: 'owner-decided' as const, ...basis, sourceKind: data.authority.sourceKind }
+				: {
+						state: 'agent-decided' as const,
+						decidedOn,
+						[decisionActorField]: { alias: data.authority.lead, role: 'lead' as const },
+						rationale: data.authority.rationale,
+						weight: 'design' as const,
+						...(sourceKind === 'contract'
+							? { sourceKind, source: basis.source }
+							: { sourceKind: 'author' as const }),
+					};
+		return {
+			kind: 'ruling',
+			id: data.id,
+			title: data.title,
+			statement: decision,
+			authority,
+			sources: sources.map(retarget),
+			...(data.supersedes && { supersedes: data.supersedes }),
 		};
 	}
 	if (data.kind === 'need') return data;
@@ -334,7 +396,12 @@ async function counts(
 	return total;
 }
 
-async function planMigration({ source, project, generatorOwned }: MigrationInputs): Promise<{
+async function planMigration({
+	source,
+	project,
+	generatorOwned,
+	recordInput,
+}: MigrationInputs): Promise<{
 	readonly edits: ReadonlyMap<string, string>;
 	readonly report: Record<string, unknown>;
 }> {
@@ -438,11 +505,29 @@ async function planMigration({ source, project, generatorOwned }: MigrationInput
 	const references = evidenceReferences(sets);
 	const dependencyChanges: RelationshipChanges[] = [];
 	const defaults: { id: string; field: string; source: string; references?: string[] }[] = [];
+	const blockedInputs: string[] = [];
+	for (const [id, { record }] of registry) {
+		if (record.kind === 'choice' && record.authority.state === 'owner-open')
+			blockedInputs.push(`${id}: supply two real options before conversion.`);
+		if (record.kind === 'assumption') {
+			const extra = recordInput[id];
+			if (!extra?.by) blockedInputs.push(`${id}: supply the assumption author.`);
+			if (record.status === 'open' && !extra?.settles)
+				blockedInputs.push(`${id}: supply what would settle the assumption.`);
+			if (record.status !== 'open' && !extra?.settledBy)
+				blockedInputs.push(`${id}: supply who settled the assumption.`);
+		}
+	}
+	if (blockedInputs.length) throw new Error(blockedInputs.join('\n'));
 	const converted = new Map<string, DesignRecord>();
 	for (const [id, authored] of registry) {
 		const page = pageChanges.get(id);
 		const journey = [...(references.get(id) ?? [])].toSorted();
-		const record = convertRecord({ authored, page, journey }, registry, dependencyChanges);
+		const record = convertRecord(
+			{ authored, page, journey, extra: recordInput[id] },
+			registry,
+			dependencyChanges,
+		);
 		converted.set(id, record);
 		if (record.kind !== 'planned-check') continue;
 		if (!page?.statement) defaults.push({ id, field: 'statement', source: 'old title' });
@@ -569,12 +654,13 @@ async function main(): Promise<void> {
 			output: { type: 'string' },
 			'dry-run': { type: 'boolean' },
 			'generator-owned': { type: 'string', multiple: true },
+			'record-input': { type: 'string' },
 			help: { type: 'boolean', short: 'h' },
 		},
 	});
 	if (values.help) {
 		process.stdout.write(
-			'Usage: node migrate-lean-design-records.ts --source DOCS --project RELATIVE_PROJECT [--output NEW_DOCS | --dry-run] [--generator-owned REGISTERED_NAMESPACE]...\n',
+			'Usage: node migrate-lean-design-records.ts --source DOCS --project RELATIVE_PROJECT [--output NEW_DOCS | --dry-run] [--generator-owned REGISTERED_NAMESPACE]... [--record-input INPUT.json]\n',
 		);
 		return;
 	}
@@ -589,6 +675,9 @@ async function main(): Promise<void> {
 		source,
 		project,
 		generatorOwned: values['generator-owned'] ?? [],
+		recordInput: values['record-input']
+			? migrationRecordInput.parse(JSON.parse(await readFile(values['record-input'], 'utf8')))
+			: {},
 	});
 	if (!values['dry-run'] && output) {
 		await mkdir(output);

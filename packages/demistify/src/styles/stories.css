@@ -239,3 +239,13 @@ h2:has(> ex-fold-toggle) {
 		transition: none;
 	}
 }
+
+ex-section-item {
+	display: none;
+}
+ex-section > ex-section-item:not([hidden]) {
+	display: block;
+}
+ex-section-item + ex-section-item {
+	margin-block-start: var(--space-8);
+}

@@ -1,6 +1,7 @@
 import type { DefaultTreeAdapterMap } from 'parse5';
 
 import { storySlots } from '../story-vocabulary.ts';
+import { sectionMarkupProblem } from './design-authoring/section-layout.ts';
 
 type AuthoredElement = DefaultTreeAdapterMap['element'];
 
@@ -22,19 +23,9 @@ function attribute(element: AuthoredElement, name: string): string | undefined {
 export function checkStoryMarkup(elements: readonly AuthoredElement[]): StoryMarkupProblem[] {
 	const problems: StoryMarkupProblem[] = [];
 	for (const element of elements) {
-		if (element.tagName === 'ex-section') {
-			const children = childrenOf(element);
-			const smaller = children.filter((child): boolean => attribute(child, 'slot') === 'smaller');
-			if (
-				smaller.length > 1 ||
-				(smaller[0] && (smaller[0].tagName !== 'details' || children.at(-1) !== smaller[0]))
-			)
-				problems.push({
-					element,
-					rule: 'section',
-					message: 'A section has at most one native smaller-stories fold, at its end.',
-				});
-		}
+		const sectionProblem = sectionMarkupProblem(element);
+		if (sectionProblem) problems.push({ element, rule: 'section', message: sectionProblem });
+
 		if (element.tagName !== 'ex-story') continue;
 		const roots = childrenOf(element);
 		const root = roots[0];

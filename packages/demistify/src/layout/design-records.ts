@@ -5,8 +5,14 @@ import {
 	type DesignRecordView,
 } from '../core/design-record-view.ts';
 import { reportIssue } from '../core/issues.ts';
+import {
+	choiceRecordFaces,
+	inlineRecordStatus,
+	renderRecordCard,
+} from '../islands/design-record-face.ts';
 
-const placementSelector = '[data-design-record], ex-tree[data-design-need]';
+const placementSelector =
+	'[data-design-record], [data-design-status], ex-section-item[record], ex-tree[data-design-need]';
 
 function recordsSource(): URL | undefined {
 	let implicit: string[] = [];
@@ -110,6 +116,19 @@ async function fillBindings(elements: readonly HTMLElement[]): Promise<void> {
 		const placements = new Map(page.placements.map((record) => [record.reference, record]));
 		const trees = new Map(page.trees.map((tree) => [tree.reference, tree.markdown]));
 		for (const element of elements) {
+			if (element.matches('ex-section-item[record]')) {
+				const reference = element.getAttribute('record');
+				const item = page.sectionItems?.find((entry) => entry.reference === reference);
+				if (!item) throw new Error(`No checked section for ${reference}.`);
+				element.dataset['sectionHold'] = item.holds;
+				continue;
+			}
+			const status = element.getAttribute('data-design-status');
+			if (status !== null) {
+				if (!page.statuses?.some(({ reference }) => reference === status))
+					throw new Error(`No generated status for ${status}.`);
+				continue;
+			}
 			const placement = element.getAttribute('data-design-record');
 			if (placement !== null) {
 				const record = placements.get(placement);
@@ -121,12 +140,35 @@ async function fillBindings(elements: readonly HTMLElement[]): Promise<void> {
 			}
 		}
 		for (const element of elements) {
+			if (element.matches('ex-section-item[record]')) continue;
+			const status = page.statuses?.find(
+				({ reference }) => reference === element.getAttribute('data-design-status'),
+			);
+			if (status) {
+				inlineRecordStatus(element, status.record, status.href);
+				continue;
+			}
 			const record = placements.get(element.getAttribute('data-design-record') ?? '');
 			if (record) {
 				element.id = record.reference;
 				if (record.decision !== undefined) {
 					element.setAttribute('data-decision', record.decision);
 					element.title = record.statement;
+					if (record.face?.record.kind === 'choice') {
+						choiceRecordFaces.set(element, record.face);
+						const authored = [...element.querySelectorAll(':scope > ex-option[data-option]')];
+						for (const option of record.face.record.options) {
+							const declaration = authored.find(
+								(item) => item.getAttribute('data-option') === option.id,
+							);
+							if (!declaration) continue;
+							declaration.id = `${record.reference}--${option.id}`;
+							declaration.setAttribute('title', option.title);
+							element.append(declaration);
+						}
+					}
+				} else if (record.face && element.localName === 'ex-card') {
+					renderRecordCard(element, record.face);
 				} else {
 					element.textContent = record.statement;
 				}

@@ -175,7 +175,7 @@ it('resolves Map and Walkthrough record references to the same checked Choice', 
 		const designFile = join(directory, 'design.ts');
 		const pageFile = join(directory, 'index.html');
 		const choice =
-			'<ex-choice data-design-record="D1"><ex-option id="only-queued" title="Stop queued work"><template slot="summary">Claimed work continues.</template></ex-option><ex-option id="also-running" title="Request a running stop"><template slot="summary">The worker receives a stop request.</template></ex-option></ex-choice>';
+			'<ex-choice data-design-record="D1"><ex-option data-option="only-queued"><template slot="summary">Claimed work continues.</template></ex-option><ex-option data-option="also-running"><template slot="summary">The worker receives a stop request.</template></ex-option></ex-choice>';
 		const design = (await readFile(designFile, 'utf8')).replace(
 			'"mapGroups": []',
 			`"mapGroups": [
@@ -203,7 +203,7 @@ it('resolves Map and Walkthrough record references to the same checked Choice', 
 				join(directory, 'design-decisions.ts'),
 				`export default [{
 				id: 'D1', kind: 'choice', title: 'Cancellation after claim',
-				authority: { state: 'owner-open', owner: 'owner', question: 'Stop claimed work?' },
+				question: 'Stop claimed work?', recommended: 'none', options: [{ id: 'only-queued', title: 'Stop queued work' }, { id: 'also-running', title: 'Request a running stop' }], authority: { state: 'owner-open' },
 
 			}];`,
 			),

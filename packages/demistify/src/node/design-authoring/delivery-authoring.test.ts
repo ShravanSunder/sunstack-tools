@@ -133,11 +133,11 @@ it('holds acceptance for an explicitly scoped need and keeps missing realization
 			writeFile(join(directory, 'evidence.txt'), 'The fixture exercised handler entry.'),
 			writeFile(
 				join(directory, 'design-decisions.ts'),
-				`export default [{ id: 'D9', kind: 'choice', authority: { state: 'owner-open', owner: 'owner', question: ${JSON.stringify(bothLimits)} } }];`,
+				`export default [{ id: 'D9', kind: 'choice', question: ${JSON.stringify(bothLimits)}, recommended: 'none', options: [{ id: 'keep', title: 'Keep the current behavior' }, { id: 'change', title: 'Change the behavior' }], authority: { state: 'owner-open' } }];`,
 			),
 			writeFile(
 				join(directory, 'design-assumptions.ts'),
-				`export default [{ id: 'A9', kind: 'assumption', status: 'open', statement: ${JSON.stringify(bothLimits)} }];`,
+				`export default [{ id: 'A9', kind: 'assumption', status: 'open', by: 'Queue Lead', weight: 'design', settles: 'Observe both limits on the target backend.', statement: ${JSON.stringify(bothLimits)} }];`,
 			),
 			writeFile(join(deliverables, 'del-02-report-job-already-started.ts'), blocked),
 			writeFile(
@@ -470,12 +470,11 @@ it('keeps the shared check gates in each brief and scopes rules and acceptance t
 			),
 			writeFile(
 				join(directory, 'design-decisions.ts'),
-				`export default [{ kind: 'choice', id: 'D1', authority: {
-				state: 'owner-open', owner: 'owner', question: 'What should a claimed job report?' } }];`,
+				`export default [{ kind: 'choice', id: 'D1', question: 'What should a claimed job report?', recommended: 'none', options: [{ id: 'keep', title: 'Keep the current behavior' }, { id: 'change', title: 'Change the behavior' }], authority: { state: 'owner-open' } }];`,
 			),
 			writeFile(
 				join(directory, 'design-assumptions.ts'),
-				`export default [{ kind: 'assumption', id: 'A1', status: 'open', statement: 'The queue fixture supports both cases.' }];`,
+				`export default [{ kind: 'assumption', id: 'A1', status: 'open', by: 'Queue Lead', weight: 'design', settles: 'Run the fixture for both cases.', statement: 'The queue fixture supports both cases.' }];`,
 			),
 			writeFile(join(directory, 'evidence.txt'), 'The fixture exercised both rules.'),
 		]);
@@ -499,7 +498,7 @@ it('keeps the shared check gates in each brief and scopes rules and acceptance t
 		expect(coreDelivery(open, 'DEL-02').reasons).toContain('D1 requires an owner decision.');
 		await writeFile(
 			join(directory, 'design-assumptions.ts'),
-			`export default [{ kind: 'assumption', id: 'A1', status: 'confirmed', statement: 'The queue fixture supports both cases.', resolution: { href: 'evidence.txt', excerpt: 'Both rules ran.' } }];`,
+			`export default [{ kind: 'assumption', id: 'A1', status: 'confirmed', by: 'Queue Lead', weight: 'design', settledBy: 'Queue Lead', statement: 'The queue fixture supports both cases.', resolution: { href: 'evidence.txt', excerpt: 'Both rules ran.' } }];`,
 		);
 		await run(process.execPath, check);
 		const confirmed = await readView();
@@ -523,15 +522,14 @@ it('keeps scoped acceptance open until the owner answers and the governing assum
 			'del-01-prevent-cancelled-job-from-running.ts',
 		);
 		const check = [cli, 'design', 'check', directory, '--write'];
-		const ownerQuestion =
-			"{ state: 'owner-open', owner: 'owner', question: 'Which cancellation guarantee applies?' }";
+		const ownerQuestion = "{ state: 'owner-open' }";
 		const decided =
-			"{ state: 'owner-decided', owner: 'owner', sourceKind: 'owner-accepted', decision: 'Cancel before claim.', decidedOn: '2026-11-21' }";
+			"{ state: 'owner-decided', sourceKind: 'owner-accepted', chosen: 'keep', decision: 'Cancel before claim.', decidedOn: '2026-11-21', source: { href: 'evidence.txt', excerpt: 'Cancel before claim.' } }";
 		const pendingDecisions = `import type { DesignDecision } from './design-schema.d.ts';
 export default [
-    { id: 'D1', kind: 'choice', title: 'Cancellation guarantee', authority: ${ownerQuestion},
+    { id: 'D1', kind: 'choice', title: 'Cancellation guarantee', question: 'Which cancellation guarantee applies?', recommended: 'none', options: [{ id: 'keep', title: 'Keep the current behavior' }, { id: 'change', title: 'Change the behavior' }], authority: ${ownerQuestion},
       sources: [{ href: 'evidence.txt', excerpt: 'Cancel before claim.' }] },
-    { id: 'D2', kind: 'choice', title: 'Unrelated follow-up', authority: ${ownerQuestion},
+    { id: 'D2', kind: 'choice', title: 'Unrelated follow-up', question: 'Which cancellation guarantee applies?', recommended: 'none', options: [{ id: 'keep', title: 'Keep the current behavior' }, { id: 'change', title: 'Change the behavior' }], authority: ${ownerQuestion},
       sources: [{ href: 'evidence.txt', excerpt: 'Cancel before claim.' }] },
 ] as const satisfies readonly DesignDecision[];
 `;
@@ -590,7 +588,7 @@ export default [
 		const decidedSource = pendingDecisions.replace(ownerQuestion, decided);
 		const openAssumptions = `import type { DesignAssumption } from './design-schema.d.ts';
 export default [
-    { id: 'A1', kind: 'assumption', title: 'Atomic claims', status: 'open',
+    { id: 'A1', kind: 'assumption', title: 'Atomic claims', by: 'Queue Lead', weight: 'design', status: 'open', settles: 'Observe both claim attempts.',
       statement: 'Claims are atomic on the target backend.',
       sources: [{ href: 'evidence.txt', excerpt: 'Target backend supports atomic claims.' }] },
 ] as const satisfies readonly DesignAssumption[];
@@ -616,8 +614,8 @@ export default [
 			label: 'Atomic claims',
 		});
 		const refutedAssumptions = openAssumptions.replace(
-			"status: 'open'",
-			"status: 'refuted', resolution: { href: 'evidence.txt', excerpt: 'Two claims observed.' }",
+			"status: 'open', settles: 'Observe both claim attempts.'",
+			"status: 'refuted', settledBy: 'Queue Lead', resolution: { href: 'evidence.txt', excerpt: 'Two claims observed.' }",
 		);
 		await writeFile(assumptionsFile, refutedAssumptions);
 		await run(process.execPath, check);
@@ -628,15 +626,15 @@ export default [
 			assumptionsFile,
 			openAssumptions.replace("status: 'open'", "status: 'confirmed'"),
 		);
-		await expect(run(process.execPath, check)).rejects.toThrow(/require a resolution source/);
+		await expect(run(process.execPath, check)).rejects.toThrow(/resolution/);
 		await writeFile(
 			assumptionsFile,
 			refutedAssumptions.replace("status: 'refuted'", "status: 'open'"),
 		);
-		await expect(run(process.execPath, check)).rejects.toThrow(/remove the resolution source/);
+		await expect(run(process.execPath, check)).rejects.toThrow(/settles|Unrecognized/);
 		const settledAssumptions = openAssumptions.replace(
-			"status: 'open'",
-			"status: 'confirmed', resolution: { href: 'evidence.txt', excerpt: 'Target backend supports atomic claims.' }",
+			"status: 'open', settles: 'Observe both claim attempts.'",
+			"status: 'confirmed', settledBy: 'Queue Lead', resolution: { href: 'evidence.txt', excerpt: 'Target backend supports atomic claims.' }",
 		);
 		await writeFile(assumptionsFile, settledAssumptions);
 		const accepted = await checkWithCurrentReceipts(assumedDesign);
@@ -650,7 +648,7 @@ export default [
 		expect(await readDelivery()).toEqual(accepted);
 
 		const leadDecision =
-			"{ state: 'lead-decided', lead: 'Queue Lead', sourceKind: 'author', decision: 'Use existing claim operation.', rationale: 'Keeps the agreed behavior.', decidedOn: '2026-11-21' }";
+			"{ state: 'agent-decided', by: { alias: 'Queue Lead', role: 'lead' }, sourceKind: 'author', weight: 'design', chosen: 'keep', decision: 'Use existing claim operation.', rationale: 'Keeps the agreed behavior.', decidedOn: '2026-11-21' }";
 		const leadDecisions = decidedSource.replace(decided, leadDecision);
 		await writeFile(decisionsFile, leadDecisions);
 		expect(coreDelivery(await checkWithCurrentReceipts(assumedDesign), 'DEL-01').state).toBe(
@@ -658,11 +656,9 @@ export default [
 		);
 		await writeFile(
 			decisionsFile,
-			leadDecisions.replace("'lead-decided'", "'implementer-decided'"),
+			leadDecisions.replace("'agent-decided'", "'implementer-decided'"),
 		);
-		await expect(run(process.execPath, check)).rejects.toThrow(
-			/Invalid discriminator value.*owner-decided.*lead-decided/,
-		);
+		await expect(run(process.execPath, check)).rejects.toThrow(/authority.state/);
 	} finally {
 		await rm(directory, { recursive: true, force: true });
 	}

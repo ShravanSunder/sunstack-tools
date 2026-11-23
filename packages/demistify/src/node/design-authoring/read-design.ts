@@ -3,7 +3,8 @@ import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'nod
 import typescript from 'typescript';
 import { z } from 'zod';
 
-import { assumptionRecord, authoredDesignSchema, choiceRecord } from './schema.ts';
+import { assumptionRecord, decisionRecord } from '../../core/decision-record.ts';
+import { authoredDesignSchema } from './schema.ts';
 import type { AuthoredDesign, DesignCore, DesignRecord } from './schema.ts';
 
 export const designDeclarationFilename = 'design-schema.d.ts';
@@ -15,6 +16,7 @@ const recordHelperKinds: ReadonlyMap<string, DesignRecord['kind']> = new Map([
 	['defineRealization', 'realization'],
 	['defineCheck', 'planned-check'],
 	['defineDecision', 'choice'],
+	['defineRuling', 'ruling'],
 	['defineAssumption', 'assumption'],
 ]);
 
@@ -369,7 +371,7 @@ export function readDesignItems(
 	const input = readDefaultRecords(file, text, sdkFile);
 	const validated =
 		kind === 'choice'
-			? z.array(choiceRecord).safeParse(input)
+			? z.array(decisionRecord).safeParse(input)
 			: z.array(assumptionRecord).safeParse(input);
 	if (validated.success) return validated.data;
 	throw recordValidationError(file, input, validated.error, false);

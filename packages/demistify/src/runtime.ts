@@ -31,6 +31,7 @@ import { FlowIsland } from './layout/flow.ts';
 import { LayersElement } from './layout/layers.ts';
 import { HeadingNavigation } from './layout/navigation.ts';
 import { installRoutes, RouteElement, StepElement } from './layout/route.ts';
+import { placeSectionItems, SectionItemIsland } from './layout/section-items.ts';
 import { installArrowTracing } from './layout/trace.ts';
 
 // The custom-element registry requires a distinct constructor for each name.
@@ -44,6 +45,7 @@ const islands = [
 	['ex-timeline', TimelineAlias],
 	['ex-story', StoryIsland],
 	['ex-section', SectionIsland],
+	['ex-section-item', SectionItemIsland],
 	['ex-fold-toggle', FoldToggleIsland],
 	['ex-markdown', MarkdownIsland],
 	['ex-option', OptionIsland],
@@ -81,6 +83,7 @@ const islands = [
 ] satisfies readonly (readonly [string, CustomElementConstructor])[];
 
 function startRuntime(): void {
+	placeSectionItems();
 	// Preserve authored source before any island upgrades replace it or add controls.
 	for (const root of document.querySelectorAll<HTMLElement>('ex-document'))
 		captureReviewDocument(root);

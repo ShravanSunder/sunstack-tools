@@ -488,8 +488,8 @@ it('checks explicit project records, qualified prerequisites, and Lead aliases a
 		const shared = join(root, 'shared');
 		await mkdir(shared);
 		const owner =
-			"{ state: 'owner-decided', owner: 'owner', sourceKind: 'owner-words', decision: 'Use the current result.', decidedOn: '2026-11-21' }";
-		const decision = `{ id: 'D1', kind: 'choice', title: 'Result', authority: ${owner},
+			"{ state: 'owner-decided', sourceKind: 'owner-words', decidedOn: '2026-11-21', source: { href: 'evidence.txt', excerpt: 'Use the current result.' } }";
+		const decision = `{ id: 'D1', kind: 'ruling', statement: 'Use the current result.', title: 'Result', authority: ${owner},
 sources: [{ href: 'evidence.txt', excerpt: 'Use the current result.' }] }`;
 		await Promise.all([
 			writeFile(
@@ -513,14 +513,14 @@ export default { owner: 'owner', agents: { 'messages-lead': lead, 'messages-buil
 				`import type { DesignDecision } from '../milestones/2026-11-messages/design-schema.d.ts';
 export default [${decision}, {
 id: 'D2', kind: 'choice', title: 'Unassigned question',
-authority: { state: 'owner-open', owner: 'owner', question: 'Which end state should the reader show?' },
+question: 'Which end state should the reader show?', recommended: 'none', options: [{ id: 'end-state', title: 'Show the final result' }, { id: 'timeline', title: 'Show the timeline' }], authority: { state: 'owner-open' },
 sources: [{ href: 'evidence.txt', excerpt: 'Context.' }]
 }] as const satisfies readonly DesignDecision[];`,
 			),
 			writeFile(
 				join(shared, 'project-assumptions.ts'),
 				`export default [{
-id: 'A1', kind: 'assumption', title: 'Target', statement: 'Target is available.', status: 'confirmed',
+id: 'A1', kind: 'assumption', title: 'Target', statement: 'Target is available.', status: 'confirmed', by: 'messages-lead', weight: 'design', settledBy: 'messages-lead',
 sources: [{ href: 'evidence.txt', excerpt: 'Available.' }],
 resolution: { href: 'evidence.txt', excerpt: 'Available.' }
 }];`,
@@ -584,7 +584,7 @@ resolution: { href: 'evidence.txt', excerpt: 'Available.' }
 			sharedPage,
 			sharedMarkup.replace(
 				'<p data-design-record="project/D2"></p>',
-				'<ex-choice data-design-record="project/D2"><ex-option id="end-state" title="Show the final result"><template slot="summary">Keep the completed state visible.</template></ex-option></ex-choice>',
+				'<ex-choice data-design-record="project/D2"><ex-option data-option="end-state"><template slot="summary">Keep the completed state visible.</template></ex-option><ex-option data-option="timeline"><template slot="summary">Show every step.</template></ex-option></ex-choice>',
 			),
 		);
 		await check(false);
@@ -678,7 +678,7 @@ resolution: { href: 'evidence.txt', excerpt: 'Available.' }
 			.replace("id: 'D2',", "id: 'D2', supersedes: 'D1',");
 		const leadReplacement = replacement.replace(
 			owner,
-			"{ state: 'lead-decided', sourceKind: 'author', lead: 'messages-lead', rationale: 'Reuse the target.', decision: 'Reuse it.', decidedOn: '2026-11-21' }",
+			"{ state: 'agent-decided', sourceKind: 'author', by: { alias: 'messages-lead', role: 'lead' }, weight: 'design', rationale: 'Reuse the target.', decidedOn: '2026-11-21' }",
 		);
 		await writeFile(
 			join(shared, 'project-decisions.ts'),

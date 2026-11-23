@@ -352,7 +352,27 @@ it('retains quoted container evidence and keeps public project record links at t
 					';',
 			),
 		]);
-		const command = [script, '--source', input, '--project', 'project', '--output', output];
+		const recordInput = join(scratch, 'required-record-input.json');
+		await writeFile(
+			recordInput,
+			JSON.stringify({
+				'project/A1': Object.fromEntries([
+					['by', 'Reader Lead'],
+					['settledBy', 'Reader Verifier'],
+				]),
+			}),
+		);
+		const command = [
+			script,
+			'--source',
+			input,
+			'--project',
+			'project',
+			'--record-input',
+			recordInput,
+			'--output',
+			output,
+		];
 		const { stdout } = await run(process.execPath, command);
 		const outProject = join(output, 'project');
 		const converted = await readFile(join(outProject, 'index.html'), 'utf8');

@@ -29,6 +29,7 @@ export interface ElementSpec {
 	readonly description: string;
 	readonly attributes: Readonly<Record<string, AttributeSpec>>;
 	readonly childTag?: string;
+	readonly noAuthoredChildren?: true;
 	/** Attributes this element gives its direct children (e.g. `span` inside a grid). */
 	readonly childAttributes?: Readonly<Record<string, AttributeSpec>>;
 	/** The element must sit inside one of these. */
