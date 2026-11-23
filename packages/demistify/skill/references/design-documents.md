@@ -1,5 +1,7 @@
 # Prepared call stacks
 
+Use this reference for supplied call paths in an HTML collection prepared with `demistify prepare`. For a TypeScript milestone or project that places records by ID in HTML, use [Typed design records](typed-design.md).
+
 Use `ex-call-stack` to read a supplied source-derived call path beside its explanation. Keep the need text and other design facts in visible owner HTML; inline metadata connects the supplied need, frames and stack. Ordinary explanation, page layout and navigation remain HTML.
 
 Use the library binding selected in the main guide. This source guide documents the matching candidate API; an older published binding may not include it. A source preview uses its complete matching local distribution and CLI. Publication of a matching guide/runtime is a separate release step.
