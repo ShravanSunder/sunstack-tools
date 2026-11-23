@@ -73,7 +73,7 @@ export default defineDesign({
 
 Write a rule as one sentence and put its detail in `cases`. `title` is an optional short label for the Tree, Map and outline, which otherwise show the statement. On a rule, realization or check, `governedBy` names decisions and `reliesOn` names assumptions; add them only where the record depends on that item. The check rejects a link to the wrong kind of record.
 
-A large milestone can move a subject's records to `records/<subject>.ts`, exporting an array of helper calls that import from `../design-sdk.generated.ts`. Spread the default import directly inside `records`. IDs and links still span the milestone.
+When a milestone covers more than one subject, put each subject’s needs, rules, realizations and checks in `records/<subject>.ts`. Export an array of helper calls that import from `../design-sdk.generated.ts`. In `design.ts`, import each array and spread it directly inside `records`. Keep these records in `design.ts` for a single-subject milestone. A realization or check that spans subjects goes in the file for the first rule it names. IDs and links still span the milestone.
 
 ### Decisions and assumptions
 
