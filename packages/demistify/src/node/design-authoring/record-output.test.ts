@@ -30,7 +30,17 @@ it.each([
 		html: overview + marker + marker + '<ex-nav src="navigation.json"></ex-nav>',
 		expected: projectOutput,
 	},
+	{
+		name: 'encoded navigation before a project overview',
+		html: nav.replace('navigation.generated.json', './%6eavigation.generated.json') + overview,
+		expected: navOutput,
+	},
 	{ name: 'the marker as fallback', html: marker, expected: projectOutput },
+	{
+		name: 'an encoded marker as fallback',
+		html: marker.replace('records.generated.js', '%72ecords.generated.js'),
+		expected: projectOutput,
+	},
 ])('selects $name', ({ html, expected }): void => {
 	expect(recordOutputFile(readPageMarkup(html, page), page, site, outputs)).toBe(expected);
 });

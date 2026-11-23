@@ -3,6 +3,7 @@ import { dirname, join } from 'node:path';
 import {
 	designRecordsFilename,
 	designRecordViewSchema,
+	recordSourceHref,
 	type DesignRecordView,
 } from '../../core/design-record-view.ts';
 import { resolveDesignLink } from './design-location.ts';
@@ -21,7 +22,10 @@ export function recordOutputFile(
 		['navigation', markup.navigationSources, 'navigation.generated.json'],
 		['overview', markup.projectOverviewSources, 'project.generated.json'],
 	] as const) {
-		const candidates = sources.filter((href) => href.split('/').at(-1) === name);
+		const candidates = sources.flatMap((source): string[] => {
+			const href = recordSourceHref(source, name);
+			return href === undefined ? [] : [href];
+		});
 		if (candidates.length > 1)
 			throw new Error(`${file}: multiple generated ${kind} sources for record bindings.`);
 		const [binding] = candidates;
@@ -37,8 +41,9 @@ export function recordOutputFile(
 		throw new Error(
 			`${file}: record bindings need a generated navigation or overview source, or <meta name="demistify-records" content="../milestone/${designRecordsFilename}">.`,
 		);
-	const target = resolveDesignLink(marker.trim(), file, siteRoot);
-	if (!target || /[?#]/u.test(marker))
+	const source = /[?#]/u.test(marker) ? undefined : recordSourceHref(marker, designRecordsFilename);
+	const target = source && resolveDesignLink(source, file, siteRoot);
+	if (!target)
 		throw new Error(`${file}: demistify-records must name a relative ${designRecordsFilename}.`);
 	return checkedOutput(target.file);
 

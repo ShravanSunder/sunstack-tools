@@ -1,6 +1,7 @@
 import {
 	designRecordsFilename,
 	designRecordViewSchema,
+	recordSourceHref,
 	type DesignRecordView,
 } from '../core/design-record-view.ts';
 import { reportIssue } from '../core/issues.ts';
@@ -17,16 +18,18 @@ function recordsSource(): URL | undefined {
 		)
 			.map(([selector, filename]): string[] =>
 				Array.from(document.querySelectorAll(selector)).flatMap((element): string[] => {
-					const source = element.getAttribute('src') ?? '';
-					return source.split('/').at(-1) === filename ? [source] : [];
+					const source = recordSourceHref(element.getAttribute('src') ?? '', filename);
+					return source === undefined ? [] : [source];
 				}),
 			)
 			.find((sources): boolean => sources.length > 0) ?? [];
 	const markers = document.querySelectorAll<HTMLMetaElement>('meta[name="demistify-records"]');
 	if (implicit.length > 1 || (implicit.length === 0 && markers.length !== 1)) return undefined;
 	const [binding] = implicit;
-	const source = binding ?? markers[0]?.content.trim();
-	if (!source || /^(?:[a-z][a-z0-9+.-]*:|\/|\\)/iu.test(source)) return undefined;
+	const marker = markers[0]?.content ?? '';
+	const source =
+		binding ?? (/[?#]/u.test(marker) ? undefined : recordSourceHref(marker, designRecordsFilename));
+	if (!source) return undefined;
 	const current = new URL(document.URL);
 	const address = new URL(source, current);
 	if (
