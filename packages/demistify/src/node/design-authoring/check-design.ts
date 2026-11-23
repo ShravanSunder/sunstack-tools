@@ -1,5 +1,5 @@
 import { readFile, realpath } from 'node:fs/promises';
-import { dirname, extname, isAbsolute, join, relative, resolve, sep } from 'node:path';
+import { extname, join, relative, resolve } from 'node:path';
 
 import { deliverablesViewSchema } from '../../core/deliverables-view.ts';
 import {
@@ -8,12 +8,14 @@ import {
 	sharedNavigationSchema,
 } from '../../core/shared-navigation.ts';
 import { checkHtml, documentFragmentIds, formatFindings } from '../check.ts';
+import { containsPath } from '../local-site.ts';
 import {
 	parseDeliveryEntries,
 	projectDelivery,
 	type DeliveryEntry,
 	type DeliveryProjection,
 } from './delivery-model.ts';
+import { declaredDesignPagePath, resolveDesignLink } from './design-location.ts';
 import { compileDesignNavigation } from './design-navigation.ts';
 import { commitDesignOutputs, planGeneratedJson } from './design-output.ts';
 import {
@@ -31,11 +33,6 @@ import {
 	type RecordProjection,
 } from './record-projection.ts';
 import { recordRelationships, type DesignCore, type DesignRecord } from './schema.ts';
-
-function containsPath(root: string, file: string): boolean {
-	const child = relative(root, file);
-	return !isAbsolute(child) && child !== '..' && !child.startsWith(`..${sep}`);
-}
 
 function isHtml(file: string): boolean {
 	return /^\.html?$/i.test(extname(file));
@@ -173,16 +170,8 @@ export async function openDesignCheck(siteRoot: string): Promise<DesignCheck> {
 		return reading;
 	}
 
-	function resolveLink(href: string, from: string): { file: string; fragment: string } | undefined {
-		if (/^[a-z][a-z0-9+.-]*:|^\/\//i.test(href)) return undefined;
-		const hash = href.indexOf('#');
-		const address = hash < 0 ? href : href.slice(0, hash);
-		const pathname = decodeURIComponent(address.split('?')[0] ?? '');
-		const fragment = hash < 0 ? '' : decodeURIComponent(href.slice(hash + 1));
-		const file = pathname ? resolve(dirname(from), pathname) : from;
-		if (isAbsolute(pathname) || pathname.includes('\\') || !containsPath(siteDirectory, file))
-			throw new Error(`Relative link escapes the site root: ${href} from ${label(from)}`);
-		return { file, fragment };
+	function resolveLink(href: string, from: string): ReturnType<typeof resolveDesignLink> {
+		return resolveDesignLink(href, from, siteDirectory);
 	}
 
 	const pageMarkup = new Map<string, Promise<PageMarkup>>();
@@ -317,14 +306,12 @@ export async function openDesignCheck(siteRoot: string): Promise<DesignCheck> {
 			if (id.includes('/')) throw new Error(`Deliverable ID must be local to its design: ${id}.`);
 		const pages = await Promise.all(
 			design.pages.map(async (page) => {
-				const target = resolveLink(page.href, designFile);
-				if (!target || /[?#]/.test(page.href) || !isHtml(target.file))
-					throw new Error(`A declared page must name a relative HTML file: ${page.href}`);
-				await checkDestination(target.file, '');
+				const file = declaredDesignPagePath(page.href, designFile, siteDirectory);
+				await checkDestination(file, '');
 				const owned =
-					containsPath(setDirectory, target.file) &&
-					containsPath(setDirectory, await resolveSiteFile(target.file));
-				return { id: page.id, href: page.href, title: page.title, file: target.file, owned };
+					containsPath(setDirectory, file) &&
+					containsPath(setDirectory, await resolveSiteFile(file));
+				return { id: page.id, href: page.href, title: page.title, file, owned };
 			}),
 		);
 		const filesByPage = new Map(pages.map(({ id, file }) => [id, file]));

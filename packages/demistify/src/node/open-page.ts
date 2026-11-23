@@ -1,8 +1,8 @@
 import { spawn } from 'node:child_process';
 import { readFile, realpath, stat } from 'node:fs/promises';
-import { dirname, resolve } from 'node:path';
+import { basename, dirname, join, relative, resolve } from 'node:path';
 
-import { hasDesignBindings } from './design-authoring/design-page-markup.ts';
+import { designPreviewSources } from './design-authoring/design-page-markup.ts';
 import { containsPath, localPageUrl, localSiteFile, serveLocalSite } from './local-site.ts';
 
 function openBrowser(url: string): void {
@@ -27,22 +27,36 @@ export async function openPage(
 ): Promise<void> {
 	const requestedPage = resolve(pagePath);
 	if (!/\.html?$/i.test(requestedPage)) throw new Error('Select an HTML page to open.');
-	const page = await realpath(requestedPage);
-	const limit = options.siteRoot === undefined ? undefined : await realpath(options.siteRoot);
-	if (limit && !containsPath(limit, page))
+	const physicalPage = await realpath(requestedPage);
+	const selectedRoot = options.siteRoot === undefined ? undefined : resolve(options.siteRoot);
+	const limit = selectedRoot === undefined ? undefined : await realpath(selectedRoot);
+	if (limit && !containsPath(limit, physicalPage))
 		throw new Error('The HTML page is outside the site root.');
-	const directory = dirname(page);
-	const html = await readFile(page, 'utf8');
-	const owner = hasDesignBindings(html)
-		? await (
-				await import('./design-authoring/preview-owner.ts')
-			).findDesignPreviewOwner(page, limit)
-		: undefined;
-	const root = limit ?? owner?.directory ?? directory;
-	if (!containsPath(root, page)) throw new Error('The HTML page is outside the site root.');
-	await localSiteFile(root, localPageUrl(root, page, 'http://local'));
-	if (!/\.html?$/i.test(page) || !(await stat(page)).isFile())
+	if (!/\.html?$/i.test(physicalPage) || !(await stat(physicalPage)).isFile())
 		throw new Error('The page must resolve to an HTML file.');
+
+	const declaredRequest =
+		limit && selectedRoot && containsPath(selectedRoot, requestedPage)
+			? resolve(limit, relative(selectedRoot, requestedPage))
+			: join(await realpath(dirname(requestedPage)), basename(requestedPage));
+	if (limit && !containsPath(limit, declaredRequest))
+		throw new Error('The HTML page is outside the site root.');
+	const html = await readFile(physicalPage, 'utf8');
+	const sources = designPreviewSources(html);
+	const owner =
+		sources &&
+		(await (
+			await import('./design-authoring/preview-owner.ts')
+		).findDesignPreviewOwner({
+			requestedPage: declaredRequest,
+			physicalPage,
+			siteRoot: limit,
+			sources,
+		}));
+	const page = owner?.page ?? physicalPage;
+	const root = limit ?? owner?.directory ?? dirname(physicalPage);
+	if ((await localSiteFile(root, localPageUrl(root, page, 'http://local'))) !== physicalPage)
+		throw new Error(`Design page changed while opening ${page}.`);
 
 	let prepared: Map<string, string> | undefined;
 	if (owner) {

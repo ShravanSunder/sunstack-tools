@@ -1,6 +1,6 @@
 import { execFile, spawn } from 'node:child_process';
 import { once } from 'node:events';
-import { mkdir, mkdtemp, rm, stat, symlink, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, mkdtemp, readdir, rm, stat, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createInterface } from 'node:readline';
@@ -87,7 +87,10 @@ it('opens authored pages and their local includes within the selected site root'
 	}
 }, 10_000);
 
-async function createExternalPageProject(directory: string): Promise<void> {
+async function createExternalPageProject(
+	directory: string,
+	href = '../../Reviewed%20Guide.html',
+): Promise<void> {
 	const milestone = join(directory, 'milestone');
 	await mkdir(milestone, { recursive: true });
 	await Promise.all([
@@ -98,7 +101,7 @@ async function createExternalPageProject(directory: string): Promise<void> {
 		writeFile(
 			join(milestone, 'design.ts'),
 			`export default {
-			pages: [{ id: 'guide', title: 'Reviewed guide', href: '../../Reviewed%20Guide.html', icon: 'file' }],
+			pages: [{ id: 'guide', title: 'Reviewed guide', href: ${JSON.stringify(href)}, icon: 'file' }],
 			mapGroups: [], records: [{ kind: 'need', id: 'N1', statement: 'Readers can find the approved scope.' }],
 		};`,
 		),
@@ -144,3 +147,102 @@ it('opens a declared external page without generated files and refuses competing
 		await rm(site, { recursive: true, force: true });
 	}
 }, 30_000);
+
+it('serves a declared HTML alias at its authored URL and refuses aliases claimed by another project', async (): Promise<void> => {
+	const root = await mkdtemp(join(tmpdir(), 'demistify-open-alias-'));
+	const site = join(root, 'site');
+	const project = join(site, 'project');
+	const aliasDirectory = join(site, 'published');
+	const alias = join(aliasDirectory, 'Reviewed Guide.html');
+	const physicalDirectory = join(site, 'source');
+	const physical = join(physicalDirectory, 'guide.html');
+	const html =
+		'<h1>Guide</h1><h2 data-design-record="notes/N1"></h2><a href="./notes.md">Read notes</a>';
+	try {
+		await Promise.all([
+			mkdir(aliasDirectory, { recursive: true }),
+			mkdir(physicalDirectory, { recursive: true }),
+		]);
+		await Promise.all([
+			createExternalPageProject(project, '../../published/Reviewed%20Guide.html'),
+			writeFile(physical, html),
+			writeFile(join(aliasDirectory, 'notes.md'), 'The notes beside the declared page'),
+			writeFile(join(physicalDirectory, 'notes.md'), 'The notes beside the symlink target'),
+			symlink('../source/guide.html', alias, 'file'),
+		]);
+		await run(process.execPath, [cli, 'project', 'check', project, '--site-root', site]);
+		await withPreview(alias, site, async (url) => {
+			expect(url.pathname).toBe('/published/Reviewed%20Guide.html');
+			expect(await (await fetch(url)).text()).toContain(
+				'<h2 data-design-record="notes/N1" id="notes/N1">Readers can find the approved scope.</h2>',
+			);
+			expect(await (await fetch(new URL('./notes.md', url))).text()).toBe(
+				'The notes beside the declared page',
+			);
+		});
+		await withPreview(physical, site, async (url) => {
+			expect(url.pathname).toBe('/published/Reviewed%20Guide.html');
+			expect(await (await fetch(url)).text()).toContain(
+				'id="notes/N1">Readers can find the approved scope.',
+			);
+		});
+
+		const alternate = join(site, 'alternate.html');
+		await symlink('source/guide.html', alternate, 'file');
+		await createExternalPageProject(join(site, 'other-project'), '../../alternate.html');
+		await expect(
+			run(process.execPath, [cli, 'open', alias, '--site-root', site, '--no-browser'], {
+				timeout: 5_000,
+			}),
+		).rejects.toThrow(/multiple.*own|ambiguous/i);
+
+		const outside = join(root, 'outside.html');
+		const escape = join(site, 'escape.html');
+		await writeFile(outside, html);
+		await symlink('../outside.html', escape, 'file');
+		await expect(
+			run(process.execPath, [cli, 'open', escape, '--site-root', site, '--no-browser'], {
+				timeout: 5_000,
+			}),
+		).rejects.toThrow(/outside the site root/i);
+	} finally {
+		await rm(root, { recursive: true, force: true });
+	}
+}, 30_000);
+
+it.skipIf(process.platform === 'win32' || process.getuid?.() === 0)(
+	'opens despite an unreadable unrelated branch and reports an unreadable bound project',
+	async (): Promise<void> => {
+		const site = await mkdtemp(join(tmpdir(), 'demistify-open-unreadable-'));
+		const page = join(site, 'Reviewed Guide.html');
+		const project = join(site, 'project');
+		const unrelated = join(site, 'archives');
+		const html =
+			'<h2 data-design-record="notes/N1"></h2><ex-project-overview src="project/project.generated.json"></ex-project-overview>';
+		try {
+			await Promise.all([
+				createExternalPageProject(project),
+				mkdir(unrelated),
+				writeFile(page, html),
+			]);
+			await chmod(unrelated, 0o000);
+			await expect(readdir(unrelated)).rejects.toHaveProperty('code', 'EACCES');
+			await withPreview(page, site, async (url) => {
+				expect(await (await fetch(url)).text()).toContain(
+					'id="notes/N1">Readers can find the approved scope.',
+				);
+			});
+
+			await chmod(project, 0o000);
+			await expect(
+				run(process.execPath, [cli, 'open', page, '--site-root', site, '--no-browser'], {
+					timeout: 5_000,
+				}),
+			).rejects.toThrow(/cannot read.*project|EACCES.*project/i);
+		} finally {
+			await Promise.all([chmod(project, 0o700), chmod(unrelated, 0o700)]);
+			await rm(site, { recursive: true, force: true });
+		}
+	},
+	30_000,
+);

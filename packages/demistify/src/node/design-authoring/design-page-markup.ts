@@ -41,13 +41,15 @@ const recordTextTags = new Set([
 	'ex-choice',
 ]);
 
-export function hasDesignBindings(html: string): boolean {
+export function designPreviewSources(html: string): readonly string[] | undefined {
 	const generatedSources = new Map([
 		['ex-nav', 'navigation.generated.json'],
 		['ex-deliverables', 'deliverables.generated.json'],
 		['ex-project-overview', 'project.generated.json'],
 	]);
-	function visit(node: DefaultTreeAdapterMap['node']): boolean {
+	let bound = false;
+	const sources = new Set<string>();
+	function visit(node: DefaultTreeAdapterMap['node']): void {
 		if ('attrs' in node) {
 			const source = generatedSources.get(node.tagName);
 			for (const { name, value } of node.attrs) {
@@ -55,16 +57,19 @@ export function hasDesignBindings(html: string): boolean {
 					name === 'data-design-record' ||
 					(name === 'data-design-need' && node.tagName === 'ex-tree')
 				)
-					return true;
+					bound = true;
 				if (name !== 'src' || !source) continue;
 				const href = value.trim();
-				if (!/^(?:[a-z][a-z0-9+.-]*:|\/\/)/i.test(href) && href.split('/').at(-1) === source)
-					return true;
+				if (!/^(?:[a-z][a-z0-9+.-]*:|\/\/)/i.test(href) && href.split('/').at(-1) === source) {
+					sources.add(href);
+					bound = true;
+				}
 			}
 		}
-		return 'childNodes' in node && node.childNodes.some(visit);
+		if ('childNodes' in node) node.childNodes.forEach(visit);
 	}
-	return visit(parse(html));
+	visit(parse(html));
+	return bound ? [...sources] : undefined;
 }
 
 export function readPageMarkup(html: string, file: string): PageMarkup {
