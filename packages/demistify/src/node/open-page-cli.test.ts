@@ -211,6 +211,57 @@ it('serves a declared HTML alias at its authored URL and refuses aliases claimed
 }, 30_000);
 
 it.skipIf(process.platform === 'win32' || process.getuid?.() === 0)(
+	'uses the declared alias base when a source hint at the physical path is unreadable',
+	async (): Promise<void> => {
+		const site = await mkdtemp(join(tmpdir(), 'demistify-open-alias-hint-'));
+		const published = join(site, 'published');
+		const source = join(site, 'source');
+		const project = join(published, 'data');
+		const unreadableHint = join(source, 'data');
+		const physical = join(source, 'guide.html');
+		const html =
+			'<h2 data-design-record="notes/N1"></h2><ex-project-overview src="./data/project.generated.json"></ex-project-overview><a href="./notes.md">Read notes</a>';
+		try {
+			await Promise.all([
+				createExternalPageProject(project, '../../Review.html'),
+				mkdir(unreadableHint, { recursive: true }),
+			]);
+			await Promise.all([
+				writeFile(physical, html),
+				writeFile(join(published, 'notes.md'), 'Notes at the published URL.'),
+				writeFile(join(source, 'notes.md'), 'Notes at the physical path.'),
+				symlink('../source/guide.html', join(published, 'Review.html'), 'file'),
+			]);
+			await chmod(unreadableHint, 0o000);
+			await expect(readdir(unreadableHint)).rejects.toHaveProperty('code', 'EACCES');
+			await withPreview(physical, site, async (url) => {
+				expect(url.pathname).toBe('/published/Review.html');
+				expect(await (await fetch(url)).text()).toContain(
+					'id="notes/N1">Readers can find the approved scope.',
+				);
+				expect(await (await fetch(new URL('./notes.md', url))).text()).toBe(
+					'Notes at the published URL.',
+				);
+				const view = await fetch(new URL('./data/project.generated.json', url));
+				expect(view.status).toBe(200);
+				expect(await view.json()).toMatchObject({
+					records: [
+						{ id: 'notes/N1', destination: { page: '../Review.html', fragment: 'notes/N1' } },
+					],
+				});
+			});
+			await expect(stat(join(project, 'project.generated.json'))).rejects.toMatchObject({
+				code: 'ENOENT',
+			});
+		} finally {
+			await chmod(unreadableHint, 0o700);
+			await rm(site, { recursive: true, force: true });
+		}
+	},
+	30_000,
+);
+
+it.skipIf(process.platform === 'win32' || process.getuid?.() === 0)(
 	'opens despite an unreadable unrelated branch and reports an unreadable bound project',
 	async (): Promise<void> => {
 		const site = await mkdtemp(join(tmpdir(), 'demistify-open-unreadable-'));

@@ -83,13 +83,13 @@ async function projectDesignFiles(file: string, required: boolean): Promise<stri
 	}
 }
 
-function hintedDirectories(request: PreviewRequest): Set<string> {
-	const { requestedPage, siteRoot, sources } = request;
-	const directories = new Set(candidateDirectories(requestedPage, siteRoot));
+function bindingDirectories(request: PreviewRequest, page: string): Set<string> {
+	const { siteRoot, sources } = request;
+	const directories = new Set<string>();
 	if (!siteRoot) return directories;
 	for (const source of sources) {
 		try {
-			const target = resolveDesignLink(source, requestedPage, siteRoot);
+			const target = resolveDesignLink(source, page, siteRoot);
 			if (target) {
 				for (const directory of candidateDirectories(target.file, siteRoot))
 					directories.add(directory);
@@ -105,9 +105,9 @@ export async function findDesignPreviewOwner(
 	request: PreviewRequest,
 ): Promise<DesignPreviewOwner | undefined> {
 	const { requestedPage, physicalPage, siteRoot } = request;
-	const visited = new Set<string>();
-	const projects: PreviewClaim[] = [];
-	const standalone: PreviewClaim[] = [];
+	const visited = new Map<string, 'required' | 'provisional'>();
+	const projects = new Map<string, PreviewClaim>();
+	const standalone = new Map<string, PreviewClaim>();
 	const registered = new Set<string>();
 	const declarations = new Map<string, string[]>();
 
@@ -141,9 +141,12 @@ export async function findDesignPreviewOwner(
 
 	async function inspect(directory: string, required: boolean): Promise<void> {
 		const canonical = await discoveryRead(directory, required, () => realpath(directory));
-		if (!canonical || (siteRoot && !containsPath(siteRoot, canonical)) || visited.has(canonical))
-			return;
-		visited.add(canonical);
+		if (!canonical || (siteRoot && !containsPath(siteRoot, canonical))) return;
+		const checked = visited.get(canonical);
+		if (checked === 'required' || (checked && !required)) return;
+		visited.set(canonical, required ? 'required' : 'provisional');
+		projects.delete(canonical);
+		standalone.delete(canonical);
 		const root = siteRoot ?? canonical;
 		const project = await projectDesignFiles(join(canonical, 'project.ts'), required);
 		if (project) {
@@ -163,36 +166,59 @@ export async function findDesignPreviewOwner(
 				// oxlint-disable-next-line no-await-in-loop -- read each registered declaration in turn.
 				for (const page of await matchingPages(declaration, root, required)) pages.add(page);
 			}
-			if (pages.size) projects.push({ kind: 'project', directory: canonical, pages });
-			if (projects.length > 1) throw competingOwners(physicalPage, projects);
+			if (pages.size) projects.set(canonical, { kind: 'project', directory: canonical, pages });
+			if (projects.size > 1) throw competingOwners(physicalPage, [...projects.values()]);
 		}
 		if (registered.has(canonical)) return;
 		const pages = await matchingPages(join(canonical, 'design.ts'), root, required);
 		if (pages.length)
-			standalone.push({ kind: 'design', directory: canonical, pages: new Set(pages) });
+			standalone.set(canonical, { kind: 'design', directory: canonical, pages: new Set(pages) });
 	}
 
-	for (const directory of hintedDirectories(request)) {
-		// oxlint-disable-next-line no-await-in-loop -- read bound and adjacent declarations before exploring the site.
+	for (const directory of candidateDirectories(requestedPage, siteRoot)) {
+		// oxlint-disable-next-line no-await-in-loop -- read adjacent declarations before exploring the site.
 		await inspect(directory, true);
+	}
+	for (const directory of bindingDirectories(request, requestedPage)) {
+		// oxlint-disable-next-line no-await-in-loop -- a physical path can give bindings the wrong URL base.
+		await inspect(directory, false);
 	}
 	if (siteRoot) {
 		for await (const directory of fallbackDirectories(siteRoot)) {
 			await inspect(directory, false);
 		}
 	}
-	const owners = [...projects, ...standalone.filter(({ directory }) => !registered.has(directory))];
-	if (owners.length > 1) throw competingOwners(physicalPage, owners);
-	const [owner] = owners;
-	if (!owner) return undefined;
-	const { kind, directory, pages } = owner;
-	if (pages.has(requestedPage)) return { kind, directory, page: requestedPage };
-	const [page] = pages;
-	if (!page || pages.size > 1)
-		throw new Error(
-			`Ambiguous declared preview paths for ${physicalPage}: ${[...pages].toSorted().join(', ')}.`,
-		);
-	return { kind, directory, page };
+	function selectOwner(): DesignPreviewOwner | undefined {
+		const owners = [
+			...projects.values(),
+			...[...standalone.values()].filter(({ directory }) => !registered.has(directory)),
+		];
+		if (owners.length > 1) throw competingOwners(physicalPage, owners);
+		const [owner] = owners;
+		if (!owner) return undefined;
+		const { kind, directory, pages } = owner;
+		if (pages.has(requestedPage)) return { kind, directory, page: requestedPage };
+		const [page] = pages;
+		if (!page || pages.size > 1)
+			throw new Error(
+				`Ambiguous declared preview paths for ${physicalPage}: ${[...pages].toSorted().join(', ')}.`,
+			);
+		return { kind, directory, page };
+	}
+
+	const owner = selectOwner();
+	for (const directory of bindingDirectories(request, owner?.page ?? requestedPage)) {
+		// oxlint-disable-next-line no-await-in-loop -- enforce access at the selected URL, or the request when no owner is known.
+		await inspect(directory, true);
+	}
+	const checked = selectOwner();
+	if (
+		checked?.kind !== owner?.kind ||
+		checked?.directory !== owner?.directory ||
+		checked?.page !== owner?.page
+	)
+		throw new Error(`Design ownership changed while opening ${requestedPage}.`);
+	return owner;
 }
 
 function competingOwners(page: string, claims: readonly PreviewClaim[]): Error {
