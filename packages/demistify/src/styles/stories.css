@@ -129,7 +129,7 @@ ex-section :is([id], ex-mermaid, ex-tree, ex-code, ex-pre, ex-gallery) {
 	);
 }
 ex-story + ex-story,
-ex-section > details[slot='smaller'] {
+ex-section > ex-section-item > details[slot='smaller'] {
 	margin-top: var(--space-6);
 }
 details.ex-story-disclosure {

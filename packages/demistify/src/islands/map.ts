@@ -1,7 +1,7 @@
 import { classifyDocumentLink } from '../core/document-links.ts';
 import { createIconButton } from '../core/icons.ts';
 import { reportIssue } from '../core/issues.ts';
-import { sectionItemCount } from '../core/section-membership.ts';
+import { readSectionMembership } from '../core/section-membership.ts';
 import { registerReaderControl } from '../layout/reader-controls.ts';
 import { openDrawer } from './drawer.ts';
 
@@ -197,7 +197,7 @@ export class MapIsland extends HTMLElement {
 				count.className = 'ex-map-count';
 				label.append(count);
 			}
-			const text = ` · ${section instanceof HTMLElement ? sectionItemCount(section) : 0}`;
+			const text = ` · ${section instanceof HTMLElement ? readSectionMembership(section).total : 0}`;
 			if (count.textContent !== text) count.textContent = text;
 		}
 	}

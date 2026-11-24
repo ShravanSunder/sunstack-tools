@@ -1,11 +1,14 @@
 import { createDisclosureControl, type ScopeControl } from '../core/disclosure-scope.ts';
 import { createHead, readIcon } from '../core/head.ts';
 import { reportIssue } from '../core/issues.ts';
-import { sectionItemCount } from '../core/section-membership.ts';
+import { readSectionMembership, smallerStoriesSelector } from '../core/section-membership.ts';
+import { prepareStoryDisclosure } from '../core/story-content.ts';
 import { readTone } from '../core/tones.ts';
 
 export class SectionIsland extends HTMLElement {
 	private headerObserver: ResizeObserver | undefined;
+	private membershipObserver: MutationObserver | undefined;
+	private control: ScopeControl | undefined;
 
 	connectedCallback(): void {
 		if (this.closest('[data-inspector-content], [data-inspector-copy]')) return;
@@ -22,7 +25,6 @@ export class SectionIsland extends HTMLElement {
 			});
 			const count = document.createElement('span');
 			count.className = 'ex-section-count';
-			count.textContent = `· ${sectionItemCount(this)}`;
 			header.append(count);
 			this.dataset['title'] = title;
 			this.removeAttribute('title');
@@ -32,6 +34,23 @@ export class SectionIsland extends HTMLElement {
 		}
 		const header = this.querySelector(':scope > .ex-section-head');
 		if (!header) return;
+		const count = header.querySelector('.ex-section-count');
+		const refreshMembership = (): void => {
+			const { primary, smaller } = readSectionMembership(this);
+			const label = `· ${primary}${smaller ? ` + ${smaller} smaller` : ''}`;
+			if (count && count.textContent !== label) count.textContent = label;
+			for (const group of this.querySelectorAll(smallerStoriesSelector))
+				if (group instanceof HTMLDetailsElement)
+					prepareStoryDisclosure(group, undefined, undefined);
+			if (!this.control && this.querySelector('ex-story')) {
+				this.control = createDisclosureControl(this, this.dataset['title'] ?? 'section');
+				header.append(this.control.button);
+			}
+		};
+		this.membershipObserver?.disconnect();
+		this.membershipObserver = new MutationObserver(refreshMembership);
+		this.membershipObserver.observe(this, { childList: true, subtree: true });
+		refreshMembership();
 		const measureHeader = (): void => {
 			this.style.setProperty(
 				'--ex-section-header-height',
@@ -45,6 +64,10 @@ export class SectionIsland extends HTMLElement {
 	}
 
 	disconnectedCallback(): void {
+		this.control?.disconnect();
+		this.control?.button.remove();
+		this.control = undefined;
+		this.membershipObserver?.disconnect();
 		this.headerObserver?.disconnect();
 	}
 }

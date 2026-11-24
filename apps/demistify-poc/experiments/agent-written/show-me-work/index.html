@@ -14,7 +14,8 @@
   <details id="ordinary-notes"><summary>Names used here</summary><p>This ordinary note is outside story bulk actions.</p></details>
   <h2>What it means for you <ex-fold-toggle for="work"></ex-fold-toggle></h2>
   <ex-section id="for-you" title="For you to decide" icon="user" series="5"></ex-section>
-  <ex-section id="delivery" title="What's done / what's next" icon="clock" series="2">
+  <ex-section id="delivery" title="What's done / what's next" icon="clock" series="2"></ex-section>
+  <ex-section-item section="delivery">
     <ex-story subject="Renderer" time="Illustrative" icon="package" tone="done">
       <details id="story-main" open>
         <summary>One story retains its supporting record</summary>
@@ -38,6 +39,8 @@ flowchart LR
         </details>
       </details>
     </ex-story>
+  </ex-section-item>
+  <ex-section-item section="delivery">
     <details id="smaller" slot="smaller">
       <summary>1 smaller</summary>
       <ex-story subject="Routine" time="Illustrative" icon="file">
@@ -51,11 +54,13 @@ flowchart LR
         </details>
       </ex-story>
     </details>
-  </ex-section>
-  <ex-section id="changes" title="What changed and why" icon="git-branch" series="3">
+  </ex-section-item>
+  <ex-section id="changes" title="What changed and why" icon="git-branch" series="3"></ex-section>
+  <ex-section-item section="changes">
     <ex-grid cols="2"><section><h3>Decisions for you</h3><p>No illustrative decision is waiting.</p></section><section><h3>Calls made during the work</h3><p>The example keeps ordinary HTML for the two columns.</p></section></ex-grid>
-  </ex-section>
-  <ex-section id="verification" title="What was verified, and what was missed" icon="test-tube" series="4">
+  </ex-section-item>
+  <ex-section id="verification" title="What was verified, and what was missed" icon="test-tube" series="4"></ex-section>
+  <ex-section-item section="verification">
     <ex-story subject="Checks" time="Illustrative" icon="test-tube">
       <details id="story-other" open>
         <summary>Another section has its own fold scope</summary>
@@ -66,7 +71,7 @@ flowchart LR
         <details id="other-record" slot="record"><summary>The record: 0 entries</summary><p>No observation is asserted by this example.</p></details>
       </details>
     </ex-story>
-  </ex-section>
+  </ex-section-item>
   <ex-map for="work">
     <ex-tree id="work-map" label="Map"><script type="text/markdown">
 - [Needs you](#for-you)

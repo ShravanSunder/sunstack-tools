@@ -363,8 +363,9 @@ test('a choice-only document gets automatic Comments and retains the 8px phone g
 	await page.viewport(390, 900);
 	const { document: fixture, frame } = await openFixture('review', '', 'choice-only.html');
 	await expect.poll((): number => fixture.querySelectorAll('ex-choice input').length).toBe(2);
-	expect(fixture.defaultView?.getComputedStyle(fixture.body).paddingLeft).toBe('8px');
-	expect(fixture.defaultView?.getComputedStyle(fixture.body).paddingRight).toBe('8px');
+	const content = requiredElement(fixture, 'ex-document').getBoundingClientRect();
+	expect(content.left).toBe(8);
+	expect(fixture.documentElement.clientWidth - content.right).toBe(8);
 	expect(fixture.documentElement.scrollWidth).toBeLessThanOrEqual(391);
 	await expect.poll((): number => fixture.querySelectorAll('.ex-comments-trigger').length).toBe(1);
 	await frame.getByRole('radio', { name: 'Concise', exact: true }).click();
