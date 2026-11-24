@@ -272,6 +272,16 @@ ex-section-item {
 ex-section > ex-section-item:not([hidden]) {
 	display: block;
 }
+ex-section-item
+	ex-markdown.ex-inspectable:has(> .ex-inspect-controls:not(.ex-inspect-more, [hidden])) {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr);
+}
+ex-section-item ex-markdown.ex-inspectable > .ex-inspect-controls:not(.ex-inspect-more, [hidden]) {
+	position: static;
+	grid-row: 1;
+	justify-self: end;
+}
 ex-section-item + ex-section-item {
 	margin-block-start: var(--space-8);
 }

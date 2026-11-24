@@ -224,6 +224,7 @@ export class ChoiceIsland extends HTMLElement {
 			titleRow.className = 'ex-choice-title-row';
 			const optionTitle = document.createElement('span');
 			optionTitle.append(label);
+			titleRow.append(bound ? optionTitle : label);
 			const recommendation =
 				bound && bound.recommended !== 'none' && bound.recommended.option === recordOption
 					? bound.recommended
@@ -242,7 +243,7 @@ export class ChoiceIsland extends HTMLElement {
 					recommender.textContent = recommendation.by.alias;
 					optionMetadata.append(recordCategoryBadge('Recommended', 'note'), recommender);
 				}
-				if (optionMetadata.childElementCount) optionTitle.append(optionMetadata);
+				if (optionMetadata.childElementCount) titleRow.append(optionMetadata);
 			} else if (settled || recommendation) {
 				const mark = document.createElement('span');
 				mark.className = chosen ? 'ex-card-pick' : 'ex-record-option-mark';
@@ -253,7 +254,6 @@ export class ChoiceIsland extends HTMLElement {
 					: `Recommended · ${recommendation?.by.alias ?? ''}`;
 				optionTitle.append(mark);
 			}
-			titleRow.append(bound ? optionTitle : label);
 			const authoredDetails = declaration.querySelector<HTMLElement>(':scope > [slot="details"]');
 			if (bound && authoredDetails && !(authoredDetails instanceof HTMLTemplateElement))
 				throw new Error('Record option Details use <template slot="details">.');

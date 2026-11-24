@@ -743,6 +743,7 @@ ex-section-item[record] .ex-record-item-title {
 ex-section-item[record] .ex-record-state-line {
 	max-inline-size: var(--width-reading);
 	margin-block-end: var(--space-6);
+	flex-wrap: wrap-reverse;
 }
 ex-section-item[record] .ex-record-state-line + p {
 	margin-block-start: 0;
@@ -755,29 +756,39 @@ ex-section-item[record] .ex-record-state-line + p {
 	max-inline-size: 100%;
 	margin-inline-start: auto;
 }
-.ex-record-choice-context > fieldset > .ex-record-state-line {
-	max-inline-size: var(--record-surface-width);
-}
-ex-section-item[record] .ex-record-option-title,
-.ex-record-option-metadata {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
+ex-section-item[record] .ex-choice-title-row:has(> .ex-record-option-title) {
+	display: grid;
+	align-items: start;
 	gap: var(--space-1) var(--space-2);
+}
+.ex-record-option-title {
+	grid-row: 1;
+	grid-column: 1;
 	min-inline-size: 0;
 	overflow-wrap: anywhere;
 }
-ex-section-item[record] .ex-record-option-title {
-	min-block-size: var(--space-8);
+.ex-choice-title-row > .ex-record-detail-button {
+	grid-row: 1;
+	grid-column: 2;
 }
 .ex-record-option-metadata {
+	grid-row: 2;
+	grid-column: 1 / -1;
+	justify-self: end;
+	display: flex;
+	flex-wrap: wrap;
 	justify-content: flex-end;
-	margin-inline-start: auto;
+	align-items: center;
+	gap: var(--space-1) var(--space-2);
+	min-inline-size: 0;
+	max-inline-size: 100%;
+	overflow-wrap: anywhere;
 }
 .ex-record-option-metadata > ex-badge {
 	white-space: nowrap;
 }
-ex-section-item[record] .ex-record-option-mark {
+.ex-choice-title-row .ex-record-option-metadata > .ex-record-option-mark {
+	margin-inline-start: 0;
 	font-weight: 400;
 }
 ex-section-item[record] .ex-choice-option {
@@ -816,6 +827,7 @@ ex-section-item[record] .ex-record-detail-button:hover {
 }
 .ex-record-choice-context > fieldset > .ex-record-choice-context-part {
 	box-sizing: border-box;
+	max-inline-size: var(--record-surface-width);
 	padding-inline: var(--space-4);
 }
 .ex-record-choice-context > fieldset > legend.ex-record-choice-context-part {

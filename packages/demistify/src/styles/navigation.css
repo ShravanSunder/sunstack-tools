@@ -215,6 +215,7 @@ ex-document :is([id], ex-mermaid, ex-tree, ex-code, ex-pre, ex-gallery) {
 }
 @media (max-width: 760px) {
 	body:has(ex-document) {
-		padding-inline: var(--space-2);
+		margin-inline: var(--space-2);
+		padding-inline: 0;
 	}
 }
