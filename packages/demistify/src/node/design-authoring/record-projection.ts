@@ -55,8 +55,6 @@ export function projectRecords(
 				throw new Error(`${file}: ${id} needs exactly one native ex-choice.`);
 			if (tag === 'ex-choice' && record.kind !== 'choice')
 				throw new Error(`${file}: ${id} is not a choice.`);
-			if (tag === 'ex-card' && record.kind !== 'ruling' && record.kind !== 'assumption')
-				throw new Error(`${file}: ${id} must be a ruling or assumption to bind a card.`);
 			placements.set(id, { file, fragment: reference });
 		}
 	}
@@ -168,7 +166,7 @@ export function prepareRecordPage(options: {
 			statement,
 			...(tag === 'ex-choice' && { decision: id }),
 			...(boundRecord &&
-				(tag === 'ex-choice' || tag === 'ex-card' || tag === 'ex-section-item') && {
+				(tag === 'ex-choice' || tag === 'ex-section-item') && {
 					face: {
 						record: boundRecord,
 						dependents: dependents.map((item) => {
@@ -221,12 +219,11 @@ export function prepareRecordPage(options: {
 				end: endTag.end,
 				text: targets.map((value) => `<span id="${escapeHtml(value)}" hidden></span>`).join(''),
 			});
-		} else if ((tag === 'ex-card' || tag === 'ex-section-item') && boundRecord) {
-			const tone = boundRecord.kind === 'assumption' ? 'note' : 'decision';
+		} else if (tag === 'ex-section-item' && boundRecord) {
 			edits.push({
 				start: startTag.end - 1,
 				end: startTag.end - 1,
-				text: tag === 'ex-card' ? `${anchor} title="${text}" tone="${tone}"` : anchor,
+				text: anchor,
 			});
 			edits.push({
 				start: endTag.end,

@@ -48,7 +48,6 @@ const recordTextTags = new Set([
 	'th',
 	'blockquote',
 	'ex-choice',
-	'ex-card',
 ]);
 
 export function designPreviewSources(html: string): readonly string[] | undefined {
@@ -176,24 +175,27 @@ export function readPageMarkup(html: string, file: string): PageMarkup {
 					});
 				}
 				if (reference !== undefined) {
+					if (tag === 'ex-card')
+						throw new Error(
+							`${file}: Write ${reference} as an ex-section-item with a bare authored body.`,
+						);
 					if (!sectionReference && !recordTextTags.has(tag))
 						throw new Error(`${file}: <${tag}> cannot hold a record placement.`);
 					if (
 						id !== undefined ||
-						((tag === 'ex-choice' || tag === 'ex-card') &&
+						(tag === 'ex-choice' &&
 							binding.attrs.some(({ name }) => ['id', 'title', 'data-decision'].includes(name)))
 					)
 						throw new Error(`${file}: ${reference} supplies its own anchor and Choice question.`);
 					if (
 						!sectionReference &&
 						tag !== 'ex-choice' &&
-						tag !== 'ex-card' &&
 						html.slice(startTag.endOffset, endTag.startOffset).trim()
 					)
 						throw new Error(`${file}: record placement ${reference} must be empty.`);
 					const options: { id: string; start: number; end: number }[] = [];
 					let explanation: MarkupRange | undefined;
-					if (sectionReference || tag === 'ex-card' || tag === 'ex-choice') {
+					if (sectionReference || tag === 'ex-choice') {
 						addAnchor(decisionDetailsId(reference));
 					}
 					if (tag === 'ex-choice') {
@@ -212,6 +214,20 @@ export function readPageMarkup(html: string, file: string): PageMarkup {
 								continue;
 							}
 							if (child.tagName !== 'ex-option') continue;
+							const details = child.childNodes.filter(
+								(element) =>
+									'tagName' in element &&
+									element.attrs.some(
+										(attribute) => attribute.name === 'slot' && attribute.value === 'details',
+									),
+							);
+							if (
+								details.length > 1 ||
+								details.some((element) => !('tagName' in element) || element.tagName !== 'template')
+							)
+								throw new Error(
+									`${file}: ${reference} option Details use one <template slot="details"> containing the authored HTML.`,
+								);
 							const option = child.attrs.find(({ name }) => name === 'data-option')?.value;
 							if (!option || child.attrs.some(({ name }) => name === 'id' || name === 'title'))
 								throw new Error(

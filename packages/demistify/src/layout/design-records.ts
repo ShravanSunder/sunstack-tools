@@ -8,7 +8,6 @@ import { reportIssue } from '../core/issues.ts';
 import {
 	choiceRecordFaces,
 	inlineRecordStatus,
-	renderRecordCard,
 	renderSectionRecord,
 } from '../islands/design-record-face.ts';
 
@@ -203,8 +202,6 @@ async function fillBindings(elements: readonly HTMLElement[]): Promise<void> {
 				element.id = record.reference;
 				if (record.decision !== undefined) {
 					hydrateChoice(element, record);
-				} else if (record.face && element.localName === 'ex-card') {
-					renderRecordCard(element, record.face);
 				} else {
 					element.textContent = record.statement;
 				}

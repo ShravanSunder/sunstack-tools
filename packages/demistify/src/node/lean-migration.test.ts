@@ -7,6 +7,8 @@ import { promisify } from 'node:util';
 
 import { expect, it } from 'vitest';
 
+import { decisionActorField } from '../core/decision-record.ts';
+
 const run = promisify(execFile);
 const script = fileURLToPath(
 	new URL('../../scripts/migrate-lean-design-records.ts', import.meta.url),
@@ -356,10 +358,10 @@ it('retains quoted container evidence and keeps public project record links at t
 		await writeFile(
 			recordInput,
 			JSON.stringify({
-				'project/A1': Object.fromEntries([
-					['by', 'Reader Lead'],
-					['settledBy', 'Reader Verifier'],
-				]),
+				'project/A1': {
+					[decisionActorField]: { alias: 'Reader Lead', role: 'lead' },
+					settledBy: 'Reader Verifier',
+				},
 			}),
 		);
 		const command = [
@@ -425,3 +427,62 @@ it('retains quoted container evidence and keeps public project record links at t
 		await rm(scratch, { recursive: true, force: true });
 	}
 }, 30_000);
+
+it('copies a typed record project with explicit assumption roles and a single option carrier', async (): Promise<void> => {
+	const scratch = await mkdtemp(join(tmpdir(), 'demistify-record-authorship-'));
+	try {
+		const source = join(scratch, 'input');
+		const project = join(source, 'project');
+		const design = join(project, 'example');
+		const output = join(scratch, 'converted');
+		const recordInput = join(scratch, 'authors.json');
+		await mkdir(design, { recursive: true });
+		const choiceSource = `import { defineDecision } from './design-sdk.generated.ts';
+export default [defineDecision({ id: 'D1', question: 'Keep the fixture?', recommended: 'none',
+options: [{ id: 'yes', title: 'Keep it' }, { id: 'no', title: 'Remove it' }], authority: { state: 'owner-open' } })];`;
+		const pageSource = `<ex-section-item record="D1"><ex-choice>
+<ex-option data-option="yes"><template slot="summary">Keep the fixture.</template><div slot="details"><p>Retain the link.</p></div></ex-option>
+</ex-choice></ex-section-item><ex-choice id="ordinary"><ex-option id="existing"><div slot="details">Ordinary choice.</div></ex-option></ex-choice>`;
+		await Promise.all([
+			writeFile(
+				join(project, 'project.ts'),
+				"import example from './example/design.ts'; export default { designs: { example } };",
+			),
+			writeFile(
+				join(design, 'design.ts'),
+				"import { defineDesign } from './design-sdk.generated.ts'; export default defineDesign({ pages: [{id:'page',href:'index.html',title:'Example',icon:'file'}], mapGroups: [], records: [] });",
+			),
+			writeFile(join(design, 'design-decisions.ts'), choiceSource),
+			writeFile(
+				join(design, 'design-assumptions.ts'),
+				"import { defineAssumption } from './design-sdk.generated.ts'; export default [defineAssumption({ id: 'A1', statement: 'The fixture can restart.', by: 'Reader Lead', weight: 'design', status: 'open', settles: 'Run the restart fixture.' })];",
+			),
+			writeFile(join(design, 'index.html'), pageSource),
+			writeFile(
+				recordInput,
+				JSON.stringify({
+					'example/A1': { [decisionActorField]: { alias: 'Reader Lead', role: 'lead' } },
+				}),
+			),
+		]);
+		const command = [script, '--source', source, '--project', 'project', '--record-authorship'];
+		await expect(run(process.execPath, [...command, '--dry-run'])).rejects.toHaveProperty(
+			'stderr',
+			expect.stringContaining('explicit role'),
+		);
+		await run(process.execPath, [...command, '--record-input', recordInput, '--output', output]);
+		const migrated = join(output, 'project', 'example');
+		expect(await readFile(join(migrated, 'design-decisions.ts'), 'utf8')).toContain(
+			'defineChoice({',
+		);
+		expect(await readFile(join(design, 'design-decisions.ts'), 'utf8')).toBe(choiceSource);
+		expect(await readFile(join(migrated, 'design-assumptions.ts'), 'utf8')).toContain(
+			'{"alias":"Reader Lead","role":"lead"}',
+		);
+		const page = await readFile(join(migrated, 'index.html'), 'utf8');
+		expect(page).toContain('<template slot="details"><p>Retain the link.</p></template>');
+		expect(page).toContain('<div slot="details">Ordinary choice.</div>');
+	} finally {
+		await rm(scratch, { recursive: true, force: true });
+	}
+});

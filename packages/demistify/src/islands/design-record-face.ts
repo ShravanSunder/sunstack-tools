@@ -181,20 +181,6 @@ export function appendRecordBasis(
 	if (anchor) anchor.id = decisionDetailsId(parent.id);
 }
 
-export function renderRecordCard(card: HTMLElement, face: RecordFace): void {
-	if (face.record.kind === 'choice') return;
-	card.setAttribute('prepared', '');
-	card.setAttribute('zoom', 'none');
-	card.classList.add('ex-record-prose');
-	const title = textNode('h4', face.record.statement);
-	title.className = 'ex-record-item-title';
-	const reason = recordReason(face);
-	for (const child of card.querySelectorAll(':scope > [slot="details"]'))
-		child.removeAttribute('slot');
-	card.prepend(recordStateLine(face), title, ...(reason ? [reason] : []));
-	appendRecordBasis(card, face);
-}
-
 export function renderSectionRecord(item: HTMLElement, face: RecordFace): void {
 	if (face.record.kind === 'choice') return;
 	const title = textNode('h4', face.record.statement);

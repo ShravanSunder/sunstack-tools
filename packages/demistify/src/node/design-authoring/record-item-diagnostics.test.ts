@@ -47,7 +47,7 @@ const assumed = {
 	id: 'A1',
 	kind: 'assumption',
 	statement: 'The fixture can reproduce a restart.',
-	[decisionActorField]: 'Central Lead',
+	[decisionActorField]: { alias: 'Central Lead', role: 'lead' },
 	weight: 'design',
 };
 const open = {
@@ -137,6 +137,14 @@ test('one authored record item preserves Choice fragments and accepts a bare rul
 });
 
 test.each([
+	[
+		`<ex-section-item record="D5">${nativeChoice.replace('</ex-option>', '<div slot="details"><p>Old carrier.</p></div></ex-option>')}</ex-section-item>`,
+		'<template slot="details">',
+	],
+	[
+		'<ex-card data-design-record="D7"><p>Old wrapper.</p></ex-card>',
+		'ex-section-item with a bare authored body',
+	],
 	[
 		'<ex-section-item record="D5"><p>No answer control.</p></ex-section-item>',
 		'exactly one native ex-choice',

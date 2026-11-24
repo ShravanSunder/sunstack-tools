@@ -16,7 +16,7 @@ const recordHelperKinds: ReadonlyMap<string, DesignRecord['kind']> = new Map([
 	['defineRule', 'rule'],
 	['defineRealization', 'realization'],
 	['defineCheck', 'planned-check'],
-	['defineDecision', 'choice'],
+	['defineChoice', 'choice'],
 	['defineRuling', 'ruling'],
 	['defineAssumption', 'assumption'],
 ]);

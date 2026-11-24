@@ -68,8 +68,8 @@ export default defineDesign({
 | Rule | `defineRule` | `statement`; optional `serves` (needs), `governedBy`, `reliesOn`, `cases` |
 | Realization | `defineRealization` | `statement`, `realizes` (rules); optional `governedBy`, `reliesOn` |
 | Planned check | `defineCheck` | `statement`, `checks` (one rule or several), `journey`, `unverified`, three or more `cases`; optional `governedBy`, `reliesOn` |
-| Decision | `defineDecision` in `design-decisions.ts` | `authority`; optional `supersedes`, `sources` |
-| Assumption | `defineAssumption` in `design-assumptions.ts` | `statement`, `status`; optional `sources`, `resolution` |
+| Decision | `defineChoice` or `defineRuling` in `design-decisions.ts` | `authority`; optional `supersedes`, `sources` |
+| Assumption | `defineAssumption` in `design-assumptions.ts` | `statement`, `by`, `weight`, `status`; optional `sources` |
 
 Write a rule as one sentence and put its detail in `cases`. `title` is an optional short label for the Tree, Map and outline, which otherwise show the statement. On a rule, realization or check, `governedBy` names decisions and `reliesOn` names assumptions; add them only where the record depends on that item. The check rejects a link to the wrong kind of record.
 
@@ -77,28 +77,34 @@ When a milestone covers more than one subject, put each subject’s needs, rules
 
 ### Decisions and assumptions
 
-A decision holds the owner's words in its `authority`:
+A choice has a question, at least two options and either a recommendation or `recommended: 'none'`. A ruling has a statement and a settled authority.
 
 | Authority | Fields |
 | --- | --- |
-| Owner decided | `state: 'owner-decided'`, `owner: 'owner'`, `decision`, `decidedOn` (a date), `sourceKind: 'owner-words'` or `'owner-accepted'` |
-| Open owner question | `state: 'owner-open'`, `owner: 'owner'`, `question` |
-| Lead decided | `state: 'lead-decided'`, `lead`, `decision`, `rationale`, `decidedOn`, `sourceKind: 'author'` or `'contract'` |
+| Open owner question | `state: 'owner-open'` on a choice |
+| Owner decided | `state: 'owner-decided'`, `decidedOn`, `sourceKind: 'owner-words'` or `'owner-accepted'`, and `source: { href, excerpt }` |
+| Agent decided | `state: 'agent-decided'`, `by: { alias, role }`, `weight`, `rationale`, `decidedOn` and `sourceKind`. Use `source` when `sourceKind` is `'contract'`. |
+
+A settled choice also has `chosen` and `decision` inside its authority.
 
 ```ts
-// design-decisions.ts
-import { defineDecision } from './design-sdk.generated.ts';
+import { defineChoice } from './design-sdk.generated.ts';
 
 export default [
-  defineDecision({
+  defineChoice({
     id: 'D2',
-    title: 'Expired row display',
-    authority: { state: 'owner-open', owner: 'owner', question: 'Should an expired row stay visible, greyed out, until the reader scrolls?' },
+    question: 'Should an expired row stay visible until the reader scrolls?',
+    options: [
+      { id: 'hide-at-once', title: 'Hide at once' },
+      { id: 'grey-until-scroll', title: 'Grey until scroll' },
+    ],
+    recommended: 'none',
+    authority: { state: 'owner-open' },
   }),
 ];
 ```
 
-`design-assumptions.ts` has the same shape: `defineAssumption({ id: 'A1', statement: 'Central and the Mac clocks differ by under five seconds.', status: 'open' })`. A `confirmed` or `refuted` assumption needs `resolution: { href, excerpt }` pointing at local evidence. `sources` take the same shape; add `verbatim: true` and the check confirms the excerpt appears in the cited HTML passage.
+Assumptions use the same `by: { alias, role }` as agent decisions. Add `weight` and a `statement`. For `status: 'open'`, describe what would settle it in `settles`. A confirmed or refuted assumption needs `settledBy` and `resolution: { href, excerpt }`. A source can add `verbatim: true` to check that its excerpt occurs in the linked HTML.
 
 A new decision can declare `supersedes: 'D1'` and keep the old one in the file. Only an owner decision can replace an owner decision, and the check rejects a live link to a superseded one.
 
@@ -126,19 +132,23 @@ Place a record with an empty element. The placement is the anchor. After generat
 - `<ex-tree data-design-need="U1"></ex-tree>` draws the need and the rules that serve it, linked to their placements.
 - Each page in the milestone keeps one `ex-nav` whose `src` resolves to its `navigation.generated.json`.
 
-Bind a Choice to an open owner decision. The record supplies the question, anchor and decision identity; you write the options. The check rejects a bound Choice on a settled decision, or with its own `title` or `data-decision`.
+Route the record through a section item. The record supplies the question, anchor and option titles. The page supplies the Markdown summary and optional HTML Details. Place rulings and assumptions in section items with direct authored prose.
 
 ```html
-<ex-choice data-design-record="D2">
-  <ex-option id="hide-at-once" title="Hide at once">
-    <template slot="summary">The row disappears when it expires.</template>
-  </ex-option>
-  <ex-option id="grey-until-scroll" title="Grey until scroll">
-    <template slot="summary">The row stays, greyed, until the reader scrolls.</template>
-    <div slot="details"><p>Moves DEL-02 into the core plan.</p></div>
-  </ex-option>
-</ex-choice>
+<ex-section-item record="D2">
+  <ex-choice>
+    <ex-option data-option="hide-at-once">
+      <template slot="summary">The row disappears when it expires.</template>
+    </ex-option>
+    <ex-option data-option="grey-until-scroll">
+      <template slot="summary">The row stays, greyed, until the reader scrolls.</template>
+      <template slot="details"><p>Moves DEL-02 into the core plan.</p></template>
+    </ex-option>
+  </ex-choice>
+</ex-section-item>
 ```
+
+Declare the reachable sections as described in [Sections and Map](stories.md). Both option slots use `template`. Put any shared authored explanation in `<template data-record-body>` inside the Choice.
 
 ## Map and Walkthrough by record ID
 

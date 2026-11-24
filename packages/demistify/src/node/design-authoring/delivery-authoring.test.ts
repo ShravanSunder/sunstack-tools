@@ -137,7 +137,7 @@ it('holds acceptance for an explicitly scoped need and keeps missing realization
 			),
 			writeFile(
 				join(directory, 'design-assumptions.ts'),
-				`export default [{ id: 'A9', kind: 'assumption', status: 'open', by: 'Queue Lead', weight: 'design', settles: 'Observe both limits on the target backend.', statement: ${JSON.stringify(bothLimits)} }];`,
+				`export default [{ id: 'A9', kind: 'assumption', status: 'open', by: { alias: 'Queue Lead', role: 'lead' }, weight: 'design', settles: 'Observe both limits on the target backend.', statement: ${JSON.stringify(bothLimits)} }];`,
 			),
 			writeFile(join(deliverables, 'del-02-report-job-already-started.ts'), blocked),
 			writeFile(
@@ -474,7 +474,7 @@ it('keeps the shared check gates in each brief and scopes rules and acceptance t
 			),
 			writeFile(
 				join(directory, 'design-assumptions.ts'),
-				`export default [{ kind: 'assumption', id: 'A1', status: 'open', by: 'Queue Lead', weight: 'design', settles: 'Run the fixture for both cases.', statement: 'The queue fixture supports both cases.' }];`,
+				`export default [{ kind: 'assumption', id: 'A1', status: 'open', by: { alias: 'Queue Lead', role: 'lead' }, weight: 'design', settles: 'Run the fixture for both cases.', statement: 'The queue fixture supports both cases.' }];`,
 			),
 			writeFile(join(directory, 'evidence.txt'), 'The fixture exercised both rules.'),
 		]);
@@ -498,7 +498,7 @@ it('keeps the shared check gates in each brief and scopes rules and acceptance t
 		expect(coreDelivery(open, 'DEL-02').reasons).toContain('D1 requires an owner decision.');
 		await writeFile(
 			join(directory, 'design-assumptions.ts'),
-			`export default [{ kind: 'assumption', id: 'A1', status: 'confirmed', by: 'Queue Lead', weight: 'design', settledBy: 'Queue Lead', statement: 'The queue fixture supports both cases.', resolution: { href: 'evidence.txt', excerpt: 'Both rules ran.' } }];`,
+			`export default [{ kind: 'assumption', id: 'A1', status: 'confirmed', by: { alias: 'Queue Lead', role: 'lead' }, weight: 'design', settledBy: 'Queue Lead', statement: 'The queue fixture supports both cases.', resolution: { href: 'evidence.txt', excerpt: 'Both rules ran.' } }];`,
 		);
 		await run(process.execPath, check);
 		const confirmed = await readView();
@@ -588,7 +588,7 @@ export default [
 		const decidedSource = pendingDecisions.replace(ownerQuestion, decided);
 		const openAssumptions = `import type { DesignAssumption } from './design-schema.d.ts';
 export default [
-    { id: 'A1', kind: 'assumption', title: 'Atomic claims', by: 'Queue Lead', weight: 'design', status: 'open', settles: 'Observe both claim attempts.',
+    { id: 'A1', kind: 'assumption', title: 'Atomic claims', by: { alias: 'Queue Lead', role: 'lead' }, weight: 'design', status: 'open', settles: 'Observe both claim attempts.',
       statement: 'Claims are atomic on the target backend.',
       sources: [{ href: 'evidence.txt', excerpt: 'Target backend supports atomic claims.' }] },
 ] as const satisfies readonly DesignAssumption[];

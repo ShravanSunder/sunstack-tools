@@ -43,7 +43,7 @@ export type DesignDecision = DecisionIdentity & (
       authority: { state: 'owner-open' } | (SettledAuthority & { chosen: string; decision: string }) }
   | { kind: 'ruling'; statement: string; authority: SettledAuthority }
 );
-export type DesignAssumption = RecordFields & { kind: 'assumption'; by: string; weight: Weight; sources?: readonly SourceReference[] } & (
+export type DesignAssumption = RecordFields & { kind: 'assumption'; by: AgentActor; weight: Weight; sources?: readonly SourceReference[] } & (
   { status: 'open'; settles: string } | { status: 'confirmed' | 'refuted'; resolution: SourceReference; settledBy: string }
 );
 export type DesignCore<TRecordId extends string = KnownRecordId> = {

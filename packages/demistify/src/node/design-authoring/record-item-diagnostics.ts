@@ -56,7 +56,7 @@ const guidance = new Map<string, string>([
 		'authority.weight',
 		"an agent's decision needs a weight. Add weight: 'design', 'process' or 'minor'.",
 	],
-	['by', 'an assumption needs an author. Set by to the alias of the person or agent making it.'],
+	['by', 'an assumption needs an author. Set by to an object with alias and role.'],
 	['weight', "an assumption needs a weight. Add weight: 'design', 'process' or 'minor'."],
 	['status', "set the assumption’s status to 'open', 'confirmed', or 'refuted'."],
 	[

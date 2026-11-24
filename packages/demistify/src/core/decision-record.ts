@@ -15,7 +15,7 @@ export const decisionSource = z.strictObject({
 	excerpt: text,
 	verbatim: z.literal(true).optional(),
 });
-const actor = z.strictObject({
+export const recordActor = z.strictObject({
 	alias: text,
 	role: z.enum(['lead', 'implementer', 'verifier', 'reviewer', 'advisor']),
 });
@@ -28,7 +28,7 @@ const ownerAuthority = z.strictObject({
 });
 const agentFields = {
 	state: z.literal('agent-decided'),
-	[decisionActorField]: actor,
+	[decisionActorField]: recordActor,
 	rationale: text,
 	decidedOn: z.iso.date(),
 	weight,
@@ -59,7 +59,7 @@ export const choiceRecord = z.strictObject({
 	),
 	recommended: z.union([
 		z.literal('none'),
-		z.strictObject({ option: designRecordId, [decisionActorField]: actor }),
+		z.strictObject({ option: designRecordId, [decisionActorField]: recordActor }),
 	]),
 	authority: z.discriminatedUnion('state', [
 		z.strictObject({ state: z.literal('owner-open') }),
@@ -84,7 +84,7 @@ const assumptionIdentity = {
 	...identity,
 	kind: z.literal('assumption'),
 	statement: text,
-	[decisionActorField]: text,
+	[decisionActorField]: recordActor,
 	weight,
 };
 export const assumptionRecord = z.discriminatedUnion('status', [

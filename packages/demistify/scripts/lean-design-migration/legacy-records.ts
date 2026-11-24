@@ -258,7 +258,7 @@ const helperByKind = {
 	rule: 'defineRule',
 	realization: 'defineRealization',
 	'planned-check': 'defineCheck',
-	choice: 'defineDecision',
+	choice: 'defineChoice',
 	ruling: 'defineRuling',
 	assumption: 'defineAssumption',
 } satisfies Record<DesignRecord['kind'], string>;

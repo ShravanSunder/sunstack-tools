@@ -717,7 +717,6 @@ ex-choice.ex-choice-cards ex-option:has(:focus-visible) > .ex-entity-comment {
 	margin-block: 0 var(--space-3);
 	font: 600 var(--text-xl)/1.35 var(--font-body);
 }
-.ex-record-prose > p:last-child,
 .ex-record-surface > p:last-of-type,
 .ex-bound-choice > .ex-record-dependents:last-child {
 	margin-block-end: 0;

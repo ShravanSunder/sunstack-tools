@@ -4,7 +4,7 @@ import { parseArgs } from 'node:util';
 
 import { z } from 'zod';
 
-import { decisionActorField } from '../src/core/decision-record.ts';
+import { decisionActorField, recordActor } from '../src/core/decision-record.ts';
 import {
 	declaredDesignPagePath,
 	resolveDesignLink,
@@ -30,6 +30,7 @@ import {
 	type LocatedRecord,
 	type PageChange,
 } from './lean-design-migration/pages.ts';
+import { planRecordAuthorship } from './lean-design-migration/record-authorship.ts';
 
 interface Sidecar {
 	readonly file: string;
@@ -46,7 +47,7 @@ interface Milestone {
 const migrationRecordInput = z.record(
 	z.string(),
 	z.strictObject({
-		[decisionActorField]: z.string().trim().min(1),
+		[decisionActorField]: recordActor,
 		settles: z.string().trim().min(1).optional(),
 		settledBy: z.string().trim().min(1).optional(),
 	}),
@@ -70,7 +71,11 @@ const ignoreGenerated = ['*.generated.json', 'design-sdk.generated.ts', 'design-
 
 function generated(file: string): boolean {
 	const name = basename(file);
-	return name.endsWith('.generated.json') || ignoreGenerated.includes(name);
+	return (
+		name.endsWith('.generated.json') ||
+		name.endsWith('.generated.js') ||
+		ignoreGenerated.includes(name)
+	);
 }
 
 function missing(error: unknown): boolean {
@@ -655,12 +660,13 @@ async function main(): Promise<void> {
 			'dry-run': { type: 'boolean' },
 			'generator-owned': { type: 'string', multiple: true },
 			'record-input': { type: 'string' },
+			'record-authorship': { type: 'boolean' },
 			help: { type: 'boolean', short: 'h' },
 		},
 	});
 	if (values.help) {
 		process.stdout.write(
-			'Usage: node migrate-lean-design-records.ts --source DOCS --project RELATIVE_PROJECT [--output NEW_DOCS | --dry-run] [--generator-owned REGISTERED_NAMESPACE]... [--record-input INPUT.json]\n',
+			'Usage: node migrate-lean-design-records.ts --source DOCS --project RELATIVE_PROJECT [--output NEW_DOCS | --dry-run] [--generator-owned REGISTERED_NAMESPACE]... [--record-input INPUT.json] [--record-authorship]\n',
 		);
 		return;
 	}
@@ -671,14 +677,22 @@ async function main(): Promise<void> {
 	if (!containsPath(source, project))
 		throw new Error('The project must be within the source docs tree.');
 	const output = values.output && (await newOutput(values.output, source));
-	const { edits, report } = await planMigration({
-		source,
-		project,
-		generatorOwned: values['generator-owned'] ?? [],
-		recordInput: values['record-input']
-			? migrationRecordInput.parse(JSON.parse(await readFile(values['record-input'], 'utf8')))
-			: {},
-	});
+	const recordInput = values['record-input']
+		? migrationRecordInput.parse(JSON.parse(await readFile(values['record-input'], 'utf8')))
+		: {};
+	const { edits, report } = values['record-authorship']
+		? await planRecordAuthorship({
+				source,
+				project,
+				read: guardedReader(source),
+				actors: new Map(Object.entries(recordInput).map(([id, record]) => [id, record.by])),
+			})
+		: await planMigration({
+				source,
+				project,
+				generatorOwned: values['generator-owned'] ?? [],
+				recordInput,
+			});
 	if (!values['dry-run'] && output) {
 		await mkdir(output);
 		await Promise.all(

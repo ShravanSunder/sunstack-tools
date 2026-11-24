@@ -255,7 +255,13 @@ export class ChoiceIsland extends HTMLElement {
 			}
 			titleRow.append(bound ? optionTitle : label);
 			const authoredDetails = declaration.querySelector<HTMLElement>(':scope > [slot="details"]');
-			const detailsSource = authoredDetails;
+			if (bound && authoredDetails && !(authoredDetails instanceof HTMLTemplateElement))
+				throw new Error('Record option Details use <template slot="details">.');
+			let detailsSource = authoredDetails ?? undefined;
+			if (authoredDetails instanceof HTMLTemplateElement) {
+				detailsSource = document.createElement('div');
+				detailsSource.append(authoredDetails.content.cloneNode(true));
+			}
 			const details =
 				detailsSource && this.copiedResponse
 					? copyInspectionContent(detailsSource)

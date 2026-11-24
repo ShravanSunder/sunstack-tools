@@ -520,7 +520,7 @@ sources: [{ href: 'evidence.txt', excerpt: 'Context.' }]
 			writeFile(
 				join(shared, 'project-assumptions.ts'),
 				`export default [{
-id: 'A1', kind: 'assumption', title: 'Target', statement: 'Target is available.', status: 'confirmed', by: 'messages-lead', weight: 'design', settledBy: 'messages-lead',
+id: 'A1', kind: 'assumption', title: 'Target', statement: 'Target is available.', status: 'confirmed', by: { alias: 'messages-lead', role: 'lead' }, weight: 'design', settledBy: 'messages-lead',
 sources: [{ href: 'evidence.txt', excerpt: 'Available.' }],
 resolution: { href: 'evidence.txt', excerpt: 'Available.' }
 }];`,
