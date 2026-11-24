@@ -1,6 +1,10 @@
 import { parse, type DefaultTreeAdapterMap } from 'parse5';
 
-import { decisionDetailsId } from '../../core/design-record-view.ts';
+import {
+	decisionDetailsId,
+	migratedOptionAnchor,
+	migratedOptionDetailsId,
+} from '../../core/design-record-view.ts';
 import { readSectionLayout, sectionMarkupProblem, type SectionLayout } from './section-layout.ts';
 
 interface MarkupRange {
@@ -14,7 +18,13 @@ export interface RecordBinding {
 	readonly startTag: MarkupRange;
 	readonly endTag: MarkupRange;
 	readonly status?: true;
-	readonly options?: readonly { id: string; start: number; end: number }[];
+	readonly options?: readonly ChoiceOptionBinding[];
+}
+
+interface ChoiceOptionBinding extends MarkupRange {
+	readonly id: string;
+	readonly anchor?: string;
+	readonly detailsAnchor: string;
 }
 
 export interface PageMarkup {
@@ -202,7 +212,7 @@ export function readPageMarkup(html: string, file: string): PageMarkup {
 						html.slice(startTag.endOffset, endTag.startOffset).trim()
 					)
 						throw new Error(`${file}: record placement ${reference} must be empty.`);
-					const options: { id: string; start: number; end: number }[] = [];
+					const options: ChoiceOptionBinding[] = [];
 					let hasExplanation = false;
 					if (sectionReference || tag === 'ex-choice') {
 						addAnchor(decisionDetailsId(reference));
@@ -242,8 +252,26 @@ export function readPageMarkup(html: string, file: string): PageMarkup {
 							const opening = child.sourceCodeLocation?.startTag;
 							if (!opening)
 								throw new Error(`${file}: missing the opening tag for option ${option}.`);
-							options.push({ id: option, start: opening.startOffset, end: opening.endOffset });
-							addAnchor(decisionDetailsId(reference, option));
+							const oldAnchor = child.attrs.find(
+								({ name }) => name === migratedOptionAnchor,
+							)?.value;
+							if (oldAnchor !== undefined && !/^[^\s]+$/u.test(oldAnchor))
+								throw new Error(
+									`${file}: ${reference} option ${option} needs a nonempty fragment ID without spaces.`,
+								);
+							const detailsAnchor =
+								oldAnchor && details.length
+									? migratedOptionDetailsId(oldAnchor)
+									: decisionDetailsId(reference, option);
+							options.push({
+								id: option,
+								...(oldAnchor && { anchor: oldAnchor }),
+								detailsAnchor,
+								start: opening.startOffset,
+								end: opening.endOffset,
+							});
+							addAnchor(oldAnchor ?? `${reference}--${option}`);
+							addAnchor(detailsAnchor);
 						}
 					}
 					result.placements.push({

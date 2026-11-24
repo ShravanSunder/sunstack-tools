@@ -468,6 +468,21 @@ test('a stored comment survives moving its passage into a section item', async (
 	}
 });
 
+test('a migrated Choice preserves its published option and Details fragment IDs', async (): Promise<void> => {
+	const { document: fixture, frame } = await openFixture('review', '', 'migrated-choice.html');
+	await frame.getByRole('link', { name: 'Archived option link', exact: true }).click();
+	expect(fixture.location.hash).toBe('#old-keep');
+	expect(requiredElement(fixture, '#D1 #old-keep').textContent).toContain(
+		'Keep the archived wording.',
+	);
+	await frame.getByRole('link', { name: 'Archived Details link', exact: true }).click();
+	expect(fixture.location.hash).toBe('#old-keep--choice-details');
+	await expect.element(frame.getByText('The original Details remain reachable.')).toBeVisible();
+	expect(requiredElement(fixture, '#old-keep--choice-details #old-detail-body').id).toBe(
+		'old-detail-body',
+	);
+});
+
 test('editable shortcuts keep native newlines and unified manual-copy/export content retains identities', async (): Promise<void> => {
 	const { document: fixture, frame } = await openBoundaryReviewFixture();
 	await frame.getByRole('textbox', { name: 'Scratch note', exact: true }).click();

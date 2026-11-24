@@ -58,6 +58,7 @@ export const releasedRecordInput = z.record(
 		[decisionActorField]: recordActor.nullish(),
 		question: text.nullish(),
 		options: choiceRecord.shape.options.nullish(),
+		chosen: text.nullish(),
 		recommended: choiceRecord.shape.recommended.nullish(),
 		source: decisionSource.nullish(),
 		settles: text.nullish(),
@@ -69,7 +70,16 @@ export const releasedRecordInput = z.record(
 export type ReleasedRecordInput = z.infer<typeof releasedRecordInput>;
 type RecordInput = ReleasedRecordInput[string];
 type ConvertedRecord = z.infer<typeof choiceRecord | typeof rulingRecord | typeof assumptionRecord>;
-type Converted = { readonly record: ConvertedRecord } | { readonly missing: RecordInput };
+type DecisionSource = z.infer<typeof decisionSource>;
+type Converted =
+	| {
+			readonly record: ConvertedRecord;
+	  }
+	| {
+			readonly missing: RecordInput;
+			readonly sourceCandidates?: readonly DecisionSource[];
+	  };
+type ReleasedOption = { readonly id: string; readonly title: string };
 type RecordAnnotations = Pick<RecordInput, 'weight' | 'by' | 'settles' | 'settledBy'>;
 
 function validatedRecord(record: ConvertedRecord): Converted {
@@ -86,15 +96,19 @@ function validatedRecord(record: ConvertedRecord): Converted {
 function convertDecision(
 	value: unknown,
 	input: RecordInput,
-	commentedWeight: RecordInput['weight'],
+	pageOptions: readonly ReleasedOption[] | undefined,
 ): Converted {
 	const { authority, kind: _kind, ...identityFields } = releasedDecision.parse(value);
+	const [first, second, ...rest] = pageOptions ?? [];
+	const options: RecordInput['options'] =
+		first && second ? [first, second, ...rest] : input.options;
+	const { recommended } = input;
 	if (authority.state === 'owner-open') {
-		const { question = authority.question, options, recommended } = input;
+		const question = input.question ?? authority.question;
 		if (!options || !recommended)
 			return {
 				missing: {
-					question: question ?? authority.question,
+					question,
 					...(!options && { options: null }),
 					...(!recommended && { recommended: null }),
 				},
@@ -102,55 +116,64 @@ function convertDecision(
 		return validatedRecord({
 			...identityFields,
 			kind: 'choice',
-			question: question ?? authority.question,
+			question,
 			options,
 			recommended,
 			authority: { state: 'owner-open' },
 		});
 	}
 	const { decision: statement, decidedOn } = authority;
-	const source = identityFields.sources?.[0] ?? input.source;
-	if (authority.state === 'owner-decided') {
-		if (!source) return { missing: { source: null } };
-		return validatedRecord({
-			...identityFields,
-			kind: 'ruling',
-			statement,
-			authority: { state: 'owner-decided', sourceKind: authority.sourceKind, decidedOn, source },
-		});
-	}
-	const recordWeight = commentedWeight ?? input.weight;
-	if (!recordWeight || (authority.sourceKind === 'contract' && !source))
+	const candidates = identityFields.sources ?? [];
+	const source = input.source ?? (candidates.length === 1 ? candidates[0] : undefined);
+	const needsSource = authority.state === 'owner-decided' || authority.sourceKind === 'contract';
+	const missing = {
+		...(needsSource && !source && { source: null }),
+		...(authority.state === 'lead-decided' && !input.weight && { weight: null }),
+		...(pageOptions && !input.question && { question: null }),
+		...(pageOptions && !input.chosen && { chosen: null }),
+		...(pageOptions && !recommended && { recommended: null }),
+	};
+	if (Object.keys(missing).length)
 		return {
-			missing: {
-				...(!recordWeight && { weight: null }),
-				...(authority.sourceKind === 'contract' && !source && { source: null }),
-			},
+			missing,
+			...(needsSource && !source && candidates.length > 1 && { sourceCandidates: candidates }),
 		};
-	return validatedRecord({
-		...identityFields,
-		kind: 'ruling',
-		statement,
-		authority: {
+
+	let settled: z.infer<typeof rulingRecord>['authority'];
+	if (authority.state === 'owner-decided' && source) {
+		settled = { state: 'owner-decided', sourceKind: authority.sourceKind, decidedOn, source };
+	} else if (authority.state === 'lead-decided' && input.weight) {
+		settled = {
 			state: 'agent-decided',
 			[decisionActorField]: { alias: authority.lead, role: 'lead' },
-			weight: recordWeight,
+			weight: input.weight,
 			rationale: authority.rationale,
 			decidedOn,
 			...(authority.sourceKind === 'contract' && source
 				? { sourceKind: 'contract', source }
 				: { sourceKind: 'author' }),
-		},
+		};
+	} else throw new Error('Missing settled authority.');
+
+	if (!pageOptions)
+		return validatedRecord({ ...identityFields, kind: 'ruling', statement, authority: settled });
+	if (!options || !recommended || !input.question || !input.chosen)
+		throw new Error(
+			'A settled bound Choice needs its archived question, chosen option and recommendation.',
+		);
+	return validatedRecord({
+		...identityFields,
+		kind: 'choice',
+		question: input.question,
+		options,
+		recommended,
+		authority: { ...settled, chosen: input.chosen, decision: statement },
 	});
 }
 
-function convertAssumption(
-	value: unknown,
-	input: RecordInput,
-	commentedWeight: RecordInput['weight'],
-): Converted {
+function convertAssumption(value: unknown, input: RecordInput): Converted {
 	const { resolution, status, ...fields } = releasedAssumption.parse(value);
-	const recordWeight = commentedWeight ?? input.weight;
+	const recordWeight = input.weight;
 	const { by: author, settledBy } = input;
 	const settles = input.settles?.trim().toLowerCase() === 'unknown' ? undefined : input.settles;
 	const source = resolution ?? input.resolution;
@@ -212,18 +235,58 @@ function recordAnnotations(leadingText: string): RecordAnnotations {
 	return annotations;
 }
 
+function commentsInRecord(source: string): string[] {
+	const scanner = typescript.createScanner(
+		typescript.ScriptTarget.ES2022,
+		false,
+		typescript.LanguageVariant.Standard,
+		source,
+	);
+	const comments: string[] = [];
+	for (
+		let token = scanner.scan();
+		token !== typescript.SyntaxKind.EndOfFileToken;
+		token = scanner.scan()
+	) {
+		if (
+			token === typescript.SyntaxKind.SingleLineCommentTrivia ||
+			token === typescript.SyntaxKind.MultiLineCommentTrivia
+		)
+			comments.push(scanner.getTokenText());
+	}
+	return comments;
+}
+
+const annotationFields = ['weight', decisionActorField, 'settles', 'settledBy'] as const;
+
 interface ReleasedSidecar {
 	readonly file: string;
 	readonly source: string;
 	readonly namespace: string;
 	readonly type: 'decision' | 'assumption';
 	readonly input: ReleasedRecordInput;
+	readonly options: ReadonlyMap<string, readonly ReleasedOption[]>;
 }
 
-export function migrateReleasedSidecar({ file, source, namespace, type, input }: ReleasedSidecar): {
+export function migrateReleasedSidecar({
+	file,
+	source,
+	namespace,
+	type,
+	input,
+	options,
+}: ReleasedSidecar): {
 	readonly output: string;
 	readonly records: readonly { id: string; kind: ConvertedRecord['kind'] }[];
 	readonly missing: readonly (readonly [string, RecordInput])[];
+	readonly sourceCandidates: ReadonlyMap<string, readonly DecisionSource[]>;
+	readonly conflicts: readonly {
+		id: string;
+		field: string;
+		comment: unknown;
+		input: unknown;
+		used: 'input';
+	}[];
 } {
 	const parsed = typescript.createSourceFile(file, source, typescript.ScriptTarget.ES2022, true);
 	const exported = parsed.statements.filter(typescript.isExportAssignment);
@@ -262,6 +325,14 @@ export function migrateReleasedSidecar({ file, source, namespace, type, input }:
 	const helpers = new Set<string>();
 	const records: { id: string; kind: ConvertedRecord['kind'] }[] = [];
 	const missing: [string, RecordInput][] = [];
+	const sourceCandidates = new Map<string, readonly DecisionSource[]>();
+	const conflicts: {
+		id: string;
+		field: string;
+		comment: unknown;
+		input: unknown;
+		used: 'input';
+	}[] = [];
 	const edits: { start: number; end: number; value: string }[] = [];
 	const seen = new Set<string>();
 	for (const item of list.elements) {
@@ -276,18 +347,43 @@ export function migrateReleasedSidecar({ file, source, namespace, type, input }:
 					call.expression.text !== helper?.name.text))
 		)
 			throw new Error(`${file}: expected a literal record or the released SDK helper.`);
-		const literal = readLiteral(inputRecord, parsed);
-		const id = `${namespace}/${identity.parse(literal).id}`;
-		if (seen.has(id)) throw new Error(`${file}: duplicate record ${id}.`);
-		seen.add(id);
-		const annotations = recordAnnotations(source.slice(item.getFullStart(), item.getStart(parsed)));
-		const provided = Object.hasOwn(input, id) ? (input[id] ?? {}) : {};
-		const converted =
-			type === 'decision'
-				? convertDecision(literal, provided, annotations.weight)
-				: convertAssumption(literal, { ...provided, ...annotations }, annotations.weight);
+		const line = parsed.getLineAndCharacterOfPosition(item.getStart(parsed)).line + 1;
+		let id = `${namespace}/line-${line}`;
+		let converted: Converted;
+		try {
+			const literal = readLiteral(inputRecord, parsed);
+			id = `${namespace}/${identity.parse(literal).id}`;
+			if (seen.has(id)) throw new Error('Duplicate record.');
+			seen.add(id);
+			const annotations = recordAnnotations(
+				source.slice(item.getFullStart(), item.getStart(parsed)),
+			);
+			const provided = Object.hasOwn(input, id) ? (input[id] ?? {}) : {};
+			const resolved = { ...annotations, ...provided };
+			for (const field of annotationFields) {
+				const explicit = provided[field];
+				const comment = annotations[field];
+				if (explicit === undefined || explicit === null) {
+					if (comment !== undefined && comment !== null)
+						Object.assign(resolved, { [field]: comment });
+					continue;
+				}
+				if (comment !== undefined && JSON.stringify(comment) !== JSON.stringify(explicit))
+					conflicts.push({ id, field, comment, input: explicit, used: 'input' });
+			}
+			converted =
+				type === 'decision'
+					? convertDecision(literal, resolved, options.get(id))
+					: convertAssumption(literal, resolved);
+		} catch (error) {
+			throw new Error(
+				`${file}:${line}: ${id}: ${error instanceof Error ? error.message : String(error)}`,
+				{ cause: error },
+			);
+		}
 		if ('missing' in converted) {
 			missing.push([id, converted.missing]);
+			if (converted.sourceCandidates) sourceCandidates.set(id, converted.sourceCandidates);
 			continue;
 		}
 		const { record } = converted;
@@ -296,14 +392,18 @@ export function migrateReleasedSidecar({ file, source, namespace, type, input }:
 		const newHelper =
 			kind === 'choice' ? 'defineChoice' : kind === 'ruling' ? 'defineRuling' : 'defineAssumption';
 		if (isCall) helpers.add(newHelper);
-		const value = JSON.stringify(isCall ? fields : record, null, 2).replaceAll('\n', '\n  ');
+		const comments = commentsInRecord(item.getText(parsed));
+		const object = JSON.stringify(isCall ? fields : record, null, 2).replaceAll('\n', '\n  ');
+		const value = comments.length
+			? '{\n' + comments.map((comment) => '    ' + comment).join('\n') + object.slice(1)
+			: object;
 		edits.push({
 			start: item.getStart(parsed),
 			end: item.getEnd(),
 			value: isCall ? `${newHelper}(${value})` : value,
 		});
 	}
-	if (missing.length) return { output: source, records, missing };
+	if (missing.length) return { output: source, records, missing, sourceCandidates, conflicts };
 	if (helper && helpers.size && type === 'decision')
 		edits.push({
 			start: helper.getStart(parsed),
@@ -313,5 +413,5 @@ export function migrateReleasedSidecar({ file, source, namespace, type, input }:
 	let output = source;
 	for (const edit of edits.toSorted((left, right) => right.start - left.start))
 		output = output.slice(0, edit.start) + edit.value + output.slice(edit.end);
-	return { output, records, missing };
+	return { output, records, missing, sourceCandidates, conflicts };
 }

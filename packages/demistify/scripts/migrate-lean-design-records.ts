@@ -1,4 +1,15 @@
-import { cp, lstat, mkdir, readFile, readdir, realpath, writeFile } from 'node:fs/promises';
+import {
+	cp,
+	lstat,
+	mkdtemp,
+	readFile,
+	readdir,
+	realpath,
+	rename,
+	rm,
+	writeFile,
+} from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import { basename, dirname, extname, join, relative, resolve, sep } from 'node:path';
 import { parseArgs } from 'node:util';
 
@@ -677,6 +688,46 @@ async function newOutput(raw: string, source: string): Promise<string> {
 	return canonical;
 }
 
+async function validateMigration(
+	source: string,
+	project: string,
+	edits: ReadonlyMap<string, string>,
+	output: string | undefined,
+): Promise<string> {
+	const stage = await mkdtemp(
+		output ? output + '.partial-' : join(tmpdir(), 'demistify-migration-'),
+	);
+	try {
+		await Promise.all(
+			(await readdir(source)).map((child) =>
+				cp(join(source, child), join(stage, child), {
+					recursive: true,
+					force: false,
+					errorOnExist: true,
+					verbatimSymlinks: true,
+					filter: (file): boolean =>
+						basename(file) !== '.git' && (!containsPath(project, file) || !generated(file)),
+				}),
+			),
+		);
+		const paths = [...edits].map(
+			([file, text]) => [join(stage, relative(source, file)), text] as const,
+		);
+		await Promise.all(paths.map(([file]) => migrationFileExists(stage, file)));
+		for (const [file, text] of paths) {
+			// oxlint-disable-next-line no-await-in-loop -- only write planned files into the staged tree.
+			await writeFile(file, text);
+		}
+		const validation = await checkProject(join(stage, relative(source, project)), {
+			siteRoot: stage,
+		});
+		if (output) await rename(stage, await newOutput(output, source));
+		return validation;
+	} finally {
+		await rm(stage, { recursive: true, force: true });
+	}
+}
+
 async function main(): Promise<void> {
 	const { values } = parseArgs({
 		options: {
@@ -736,34 +787,24 @@ async function main(): Promise<void> {
 	const { edits, report } = plan;
 	const blocked = 'blocked' in plan && plan.blocked === true;
 	let validation: string | undefined;
-	if (!values['dry-run'] && output && !blocked) {
-		await mkdir(output);
-		await Promise.all(
-			(await readdir(source)).map((child) =>
-				cp(join(source, child), join(output, child), {
-					recursive: true,
-					force: false,
-					errorOnExist: true,
-					verbatimSymlinks: true,
-					filter: (file): boolean =>
-						basename(file) !== '.git' && (!containsPath(project, file) || !generated(file)),
-				}),
-			),
-		);
-		const outputEdits = [...edits].map(
-			([file, text]) => [join(output, relative(source, file)), text] as const,
-		);
-		await Promise.all(outputEdits.map(([file]) => migrationFileExists(output, file)));
-		for (const [file, text] of outputEdits) {
-			// oxlint-disable-next-line no-await-in-loop -- write only the planned paths in the newly copied tree.
-			await writeFile(file, text);
+	let validationError: string | undefined;
+	if (!blocked) {
+		try {
+			validation = await validateMigration(
+				source,
+				project,
+				edits,
+				values['dry-run'] ? undefined : output,
+			);
+		} catch (error: unknown) {
+			validationError = error instanceof Error ? error.message : String(error);
+			process.stderr.write(validationError + '\n');
 		}
-		validation = await checkProject(join(output, relative(source, project)), { siteRoot: output });
 	}
 	process.stdout.write(
-		`${JSON.stringify({ dryRun: !!values['dry-run'], changedFiles: blocked ? 0 : edits.size, ...(blocked && { blocked }), ...report, ...(validation && { validation }) }, null, 2)}\n`,
+		`${JSON.stringify({ dryRun: !!values['dry-run'], changedFiles: blocked || validationError ? 0 : edits.size, ...(blocked && { blocked }), ...report, ...(validation && { validation }), ...(validationError && { validationError }) }, null, 2)}\n`,
 	);
-	if (blocked) process.exitCode = 1;
+	if (blocked || validationError) process.exitCode = 1;
 }
 
 await main().catch((error: unknown): void => {

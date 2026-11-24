@@ -72,7 +72,7 @@ export default defineDesign({
 | Ruling | `defineRuling` in `design-decisions.ts` | `statement`, settled `authority` |
 | Assumption | `defineAssumption` in `design-assumptions.ts` | `statement`, `by`, `weight`, `status` and the fields for that status |
 
-Write a rule as one sentence and put its detail in `cases`. `title` is an optional short label for the Tree, Map and outline, which otherwise show the statement. On a need, rule, realization or check, `governedBy` names decisions and `reliesOn` names assumptions. Add a link where the record depends on that item. The check rejects links to the wrong record kind and requires design weight for any weighted decision or assumption that a need or rule depends on.
+Write a rule as one sentence and put its detail in `cases`. `title` is an optional short label for the Tree, Map and outline, which otherwise show the statement. On a need, rule, realization or check, `governedBy` names decisions and `reliesOn` names assumptions. Add a link where the record depends on that item. The check rejects links to the wrong record kind. Agent decisions named by a need or rule’s `governedBy` must have `weight: 'design'`. Assumptions named by a need or rule’s `reliesOn` must also have design weight.
 
 When a milestone covers more than one subject, put each subject’s needs, rules, realizations and checks in `records/<subject>.ts`. Export an array of helper calls that import from `../design-sdk.generated.ts`. In `design.ts`, import each array and spread it directly inside `records`. Keep these records in `design.ts` for a single-subject milestone. A realization or check that spans subjects goes in the file for the first rule it names. IDs and links still span the milestone.
 

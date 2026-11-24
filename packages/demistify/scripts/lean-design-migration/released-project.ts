@@ -7,7 +7,10 @@ import { escapeHtml } from '../../src/core/html-text.ts';
 import { declaredDesignPagePath } from '../../src/node/design-authoring/design-location.ts';
 import { readDesign } from '../../src/node/design-authoring/read-design.ts';
 import { readProjectManifest } from '../../src/node/design-authoring/read-project.ts';
+import { qualifyRecord } from '../../src/node/design-authoring/schema.ts';
+import { containsPath } from '../../src/node/local-site.ts';
 import type { SourceReader } from './legacy-records.ts';
+import { migrateReleasedChoices } from './released-choices.ts';
 import { migrateReleasedSidecar, type ReleasedRecordInput } from './released-records.ts';
 
 function migrateReleasedSections(
@@ -124,27 +127,60 @@ export async function planReleasedProject({
 			{ file: join(directory, 'design-assumptions.ts'), namespace, type: 'assumption' },
 		);
 	}
-	const [recordModules, pages] = await Promise.all([
-		Promise.all(
-			sidecars.map(async (sidecar) => {
-				const text = await read(sidecar.file);
-				if (text === undefined) return undefined;
-				return {
-					file: sidecar.file,
-					text,
-					migration: migrateReleasedSidecar({ ...sidecar, source: text, input }),
-				};
-			}),
-		),
-		authoredHtml(project),
-	]);
 	const edits = new Map<string, string>();
+	const inventory = [];
+	const options = new Map<string, readonly { id: string; title: string }[]>();
+	const pages = await authoredHtml(project);
+	const pagePaths = [...new Set([...pages, ...declared.flatMap((set) => set.pages)])].toSorted();
+	for (const file of pagePaths) {
+		// oxlint-disable-next-line no-await-in-loop -- parse one source page at a time to bound retained ASTs.
+		const text = await read(file);
+		if (text === undefined) continue;
+		const namespace =
+			declared.find((candidate) => containsPath(candidate.directory, file))?.namespace ?? 'project';
+		const page = migrateReleasedSections(file, text);
+		const choices = migrateReleasedChoices(file, page.output);
+		for (const choice of choices.choices) {
+			const id = qualifyRecord(namespace, choice.reference);
+			if (options.has(id))
+				throw new Error(`${file}: duplicate released Choice placement for ${id}.`);
+			options.set(id, choice.options);
+		}
+		if (choices.output === text) continue;
+		edits.set(file, choices.output);
+		inventory.push({
+			file: relative(source, file),
+			sections: page.sections,
+			...(choices.choices.length && { choices: choices.choices.map((choice) => choice.reference) }),
+		});
+	}
+	const recordModules = await Promise.all(
+		sidecars.map(async (sidecar) => {
+			const text = await read(sidecar.file);
+			if (text === undefined) return undefined;
+			return {
+				file: sidecar.file,
+				text,
+				migration: migrateReleasedSidecar({ ...sidecar, source: text, input, options }),
+			};
+		}),
+	);
 	const missing = new Map<string, ReleasedRecordInput[string]>();
+	const sourceCandidates = new Map<string, readonly unknown[]>();
+	const conflicts = [];
 	const records: { file: string; id: string; kind: string }[] = [];
 	const seen = new Set<string>();
 	for (const module of recordModules) {
 		if (!module) continue;
 		const { output, missing: missingRecords, records: converted } = module.migration;
+		for (const [id, candidates] of module.migration.sourceCandidates)
+			sourceCandidates.set(id, candidates);
+		conflicts.push(
+			...module.migration.conflicts.map((conflict) => ({
+				file: relative(source, module.file),
+				...conflict,
+			})),
+		);
 		for (const id of [
 			...missingRecords.map(([key]) => key),
 			...converted.map((record) => record.id),
@@ -157,17 +193,8 @@ export async function planReleasedProject({
 			records.push({ file: relative(source, module.file), ...record });
 		if (output !== module.text) edits.set(module.file, output);
 	}
-	const inventory = [];
-	const pagePaths = [...new Set([...pages, ...declared.flatMap((set) => set.pages)])].toSorted();
-	for (const file of pagePaths) {
-		// oxlint-disable-next-line no-await-in-loop -- parse one source page at a time to bound retained ASTs.
-		const text = await read(file);
-		if (text === undefined) continue;
-		const page = migrateReleasedSections(file, text);
-		if (!page.sections.length) continue;
-		edits.set(file, page.output);
-		inventory.push({ file: relative(source, file), sections: page.sections });
-	}
+	for (const id of options.keys())
+		if (!seen.has(id)) throw new Error(`No released record matches bound Choice ${id}.`);
 	for (const id of Object.keys(input))
 		if (!seen.has(id)) throw new Error(`No released record matches --record-input entry ${id}.`);
 	return {
@@ -180,6 +207,8 @@ export async function planReleasedProject({
 			pages: inventory,
 			missingCount: missing.size,
 			recordInput: Object.fromEntries(missing),
+			...(sourceCandidates.size && { sourceCandidates: Object.fromEntries(sourceCandidates) }),
+			...(conflicts.length && { conflicts }),
 		},
 	};
 }

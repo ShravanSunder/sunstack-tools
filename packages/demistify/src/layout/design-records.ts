@@ -1,6 +1,7 @@
 import {
 	designRecordsFilename,
 	designRecordViewSchema,
+	migratedOptionAnchor,
 	recordSourceHref,
 	type DesignRecordView,
 } from '../core/design-record-view.ts';
@@ -120,7 +121,8 @@ function hydrateChoice(choice: HTMLElement, placement: GeneratedPlacement): void
 	for (const option of placement.face.record.options) {
 		const declaration = authored.find((item) => item.getAttribute('data-option') === option.id);
 		if (!declaration) continue;
-		declaration.id = `${placement.reference}--${option.id}`;
+		declaration.id =
+			declaration.getAttribute(migratedOptionAnchor) ?? `${placement.reference}--${option.id}`;
 		declaration.setAttribute('title', option.title);
 		choice.append(declaration);
 	}

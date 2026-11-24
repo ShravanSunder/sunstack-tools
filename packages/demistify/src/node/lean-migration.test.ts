@@ -542,9 +542,9 @@ it('upgrades released lean sidecars and wraps sections without changing their au
 		await mkdir(design, { recursive: true });
 		const decisionSource = `import { defineDecision } from './design-sdk.generated.ts';
 export default [
-  defineDecision({ id: 'D1', title: 'Expiry', authority: { state: 'owner-decided', owner: 'owner', decision: 'Use expiry.  ', decidedOn: '2026-11-24', sourceKind: 'owner-words' }, sources: [{ href: 'index.html#evidence', excerpt: 'Use expiry.', verbatim: true }] }),
+  defineDecision({ id: 'D1', title: 'Expiry', authority: { state: 'owner-decided', owner: 'owner', decision: 'Use expiry.  ', decidedOn: '2026-11-24', sourceKind: 'owner-words' }, sources: [{ href: 'index.html#evidence', excerpt: 'Use expiry.', verbatim: true }, { href: 'index.html#evidence', excerpt: 'Approved by me.' }] }),
   // weight: process
-  defineDecision({ id: 'D2', title: 'Review order', authority: { state: 'lead-decided', lead: 'reader-lead', decision: 'Run the narrow test first.', rationale: 'It is faster.', decidedOn: '2026-11-24', sourceKind: 'author' } }),
+  defineDecision({ id: 'D2', /* preserve this rationale note */ title: 'Review order', authority: { state: 'lead-decided', lead: 'reader-lead', decision: 'Run the narrow test first.', rationale: 'It is faster.', decidedOn: '2026-11-24', sourceKind: 'author' } }),
   defineDecision({ id: 'D3', title: 'Reopen', authority: { state: 'owner-open', owner: 'owner', question: 'Should the fixture reopen?' } }),
 ];`;
 		const assumptionSource = `import { defineAssumption } from './design-sdk.generated.ts';
@@ -558,7 +558,7 @@ export default [
 		const opening = '<ex-section title="Evidence" id="details">';
 		const content =
 			'\n  <p id="evidence">Use expiry.</p>\n  <a href="#D1">Keep the existing link</a>\n';
-		const prefix = `<!doctype html><head><title>Example</title>${exampleLibrary}</head><ex-nav for="content" src="./navigation.generated.json"></ex-nav><ex-document id="content"><h1>Example</h1><p data-design-record="D1"></p><div data-design-record="D2"></div><p data-design-record="D3"></p><p data-design-record="A1"></p><p data-design-record="A2"></p>`;
+		const prefix = `<!doctype html><head><title>Example</title>${exampleLibrary}</head><ex-nav for="content" src="./navigation.generated.json"></ex-nav><ex-document id="content"><h1>Example</h1><p data-design-record="D1"></p><div data-design-record="D2"></div><ex-choice data-design-record="D3"><ex-option id="yes" title="Reopen"><template slot="summary">Reopen the fixture.</template><div slot="details"><p id="explainer">The evidence stays here.</p></div></ex-option><ex-option id="no" title="Keep closed"><template slot="summary">Leave it closed.</template></ex-option></ex-choice><a href="#yes">Read the option</a><a href="#yes--choice-details">Read its Details</a><a href="#explainer">Read the evidence</a><p data-design-record="A1"></p><p data-design-record="A2"></p>`;
 		const pageSource = `${prefix}${opening}${content}</ex-section></ex-document>`;
 		await Promise.all([
 			writeFile(
@@ -594,9 +594,13 @@ export default [
 		expect(blockedReport).toMatchObject({
 			blocked: true,
 			changedFiles: 0,
-			missingCount: 3,
+			missingCount: 4,
+			sourceCandidates: {
+				'example/D1': [{ excerpt: 'Use expiry.' }, { excerpt: 'Approved by me.' }],
+			},
 			recordInput: {
-				'example/D3': { question: 'Should the fixture reopen?', options: null, recommended: null },
+				'example/D1': { source: null },
+				'example/D3': { question: 'Should the fixture reopen?', recommended: null },
 				'example/A1': { settles: null },
 				'example/A2': { [decisionActorField]: null, weight: null, settledBy: null },
 			},
@@ -606,25 +610,40 @@ export default [
 		await writeFile(
 			recordInput,
 			JSON.stringify({
+				'example/D1': { source: { href: 'index.html#evidence', excerpt: 'Approved by me.' } },
 				'example/D2': { weight: 'minor' },
 				'example/D3': {
 					question: 'Should the fixture reopen?',
-					options: [
-						{ id: 'yes', title: 'Reopen' },
-						{ id: 'no', title: 'Keep closed' },
-					],
 					recommended: 'none',
 				},
 				'example/A1': { settles: 'Run the restart fixture.' },
 				'example/A2': { [decisionActorField]: author, weight: 'design', settledBy: 'reader-lead' },
 			}),
 		);
-		const result = await run(process.execPath, [...command, '--record-input', recordInput]);
+		const withInput = [...command, '--record-input', recordInput];
+		const pageFile = join(design, 'index.html');
+		await writeFile(pageFile, pageSource.replace('href="#explainer"', 'href="missing.html"'));
+		await expect(run(process.execPath, [...withInput, '--dry-run'])).rejects.toThrow(
+			/Missing local link/,
+		);
+		await expect(run(process.execPath, withInput)).rejects.toHaveProperty(
+			'stdout',
+			expect.stringContaining('"validationError"'),
+		);
+		await expect(stat(output)).rejects.toMatchObject({ code: 'ENOENT' });
+		await writeFile(pageFile, pageSource);
+		const dryRun = await run(process.execPath, [...withInput, '--dry-run']);
+		expect(dryRun.stdout).toContain('and 5 design record(s).');
+		await expect(stat(output)).rejects.toMatchObject({ code: 'ENOENT' });
+		const result = await run(process.execPath, withInput);
 		const observed: unknown = JSON.parse(result.stdout);
 		expect(observed).toMatchObject({
 			changedFiles: 3,
 			missingCount: 0,
-			pages: [{ file: 'project/example/index.html', sections: ['details'] }],
+			pages: [{ file: 'project/example/index.html', sections: ['details'], choices: ['D3'] }],
+			conflicts: [
+				{ id: 'example/D2', field: 'weight', comment: 'process', input: 'minor', used: 'input' },
+			],
 			records: [
 				{ id: 'example/D1', kind: 'ruling' },
 				{ id: 'example/D2', kind: 'ruling' },
@@ -634,13 +653,25 @@ export default [
 			],
 		});
 		const migrated = join(output, 'project', 'example');
-		expect(await readFile(join(migrated, 'index.html'), 'utf8')).toBe(
-			`${prefix}${opening}</ex-section><ex-section-item section="details">${content}</ex-section-item></ex-document>`,
+		const migratedPage = await readFile(join(migrated, 'index.html'), 'utf8');
+		const migratedPrefix = prefix
+			.replace('id="yes" title="Reopen"', 'data-option="yes" data-option-anchor="yes" ')
+			.replace('id="no" title="Keep closed"', 'data-option="no" data-option-anchor="no" ')
+			.replace(
+				'<div slot="details"><p id="explainer">The evidence stays here.</p></div>',
+				'<template slot="details"><p id="explainer">The evidence stays here.</p></template>',
+			);
+		expect(migratedPage).toBe(
+			`${migratedPrefix}${opening}</ex-section><ex-section-item section="details">${content}</ex-section-item></ex-document>`,
 		);
 		expect(await readFile(join(design, 'index.html'), 'utf8')).toBe(pageSource);
 		const convertedDecisions = await readFile(join(migrated, 'design-decisions.ts'), 'utf8');
 		expect(convertedDecisions).toContain('"statement": "Use expiry.  "');
-		expect(convertedDecisions).toContain('"weight": "process"');
+		expect(convertedDecisions).toContain('"weight": "minor"');
+		expect(convertedDecisions).toContain('/* preserve this rationale note */');
+		expect(convertedDecisions).toMatch(
+			/"source": \{\s*"href": "index.html#evidence",\s*"excerpt": "Approved by me\."/,
+		);
 		const checked = await run(process.execPath, [
 			cli,
 			'project',
@@ -654,4 +685,4 @@ export default [
 	} finally {
 		await rm(scratch, { recursive: true, force: true });
 	}
-});
+}, 30_000);

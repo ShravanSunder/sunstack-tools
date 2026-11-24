@@ -196,7 +196,7 @@ export function prepareRecordPage(options: {
 				edits.push({
 					start: authored.start,
 					end: authored.end,
-					text: `<ex-option id="${escapeHtml(reference)}--${escapeHtml(option.id)}" title="${escapeHtml(option.title)}">`,
+					text: `<ex-option id="${escapeHtml(authored.anchor ?? `${reference}--${option.id}`)}" title="${escapeHtml(option.title)}">`,
 				});
 			}
 			if (unmatchedOptions.size)
@@ -210,7 +210,7 @@ export function prepareRecordPage(options: {
 			});
 			const targets = [
 				decisionDetailsId(reference),
-				...record.options.map((option) => decisionDetailsId(reference, option.id)),
+				...(authoredOptions ?? []).map((option) => option.detailsAnchor),
 			];
 			edits.push({
 				start: endTag.end,

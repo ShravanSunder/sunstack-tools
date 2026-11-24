@@ -1,4 +1,8 @@
-import { decisionDetailsId } from '../core/design-record-view.ts';
+import {
+	decisionDetailsId,
+	migratedOptionAnchor,
+	migratedOptionDetailsId,
+} from '../core/design-record-view.ts';
 import { createIconButton } from '../core/icons.ts';
 import { reportIssue } from '../core/issues.ts';
 import { type ChoiceResponse, choiceResponseSchema } from '../core/review-model.ts';
@@ -276,8 +280,10 @@ export class ChoiceIsland extends HTMLElement {
 					details.removeAttribute('slot');
 					depth.append(toggle, details);
 				} else if (beside) {
-					let panelId =
-						bound && recordOption
+					const previousAnchor = bound && declaration.getAttribute(migratedOptionAnchor);
+					let panelId = previousAnchor
+						? migratedOptionDetailsId(target.id)
+						: bound && recordOption
 							? decisionDetailsId(this.questionId, recordOption)
 							: `${target.id}--choice-details`;
 					while (

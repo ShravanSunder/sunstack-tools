@@ -124,7 +124,7 @@ function migrateRecordModule(
 	return applyChanges(source, changes);
 }
 
-function migrateOptionDetails(source: string): string {
+export function migrateOptionDetails(source: string): string {
 	const changes: SourceChange[] = [];
 	type PageNode = DefaultTreeAdapterMap['node'];
 	function visit(node: PageNode): void {

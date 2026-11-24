@@ -110,7 +110,7 @@ export function recordItemValidationError(file: string, input: unknown, error: Z
 			!('by' in record) &&
 			!('weight' in record)
 		)
-			return `${file}: ${name}: an assumption needs by: { alias, role } and weight. For a 1.32.1 project, ${releasedRecordMigration}`;
+			return `${file}: ${name}: an assumption needs by: { alias, role } and weight. Migrating from 1.32.1? ${releasedRecordMigration}`;
 		const key = fields.map((field) => (typeof field === 'number' ? '*' : String(field))).join('.');
 		let fix = guidance.get(key);
 		if (

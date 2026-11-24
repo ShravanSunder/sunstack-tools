@@ -4,6 +4,11 @@ import { assumptionRecord, decisionRecord } from './decision-record.ts';
 import { sectionHolds } from './section-routing.ts';
 
 export const designRecordsFilename = 'records.generated.js';
+export const migratedOptionAnchor = 'data-option-anchor';
+
+export function migratedOptionDetailsId(anchor: string): string {
+	return `${anchor}--choice-details`;
+}
 
 const reference = z.string().min(1);
 

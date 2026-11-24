@@ -74,7 +74,7 @@ It links owner questions, milestones, deliverables and records to their pages. U
 
 ## Migrate a project from 1.32.1
 
-From the Demistify source checkout, run the migration against a committed copy of the docs tree. The first command produces a JSON report. If the report has `blocked: true`, fill the missing values in its `recordInput` object and save that object in `record-input.json`. The report includes the original question as a starting point where a choice needs author input.
+From the Demistify source checkout, run the migration against a committed copy of the docs tree. The dry run validates a temporary copy when all required inputs are present. If the JSON report has `blocked: true`, fill the missing values in its `recordInput` object and save that object in `record-input.json`. Where the report lists `sourceCandidates`, copy the source that establishes the decision into the record's `source` field.
 
 ```sh
 node packages/demistify/scripts/migrate-lean-design-records.ts \
@@ -84,4 +84,6 @@ node packages/demistify/scripts/migrate-lean-design-records.ts \
   --record-input /path/to/record-input.json --output /path/to/new/docs
 ```
 
-The migration uses the original record IDs, page bindings and links. It reads a contiguous block of migration comments immediately above a record. Use `// weight: design`, `// weight: process` or `// weight: minor` for weight and `// by: messages-lead lead` for an assumption's author. Use `// settles: <sentence>` for an open assumption's settling condition and `// settledBy: <alias>` for a confirmed or refuted assumption. A `settles: unknown` comment leaves the settling condition missing. Supply missing facts and the actual open-choice options and recommendation in the input file. The migration moves a section's authored contents into a sibling item and validates the output with the project checker. Regenerate views with `project check --write` using the matching CLI, then open the resulting pages.
+The migration uses the original record IDs, page bindings and links. It reads a contiguous block of migration comments immediately above a record. Use `// weight: design`, `// weight: process` or `// weight: minor` for weight and `// by: messages-lead lead` for an assumption's author. Use `// settles: <sentence>` for an open assumption's settling condition and `// settledBy: <alias>` for a confirmed or refuted assumption. A `settles: unknown` comment leaves the settling condition missing. Explicit input takes precedence over comments and the report lists conflicts.
+
+If a bound Choice already has options in HTML, the migration reads them from that page and preserves the original option and Details fragment IDs. Supply the recommendation and any other missing decision fields in the input file. The migration moves a section's authored contents into a sibling item and publishes the requested output directory only after the project checker passes. Regenerate views with `project check --write` using the matching CLI, then open the resulting pages.
