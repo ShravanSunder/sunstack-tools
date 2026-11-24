@@ -1,4 +1,5 @@
 import { documentIdentitySchema, type DocumentIdentity } from './review-model.ts';
+import { sectionForReviewWrapper } from './section-membership.ts';
 
 export type ReviewSourceResult =
 	| { readonly kind: 'loaded'; readonly source: string }
@@ -11,11 +12,24 @@ interface ReviewDocumentSource {
 const documentSources = new WeakMap<HTMLElement, ReviewDocumentSource>();
 const sourceLoads = new WeakMap<HTMLElement, Promise<ReviewSourceResult>>();
 const inspectionCopy = '[data-inspector-copy],[data-inspector-content]';
+const placedSectionItems = 'ex-section > ex-section-item[section]';
+
+function reviewSourceMarkup(root: HTMLElement): string {
+	if (![...root.querySelectorAll(placedSectionItems)].some(sectionForReviewWrapper))
+		return root.outerHTML;
+	// Reconstruct the old authored section body for the revision hash.
+	const copy = root.cloneNode(true);
+	if (!(copy instanceof HTMLElement)) return root.outerHTML;
+	for (const item of copy.querySelectorAll(placedSectionItems)) {
+		if (sectionForReviewWrapper(item)) item.replaceWith(...item.childNodes);
+	}
+	return copy.outerHTML;
+}
 
 /** Capture source before upgrades replace it with rendered views and transient controls. */
 export function captureReviewDocument(root: HTMLElement): void {
 	if (root.closest(inspectionCopy) || documentSources.has(root)) return;
-	const markup = root.outerHTML;
+	const markup = reviewSourceMarkup(root);
 	if (!root.id) {
 		let index = 1;
 		while (root.ownerDocument.getElementById(`ex-content${index === 1 ? '' : `-${index}`}`))

@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Section migration preserves comments</title>
+  <link rel="stylesheet" href="/experiments/islands/theme.css">
+  <script type="module" src="/experiments/islands/runtime.js"></script>
+</head>
+<body>
+<ex-document id="work">
+  <h1>Section migration preserves comments</h1>
+  <ex-section id="evidence" title="Evidence">
+    <p>Keep the first passage available.</p>
+    <p>Keep the second passage available.</p>
+  </ex-section>
+</ex-document>
+<script>
+  const mode = new URLSearchParams(location.search).get('mode');
+  const section = document.getElementById('evidence');
+  if (mode === 'edited') section.lastElementChild.textContent = 'The second passage changed.';
+  if (mode === 'migrated' || mode === 'edited') {
+    const item = document.createElement('ex-section-item');
+    item.setAttribute('section', section.id);
+    item.append(...section.childNodes);
+    section.after(item);
+  }
+</script>
+</body>
+</html>

@@ -422,6 +422,52 @@ test('a settled choice shows the selected record and exports only the reader ans
 	]);
 });
 
+test('a stored comment survives moving its passage into a section item', async (): Promise<void> => {
+	const source = 'comment-section-migration.html';
+	const archived = await openFixture('show-me-work', '', source);
+	const archivedReview = readCurrentReview(archived.document);
+	const targetId = 'evidence--review-p-2';
+	const label = 'Keep the second passage available.';
+	expect(requiredElement(archived.document, `#${targetId}`).textContent).toContain(label);
+	const snapshot = createCommentSnapshot(archivedReview);
+	const key = commentStorageKey(snapshot);
+	const comment = {
+		commentId: 'archived-passage',
+		anchor: { kind: 'entity', targetId, label },
+		body: 'Keep the reference to this passage.',
+		createdAt: '2026-11-24T10:00:00Z',
+		updatedAt: '2026-11-24T10:00:00Z',
+	};
+	localStorage.setItem(key, JSON.stringify({ ...snapshot, comments: [comment] }));
+	try {
+		document.body.replaceChildren();
+		const { document: migrated, frame } = await openFixture(
+			'show-me-work',
+			'',
+			`${source}?mode=migrated`,
+		);
+		const passage = requiredElement(migrated, '#evidence > ex-section-item > p:nth-child(2)');
+		expect(passage.id).toBe(targetId);
+		expect(readCurrentReview(migrated)).toMatchObject({ ...snapshot, comments: [comment] });
+		await frame.getByRole('button', { name: 'Comments (1)', exact: true }).click();
+		await frame.getByRole('button', { name: `Show anchor: ${label}`, exact: true }).click();
+		await expect
+			.element(frame.getByText('The original item is not on this page.', { exact: true }))
+			.not.toBeInTheDocument();
+		expect(
+			requiredElement(passage, '[data-comment-control]').getAttribute('data-comment-count'),
+		).toBe('1');
+
+		document.body.replaceChildren();
+		const edited = await openFixture('show-me-work', '', `${source}?mode=edited`);
+		const editedReview = readCurrentReview(edited.document);
+		expect(editedReview.documentRevision).not.toBe(snapshot.documentRevision);
+		expect(editedReview.comments).toEqual([]);
+	} finally {
+		localStorage.removeItem(key);
+	}
+});
+
 test('editable shortcuts keep native newlines and unified manual-copy/export content retains identities', async (): Promise<void> => {
 	const { document: fixture, frame } = await openBoundaryReviewFixture();
 	await frame.getByRole('textbox', { name: 'Scratch note', exact: true }).click();

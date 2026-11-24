@@ -2,6 +2,15 @@
 export const smallerStoriesSelector =
 	'ex-section > ex-section-item > details[slot="smaller"], ex-section > details[slot="smaller"]';
 
+/** A plain item inserted by section migration has no independent review identity. */
+export function sectionForReviewWrapper(element: Element): Element | null {
+	if (!element.matches('ex-section-item[section]') || element.attributes.length !== 1) return null;
+	const section = element.parentElement;
+	return section?.localName === 'ex-section' && element.getAttribute('section') === section.id
+		? section
+		: null;
+}
+
 /** The heading and the Map count the same placed content. */
 export function readSectionMembership(section: HTMLElement): {
 	readonly primary: number;
