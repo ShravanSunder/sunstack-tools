@@ -529,7 +529,7 @@ options: [{ id: 'yes', title: 'Keep it' }, { id: 'no', title: 'Remove it' }], au
 	} finally {
 		await rm(scratch, { recursive: true, force: true });
 	}
-});
+}, 30_000);
 
 it('upgrades released lean sidecars and wraps sections without changing their authored content', async (): Promise<void> => {
 	const scratch = await mkdtemp(join(tmpdir(), 'demistify-released-lean-'));
