@@ -689,17 +689,9 @@ ex-choice.ex-choice-cards ex-option:has(:focus-visible) > .ex-entity-comment {
 	align-items: center;
 	flex-wrap: wrap;
 	gap: var(--space-1) var(--space-2);
-	margin-block: var(--space-3);
+	margin-block: 0 var(--space-3);
 	color: var(--ink-soft);
 	font: 400 var(--text-md)/1.4 var(--font-body);
-}
-.ex-record-state-line > strong {
-	font-size: var(--text-lg);
-	font-weight: 600;
-	color: var(--ink);
-}
-.ex-record-state-line[data-record-tone='risk'] > :is(strong, i) {
-	color: var(--tone-risk);
 }
 .ex-choice-details-button.ex-record-detail-button {
 	display: inline-grid;
@@ -721,8 +713,13 @@ ex-choice.ex-choice-cards ex-option:has(:focus-visible) > .ex-entity-comment {
 .ex-choice-option.ex-record-alternative {
 	border-color: var(--rule);
 }
-.ex-record-statement {
+.ex-record-item-title {
 	margin-block: 0 var(--space-3);
+	font: 600 var(--text-xl)/1.35 var(--font-body);
+}
+.ex-record-prose > p:last-child,
+.ex-bound-choice > .ex-record-dependents:last-child {
+	margin-block-end: 0;
 }
 .ex-bound-choice > :is(.ex-record-basis, .ex-record-dependents) {
 	max-inline-size: var(--width-reading);

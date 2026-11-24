@@ -1,5 +1,4 @@
 import { decisionDetailsId, type RecordFace } from '../core/design-record-view.ts';
-import { createHead } from '../core/head.ts';
 
 export const choiceRecordFaces = new WeakMap<HTMLElement, RecordFace>();
 
@@ -19,60 +18,6 @@ function sourceLink(source: {
 	return link;
 }
 
-interface StateLine {
-	readonly state: string;
-	readonly icon: string;
-	readonly tone: string;
-	readonly basis?: string;
-	readonly date?: string;
-	readonly weight?: string;
-}
-
-function recordState({ record, replacement }: RecordFace): StateLine {
-	if (replacement) return { state: `Replaced by ${replacement}`, icon: 'file', tone: 'removed' };
-	if (record.kind === 'assumption') {
-		const weight = record.weight === 'design' ? undefined : record.weight;
-		if (record.status === 'open')
-			return {
-				state: 'Assumed',
-				basis: 'not confirmed',
-				icon: 'robot',
-				tone: weight ? 'note' : 'risk',
-				...(weight && { weight }),
-			};
-		return {
-			state: record.status === 'confirmed' ? 'Confirmed' : 'Refuted',
-			icon: 'robot',
-			tone: record.status === 'confirmed' ? 'done' : 'removed',
-			...(weight && { weight }),
-		};
-	}
-	const { authority } = record;
-	if (authority.state === 'owner-open')
-		return { state: 'Needs you', icon: 'user', tone: 'question' };
-	if (authority.state === 'owner-decided')
-		return {
-			state: 'You decided',
-			icon: authority.sourceKind === 'owner-words' ? 'user' : 'robot',
-			tone: 'decision',
-			date: authority.decidedOn,
-			basis: authority.sourceKind === 'owner-words' ? 'your words' : 'agent’s wording you accepted',
-		};
-	const isContract = authority.sourceKind === 'contract';
-	return {
-		state: `${authority.by.alias} decided`,
-		icon: isContract ? 'file' : 'robot',
-		basis: isContract
-			? 'from contract'
-			: authority.weight === 'design'
-				? 'own call · not reviewed by you'
-				: 'own call',
-		tone: isContract || authority.weight !== 'design' ? 'decision' : 'risk',
-		date: authority.decidedOn,
-		...(authority.weight !== 'design' && { weight: authority.weight }),
-	};
-}
-
 const kindLabel = {
 	need: 'requirements',
 	rule: 'spec',
@@ -80,95 +25,112 @@ const kindLabel = {
 	'planned-check': 'verification',
 } as const;
 
-export function recordStateLine(
-	face: RecordFace,
-	stateShownBySection = false,
-): HTMLElement | undefined {
-	const { state, icon, tone, basis, date, weight } = recordState(face);
-	const row = createHead('div', 'ex-record-state-line', {
-		title: stateShownBySection ? undefined : state,
-		icon: stateShownBySection ? undefined : icon,
-		tone: undefined,
-	});
-	row.dataset['recordTone'] = tone;
-	if (basis) row.append(textNode('span', basis));
-	if (state === 'Needs you' && face.held)
-		row.append(
-			textNode('small', face.held === 1 ? '1 deliverable waits' : `${face.held} deliverables wait`),
-		);
+export function recordCategoryBadge(label: string, tone?: 'done' | 'note' | 'risk'): HTMLElement {
+	const badge = textNode('ex-badge', label);
+	if (tone) badge.setAttribute('tone', tone);
+	return badge;
+}
+
+export function recordStateLine({ record, held, ruledBy, replacement }: RecordFace): HTMLElement {
+	const metadata = document.createElement('div');
+	metadata.className = 'ex-record-state-line';
+	if (ruledBy) metadata.append(recordCategoryBadge(kindLabel[ruledBy]));
+
+	const facts = [record.id];
+	let date: string | undefined;
+	if (record.kind === 'assumption') {
+		metadata.append(recordCategoryBadge(record.weight));
+		if (record.status === 'open') metadata.append(recordCategoryBadge('Not confirmed', 'risk'));
+		else if (record.status === 'confirmed')
+			metadata.append(recordCategoryBadge('Confirmed', 'done'));
+		else metadata.append(recordCategoryBadge('Refuted', 'risk'));
+	} else {
+		const { authority } = record;
+		if (authority.state === 'owner-open') {
+			if (held) facts.push(held === 1 ? '1 deliverable waits' : `${held} deliverables wait`);
+		} else {
+			date = authority.decidedOn;
+			if (authority.state === 'agent-decided') {
+				metadata.append(recordCategoryBadge(authority.weight));
+				if (authority.sourceKind !== 'contract' && authority.weight === 'design')
+					metadata.append(recordCategoryBadge('Not reviewed by you', 'risk'));
+				facts.push(authority.by.alias);
+				if (authority.sourceKind === 'contract') facts.push('from contract');
+			}
+		}
+	}
+	const plain = textNode('span', facts.join(' · '));
 	if (date) {
-		const dateLabel = new Intl.DateTimeFormat('en-GB', {
+		const time = document.createElement('time');
+		time.dateTime = date;
+		time.textContent = new Intl.DateTimeFormat('en-GB', {
 			timeZone: 'UTC',
 			day: 'numeric',
 			month: 'short',
 		}).format(new Date(date));
-		const time = document.createElement('time');
-		time.dateTime = date;
-		time.textContent = dateLabel;
-		row.append(time);
+		plain.append(' · ', time);
 	}
-	if (weight) {
-		const chip = textNode('span', weight);
-		chip.className = 'chip ex-head-tag';
-		row.append(chip);
-	}
-	if (face.ruledBy) {
-		const kind = textNode('span', kindLabel[face.ruledBy]);
-		kind.className = 'ex-record-governs';
-		row.append(kind);
-	}
-	return row.childElementCount ? row : undefined;
+	if (replacement) plain.append(` · Replaced by ${replacement}`);
+	metadata.append(plain);
+	return metadata;
 }
 
-function recordBasis(face: RecordFace): HTMLElement | undefined {
-	const { record } = face;
-	const basis = document.createElement('p');
-	basis.className = 'ex-record-basis';
-	basis.append(textNode('strong', 'Basis'), ' ');
+function recordReason({ record }: RecordFace): HTMLElement | undefined {
 	if (record.kind === 'assumption') {
-		if (record.status === 'open') basis.append(record.by + ' · ' + record.settles);
-		else basis.append(record.settledBy + ' · ', sourceLink(record.resolution));
-		return basis;
+		if (record.status === 'open') return textNode('p', record.settles);
+		const reason = textNode('p', record.settledBy + ' · ');
+		reason.append(sourceLink(record.resolution));
+		return reason;
 	}
-	if (record.authority.state === 'owner-open') return undefined;
-	if ('source' in record.authority) basis.append(sourceLink(record.authority.source));
-	if (record.authority.state === 'agent-decided') {
-		if ('source' in record.authority) basis.append(' · ');
-		basis.append(record.authority.rationale);
+	const { authority } = record;
+	if (authority.state === 'owner-open') return undefined;
+	if (authority.state === 'agent-decided') {
+		const reason = textNode('p', authority.rationale);
+		if (authority.sourceKind === 'contract') reason.append(' · ', sourceLink(authority.source));
+		return reason;
 	}
-	return basis;
+	const reason = document.createElement('p');
+	reason.append(sourceLink(authority.source));
+	return reason;
 }
 
 export function appendRecordBasis(parent: HTMLElement, face: RecordFace): void {
-	const basis = recordBasis(face);
-	let firstLine = basis;
-	if (basis) parent.append(basis);
-	if (face.dependents.length) {
-		const line = textNode('p', '');
-		line.className = 'ex-record-dependents';
-		line.append(
-			textNode('strong', 'Rests on this'),
-			' ',
-			face.dependents.map(({ label }) => label).join(' · '),
-		);
-		parent.append(line);
-		firstLine ??= line;
+	const reason = recordReason(face);
+	if (reason && face.record.kind === 'choice') {
+		reason.className = 'ex-record-basis';
+		parent.append(reason);
 	}
-	firstLine ??= parent.querySelector<HTMLElement>('legend, .ex-record-statement') ?? undefined;
-	if (firstLine) firstLine.id = decisionDetailsId(parent.id);
+	let linkedWork: HTMLElement | undefined;
+	if (face.dependents.length) {
+		linkedWork = document.createElement('p');
+		linkedWork.className = 'ex-record-dependents';
+		linkedWork.append(textNode('strong', 'Rests on this'), ' ');
+		for (const [index, { fragment, label }] of face.dependents.entries()) {
+			if (index) linkedWork.append(' · ');
+			linkedWork.append(
+				fragment ? sourceLink({ href: '#' + encodeURIComponent(fragment), excerpt: label }) : label,
+			);
+		}
+		parent.append(linkedWork);
+	}
+	const anchor =
+		(face.record.kind === 'choice' ? reason : undefined) ??
+		linkedWork ??
+		parent.querySelector<HTMLElement>('legend, .ex-record-item-title');
+	if (anchor) anchor.id = decisionDetailsId(parent.id);
 }
 
 export function renderRecordCard(card: HTMLElement, face: RecordFace): void {
 	if (face.record.kind === 'choice') return;
-	const row = recordStateLine(face);
-	const state = recordState(face);
-	card.setAttribute('tone', state.tone);
 	card.setAttribute('prepared', '');
 	card.setAttribute('zoom', 'none');
-	const statement = textNode('h4', face.record.statement);
-	statement.className = 'ex-record-statement';
-	card.prepend(statement);
-	if (row) card.prepend(row);
+	card.classList.add('ex-record-prose');
+	const title = textNode('h4', face.record.statement);
+	title.className = 'ex-record-item-title';
+	const reason = recordReason(face);
+	for (const child of card.querySelectorAll(':scope > [slot="details"]'))
+		child.removeAttribute('slot');
+	card.prepend(recordStateLine(face), title, ...(reason ? [reason] : []));
 	appendRecordBasis(card, face);
 }
 
@@ -177,7 +139,30 @@ export function inlineRecordStatus(
 	record: RecordFace['record'],
 	href: string,
 ): void {
-	const { state, tone } = recordState({ record, dependents: [] });
+	let state: string;
+	let tone: string;
+	if (record.kind === 'assumption') {
+		state =
+			record.status === 'open'
+				? 'Assumed'
+				: record.status === 'confirmed'
+					? 'Confirmed'
+					: 'Refuted';
+		tone = record.status === 'confirmed' ? 'done' : 'risk';
+	} else {
+		const { authority } = record;
+		if (authority.state === 'owner-open') {
+			state = 'Needs you';
+			tone = 'question';
+		} else if (authority.state === 'owner-decided') {
+			state = 'You decided';
+			tone = 'decision';
+		} else {
+			state = `${authority.by.alias} decided`;
+			tone =
+				authority.sourceKind === 'contract' || authority.weight !== 'design' ? 'decision' : 'risk';
+		}
+	}
 	const link = document.createElement('a');
 	link.href = href;
 	const badge = textNode('ex-badge', state);

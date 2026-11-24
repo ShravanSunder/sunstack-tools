@@ -655,7 +655,7 @@ export async function buildDesignSet(
 		entries,
 		projectedDestinations(projection, set.directory),
 	);
-	attachDecisionDeliverables(recordOutputs, delivery);
+	attachDecisionDeliverables(recordOutputs, delivery, set.directory);
 	const plan = await reader.plan(delivery, { projection, preparedPages });
 	if (options.write)
 		await writeDesignBuild(

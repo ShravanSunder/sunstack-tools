@@ -1,4 +1,4 @@
-import { dirname, relative, sep } from 'node:path';
+import { dirname, relative, resolve, sep } from 'node:path';
 
 import { isDecision } from '../../core/decision-record.ts';
 import { decisionDetailsId, type DesignRecordView } from '../../core/design-record-view.ts';
@@ -150,7 +150,21 @@ export function prepareRecordPage(options: {
 				(tag === 'ex-choice' || tag === 'ex-card') && {
 					face: {
 						record: boundRecord,
-						dependents: dependents.map((item) => ({ id: item.id, label: recordLabel(item) })),
+						dependents: dependents.map((item) => {
+							const placement = projection.placements.get(item.id);
+							const localId = item.id.split('/').at(-1);
+							const fragment = placement
+								? placement.file === file
+									? placement.fragment
+									: undefined
+								: localId &&
+									  qualifyRecord(namespace, localId) === item.id &&
+									  markup.ids.has(localId)
+									? localId
+									: undefined;
+							const label = recordLabel(item);
+							return fragment ? { id: item.id, label, fragment } : { id: item.id, label };
+						}),
 						...(ruledBy && { ruledBy }),
 						...(replacement && { replacement: replacement.id }),
 					},
@@ -241,9 +255,11 @@ export function prepareRecordPage(options: {
 export function attachDecisionDeliverables(
 	outputs: ReadonlyMap<string, DesignRecordView>,
 	delivery: DeliveryViews,
+	deliveryRoot: string,
 ): void {
-	for (const output of outputs.values()) {
-		for (const page of Object.values(output.pages)) {
+	for (const [outputFile, output] of outputs) {
+		for (const [pagePath, page] of Object.entries(output.pages)) {
+			const pageFile = resolve(dirname(outputFile), decodeURIComponent(pagePath));
 			for (const { face, decision } of page.placements) {
 				if (!face) continue;
 				const id = decision ?? face.record.id;
@@ -252,7 +268,15 @@ export function attachDecisionDeliverables(
 						item.kind === 'core' && item.links.governingItems.some((entry) => entry.id === id),
 				);
 				face.held = related.filter((item) => item.state === 'design-blocked').length;
-				face.dependents.push(...related.map((item) => ({ id: item.id, label: item.title })));
+				for (const item of related) {
+					if (item.kind !== 'core') continue;
+					const { page: target, fragment } = item.links.plan;
+					face.dependents.push(
+						fragment && resolve(deliveryRoot, decodeURIComponent(target)) === pageFile
+							? { id: item.id, label: item.title, fragment }
+							: { id: item.id, label: item.title },
+					);
+				}
 			}
 		}
 	}

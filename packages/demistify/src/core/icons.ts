@@ -1,3 +1,10 @@
+export const badgeKindIcons: Readonly<Record<string, string>> = {
+	requirements: 'target',
+	spec: 'article',
+	program: 'code',
+	verification: 'shield-check',
+};
+
 export function createPhosphorIcon(iconName: string): HTMLElement {
 	const icon = document.createElement('i');
 	icon.className = `ph ph-${iconName}`;

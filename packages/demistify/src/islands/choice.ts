@@ -230,9 +230,7 @@ export class ChoiceIsland extends HTMLElement {
 			}
 			titleRow.append(bound ? optionTitle : label);
 			const authoredDetails = declaration.querySelector<HTMLElement>(':scope > [slot="details"]');
-			const detailsSource = authoredDetails ?? (bound ? document.createElement('div') : undefined);
-			if (detailsSource && !authoredDetails)
-				detailsSource.textContent = 'No additional details are recorded.';
+			const detailsSource = authoredDetails;
 			const details =
 				detailsSource && this.copiedResponse
 					? copyInspectionContent(detailsSource)
@@ -257,17 +255,7 @@ export class ChoiceIsland extends HTMLElement {
 					) {
 						panelId += '-panel';
 					}
-					if (bound) {
-						const back = document.createElement('a');
-						back.href = '#' + encodeURIComponent(this.questionId);
-						back.textContent = 'Back to the decision';
-						details.append(back);
-					}
-					const button = beside.add(
-						details,
-						bound ? `${this.question} · ${optionLabel}` : optionLabel,
-						panelId,
-					);
+					const button = beside.add(details, optionLabel, panelId);
 					button.classList.add('ex-choice-details-button');
 					if (bound) button.classList.add('ex-record-detail-button');
 					else button.append('Details');
@@ -303,6 +291,8 @@ export class ChoiceIsland extends HTMLElement {
 				body.className = 'ex-choice-copy';
 				body.append(titleRow, summary);
 				if (depth) body.append(depth);
+				if (bound && recordOption && !authoredDetails)
+					body.id = decisionDetailsId(this.questionId, recordOption);
 				target.append(input, body);
 				(beside?.options ?? fieldset).append(target);
 			}
@@ -311,9 +301,8 @@ export class ChoiceIsland extends HTMLElement {
 		this.options = rendered;
 		this.replaceChildren(this.source, fieldset);
 		if (face && beside) {
-			const waitingSection = !settled && Boolean(this.closest('ex-section[holds="needs-owner"]'));
-			const stateLine = recordStateLine(face, waitingSection);
-			if (stateLine) this.prepend(stateLine);
+			this.prepend(recordStateLine(face));
+			legend.classList.add('ex-record-item-title');
 			appendRecordBasis(this, face);
 			this.removeAttribute('title');
 			this.classList.add('ex-bound-choice');

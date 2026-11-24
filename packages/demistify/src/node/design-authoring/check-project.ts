@@ -377,7 +377,7 @@ export async function buildProject(
 	);
 	const destinations = projectedDestinations(projection, root);
 	const delivery = projectDelivery(design, entries, destinations);
-	attachDecisionDeliverables(recordOutputs, delivery);
+	attachDecisionDeliverables(recordOutputs, delivery, root);
 	await Promise.all(delivery.evidence.map((href) => check.checkEvidence(href, projectFile)));
 	const output = {
 		version: 1,

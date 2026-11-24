@@ -11,7 +11,9 @@ const decisionItem = z.union([decisionRecord, assumptionRecord]);
 const recordFace = z.strictObject({
 	record: decisionItem,
 	held: z.number().int().min(0).optional(),
-	dependents: z.array(z.strictObject({ id: reference, label: reference })),
+	dependents: z.array(
+		z.strictObject({ id: reference, label: reference, fragment: reference.optional() }),
+	),
 	ruledBy: z.enum(['need', 'rule', 'realization', 'planned-check']).optional(),
 	replacement: reference.optional(),
 });

@@ -10,10 +10,16 @@
 	--surface-document-card: color-mix(in srgb, var(--surface-page) 99%, #fff);
 }
 ex-section {
+	--section-padding: var(--space-5);
+	--section-heading-fill: color-mix(
+		in srgb,
+		var(--surface-category, var(--surface-document-card)) 10%,
+		var(--surface-document-card)
+	);
 	display: block;
 	min-width: 0;
 	margin-block: var(--space-6);
-	padding: var(--space-5);
+	padding: var(--section-padding);
 	border: 1px solid var(--rule);
 	border-top: 2px solid var(--surface-category, var(--rule));
 	border-radius: var(--radius-md);
@@ -27,15 +33,11 @@ ex-section {
 	display: flex;
 	align-items: center;
 	gap: var(--space-2);
-	margin: calc(-1 * var(--space-5)) calc(-1 * var(--space-5)) var(--space-5);
+	margin: calc(-1 * var(--section-padding)) calc(-1 * var(--section-padding)) var(--space-5);
 	padding: var(--space-3) var(--space-5);
 	border-bottom: 1px solid var(--rule);
 	border-radius: var(--radius-md) var(--radius-md) 0 0;
-	background: color-mix(
-		in srgb,
-		var(--surface-category, var(--surface-document-card)) 10%,
-		var(--surface-document-card)
-	);
+	background: var(--section-heading-fill);
 	font: 600 var(--text-lg)/1.4 var(--font-display);
 }
 ex-section.ex-section-floating {
@@ -48,8 +50,8 @@ ex-section.ex-section-floating {
 .ex-section-floating > .ex-section-head {
 	top: calc(var(--ex-document-toolbar-height, 0px) + var(--section-sticky-gap));
 	box-sizing: border-box;
-	margin-block: calc(-1 * var(--space-5)) var(--space-4);
-	margin-inline: calc(-1 * var(--space-5));
+	margin-block: calc(-1 * var(--section-padding)) var(--space-4);
+	margin-inline: calc(-1 * var(--section-padding));
 	padding: calc(var(--space-2) + 1px) var(--space-5);
 	border: 0;
 	border-radius: var(--radius-md);
@@ -254,7 +256,31 @@ ex-section > ex-section-item:not([hidden]) {
 ex-section-item + ex-section-item {
 	margin-block-start: var(--space-8);
 }
-ex-section-item[record] + ex-section-item[record],
+ex-section > ex-section-item[record] {
+	position: relative;
+	padding-block: var(--space-4) var(--space-8);
+}
+ex-section > ex-section-item[record]::before {
+	content: '';
+	position: absolute;
+	inset-block: var(--space-4) var(--space-8);
+	inset-inline-start: calc(3px - var(--section-padding));
+	inline-size: 9px;
+	border-radius: var(--radius-pill);
+	background: var(--section-heading-fill);
+	pointer-events: none;
+}
+ex-section-item[record] > :is(.ex-bound-choice, .ex-record-prose) {
+	margin-block: 0;
+}
+ex-card.ex-record-prose {
+	box-sizing: border-box;
+	max-inline-size: var(--width-reading);
+	padding: 0;
+	border: 0;
+	background: transparent;
+	box-shadow: none;
+}
 ex-section-item[record] > :is(ex-card, ex-choice, ex-code) + ex-code {
 	margin-block-start: var(--space-4);
 }
