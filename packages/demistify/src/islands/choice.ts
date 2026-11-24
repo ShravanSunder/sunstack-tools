@@ -230,16 +230,19 @@ export class ChoiceIsland extends HTMLElement {
 					: undefined;
 			if (inRecordSection) {
 				optionTitle.className = 'ex-record-option-title';
+				const optionMetadata = document.createElement('span');
+				optionMetadata.className = 'ex-record-option-metadata';
 				if (settled)
-					optionTitle.append(
+					optionMetadata.append(
 						recordCategoryBadge(chosen ? 'Chosen' : 'Not chosen', chosen ? 'done' : undefined),
 					);
 				else if (recommendation) {
 					const recommender = document.createElement('span');
 					recommender.className = 'ex-record-option-mark';
 					recommender.textContent = recommendation.by.alias;
-					optionTitle.append(recordCategoryBadge('Recommended', 'note'), recommender);
+					optionMetadata.append(recordCategoryBadge('Recommended', 'note'), recommender);
 				}
+				if (optionMetadata.childElementCount) optionTitle.append(optionMetadata);
 			} else if (settled || recommendation) {
 				const mark = document.createElement('span');
 				mark.className = chosen ? 'ex-card-pick' : 'ex-record-option-mark';
@@ -323,7 +326,7 @@ export class ChoiceIsland extends HTMLElement {
 		this.options = rendered;
 		this.replaceChildren(this.source, fieldset);
 		if (face && beside) {
-			const metadata = recordStateLine(face);
+			const metadata = recordStateLine(face, inRecordSection);
 			if (inRecordSection) {
 				legend.after(metadata);
 				if (!settled) {

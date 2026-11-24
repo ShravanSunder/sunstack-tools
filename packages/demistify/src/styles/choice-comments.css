@@ -743,17 +743,39 @@ ex-section-item[record] .ex-record-item-title {
 }
 ex-section-item[record] .ex-record-state-line {
 	max-inline-size: var(--width-reading);
-	margin-block-end: var(--space-3);
+	margin-block-end: var(--space-6);
 }
-ex-section-item[record] .ex-record-option-title {
+ex-section-item[record] .ex-record-state-line + p {
+	margin-block-start: 0;
+}
+.ex-record-state-chips {
 	display: flex;
 	flex-wrap: wrap;
-	align-items: baseline;
+	justify-content: flex-end;
+	gap: var(--space-1) var(--space-2);
+	max-inline-size: 100%;
+	margin-inline-start: auto;
+}
+.ex-record-choice-context > fieldset > .ex-record-state-line {
+	max-inline-size: var(--record-surface-width);
+}
+ex-section-item[record] .ex-record-option-title,
+.ex-record-option-metadata {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
 	gap: var(--space-1) var(--space-2);
 	min-inline-size: 0;
 	overflow-wrap: anywhere;
 }
-ex-section-item[record] .ex-record-option-title > ex-badge {
+ex-section-item[record] .ex-record-option-title {
+	min-block-size: var(--space-8);
+}
+.ex-record-option-metadata {
+	justify-content: flex-end;
+	margin-inline-start: auto;
+}
+.ex-record-option-metadata > ex-badge {
 	white-space: nowrap;
 }
 ex-section-item[record] .ex-record-option-mark {

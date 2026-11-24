@@ -65,22 +65,27 @@ function recordPresentation(record: RecordFace['record']): {
 	};
 }
 
-export function recordStateLine({ record, held, ruledBy, replacement }: RecordFace): HTMLElement {
+export function recordStateLine(
+	{ record, held, ruledBy, replacement }: RecordFace,
+	factsFirst = false,
+): HTMLElement {
 	const metadata = document.createElement('div');
 	metadata.className = 'ex-record-state-line';
+	const chips = factsFirst ? document.createElement('span') : metadata;
+	chips.classList.toggle('ex-record-state-chips', factsFirst);
 	if (ruledBy) {
 		const { label, icon } = recordKindBadges[ruledBy];
 		const badge = recordCategoryBadge(label);
 		badge.setAttribute('icon', icon);
-		metadata.append(badge);
+		chips.append(badge);
 	}
 	const presentation = recordPresentation(record);
 
 	const facts = [record.id];
 	let date: string | undefined;
 	if (record.kind === 'assumption') {
-		metadata.append(recordCategoryBadge(record.weight));
-		metadata.append(
+		chips.append(recordCategoryBadge(record.weight));
+		chips.append(
 			recordCategoryBadge(presentation.metadataLabel ?? presentation.label, presentation.tone),
 		);
 	} else {
@@ -90,9 +95,9 @@ export function recordStateLine({ record, held, ruledBy, replacement }: RecordFa
 		} else {
 			date = authority.decidedOn;
 			if (authority.state === 'agent-decided') {
-				metadata.append(recordCategoryBadge(authority.weight));
+				chips.append(recordCategoryBadge(authority.weight));
 				if (presentation.reviewPending)
-					metadata.append(recordCategoryBadge('Not reviewed by you', 'risk'));
+					chips.append(recordCategoryBadge('Not reviewed by you', 'risk'));
 				facts.push(authority.by.alias);
 				if (authority.sourceKind === 'contract') facts.push('from contract');
 			}
@@ -111,6 +116,7 @@ export function recordStateLine({ record, held, ruledBy, replacement }: RecordFa
 	}
 	if (replacement) plain.append(` · Replaced by ${replacement}`);
 	metadata.append(plain);
+	if (factsFirst && chips.childElementCount) metadata.append(chips);
 	return metadata;
 }
 
@@ -198,7 +204,7 @@ export function renderSectionRecord(item: HTMLElement, face: RecordFace): void {
 	body.className = 'ex-record-surface';
 	body.dataset['commentSlot'] = '';
 	const reason = recordReason(face);
-	body.append(title, recordStateLine(face), ...(reason ? [reason] : []), ...item.childNodes);
+	body.append(title, recordStateLine(face, true), ...(reason ? [reason] : []), ...item.childNodes);
 	item.append(body);
 	appendRecordBasis(item, face, { body });
 }
