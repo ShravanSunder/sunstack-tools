@@ -142,10 +142,10 @@ ex-nav {
 		margin-inline: auto;
 	}
 	.ex-heading-panel[data-pinned] {
-		inset: 56px auto 64px 16px;
+		inset: var(--ex-document-toolbar-height) auto 0 16px;
 		width: 248px;
-		max-height: calc(100dvh - 120px);
-		padding: 0 var(--space-3) 0 0;
+		max-height: none;
+		padding: var(--space-3) var(--space-3) var(--space-3) 0;
 		border: 0;
 		border-right: 1px solid var(--rule);
 		border-radius: 0;
