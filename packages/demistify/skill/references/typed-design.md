@@ -7,7 +7,7 @@ Use typed records when agents refer to a milestone's needs, rules, decisions and
 ```sh
 demistify design init <milestone>
 demistify design types [milestone]
-demistify design check [milestone] [--site-root <directory>]
+demistify design check [milestone] [--site-root <directory>] [--write]
 demistify brief <deliverable> [milestone] [--site-root <directory>]
 demistify open <page.html> [--site-root <directory>]
 ```
@@ -17,7 +17,7 @@ Run the CLI from the selected Demistify binding: prefix `npm exec --` for a loca
 - `init` writes `design.ts`, `design-decisions.ts`, `design-assumptions.ts`, `design-delivery.ts` and the generated SDK, seeding Pages, Map and Walkthroughs from an existing `navigation.json`. You write the HTML pages.
 - `types` regenerates `design-sdk.generated.ts` and `design-schema.d.ts`. Git ignores both, so run it after a fresh checkout and after adding or renaming an ID, for the editor. `check`, `brief` and `open` build what they need without it.
 - `design check` and `project check` validate typed inputs and prepared pages in memory, then print deliverable states and design notes. Run `check <page.html>` for ordinary standalone HTML.
-- After a checkout or record edit, run `demistify project check --write` (or `demistify design check --write` for a standalone milestone). Serve the authored pages with any static HTTP server and the matching runtime. Opened from disk in Chrome, pages show records from `records.generated.js`. Shared navigation and delivery tables still need HTTP. `open` runs the write step for you. Keep the authored placements empty. One `.gitignore` covers generated files in the enclosing `projects/` folder when the project is directly under it, otherwise in the project root or standalone milestone folder. Existing ancestor rules that cover all generated files need no update. A browser may show old text until you rerun the write command. Read-only checks tell you when the generated views need refreshing.
+- After a checkout or record edit, run `demistify project check --write` (or `demistify design check --write` for a standalone milestone). Serve the authored pages with any static HTTP server and the matching runtime. Opened from disk in Chrome, pages show records from `records.generated.js`. Shared navigation and delivery tables still need HTTP. `open` runs the write step for you. One `.gitignore` covers generated files in the enclosing `projects/` folder when the project is directly under it, otherwise in the project root or standalone milestone folder. Existing ancestor rules that cover all generated files need no update. A browser may show old text until you rerun the write command. Read-only checks tell you when the generated views need refreshing.
 
 Pass `--site-root` with the enclosing docs directory when pages or evidence link outside the milestone folder.
 
@@ -64,30 +64,44 @@ export default defineDesign({
 
 | Record | Helper | Fields |
 | --- | --- | --- |
-| Need | `defineNeed` | `statement` |
+| Need | `defineNeed` | `statement`; optional `governedBy`, `reliesOn` |
 | Rule | `defineRule` | `statement`; optional `serves` (needs), `governedBy`, `reliesOn`, `cases` |
 | Realization | `defineRealization` | `statement`, `realizes` (rules); optional `governedBy`, `reliesOn` |
 | Planned check | `defineCheck` | `statement`, `checks` (one rule or several), `journey`, `unverified`, three or more `cases`; optional `governedBy`, `reliesOn` |
-| Decision | `defineChoice` or `defineRuling` in `design-decisions.ts` | `authority`; optional `supersedes`, `sources` |
-| Assumption | `defineAssumption` in `design-assumptions.ts` | `statement`, `by`, `weight`, `status`; optional `sources` |
+| Choice | `defineChoice` in `design-decisions.ts` | `question`, `options`, `recommended`, `authority` |
+| Ruling | `defineRuling` in `design-decisions.ts` | `statement`, settled `authority` |
+| Assumption | `defineAssumption` in `design-assumptions.ts` | `statement`, `by`, `weight`, `status` and the fields for that status |
 
-Write a rule as one sentence and put its detail in `cases`. `title` is an optional short label for the Tree, Map and outline, which otherwise show the statement. On a rule, realization or check, `governedBy` names decisions and `reliesOn` names assumptions; add them only where the record depends on that item. The check rejects a link to the wrong kind of record.
+Write a rule as one sentence and put its detail in `cases`. `title` is an optional short label for the Tree, Map and outline, which otherwise show the statement. On a need, rule, realization or check, `governedBy` names decisions and `reliesOn` names assumptions. Add a link where the record depends on that item. The check rejects links to the wrong record kind and requires design weight for any weighted decision or assumption that a need or rule depends on.
 
 When a milestone covers more than one subject, put each subject’s needs, rules, realizations and checks in `records/<subject>.ts`. Export an array of helper calls that import from `../design-sdk.generated.ts`. In `design.ts`, import each array and spread it directly inside `records`. Keep these records in `design.ts` for a single-subject milestone. A realization or check that spans subjects goes in the file for the first rule it names. IDs and links still span the milestone.
 
 ### Decisions and assumptions
 
-A choice has a question, at least two options and either a recommendation or `recommended: 'none'`. A ruling has a statement and a settled authority.
+Use a **choice** when someone is weighing alternatives or weighed them to reach a decision. Give it a question, at least two options with stable IDs, and either `recommended: 'none'` or `recommended: { option, by: { alias, role } }`. Keep every option after the choice is answered, including its page summary.
+
+Use a **ruling** for a settled decision made without weighing alternatives. Write the ruling in `statement`. An **assumption** records something the work relies on while its truth is still being established, or the result of settling it.
 
 | Authority | Fields |
 | --- | --- |
 | Open owner question | `state: 'owner-open'` on a choice |
-| Owner decided | `state: 'owner-decided'`, `decidedOn`, `sourceKind: 'owner-words'` or `'owner-accepted'`, and `source: { href, excerpt }` |
-| Agent decided | `state: 'agent-decided'`, `by: { alias, role }`, `weight`, `rationale`, `decidedOn` and `sourceKind`. Use `source` when `sourceKind` is `'contract'`. |
+| Owner decided | `state: 'owner-decided'`, `decidedOn`, `sourceKind: 'owner-words'` for the owner's own decision or `'owner-accepted'` for explicit approval, and `source: { href, excerpt }` |
+| Agent decided | `state: 'agent-decided'`, `by: { alias, role }`, `weight`, `rationale`, `decidedOn`, and `sourceKind: 'author'` or `'contract'`. A contract also requires `source: { href, excerpt }`. |
 
-A settled choice also has `chosen` and `decision` inside its authority.
+A settled choice also has `chosen` (one option ID) and `decision` (the answer in words) inside its authority. Write dates as `YYYY-MM-DD`. Record an agent's decision within that agent's authority. If a Lead adopts a decision the helper made within its remit, use the helper's alias and role for `by`.
+
+Use the registered alias from `agents-identity.ts` in a project. Store the alias in `by.alias` and the agent's role at the time in `by.role`. Supported roles are `lead`, `implementer`, `verifier`, `reviewer` and `advisor`. Use the same actor shape for a recommendation and an assumption.
+
+| Weight | When to use it |
+| --- | --- |
+| `design` | Changes what the system does, stores or exposes, or changes its structure, including ownership, boundaries, contracts or dependencies. |
+| `process` | Changes only how the work is done. |
+| `minor` | A detail that leaves both the design and the working process as they were. |
+
+An assumption takes the weight of the work that rests on it. If a design decision or rule depends on it, use `design`.
 
 ```ts
+// design-decisions.ts
 import { defineChoice } from './design-sdk.generated.ts';
 
 export default [
@@ -104,13 +118,51 @@ export default [
 ];
 ```
 
-Assumptions use the same `by: { alias, role }` as agent decisions. Add `weight` and a `statement`. For `status: 'open'`, describe what would settle it in `settles`. A confirmed or refuted assumption needs `settledBy` and `resolution: { href, excerpt }`. A source can add `verbatim: true` to check that its excerpt occurs in the linked HTML.
+Write a ruling and an assumption in their respective sidecars.
 
-A new decision can declare `supersedes: 'D1'` and keep the old one in the file. Only an owner decision can replace an owner decision, and the check rejects a live link to a superseded one.
+```ts
+// design-decisions.ts
+import { defineRuling } from './design-sdk.generated.ts';
+
+export default [
+  defineRuling({
+    id: 'D3',
+    statement: 'Keep the five-minute mark in the restart fixture name.',
+    authority: {
+      state: 'agent-decided',
+      by: { alias: 'messages-lead', role: 'lead' },
+      weight: 'minor',
+      rationale: 'The mark makes the fixture easy to find.',
+      decidedOn: '2026-11-24',
+      sourceKind: 'author',
+    },
+  }),
+];
+```
+
+```ts
+// design-assumptions.ts
+import { defineAssumption } from './design-sdk.generated.ts';
+
+export default [
+  defineAssumption({
+    id: 'A1',
+    statement: 'The fixture can reproduce a restart between two marks.',
+    by: { alias: 'messages-lead', role: 'lead' },
+    weight: 'design',
+    status: 'open',
+    settles: 'Run the restart fixture and observe the two marks in its trace.',
+  }),
+];
+```
+
+When an assumption is `confirmed` or `refuted`, replace `settles` with `settledBy` (a name or alias) and `resolution: { href, excerpt }`. Choices, rulings and assumptions may also carry `sources`. Source links are relative to the owning design. Set `verbatim: true` when the excerpt must occur in the linked page.
+
+When the owner explicitly approves an agent's decision, keep the record ID and answer. Replace the authority with `{ state: 'owner-decided', sourceKind: 'owner-accepted', decidedOn, source: { href, excerpt } }`, keeping `chosen` and `decision` for a choice. Link to and quote the approval. A reversal is a new settled decision with `supersedes: 'D3'`. Settle an open owner choice before using it to supersede a decision. Keep the earlier record for history and move active dependencies to the replacement. An owner decision can only be superseded by another owner decision.
 
 ## Place records on pages
 
-Place a record with an empty element. The placement is the anchor. After generating the views, the runtime adds `id="R1"` and the statement when the page loads, so any page can link to `#R1`. It finds the record data beside the page’s generated navigation source, or beside the project overview source if the page has no generated navigation. A declared external page with neither binding can use `<meta name="demistify-records" content="../milestone/records.generated.js">`.
+Place needs, rules, realizations and planned checks with empty `data-design-record` elements beside their explanation. The placement supplies the anchor. After generating the views, the runtime adds `id="R1"` and the statement when the page loads, so any page can link to `#R1`. It finds the record data beside the page’s generated navigation source, or beside the project overview source if the page has no generated navigation. A declared external page with neither binding can use `<meta name="demistify-records" content="../milestone/records.generated.js">`.
 
 ```html
 <head>
@@ -132,9 +184,22 @@ Place a record with an empty element. The placement is the anchor. After generat
 - `<ex-tree data-design-need="U1"></ex-tree>` draws the need and the rules that serve it, linked to their placements.
 - Each page in the milestone keeps one `ex-nav` whose `src` resolves to its `navigation.generated.json`.
 
-Route the record through a section item. The record supplies the question, anchor and option titles. The page supplies the Markdown summary and optional HTML Details. Place rulings and assumptions in section items with direct authored prose.
+Give each choice, ruling and assumption one `ex-section-item record="ID"`. Declare each needed section once with `holds`. Keep every `ex-section` empty and write the items beside it. Declare all reachable destinations so an answer can move a record to its new section without moving its authored body.
+
+| Record on this page | Declare one section for each of |
+| --- | --- |
+| Open owner choice | `needs-owner`, `decided-by-agent`, `settled` |
+| Agent-decided choice or ruling | `decided-by-agent`, `settled` |
+| Owner-decided choice or ruling | `settled` |
+| Any assumption | `assumed` |
+
+Place one native `ex-choice` inside the item for a choice. The record supplies the question, anchor and option titles. Put each option's Markdown in a `template slot="summary"`. Add a `template slot="details"` with HTML only when it adds something to the summary. An `ex-markdown` inside Details can render richer Markdown. Put shared explanation or a diagram in `template data-record-body`. Use direct authored prose or rich content inside a ruling or assumption item.
 
 ```html
+<ex-section id="open" title="For you to decide" holds="needs-owner"></ex-section>
+<ex-section id="agent" title="Decided without you" holds="decided-by-agent"></ex-section>
+<ex-section id="settled" title="You decided" holds="settled"></ex-section>
+<ex-section id="assumptions" title="Assumed" holds="assumed"></ex-section>
 <ex-section-item record="D2">
   <ex-choice>
     <ex-option data-option="hide-at-once">
@@ -146,9 +211,13 @@ Route the record through a section item. The record supplies the question, ancho
     </ex-option>
   </ex-choice>
 </ex-section-item>
+<ex-section-item record="D3"><p>The test author can search for the mark in the fixture list.</p></ex-section-item>
+<ex-section-item record="A1"><p>The restart must fall between two alarm marks.</p></ex-section-item>
 ```
 
-Declare the reachable sections as described in [Sections and Map](stories.md). Both option slots use `template`. Put any shared authored explanation in `<template data-record-body>` inside the Choice.
+The library derives the destination section, record and option anchors, state and weight chips, chosen and recommended markers, and the visible decision date. Author the decision, evidence, record links and explanatory content once. See [Sections and Map](stories.md) for the section and navigation rules.
+
+To show the state next to another paragraph, use an empty `<span data-design-status="D2"></span>`. It needs the record's existing page placement and becomes a linked status chip.
 
 ## Map and Walkthrough by record ID
 

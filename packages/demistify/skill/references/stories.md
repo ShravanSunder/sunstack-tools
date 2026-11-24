@@ -1,10 +1,10 @@
 # Stories, sections and the page Map
 
-Sections are empty declarations. Put authored content in separate `ex-section-item` elements. Older Story accounts use each account a short story with labelled rows and a supporting record, stories grouped into sections, and a Map panel that lets the reader jump between them. Three things share the word map. The page Map is `ex-map`, the reader navigation panel this reference teaches. A Board with `mode="map"` is a spatial ownership drawing (`maps.md`). A Tree with `layout="map"` draws a hierarchy as a map (`trees.md`).
+Sections are empty declarations. Put authored content in separate `ex-section-item` elements. A Story account is a short story with labelled rows and a supporting record. Group stories in sections and let readers jump between sections using the page Map. Three things share the word map. The page Map is `ex-map`, the reader navigation panel this reference teaches. A Board with `mode="map"` is a spatial ownership drawing (`maps.md`). A Tree with `layout="map"` draws a hierarchy as a map (`trees.md`).
 
 ## What you author and what the library derives
 
-You supply the meaning: story prose and rich bodies, IDs and links, which section each story belongs to and whether it is primary or smaller, the order of sections, stories and record entries, each story's subject, time, icon and tone, the record and smaller-fold summary text under the count rule below, and initial disclosure states. The library derives the rest from that structure: each section header's primary and smaller counts, the Map's section totals and the members of every bulk expand/collapse. It also owns the shared side panel, the row labels, icons and colors.
+You supply the story prose, rich bodies, IDs and links, the order of sections and entries, and each story's subject, time, icon, tone and disclosure states. Use sibling section items to assign stories to a section. A story can be primary or part of a native smaller group inside an item. The library derives the section counts, the Map totals and the members of the bulk expand/collapse controls. It also owns the shared side panel, row labels, icons and colors.
 
 Infer nothing from importance. A tone, status, classification, routine/smaller placement or order comes from the supplied content; a quiet story is not "done" because nothing went wrong in it. Keep the supplied order of sections, stories and record entries; a story the source assigns to the smaller group goes into its section's smaller fold, keeping its order among the smaller stories.
 
@@ -42,7 +42,25 @@ An `ex-section` is an empty declaration. Write its content in separate `ex-secti
 <ex-section-item section="know"><p>The alarm follows the existing cadence.</p></ex-section-item>
 ```
 
-A record item uses `record="D5"`. Demistify places it using the checked decision or assumption state. Author one item per record. Within each section, items keep their source order. Give the page a section for each state that its records can reach. An item can use `section="know"` to name an ordinary section without `holds`. The heading and Map count the items placed in the section.
+A record item uses `record="D5"`. Demistify places it using the checked decision or assumption state. Author one item per record. Within each section, items keep their source order. Declare each reachable `holds` value once, using the [routing table for typed records](typed-design.md#place-records-on-pages). For ordinary prose or a story, use `section="know"` to target a section without `holds`. Each item takes one destination. The header and Map share the count: each record or prose item counts once, and a Story group counts its stories.
+
+For story controls, `<ex-fold-toggle for="work"></ex-fold-toggle>` targets the element with `id="work"`, such as the document or a section. The generated section header also provides a control when the section has stories. Story bulk actions include a direct `<details slot="smaller">` inside a placed section item. Ordinary attachment disclosures stay independent.
+
+```html
+<ex-section id="released" title="Released this week"></ex-section>
+<ex-section-item section="released">
+  <ex-story subject="Parser" icon="file">
+    <details id="story-row-limit" open>
+      <summary>Long rows get a clear error</summary>
+      <p slot="headline">The parser reports the row number when a row exceeds the limit.</p>
+      <p slot="happened">The documented limit is enforced on input.</p>
+      <p slot="for-you">Use the row number to find the rejected input.</p>
+      <p slot="next">Check the location shown for the longest accepted row.</p>
+      <details slot="record"><summary>The record: 0 entries</summary></details>
+    </details>
+  </ex-story>
+</ex-section-item>
+```
 
 ## The page Map
 
@@ -70,10 +88,15 @@ What the reader gets, with no page script, style or overlay from you:
 </ex-section-item>
 ```
 
-The decision record supplies the question, option IDs and titles. Write the record ID once, on `ex-section-item`. Put the explanation, option summaries and optional option Details inside its one native `ex-choice`. A ruling or assumption uses the same section item with its authored explanation as direct content. Demistify supplies its title, metadata and card surface.
+The decision record supplies the question, option IDs and titles. Write the record ID once, on `ex-section-item`. Put the explanation, option summary templates and optional Details templates inside its one native `ex-choice`. Keep all options after the decision, using the same IDs. A ruling or assumption uses the same section item with its authored explanation as direct content. Demistify supplies its title, chips and card surface, and shows the date from settled decision authority.
 
 ```html
+<ex-section id="assumed" title="Assumed" holds="assumed"></ex-section>
 <ex-section-item record="A1"><p>The planned check uses a restart fixture.</p></ex-section-item>
 ```
 
 Run the typed design checker after editing the page or the record.
+
+## When to stop
+
+Run the matching page or project check. Confirm that supplied IDs, links, order and native disclosure states survived. Each section has one declaration and, when the page has a Map, one top-level fragment link. Confirm that each story has its required slots and that each record item has the reachable section declarations.
