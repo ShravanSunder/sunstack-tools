@@ -4,6 +4,7 @@ import { commands, page, userEvent } from 'vitest/browser';
 import { commentStorageKey } from '../../../../packages/demistify/src/core/comment-store.ts';
 import { assignHeadingFragments } from '../../../../packages/demistify/src/core/heading-fragments.ts';
 import { createCommentSnapshot } from '../../../../packages/demistify/src/core/review-model.ts';
+import { browserScreenshotPath } from './browser-evidence.ts';
 import { fixtureLocator, openFixture, requiredElement } from './fixture-page.ts';
 import {
 	openBoundaryReviewFixture,
@@ -372,6 +373,53 @@ test('a choice-only document gets automatic Comments and retains the 8px phone g
 	expect(
 		readChoiceResponse(requiredElement(fixture, '#format-question')).selected[0]?.optionId,
 	).toBe('concise-format');
+});
+
+test.each([1600, 390])(
+	'published v1 Choice, Comments, Stories and Map still work at %ipx',
+	async (width): Promise<void> => {
+		await page.viewport(width, 1000);
+		const { document: fixture, frame } = await openFixture('show-me-work', '', 'rolling-v1.html');
+		await expect.element(frame.getByRole('group', { name: 'Which store?' })).toBeVisible();
+		await frame.getByRole('radio', { name: 'Postgres', exact: true }).click();
+		await frame.getByRole('button', { name: 'Comments (0)', exact: true }).click();
+		expect(readCurrentReview(fixture).answers).toMatchObject([
+			{
+				questionId: 'D1',
+				decisionId: 'legacy/D1',
+				selected: [{ optionId: 'pg', label: 'Postgres' }],
+			},
+		]);
+		await page.screenshot({ path: browserScreenshotPath(`rolling-v1-choice-${width}.png`) });
+		await frame.getByRole('button', { name: 'Map', exact: true }).click();
+		const mapBranch = requiredElement(fixture, '#work-map a.ex-tree-go[href$="#delivery"]').closest(
+			'.ex-tree-node',
+		);
+		if (!mapBranch) throw new Error('Missing published section branch.');
+		expect(requiredElement(mapBranch, '.ex-map-count').textContent).toBe(' · 2');
+		await frame.getByRole('button', { name: 'Close Map', exact: true }).click();
+		expect(
+			requiredElement(fixture, '#delivery > .ex-section-count, #delivery .ex-section-count')
+				.textContent,
+		).toContain('1 + 1 smaller');
+		await frame
+			.getByRole('button', { name: "Expand What's done / what's next", exact: true })
+			.click();
+		expect(requiredElement(fixture, '#smaller').hasAttribute('open')).toBe(true);
+		expect(requiredElement(fixture, '#story-minor').hasAttribute('open')).toBe(true);
+		expect(requiredElement(fixture, '#ordinary-notes').hasAttribute('open')).toBe(false);
+		await page.screenshot({ path: browserScreenshotPath(`rolling-v1-story-${width}.png`) });
+	},
+);
+
+test('a settled choice shows the selected record and exports only the reader answer', async (): Promise<void> => {
+	const { document: fixture, frame } = await openFixture('review', '', 'settled-choice.html');
+	await expect.element(frame.getByText('Chosen', { exact: true })).toBeVisible();
+	await frame.getByRole('radio', { name: 'Read the report', exact: true }).click();
+	await frame.getByRole('button', { name: 'Comments (0)', exact: true }).click();
+	expect(readCurrentReview(fixture).answers).toMatchObject([
+		{ questionId: 'reader', selected: [{ optionId: 'read-report', label: 'Read the report' }] },
+	]);
 });
 
 test('editable shortcuts keep native newlines and unified manual-copy/export content retains identities', async (): Promise<void> => {

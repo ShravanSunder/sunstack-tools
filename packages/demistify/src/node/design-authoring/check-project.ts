@@ -377,7 +377,7 @@ export async function buildProject(
 	);
 	const destinations = projectedDestinations(projection, root);
 	const delivery = projectDelivery(design, entries, destinations);
-	attachDecisionDeliverables(recordOutputs, delivery, root);
+	attachDecisionDeliverables(recordOutputs, delivery, root, projection);
 	await Promise.all(delivery.evidence.map((href) => check.checkEvidence(href, projectFile)));
 	const output = {
 		version: 1,
@@ -435,8 +435,8 @@ export async function buildProject(
 			? [
 					'Waiting on owner',
 					...questions.map(
-						({ record: { id, title, authority } }): string =>
-							`  ${id} · ${authority?.question ?? title}`,
+						({ record: { id, title, question, authority } }): string =>
+							`  ${id} · ${question ?? authority?.question ?? title}`,
 					),
 				]
 			: []),

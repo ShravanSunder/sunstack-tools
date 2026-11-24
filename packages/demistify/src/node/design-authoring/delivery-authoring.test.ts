@@ -626,12 +626,16 @@ export default [
 			assumptionsFile,
 			openAssumptions.replace("status: 'open'", "status: 'confirmed'"),
 		);
-		await expect(run(process.execPath, check)).rejects.toThrow(/resolution/);
+		await expect(run(process.execPath, check)).rejects.toThrow(
+			'a confirmed or refuted assumption needs resolution evidence. Add the relative link and an excerpt of what was observed.',
+		);
 		await writeFile(
 			assumptionsFile,
 			refutedAssumptions.replace("status: 'refuted'", "status: 'open'"),
 		);
-		await expect(run(process.execPath, check)).rejects.toThrow(/settles|Unrecognized/);
+		await expect(run(process.execPath, check)).rejects.toThrow(
+			'an open assumption needs settles: one sentence saying what observation would settle it.',
+		);
 		const settledAssumptions = openAssumptions.replace(
 			"status: 'open', settles: 'Observe both claim attempts.'",
 			"status: 'confirmed', settledBy: 'Queue Lead', resolution: { href: 'evidence.txt', excerpt: 'Target backend supports atomic claims.' }",
@@ -658,7 +662,9 @@ export default [
 			decisionsFile,
 			leadDecisions.replace("'agent-decided'", "'implementer-decided'"),
 		);
-		await expect(run(process.execPath, check)).rejects.toThrow(/authority.state/);
+		await expect(run(process.execPath, check)).rejects.toThrow(
+			"set authority.state to 'owner-open', 'owner-decided', or 'agent-decided'. Only a choice can be open.",
+		);
 	} finally {
 		await rm(directory, { recursive: true, force: true });
 	}

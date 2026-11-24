@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Settled choice and reader answer</title>
+  <link rel="stylesheet" href="/experiments/islands/theme.css">
+  <script type="module" src="/experiments/islands/runtime.js"></script>
+  <meta name="demistify-records" content="records.generated.js">
+</head>
+<body>
+<ex-document id="work">
+  <h1>Settled choice and reader answer</h1>
+  <ex-section id="settled" title="You decided" holds="settled"></ex-section>
+  <ex-section-item record="D2"><ex-choice>
+    <ex-option data-option="pg"><template slot="summary">Use Postgres.</template></ex-option>
+    <ex-option data-option="sq"><template slot="summary">Use SQLite.</template></ex-option>
+  </ex-choice></ex-section-item>
+  <ex-choice id="reader" title="Which proof should you open?">
+    <ex-option id="read-report" title="Read the report"><template slot="summary">Read existing proof.</template></ex-option>
+  </ex-choice>
+</ex-document>
+</body>
+</html>

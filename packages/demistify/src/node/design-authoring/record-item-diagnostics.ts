@@ -1,5 +1,8 @@
 import type { ZodError } from 'zod';
 
+export const releasedRecordMigration =
+	'From a Demistify source checkout, run: node packages/demistify/scripts/migrate-lean-design-records.ts --released-lean --source <copied-docs> --project <relative-project> --dry-run';
+
 const guidance = new Map<string, string>([
 	['id', 'give the record an id starting with a letter. Use letters, numbers, and hyphens.'],
 	[
@@ -88,6 +91,26 @@ export function recordItemValidationError(file: string, input: unknown, error: Z
 			typeof record === 'object' && record && 'id' in record && typeof record.id === 'string'
 				? record.id
 				: `Record ${index + 1}`;
+		if (typeof record === 'object' && record && 'authority' in record) {
+			const { authority } = record;
+			if (
+				typeof authority === 'object' &&
+				authority &&
+				('owner' in authority ||
+					'lead' in authority ||
+					'question' in authority ||
+					('state' in authority && authority.state === 'lead-decided'))
+			)
+				return `${file}: ${name}: migrate the 1.32.1 record. Put the question and options on the choice. Use agent-decided with by: { alias, role } and weight for an agent decision. ${releasedRecordMigration}`;
+		}
+		if (
+			typeof record === 'object' &&
+			record &&
+			'status' in record &&
+			!('by' in record) &&
+			!('weight' in record)
+		)
+			return `${file}: ${name}: an assumption needs by: { alias, role } and weight. For a 1.32.1 project, ${releasedRecordMigration}`;
 		const key = fields.map((field) => (typeof field === 'number' ? '*' : String(field))).join('.');
 		let fix = guidance.get(key);
 		if (

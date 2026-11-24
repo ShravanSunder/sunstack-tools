@@ -125,7 +125,6 @@ export function prepareRecordPage(options: {
 		tag,
 		startTag,
 		endTag,
-		explanation,
 		options: authoredOptions,
 		status,
 	} of markup.placements) {
@@ -186,7 +185,6 @@ export function prepareRecordPage(options: {
 				}),
 		});
 		if (tag === 'ex-choice' && record.kind === 'choice') {
-			if (explanation) edits.push({ ...explanation, text: '' });
 			const unmatchedOptions = new Map(record.options.map((option) => [option.id, option]));
 			for (const authored of authoredOptions ?? []) {
 				const option = unmatchedOptions.get(authored.id);
@@ -270,13 +268,20 @@ export function attachDecisionDeliverables(
 	outputs: ReadonlyMap<string, DesignRecordView>,
 	delivery: DeliveryViews,
 	deliveryRoot: string,
+	projection: RecordProjection,
 ): void {
+	const pageRecords = new Map<string, Map<string, string>>();
+	for (const [id, { file, fragment }] of projection.placements) {
+		const records = pageRecords.get(file) ?? new Map<string, string>();
+		records.set(fragment, id);
+		pageRecords.set(file, records);
+	}
 	for (const [outputFile, output] of outputs) {
 		for (const [pagePath, page] of Object.entries(output.pages)) {
 			const pageFile = resolve(dirname(outputFile), decodeURIComponent(pagePath));
-			for (const { face, decision } of page.placements) {
-				if (!face) continue;
-				const id = decision ?? face.record.id;
+			for (const { face, reference } of page.placements) {
+				const id = pageRecords.get(pageFile)?.get(reference);
+				if (!face || !id) continue;
 				const related = Object.values(delivery.deliverables).filter(
 					(item) =>
 						item.kind === 'core' && item.links.governingItems.some((entry) => entry.id === id),

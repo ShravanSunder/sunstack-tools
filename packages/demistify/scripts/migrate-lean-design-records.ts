@@ -275,8 +275,7 @@ function convertRecord(
 			};
 		}
 
-		const primary = sources[0];
-		if (!primary) throw new Error(`${data.id}: supply a decision source before conversion.`);
+		const [primary] = sources;
 		const { decision, decidedOn, sourceKind } = data.authority;
 		const basis = { decidedOn, source: retarget(primary) };
 		const authority =

@@ -484,6 +484,10 @@ export function readChoiceResponses(root: HTMLElement): ChoiceResponse[] {
 				element instanceof ChoiceIsland &&
 				!element.closest('[data-inspector-copy],[data-inspector-content]'),
 		)
+		.filter((element): boolean => {
+			const record = choiceRecordFaces.get(element)?.record;
+			return record?.kind !== 'choice' || record.authority.state === 'owner-open';
+		})
 		.map((element): ChoiceResponse => element.response)
 		.filter((response): boolean => response.selected.length > 0);
 }

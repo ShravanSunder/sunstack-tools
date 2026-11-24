@@ -58,6 +58,7 @@ const legacyDecisionBody = { decision: nonempty, decidedOn: z.iso.date() };
 const legacyDecisions = z.array(
 	z.strictObject({
 		...legacyFields,
+		sources: z.tuple([sourceReference], sourceReference),
 		kind: z.literal('choice'),
 		supersedes: recordReference.optional(),
 		authority: z.discriminatedUnion('state', [

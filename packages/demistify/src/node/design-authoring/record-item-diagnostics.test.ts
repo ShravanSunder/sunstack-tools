@@ -136,6 +136,27 @@ test('one authored record item preserves Choice fragments and accepts a bare rul
 	);
 });
 
+test('Choice explanation and Details expose their links and stable fragments to typed checking', () => {
+	const html =
+		sections +
+		'<ex-section-item record="D5">' +
+		nativeChoice
+			.replace(
+				'<ex-choice>',
+				'<ex-choice><template data-record-body><p id="context"><a href="missing.html">Context</a></p></template>',
+			)
+			.replace(
+				'</ex-option>',
+				'<template slot="details"><p id="more"><a href="#context">Back</a></p></template></ex-option>',
+			) +
+		'</ex-section-item>';
+	const markup = readPageMarkup(html, recordPagePath);
+	expect(markup.links).toEqual(['missing.html', '#context']);
+	expect(markup.ids.has('context')).toBe(true);
+	expect(markup.ids.has('more')).toBe(true);
+	expect(checkRecordPage(html.slice(sections.length))).toContain('<template data-record-body>');
+});
+
 test.each([
 	[
 		`<ex-section-item record="D5">${nativeChoice.replace('</ex-option>', '<div slot="details"><p>Old carrier.</p></div></ex-option>')}</ex-section-item>`,
@@ -156,6 +177,10 @@ test.each([
 	[
 		`<ex-section-item record="D5">${nativeChoice.replace(' data-option="resume"', ' data-option="other"')}</ex-section-item>`,
 		'unknown option other',
+	],
+	[
+		`<ex-section-item record="D5">${nativeChoice.replace('<ex-choice>', '<ex-choice view="table">')}</ex-section-item>`,
+		'Remove multiple, details or a non-card view',
 	],
 	[
 		'<ex-section-item record="D7"><p>One.</p></ex-section-item><ex-section-item record="D7"><p>Two.</p></ex-section-item>',

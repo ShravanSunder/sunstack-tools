@@ -109,10 +109,12 @@ function restoreFragment(): void {
 type GeneratedPlacement = DesignRecordView['pages'][string]['placements'][number];
 
 function hydrateChoice(choice: HTMLElement, placement: GeneratedPlacement): void {
-	if (!placement.decision || placement.face?.record.kind !== 'choice') return;
+	if (!placement.decision) return;
 	choice.id = placement.reference;
 	choice.setAttribute('data-decision', placement.decision);
 	choice.title = placement.statement;
+	// Rolling v1 pages generated before record faces already supply their own options.
+	if (placement.face?.record.kind !== 'choice') return;
 	choiceRecordFaces.set(choice, placement.face);
 	const authored = [...choice.querySelectorAll(':scope > ex-option[data-option]')];
 	for (const option of placement.face.record.options) {

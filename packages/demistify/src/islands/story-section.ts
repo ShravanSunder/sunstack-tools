@@ -28,7 +28,15 @@ export class SectionIsland extends HTMLElement {
 			header.append(count);
 			this.dataset['title'] = title;
 			this.removeAttribute('title');
-			this.classList.add('ex-section-floating');
+			// A published v1 section may still contain its original authored body.
+			if (
+				!Array.from(this.childNodes).some((child) =>
+					child instanceof Element
+						? child.localName !== 'ex-section-item'
+						: child.nodeType === Node.TEXT_NODE && child.textContent?.trim(),
+				)
+			)
+				this.classList.add('ex-section-floating');
 			this.prepend(header);
 			this.setAttribute('prepared', '');
 		}

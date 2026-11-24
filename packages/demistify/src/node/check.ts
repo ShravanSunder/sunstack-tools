@@ -513,7 +513,14 @@ export async function checkHtml(source: string, options: CheckOptions = {}): Pro
 		}
 
 		if (name === 'ex-choice') {
-			const children = element.childNodes.filter(isElement);
+			const children = element.childNodes
+				.filter(isElement)
+				.filter(
+					(child) =>
+						!attributes.has('data-decision') ||
+						child.tagName !== 'template' ||
+						!attributeMap(child).has('data-record-body'),
+				);
 			if (!children.length || children.some((child): boolean => child.tagName !== 'ex-option'))
 				report(element, 'error', 'choice', 'A choice needs direct ex-option children.');
 		}

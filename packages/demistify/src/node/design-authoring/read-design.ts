@@ -4,7 +4,7 @@ import typescript from 'typescript';
 import { z } from 'zod';
 
 import { assumptionRecord, decisionRecord } from '../../core/decision-record.ts';
-import { recordItemValidationError } from './record-item-diagnostics.ts';
+import { recordItemValidationError, releasedRecordMigration } from './record-item-diagnostics.ts';
 import { authoredDesignSchema } from './schema.ts';
 import type { AuthoredDesign, DesignCore, DesignRecord } from './schema.ts';
 
@@ -142,6 +142,10 @@ function sdkBindings(
 		for (const binding of named.elements) {
 			if (binding.isTypeOnly) continue;
 			const name = (binding.propertyName ?? binding.name).text;
+			if (name === 'defineDecision')
+				throw new Error(
+					`${file}: defineDecision was replaced by defineChoice for alternatives and defineRuling for a settled statement. ${releasedRecordMigration}`,
+				);
 			if (
 				(name !== 'defineDesign' && !recordHelperKinds.has(name)) ||
 				bindings.has(binding.name.text)

@@ -1,11 +1,14 @@
 import { z } from 'zod';
 
+import { decisionActorField, recordActor } from './decision-record.ts';
 import { deliverableViewSchema, localDeliveryHref } from './deliverables-view.ts';
 
 const projectRecord = z.looseObject({
 	id: z.string().min(1),
 	kind: z.enum(['need', 'rule', 'realization', 'planned-check', 'choice', 'ruling', 'assumption']),
 	title: z.string().min(1),
+	question: z.string().optional(),
+	statement: z.string().optional(),
 	destination: z.object({ page: localDeliveryHref, fragment: z.string().min(1) }).optional(),
 	authority: z
 		.looseObject({
@@ -14,6 +17,7 @@ const projectRecord = z.looseObject({
 			decision: z.string().optional(),
 			decidedOn: z.string().optional(),
 			lead: z.string().optional(),
+			[decisionActorField]: recordActor.optional(),
 		})
 		.optional(),
 	status: z.string().optional(),
@@ -42,7 +46,7 @@ export type ProjectRecord = ProjectView['records'][number];
 
 export interface ProjectDecision {
 	readonly record: ProjectRecord;
-	readonly authority: 'Lead' | 'Owner';
+	readonly authority: string;
 	readonly status: 'Open' | 'Decided' | 'Superseded';
 	readonly replacement: ProjectRecord | undefined;
 	readonly governedRecords: readonly ProjectRecord[];
@@ -86,7 +90,12 @@ export function projectDecisions(records: readonly ProjectRecord[]): ProjectDeci
 		return [
 			{
 				record,
-				authority: state === 'lead-decided' || state === 'agent-decided' ? 'Lead' : 'Owner',
+				authority:
+					state === 'agent-decided'
+						? (record.authority?.by?.alias ?? 'Agent')
+						: state === 'lead-decided'
+							? 'Lead'
+							: 'Owner',
 				status: replacement ? 'Superseded' : state === 'owner-open' ? 'Open' : 'Decided',
 				replacement,
 				governedRecords: Array.from(governed.get(record.id) ?? []),

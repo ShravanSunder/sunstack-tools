@@ -9,6 +9,7 @@ import { expect, it } from 'vitest';
 import { z } from 'zod';
 
 import { deliverablesViewSchema } from '../../core/deliverables-view.ts';
+import { designRecordViewSchema } from '../../core/design-record-view.ts';
 
 const run = promisify(execFile);
 const cli = fileURLToPath(new URL('../../../bin/demistify.ts', import.meta.url));
@@ -580,6 +581,34 @@ resolution: { href: 'evidence.txt', excerpt: 'Available.' }
 		});
 		const sharedPage = join(shared, 'index.html');
 		const sharedMarkup = await readFile(sharedPage, 'utf8');
+		await writeFile(
+			sharedPage,
+			sharedMarkup
+				.replace(
+					'<p data-design-record="project/D1"></p>',
+					'<ex-section id="settled" title="Settled" holds="settled"></ex-section><ex-section-item record="project/D1"></ex-section-item>',
+				)
+				.replace(
+					'<p data-design-record="project/A1"></p>',
+					'<ex-section id="assumed" title="Assumed" holds="assumed"></ex-section><ex-section-item record="project/A1"></ex-section-item>',
+				),
+		);
+		await check();
+		const recordScript = await readFile(join(root, 'records.generated.js'), 'utf8');
+		const encoded: unknown = JSON.parse(
+			recordScript
+				.slice(recordScript.indexOf('=') + 1)
+				.trim()
+				.replace(/;$/u, ''),
+		);
+		if (typeof encoded !== 'string') throw new Error('Expected a serialized record view.');
+		const recordView = designRecordViewSchema.parse(JSON.parse(encoded));
+		for (const reference of ['project/D1', 'project/A1'])
+			expect(
+				recordView.pages['shared/index.html']?.placements.find(
+					(item) => item.reference === reference,
+				)?.face?.dependents,
+			).toContainEqual({ id: 'messages/DEL-01', label: 'Deliverable' });
 		await writeFile(
 			sharedPage,
 			sharedMarkup.replace(

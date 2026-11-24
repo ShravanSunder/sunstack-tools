@@ -14,7 +14,6 @@ export interface RecordBinding {
 	readonly startTag: MarkupRange;
 	readonly endTag: MarkupRange;
 	readonly status?: true;
-	readonly explanation?: MarkupRange;
 	readonly options?: readonly { id: string; start: number; end: number }[];
 }
 
@@ -188,13 +187,23 @@ export function readPageMarkup(html: string, file: string): PageMarkup {
 					)
 						throw new Error(`${file}: ${reference} supplies its own anchor and Choice question.`);
 					if (
+						tag === 'ex-choice' &&
+						binding.attrs.some(
+							({ name, value }) =>
+								name === 'multiple' || name === 'details' || (name === 'view' && value !== 'cards'),
+						)
+					)
+						throw new Error(
+							`${file}: ${reference} uses one answer and the standard Choice cards and Details. Remove multiple, details or a non-card view.`,
+						);
+					if (
 						!sectionReference &&
 						tag !== 'ex-choice' &&
 						html.slice(startTag.endOffset, endTag.startOffset).trim()
 					)
 						throw new Error(`${file}: record placement ${reference} must be empty.`);
 					const options: { id: string; start: number; end: number }[] = [];
-					let explanation: MarkupRange | undefined;
+					let hasExplanation = false;
 					if (sectionReference || tag === 'ex-choice') {
 						addAnchor(decisionDetailsId(reference));
 					}
@@ -205,12 +214,9 @@ export function readPageMarkup(html: string, file: string): PageMarkup {
 								child.tagName === 'template' &&
 								child.attrs.some(({ name }) => name === 'data-record-body')
 							) {
-								if (explanation || !child.sourceCodeLocation)
+								if (hasExplanation || !child.sourceCodeLocation)
 									throw new Error(`${file}: ${reference} has more than one explanation template.`);
-								explanation = {
-									start: child.sourceCodeLocation.startOffset,
-									end: child.sourceCodeLocation.endOffset,
-								};
+								hasExplanation = true;
 								continue;
 							}
 							if (child.tagName !== 'ex-option') continue;
@@ -246,7 +252,6 @@ export function readPageMarkup(html: string, file: string): PageMarkup {
 						startTag: range(startTag),
 						endTag: range(endTag),
 						...(tag === 'ex-choice' && { options }),
-						...(explanation && { explanation }),
 					});
 				}
 				if (need !== undefined) {
@@ -275,6 +280,12 @@ export function readPageMarkup(html: string, file: string): PageMarkup {
 				result.projectOverviewSources.push(get('src') ?? '');
 			if (node.tagName === 'meta' && get('name') === 'demistify-records')
 				result.recordSourceMarkers.push(get('content') ?? '');
+			if (
+				node.tagName === 'template' &&
+				(get('data-record-body') !== undefined || get('slot') === 'details') &&
+				'content' in node
+			)
+				visit(node.content);
 		}
 		if ('childNodes' in node) node.childNodes.forEach(visit);
 	}
