@@ -20,10 +20,14 @@ interface SourceChange {
 
 function applyChanges(source: string, changes: readonly SourceChange[]): string {
 	let result = source;
+	let nextStart = source.length;
 	for (const { start, end, replacement } of changes.toSorted(
 		(left, right) => right.start - left.start,
-	))
+	)) {
+		if (end > nextStart) throw new Error('Overlapping record authoring edits (nested Details).');
 		result = result.slice(0, start) + replacement + result.slice(end);
+		nextStart = start;
+	}
 	return result;
 }
 
@@ -48,7 +52,12 @@ function migrateRecordModule(
 	{
 		namespace,
 		actors,
-	}: { readonly namespace: string; readonly actors: ReadonlyMap<string, RecordActor> },
+		usedActors,
+	}: {
+		readonly namespace: string;
+		readonly actors: ReadonlyMap<string, RecordActor>;
+		readonly usedActors: Set<string>;
+	},
 ): string {
 	const parsed = typescript.createSourceFile(file, source, typescript.ScriptTarget.ES2022, true);
 	const assumptions = new Set<string>();
@@ -100,10 +109,11 @@ function migrateRecordModule(
 						id && typescript.isStringLiteral(id) ? `${namespace}/${id.text}` : undefined;
 					const formerAlias = author.text;
 					const actor = reference ? actors.get(reference) : undefined;
-					if (!actor || actor.alias !== formerAlias)
+					if (!reference || !actor || actor.alias !== formerAlias)
 						throw new Error(
 							`${file}: supply the existing alias and an explicit role in --record-input for ${reference ?? 'this assumption'}.`,
 						);
+					usedActors.add(reference);
 					replace(author, JSON.stringify(actor));
 				}
 			}
@@ -123,6 +133,14 @@ function migrateOptionDetails(source: string): string {
 			node.tagName === 'ex-option' &&
 			node.attrs.some((attribute) => attribute.name === 'data-option')
 		) {
+			const details = node.childNodes.filter(
+				(child) =>
+					'tagName' in child &&
+					child.attrs.some(
+						(attribute) => attribute.name === 'slot' && attribute.value === 'details',
+					),
+			);
+			if (details.length > 1) throw new Error('An option has more than one Details child.');
 			for (const child of node.childNodes) {
 				if (!('tagName' in child) || child.tagName === 'template') continue;
 				const slot = child.attrs.find(
@@ -170,11 +188,12 @@ export async function planRecordAuthorship({
 	if (manifestText === undefined) throw new Error(`Missing migration input: ${projectFile}.`);
 	const manifest = readProjectManifest(projectFile, manifestText);
 	const edits = new Map<string, string>();
+	const usedActors = new Set<string>();
 	const pages = new Set([join(project, 'index.html')]);
 	async function upgrade(file: string, namespace: string): Promise<string | undefined> {
 		const original = await read(file);
 		if (original === undefined) return undefined;
-		const next = migrateRecordModule(file, original, { namespace, actors });
+		const next = migrateRecordModule(file, original, { namespace, actors, usedActors });
 		if (next !== original) edits.set(file, next);
 		return next;
 	}
@@ -213,5 +232,8 @@ export async function planRecordAuthorship({
 			if (next !== original) edits.set(file, next);
 		}),
 	);
+	for (const id of actors.keys())
+		if (!usedActors.has(id))
+			throw new Error(`No string assumption author matches --record-input entry ${id}.`);
 	return { edits, report: { migration: 'record-authorship', inspectedPages: pages.size } };
 }

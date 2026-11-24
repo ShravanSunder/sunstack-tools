@@ -4,7 +4,13 @@ import { parseArgs } from 'node:util';
 
 import { z } from 'zod';
 
-import { decisionActorField, recordActor } from '../src/core/decision-record.ts';
+import {
+	choiceRecord,
+	decisionActorField,
+	decisionSource,
+	recordActor,
+} from '../src/core/decision-record.ts';
+import { checkProject } from '../src/node/design-authoring/check-project.ts';
 import {
 	declaredDesignPagePath,
 	resolveDesignLink,
@@ -31,6 +37,8 @@ import {
 	type PageChange,
 } from './lean-design-migration/pages.ts';
 import { planRecordAuthorship } from './lean-design-migration/record-authorship.ts';
+import { planReleasedProject } from './lean-design-migration/released-project.ts';
+import { releasedRecordInput } from './lean-design-migration/released-records.ts';
 
 interface Sidecar {
 	readonly file: string;
@@ -47,12 +55,16 @@ interface Milestone {
 const migrationRecordInput = z.record(
 	z.string(),
 	z.strictObject({
-		[decisionActorField]: recordActor,
+		[decisionActorField]: recordActor.optional(),
 		settles: z.string().trim().min(1).optional(),
 		settledBy: z.string().trim().min(1).optional(),
+		resolution: decisionSource.optional(),
+		options: choiceRecord.shape.options.optional(),
+		recommended: choiceRecord.shape.recommended.optional(),
 	}),
 );
 type MigrationRecordInput = z.infer<typeof migrationRecordInput>;
+const authorshipInput = z.record(z.string(), z.strictObject({ [decisionActorField]: recordActor }));
 
 interface MigrationInputs {
 	readonly source: string;
@@ -67,7 +79,12 @@ interface RecordConversion {
 	readonly extra?: MigrationRecordInput[string] | undefined;
 }
 
-const ignoreGenerated = ['*.generated.json', 'design-sdk.generated.ts', 'design-schema.d.ts'];
+const ignoreGenerated = [
+	'*.generated.json',
+	'*.generated.js',
+	'design-sdk.generated.ts',
+	'design-schema.d.ts',
+];
 
 function generated(file: string): boolean {
 	const name = basename(file);
@@ -216,32 +233,47 @@ function convertRecord(
 		return replacement ? { ...source, href: replacement.to } : source;
 	};
 	if (data.kind === 'assumption') {
-		if (!extra) throw new Error(`${data.id}: supply the assumption author in --record-input.`);
+		const author = extra?.by;
+		if (!author) throw new Error(`${data.id}: supply by in --record-input.`);
 		const shared = {
 			kind: 'assumption' as const,
 			id: data.id,
 			title: data.title,
-			[decisionActorField]: extra.by,
+			[decisionActorField]: author,
 			statement: data.statement,
 			weight: 'design' as const,
 			sources: sources.map(retarget),
 		};
-		if (data.status === 'open' && extra.settles)
+		if (data.status === 'open') {
+			if (!extra.settles) throw new Error(`${data.id}: supply settles in --record-input.`);
 			return { ...shared, status: data.status, settles: extra.settles };
-		if (data.status !== 'open' && extra.settledBy && data.resolution)
+		}
+		const resolution = data.resolution ?? extra.resolution;
+		if (extra.settledBy && resolution)
 			return {
 				...shared,
 				status: data.status,
 				settledBy: extra.settledBy,
-				resolution: retarget(data.resolution),
+				resolution: data.resolution ? retarget(data.resolution) : resolution,
 			};
-		throw new Error(
-			`${data.id}: supply the missing assumption settlement information in --record-input.`,
-		);
+		throw new Error(`${data.id}: supply settledBy and resolution in --record-input.`);
 	}
 	if (data.kind === 'choice') {
-		if (data.authority.state === 'owner-open')
-			throw new Error(`${data.id}: supply at least two real options before conversion.`);
+		if (data.authority.state === 'owner-open') {
+			if (!extra?.options || !extra.recommended)
+				throw new Error(`${data.id}: supply options and recommended in --record-input.`);
+			return {
+				kind: 'choice',
+				id: data.id,
+				title: data.title,
+				question: data.authority.question,
+				options: extra.options,
+				recommended: extra.recommended,
+				authority: { state: 'owner-open' },
+				sources: sources.map(retarget),
+				...(data.supersedes && { supersedes: data.supersedes }),
+			};
+		}
 
 		const primary = sources[0];
 		if (!primary) throw new Error(`${data.id}: supply a decision source before conversion.`);
@@ -510,20 +542,8 @@ async function planMigration({
 	const references = evidenceReferences(sets);
 	const dependencyChanges: RelationshipChanges[] = [];
 	const defaults: { id: string; field: string; source: string; references?: string[] }[] = [];
-	const blockedInputs: string[] = [];
-	for (const [id, { record }] of registry) {
-		if (record.kind === 'choice' && record.authority.state === 'owner-open')
-			blockedInputs.push(`${id}: supply two real options before conversion.`);
-		if (record.kind === 'assumption') {
-			const extra = recordInput[id];
-			if (!extra?.by) blockedInputs.push(`${id}: supply the assumption author.`);
-			if (record.status === 'open' && !extra?.settles)
-				blockedInputs.push(`${id}: supply what would settle the assumption.`);
-			if (record.status !== 'open' && !extra?.settledBy)
-				blockedInputs.push(`${id}: supply who settled the assumption.`);
-		}
-	}
-	if (blockedInputs.length) throw new Error(blockedInputs.join('\n'));
+	for (const id of Object.keys(recordInput))
+		if (!registry.has(id)) throw new Error(`No legacy record matches --record-input entry ${id}.`);
 	const converted = new Map<string, DesignRecord>();
 	for (const [id, authored] of registry) {
 		const page = pageChanges.get(id);
@@ -534,6 +554,13 @@ async function planMigration({
 			dependencyChanges,
 		);
 		converted.set(id, record);
+		if (
+			record.kind === 'assumption' ||
+			(record.kind === 'ruling' && record.authority.state === 'agent-decided')
+		)
+			defaults.push({ id, field: 'weight', source: 'design (legacy migration default)' });
+		if (record.kind === 'ruling' && record.authority.state === 'agent-decided')
+			defaults.push({ id, field: 'authority.by.role', source: 'lead (released Lead authority)' });
 		if (record.kind !== 'planned-check') continue;
 		if (!page?.statement) defaults.push({ id, field: 'statement', source: 'old title' });
 		if (journey.length !== 1)
@@ -661,12 +688,13 @@ async function main(): Promise<void> {
 			'generator-owned': { type: 'string', multiple: true },
 			'record-input': { type: 'string' },
 			'record-authorship': { type: 'boolean' },
+			'released-lean': { type: 'boolean' },
 			help: { type: 'boolean', short: 'h' },
 		},
 	});
 	if (values.help) {
 		process.stdout.write(
-			'Usage: node migrate-lean-design-records.ts --source DOCS --project RELATIVE_PROJECT [--output NEW_DOCS | --dry-run] [--generator-owned REGISTERED_NAMESPACE]... [--record-input INPUT.json] [--record-authorship]\n',
+			'Usage: node migrate-lean-design-records.ts --source DOCS --project RELATIVE_PROJECT [--output NEW_DOCS | --dry-run] [--generator-owned REGISTERED_NAMESPACE]... [--record-input INPUT.json] [--record-authorship | --released-lean]\n',
 		);
 		return;
 	}
@@ -677,23 +705,39 @@ async function main(): Promise<void> {
 	if (!containsPath(source, project))
 		throw new Error('The project must be within the source docs tree.');
 	const output = values.output && (await newOutput(values.output, source));
-	const recordInput = values['record-input']
-		? migrationRecordInput.parse(JSON.parse(await readFile(values['record-input'], 'utf8')))
+	if (values['record-authorship'] && values['released-lean'])
+		throw new Error('Choose one migration mode.');
+	if (values['generator-owned']?.length && (values['record-authorship'] || values['released-lean']))
+		throw new Error('--generator-owned applies to the pre-lean migration only.');
+	const input: unknown = values['record-input']
+		? JSON.parse(await readFile(values['record-input'], 'utf8'))
 		: {};
-	const { edits, report } = values['record-authorship']
-		? await planRecordAuthorship({
+	const plan = values['released-lean']
+		? await planReleasedProject({
 				source,
 				project,
 				read: guardedReader(source),
-				actors: new Map(Object.entries(recordInput).map(([id, record]) => [id, record.by])),
+				input: releasedRecordInput.parse(input),
 			})
-		: await planMigration({
-				source,
-				project,
-				generatorOwned: values['generator-owned'] ?? [],
-				recordInput,
-			});
-	if (!values['dry-run'] && output) {
+		: values['record-authorship']
+			? await planRecordAuthorship({
+					source,
+					project,
+					read: guardedReader(source),
+					actors: new Map(
+						Object.entries(authorshipInput.parse(input)).map(([id, record]) => [id, record.by]),
+					),
+				})
+			: await planMigration({
+					source,
+					project,
+					generatorOwned: values['generator-owned'] ?? [],
+					recordInput: migrationRecordInput.parse(input),
+				});
+	const { edits, report } = plan;
+	const blocked = 'blocked' in plan && plan.blocked === true;
+	let validation: string | undefined;
+	if (!values['dry-run'] && output && !blocked) {
 		await mkdir(output);
 		await Promise.all(
 			(await readdir(source)).map((child) =>
@@ -715,10 +759,12 @@ async function main(): Promise<void> {
 			// oxlint-disable-next-line no-await-in-loop -- write only the planned paths in the newly copied tree.
 			await writeFile(file, text);
 		}
+		validation = await checkProject(join(output, relative(source, project)), { siteRoot: output });
 	}
 	process.stdout.write(
-		`${JSON.stringify({ dryRun: !!values['dry-run'], changedFiles: edits.size, ...report }, null, 2)}\n`,
+		`${JSON.stringify({ dryRun: !!values['dry-run'], changedFiles: blocked ? 0 : edits.size, ...(blocked && { blocked }), ...report, ...(validation && { validation }) }, null, 2)}\n`,
 	);
+	if (blocked) process.exitCode = 1;
 }
 
 await main().catch((error: unknown): void => {
