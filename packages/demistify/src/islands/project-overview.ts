@@ -43,13 +43,20 @@ function renderDecision(list: HTMLUListElement, source: URL, decision: ProjectDe
 	const { record, status, authority, replacement, governedRecords } = decision;
 	const item = appendItem(list);
 	item.append(
-		recordLink(source, record, status === 'Open' ? record.authority?.question : undefined),
+		recordLink(
+			source,
+			record,
+			status === 'Open' ? (record.question ?? record.authority?.question) : undefined,
+		),
 		` · Authority: ${authority} · Status: ${status}`,
 	);
 	if (record.authority?.decidedOn) item.append(` · ${record.authority.decidedOn}`);
-	if (record.authority?.decision) {
+	const answer =
+		record.authority?.decision ??
+		(record.kind === 'ruling' && record.title !== record.statement ? record.statement : undefined);
+	if (answer) {
 		const outcome = document.createElement('p');
-		outcome.textContent = record.authority.decision;
+		outcome.textContent = answer;
 		item.append(outcome);
 	}
 	if (replacement) {

@@ -84,7 +84,8 @@ const statementWordLimit = 40;
 const englishSentences = new Intl.Segmenter('en', { granularity: 'sentence' });
 
 function statementLengthNote(record: DesignRecord): string | undefined {
-	if (record.kind === 'choice' || record.kind === 'assumption') return undefined;
+	if (record.kind === 'choice' || record.kind === 'ruling' || record.kind === 'assumption')
+		return undefined;
 	const { id, statement } = record;
 	const guidance =
 		record.kind === 'rule' || record.kind === 'planned-check'
@@ -116,6 +117,21 @@ export function designCheckNotes(
 	for (const record of records) {
 		const note = statementLengthNote(record);
 		if (note) notes.push(note);
+		const weight =
+			record.kind === 'assumption'
+				? record.weight
+				: (record.kind === 'choice' || record.kind === 'ruling') &&
+					  record.authority.state === 'agent-decided'
+					? record.authority.weight
+					: undefined;
+		if (!weight || weight === 'design') continue;
+		const dependentCount = records.filter((candidate) =>
+			recordRelationships(candidate).some(({ targetId }) => targetId === record.id),
+		).length;
+		if (dependentCount >= 3)
+			notes.push(
+				`${record.id}: ${dependentCount} records depend on this ${weight} item. Review its weight.`,
+			);
 	}
 	return notes.length ? ['Design notes', ...notes.map((note): string => `  ${note}`)] : [];
 }
@@ -259,7 +275,7 @@ function resolveGoverningDesign(
 	const designBlockers: DesignBlocker[] = [];
 	for (const record of governingRecords(deliverable, records)) {
 		const scopeId = record.id;
-		if (record?.kind === 'choice') {
+		if (record.kind === 'choice' || record.kind === 'ruling') {
 			governingItems.push(deliveryRecordLink(record, destinations));
 			if (record.authority.state === 'owner-open')
 				designBlockers.push({ blocksWork: true, reason: `${scopeId} requires an owner decision.` });

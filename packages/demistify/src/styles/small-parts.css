@@ -3,7 +3,7 @@ ex-badge {
 	--tone: var(--ink-soft);
 	--tone-bg: var(--surface-content);
 	display: inline-flex;
-	align-items: baseline;
+	align-items: center;
 	gap: var(--space-1);
 	max-width: 100%;
 	min-width: 0;
@@ -17,6 +17,14 @@ ex-badge {
 	overflow-wrap: anywhere;
 	vertical-align: baseline;
 }
+ex-badge > .ph {
+	display: inline-grid;
+	place-items: center;
+	flex: none;
+	inline-size: 1em;
+	block-size: 1em;
+	line-height: 1;
+}
 ex-badge[tone='done'] {
 	--tone: var(--tone-added);
 	--tone-bg: var(--tone-added-surface);
@@ -29,12 +37,25 @@ ex-badge[tone='risk'] {
 	--tone: var(--tone-risk);
 	--tone-bg: var(--tone-risk-surface);
 }
-ex-badge::before {
+ex-badge[tone='question'] {
+	--tone: var(--tone-question);
+	--tone-bg: var(--tone-question-surface);
+}
+ex-badge[tone='decision'] {
+	--tone: var(--tone-decision);
+	--tone-bg: var(--tone-decision-surface);
+}
+ex-badge:is(
+		[tone='done'],
+		[tone='note'],
+		[tone='risk'],
+		[tone='question'],
+		[tone='decision']
+	)::before {
 	content: '';
 	flex: none;
 	width: 6px;
 	height: 6px;
-	margin-block-end: 0.15em;
 	border-radius: 50%;
 	background: currentColor;
 }

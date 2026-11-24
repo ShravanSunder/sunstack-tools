@@ -11,8 +11,6 @@ import { readDeliveryEntries } from '../../src/node/design-authoring/read-delive
 import { readLiteral, unwrapExpression } from '../../src/node/design-authoring/read-design.ts';
 import {
 	authoredDesignSchema,
-	assumptionRecord,
-	choiceRecord,
 	designSchema,
 	htmlDestination,
 	recordId,
@@ -56,9 +54,48 @@ const legacyRecordSchema = z.discriminatedUnion('kind', [
 		cases: z.array(z.strictObject({ given: nonempty, expect: nonempty })).min(3),
 	}),
 ]);
-const legacyDecisions = z.array(choiceRecord.extend(legacyFields));
+const legacyDecisionBody = { decision: nonempty, decidedOn: z.iso.date() };
+const legacyDecisions = z.array(
+	z.strictObject({
+		...legacyFields,
+		sources: z.tuple([sourceReference], sourceReference),
+		kind: z.literal('choice'),
+		supersedes: recordReference.optional(),
+		authority: z.discriminatedUnion('state', [
+			z.strictObject({
+				state: z.literal('owner-open'),
+				owner: z.literal('owner'),
+				question: nonempty,
+			}),
+			z.strictObject({
+				state: z.literal('owner-decided'),
+				owner: z.literal('owner'),
+				sourceKind: z.enum(['owner-words', 'owner-accepted']),
+				...legacyDecisionBody,
+			}),
+			z.strictObject({
+				state: z.literal('lead-decided'),
+				lead: nonempty,
+				sourceKind: z.enum(['author', 'contract']),
+				rationale: nonempty,
+				...legacyDecisionBody,
+			}),
+		]),
+	}),
+);
 const legacyAssumptions = z.array(
-	assumptionRecord.safeExtend({ ...legacyFields, statement: nonempty }),
+	z
+		.strictObject({
+			...legacyFields,
+			kind: z.literal('assumption'),
+			statement: nonempty,
+			status: z.enum(['open', 'confirmed', 'refuted']),
+			resolution: sourceReference.optional(),
+		})
+		.refine(
+			({ status, resolution }) => status !== 'open' || resolution === undefined,
+			'An open assumption cannot already have a resolution.',
+		),
 );
 const legacyDesignSchema = authoredDesignSchema.extend({
 	records: z.array(legacyRecordSchema),
@@ -227,7 +264,8 @@ const helperByKind = {
 	rule: 'defineRule',
 	realization: 'defineRealization',
 	'planned-check': 'defineCheck',
-	choice: 'defineDecision',
+	choice: 'defineChoice',
+	ruling: 'defineRuling',
 	assumption: 'defineAssumption',
 } satisfies Record<DesignRecord['kind'], string>;
 
@@ -267,7 +305,15 @@ export function emitSidecar(
 	shared: boolean,
 ): string {
 	if (shared) {
-		const imports = original.slice(0, original.indexOf('export default'));
+		const parsed = typescript.createSourceFile(
+			'shared-records.ts',
+			original,
+			typescript.ScriptTarget.ES2022,
+			true,
+		);
+		const entry = parsed.statements.find(typescript.isExportAssignment);
+		if (!entry || entry.isExportEquals) throw new Error('A shared sidecar needs a default export.');
+		const imports = original.slice(0, entry.getStart(parsed));
 		return `${imports}export default ${JSON.stringify(records, null, 2)} as const;\n`;
 	}
 	const helpers = new Set(records.map(({ kind }): string => helperByKind[kind]));

@@ -1,5 +1,11 @@
 import { z } from 'zod';
 
+import {
+	assumptionRecord,
+	choiceRecord,
+	isDecision,
+	rulingRecord,
+} from '../../core/decision-record.ts';
 import { deliveryAcceptanceSchema } from '../../core/deliverables-view.ts';
 import {
 	navigationTargetSchema,
@@ -48,11 +54,6 @@ export const htmlDestination = z.strictObject({
 	page: relativeFile,
 	fragment: recordId,
 });
-const sourceReference = z.strictObject({
-	href: relativeHref,
-	excerpt: nonEmptyText,
-	verbatim: z.literal(true).optional(),
-});
 const recordBase = {
 	id: recordId,
 	title: nonEmptyText.optional(),
@@ -65,7 +66,7 @@ const dependencies = {
 const cases = z.array(z.strictObject({ given: nonEmptyText, expect: nonEmptyText }));
 const referenceList = z.union([recordReference, z.array(recordReference).min(1)]);
 
-const needRecord = z.strictObject({ ...designStatement, kind: z.literal('need') });
+const needRecord = z.strictObject({ ...designStatement, ...dependencies, kind: z.literal('need') });
 const ruleRecord = z.strictObject({
 	...designStatement,
 	...dependencies,
@@ -89,58 +90,6 @@ const plannedCheckRecord = z.strictObject({
 	cases: cases.min(3),
 });
 
-const ownerWords = z
-	.string()
-	.refine((value): boolean => value.trim().length > 0, 'must contain text');
-const settledDecision = {
-	decision: ownerWords,
-	decidedOn: z.iso.date(),
-};
-const choiceAuthority = z.discriminatedUnion('state', [
-	z.strictObject({
-		state: z.literal('owner-decided'),
-		owner: z.literal('owner'),
-		sourceKind: z.enum(['owner-words', 'owner-accepted']),
-		...settledDecision,
-	}),
-	z.strictObject({
-		state: z.literal('owner-open'),
-		owner: z.literal('owner'),
-		question: ownerWords,
-	}),
-	z.strictObject({
-		state: z.literal('lead-decided'),
-		lead: nonEmptyText,
-		sourceKind: z.enum(['author', 'contract']),
-		rationale: nonEmptyText,
-		...settledDecision,
-	}),
-]);
-export const choiceRecord = z.strictObject({
-	...recordBase,
-	kind: z.literal('choice'),
-	sources: z.array(sourceReference).optional(),
-	authority: choiceAuthority,
-	supersedes: recordReference.optional(),
-});
-export const assumptionRecord = z
-	.strictObject({
-		...recordBase,
-		kind: z.literal('assumption'),
-		sources: z.array(sourceReference).optional(),
-		statement: nonEmptyText,
-		status: z.enum(['open', 'confirmed', 'refuted']),
-		resolution: sourceReference.optional(),
-	})
-	.refine(({ status, resolution }) => status === 'open' || resolution !== undefined, {
-		path: ['resolution'],
-		message: 'confirmed and refuted assumptions require a resolution source',
-	})
-	.refine(({ status, resolution }) => status !== 'open' || resolution === undefined, {
-		path: ['resolution'],
-		message: 'remove the resolution source or mark the assumption confirmed or refuted',
-	});
-
 const designRecords = [needRecord, ruleRecord, realizationRecord, plannedCheckRecord] as const;
 
 export const authoredDesignSchema = z.strictObject({
@@ -153,7 +102,7 @@ export const authoredDesignSchema = z.strictObject({
 
 export const designSchema = authoredDesignSchema.extend({
 	records: z.array(
-		z.discriminatedUnion('kind', [...designRecords, choiceRecord, assumptionRecord]),
+		z.discriminatedUnion('kind', [...designRecords, choiceRecord, rulingRecord, assumptionRecord]),
 	),
 });
 
@@ -163,9 +112,7 @@ export type DesignRecord = DesignCore['records'][number];
 
 export function recordStatement(record: DesignRecord): string {
 	if (record.kind !== 'choice') return record.statement;
-	return record.authority.state === 'owner-open'
-		? record.authority.question
-		: record.authority.decision;
+	return record.authority.state === 'owner-open' ? record.question : record.authority.decision;
 }
 
 export function recordLabel(record: DesignRecord): string {
@@ -179,13 +126,15 @@ export interface RecordRelationship {
 }
 
 export function recordRelationships(record: DesignRecord): RecordRelationship[] {
-	if (record.kind === 'choice' || record.kind === 'assumption' || record.kind === 'need') return [];
+	if (isDecision(record) || record.kind === 'assumption') return [];
 	const primary =
 		record.kind === 'rule'
 			? record.serves
 			: record.kind === 'realization'
 				? record.realizes
-				: record.checks;
+				: record.kind === 'planned-check'
+					? record.checks
+					: undefined;
 	const relation: RecordRelation =
 		record.kind === 'rule' ? 'serves' : record.kind === 'realization' ? 'realizes' : 'checks';
 	return [
@@ -198,4 +147,8 @@ export function recordRelationships(record: DesignRecord): RecordRelationship[] 
 		})),
 		...(record.reliesOn ?? []).map((targetId) => ({ relation: 'relies-on' as const, targetId })),
 	];
+}
+
+export function qualifyRecord(namespace: string | undefined, reference: string): string {
+	return namespace && !reference.includes('/') ? `${namespace}/${reference}` : reference;
 }

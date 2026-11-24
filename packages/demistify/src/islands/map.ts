@@ -191,12 +191,13 @@ export class MapIsland extends HTMLElement {
 			const label = link.closest('.ex-tree-node')?.querySelector('.ex-tree-label');
 			if (!label) continue;
 			let count = label.querySelector(':scope > .ex-map-count');
+
 			if (!count) {
 				count = document.createElement('span');
 				count.className = 'ex-map-count';
 				label.append(count);
 			}
-			const text = ` · ${readSectionMembership(section).total}`;
+			const text = ` · ${section instanceof HTMLElement ? readSectionMembership(section).total : 0}`;
 			if (count.textContent !== text) count.textContent = text;
 		}
 	}

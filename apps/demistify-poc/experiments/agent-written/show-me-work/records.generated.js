@@ -1,0 +1,1 @@
+document.currentScript.dataset.demistifyRecords = "{\"version\":1,\"pages\":{\"rolling-v1.html\":{\"placements\":[{\"reference\":\"D1\",\"statement\":\"Which store?\",\"decision\":\"legacy/D1\"}],\"trees\":[]}}}";

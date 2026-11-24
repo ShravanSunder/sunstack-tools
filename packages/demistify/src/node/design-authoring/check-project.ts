@@ -27,7 +27,11 @@ import {
 	readProjectIdentities,
 	readProjectManifest,
 } from './read-project.ts';
-import { projectedDestinations, qualifyRecord } from './record-projection.ts';
+import {
+	attachDecisionDeliverables,
+	projectedDestinations,
+	qualifyRecord,
+} from './record-projection.ts';
 import { recordLabel, recordRelationships, type DesignCore, type DesignRecord } from './schema.ts';
 
 type EvidenceReceipt = NonNullable<CoreDeliverable['verification']>;
@@ -83,14 +87,16 @@ function projectRecord(record: DesignRecord, name: string): DesignRecord {
 				checks: references(record.checks),
 			};
 		case 'choice':
+		case 'ruling':
 			return {
 				...record,
 				...identifier,
 				...(record.supersedes && { supersedes: qualify(name, record.supersedes) }),
 			};
 		case 'assumption':
-		case 'need':
 			return { ...record, ...identifier };
+		case 'need':
+			return { ...record, ...identifier, ...dependencies(record) };
 		default:
 			return record satisfies never;
 	}
@@ -286,7 +292,7 @@ export async function loadProject(directory: string, siteRoot?: string): Promise
 	): Promise<SharedRecordSource[]> {
 		if (file === undefined) return [];
 		const text = await readAuthoringInput(file);
-		const records = readDesignItems(file, text, kind);
+		const records = readDesignItems(file, text, kind, root);
 		const declarations = projectRecordTypeImports(file, text, root).map(
 			(path): [string, string] => [path, designTypeSource],
 		);
@@ -371,6 +377,7 @@ export async function buildProject(
 	);
 	const destinations = projectedDestinations(projection, root);
 	const delivery = projectDelivery(design, entries, destinations);
+	attachDecisionDeliverables(recordOutputs, delivery, root, projection);
 	await Promise.all(delivery.evidence.map((href) => check.checkEvidence(href, projectFile)));
 	const output = {
 		version: 1,
@@ -428,8 +435,8 @@ export async function buildProject(
 			? [
 					'Waiting on owner',
 					...questions.map(
-						({ record: { id, title, authority } }): string =>
-							`  ${id} · ${authority?.question ?? title}`,
+						({ record: { id, title, question, authority } }): string =>
+							`  ${id} · ${question ?? authority?.question ?? title}`,
 					),
 				]
 			: []),

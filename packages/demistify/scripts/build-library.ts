@@ -142,14 +142,19 @@ const declarations = Object.entries(vocabulary).map(([tagName, spec]) => {
 			}),
 		),
 	};
+	if (spec.noAuthoredChildren) declaration['x-demistify'] = { authoredChildren: false };
 	return declaration;
 });
 const customData = [
-	...Object.entries(vocabulary).map(([name, spec]) => ({
-		name,
-		description: spec.description,
-		attributes: editorAttributes({ ...layoutAttributes, ...spec.attributes }),
-	})),
+	...Object.entries(vocabulary).map(([name, spec]) => {
+		const tag: Record<string, unknown> = {
+			name,
+			description: spec.description,
+			attributes: editorAttributes({ ...layoutAttributes, ...spec.attributes }),
+		};
+		if (spec.noAuthoredChildren) tag['x-demistify'] = { authoredChildren: false };
+		return tag;
+	}),
 	...Object.entries(vocabulary).flatMap(([parentTag, spec]) => {
 		const description = childContractDescription(parentTag, spec);
 		if (!spec.childTag || !spec.childAttributes || !description) return [];

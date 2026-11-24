@@ -513,7 +513,7 @@ ex-code {
 	--diff-removed-bg: color-mix(in srgb, var(--diff-removed) 14%, var(--surface-page));
 	display: block;
 	container-type: inline-size;
-	background: var(--surface-content);
+	background: var(--surface-code);
 	border: 1px solid var(--rule);
 	border-radius: var(--radius-md);
 	overflow: visible;
@@ -565,7 +565,7 @@ ex-code {
 }
 .ex-code-number[data-noted] {
 	color: var(--tone);
-	background: var(--keep-bg);
+	background: color-mix(in srgb, var(--tone, var(--accent)) 12%, var(--surface-code));
 	font-weight: 600;
 	opacity: 1;
 }
@@ -581,7 +581,7 @@ ex-code {
 	color: var(--ink-soft);
 }
 .ex-code-text[data-noted]:not([data-kind='added']):not([data-kind='removed']) {
-	background: var(--keep-bg);
+	background: color-mix(in srgb, var(--tone, var(--accent)) 12%, var(--surface-code));
 	border-left-color: var(--tone);
 }
 .ex-code-margin {
@@ -1371,7 +1371,7 @@ ex-pre > pre {
 	padding: var(--space-4);
 	border: 1px solid var(--rule);
 	border-radius: var(--radius-md);
-	background: var(--surface-content);
+	background: var(--surface-code);
 	font: var(--text-sm)/1.5 var(--font-mono);
 	white-space: pre;
 }

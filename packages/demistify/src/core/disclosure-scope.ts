@@ -1,4 +1,5 @@
 import { createIconButton, createPhosphorIcon } from './icons.ts';
+import { smallerStoriesSelector } from './section-membership.ts';
 import { storyDisclosures } from './story-content.ts';
 
 export type DisclosureAction =
@@ -10,7 +11,7 @@ export function readDisclosureAction(root: HTMLElement): DisclosureAction {
 	const stories = [...root.querySelectorAll('ex-story')];
 	if (root.localName === 'ex-story') stories.unshift(root);
 	const members = new Set(stories.flatMap(storyDisclosures));
-	for (const group of root.querySelectorAll('ex-section > details[slot="smaller"]'))
+	for (const group of root.querySelectorAll(smallerStoriesSelector))
 		if (group instanceof HTMLDetailsElement) members.add(group);
 	const current = [...members];
 	if (!current.length) return { kind: 'empty' };

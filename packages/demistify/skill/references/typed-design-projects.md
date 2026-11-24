@@ -22,11 +22,23 @@ The shared files export literal arrays with an explicit `kind`, and use only typ
 import type { DesignDecision } from './milestones/2026-11-messages/design-schema.d.ts';
 
 export default [
-  { id: 'D1', kind: 'choice', authority: { state: 'owner-open', owner: 'owner', question: 'Which end state should the reader show?' } },
+  {
+    id: 'D1',
+    kind: 'choice',
+    question: 'Which end state should the reader show?',
+    options: [
+      { id: 'last-seen', title: 'Show the last observed state' },
+      { id: 'unknown', title: 'Show unknown until observed again' },
+    ],
+    recommended: 'none',
+    authority: { state: 'owner-open' },
+  },
 ] as const satisfies readonly DesignDecision[];
 ```
 
-Refer to a shared record as `project/D1` or `project/A1`, and to another milestone's record or deliverable as `sessions/D4` or `sessions/DEL-01`. Qualified references need `project check`; `design check` rejects them.
+Shared rulings use `kind: 'ruling'`, `statement` and settled authority. Shared assumptions use `kind: 'assumption'` and the `DesignAssumption` type. Follow the [decision and assumption fields](typed-design.md#decisions-and-assumptions) in both cases. Shared source links resolve from the project folder.
+
+Refer to a shared record as `project/D1` or `project/A1`, and to another milestone's record or deliverable as `sessions/D4` or `sessions/DEL-01`. Place a shared decision or assumption with `<ex-section-item record="project/D1">` and its authored body on one declared page. Qualified references need `project check`. Use links from any other page that discusses the record.
 
 ## Agent aliases
 
@@ -40,7 +52,7 @@ const messagesBuilder = agentId('replace-with-the-builder-session-id');
 export default { owner: 'owner', agents: { 'messages-lead': messagesLead, 'messages-builder': messagesBuilder } };
 ```
 
-Declare each `agentId` as a top-level `const`. Name a milestone's Lead with `defineDelivery(design, entries, { lead: 'messages-lead' })` and a deliverable's builder with `builder: 'messages-builder'`. The check rejects an alias missing from `agents-identity.ts`. Generated views show aliases; session IDs stay in the identity file.
+Declare each `agentId` as a top-level `const`. Use aliases from this file in agent decisions, recommendations and assumptions, for example `by: { alias: 'messages-lead', role: 'lead' }`. Name a milestone's Lead with `defineDelivery(design, entries, { lead: 'messages-lead' })` and a deliverable's builder with `builder: 'messages-builder'`. The checker validates aliases used for delivery assignments against the identity file. Generated views show aliases. Session IDs stay in the identity file.
 
 ## Check and read the project
 
@@ -59,3 +71,19 @@ For a project-wide view, place this in the project's `index.html` and serve it w
 ```
 
 It links owner questions, milestones, deliverables and records to their pages. Use `ex-deliverables` for one milestone's detail.
+
+## Migrate a project from 1.32.1
+
+From the Demistify source checkout, run the migration against a committed copy of the docs tree. The dry run validates a temporary copy when all required inputs are present. If the JSON report has `blocked: true`, fill the missing values in its `recordInput` object and save that object in `record-input.json`. Where the report lists `sourceCandidates`, copy the source that establishes the decision into the record's `source` field.
+
+```sh
+node packages/demistify/scripts/migrate-lean-design-records.ts \
+  --released-lean --source /path/to/copied/docs --project projects/2026-11-router --dry-run
+node packages/demistify/scripts/migrate-lean-design-records.ts \
+  --released-lean --source /path/to/copied/docs --project projects/2026-11-router \
+  --record-input /path/to/record-input.json --output /path/to/new/docs
+```
+
+The migration uses the original record IDs, page bindings and links. It reads a contiguous block of migration comments immediately above a record. Use `// weight: design`, `// weight: process` or `// weight: minor` for weight and `// by: messages-lead lead` for an assumption's author. Use `// settles: <sentence>` for an open assumption's settling condition and `// settledBy: <alias>` for a confirmed or refuted assumption. A `settles: unknown` comment leaves the settling condition missing. Explicit input takes precedence over comments and the report lists conflicts.
+
+If a bound Choice already has options in HTML, the migration reads them from that page and preserves the original option and Details fragment IDs. Supply the recommendation and any other missing decision fields in the input file. The migration moves a section's authored contents into a sibling item and publishes the requested output directory only after the project checker passes. Regenerate views with `project check --write` using the matching CLI, then open the resulting pages.

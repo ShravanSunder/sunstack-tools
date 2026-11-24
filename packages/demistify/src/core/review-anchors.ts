@@ -1,4 +1,5 @@
 import { textAnchorMatches, type CommentAnchor, type TextCommentAnchor } from './review-model.ts';
+import { sectionForReviewWrapper } from './section-membership.ts';
 
 export interface ReviewTarget {
 	readonly targetId: string;
@@ -55,11 +56,20 @@ export function ensureReviewTargetId(element: Element, root: HTMLElement): void 
 	while (current && current !== root && !current.id) {
 		const parent: Element | null = current.parentElement;
 		if (!parent) break;
-		const siblings = [...parent.children].filter(
-			(sibling): boolean => sibling.localName === current?.localName,
-		);
+		if (current.matches('.ex-record-surface') && parent.matches('ex-section-item[record]')) {
+			current = parent;
+			continue;
+		}
+		const owner: Element = sectionForReviewWrapper(parent) ?? parent;
+		// Count all logical siblings in DOM order, including across ordinary section items.
+		const siblings: Element[] = [];
+		for (const child of owner.children) {
+			const group = sectionForReviewWrapper(child) ? child.children : [child];
+			for (const sibling of group)
+				if (sibling.localName === current.localName) siblings.push(sibling);
+		}
 		path.unshift(`${current.localName}-${siblings.indexOf(current) + 1}`);
-		current = parent;
+		current = owner;
 	}
 	const base = `${current?.id || root.id}--review-${path.join('-')}`;
 	let candidate = base;

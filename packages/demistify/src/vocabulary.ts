@@ -1,3 +1,4 @@
+import { badgeIconNames } from './core/icons.ts';
 /**
  * The authoring vocabulary: every element, the attributes it accepts and what they mean. It is the
  * one source for the runtime's attribute checks, the `demistify check` CLI, the element manifest
@@ -29,6 +30,7 @@ export interface ElementSpec {
 	readonly description: string;
 	readonly attributes: Readonly<Record<string, AttributeSpec>>;
 	readonly childTag?: string;
+	readonly noAuthoredChildren?: true;
 	/** Attributes this element gives its direct children (e.g. `span` inside a grid). */
 	readonly childAttributes?: Readonly<Record<string, AttributeSpec>>;
 	/** The element must sit inside one of these. */
@@ -230,7 +232,10 @@ export const vocabulary: Readonly<Record<string, ElementSpec>> = {
 	},
 	'ex-badge': {
 		description: 'A normal-text label with an optional existing semantic tone.',
-		attributes: { tone },
+		attributes: {
+			tone,
+			icon: oneOf('An optional icon shown alongside the written label.', badgeIconNames),
+		},
 	},
 	'ex-progress': {
 		description: 'One exact completed count and total; missing counts remain not reported.',

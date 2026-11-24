@@ -1,3 +1,5 @@
+export const badgeIconNames = ['target', 'article', 'code', 'shield-check'] as const;
+
 export function createPhosphorIcon(iconName: string): HTMLElement {
 	const icon = document.createElement('i');
 	icon.className = `ph ph-${iconName}`;

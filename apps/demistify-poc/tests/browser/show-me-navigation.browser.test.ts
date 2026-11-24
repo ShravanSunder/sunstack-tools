@@ -170,13 +170,13 @@ test.each([1280, 390])(
 
 		// Integration input: a newly authored story, not a clone of enhanced output.
 		const template = fixture.createElement('template');
-		template.innerHTML = `<ex-story><details id="added-story" open><summary>Newly added account</summary>
+		template.innerHTML = `<ex-section-item section="delivery"><ex-story><details id="added-story" open><summary>Newly added account</summary>
 		<p slot="headline">An added member changes the count.</p><div slot="happened">Added locally.</div>
 		<div slot="for-you">Read the updated count.</div><div slot="next">Remove this member.</div>
-		<details slot="record"><summary>The record: 0 entries</summary></details></details></ex-story>`;
+		<details slot="record"><summary>The record: 0 entries</summary></details></details></ex-story></ex-section-item>`;
 		const added = template.content.firstElementChild;
 		if (!added) throw new Error('Missing authored membership input.');
-		requiredElement(fixture, '#smaller').before(added);
+		requiredElement(fixture, '#delivery').append(added);
 		await expect.poll((): string | null => deliveryCount.textContent).toBe(' · 3');
 		expect(requiredElement(fixture, '#delivery > .ex-section-head').textContent).toContain(
 			'2 + 1 smaller',

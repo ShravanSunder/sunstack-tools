@@ -1,6 +1,7 @@
 import { readFile, realpath } from 'node:fs/promises';
 import { basename, dirname, extname, join, relative, resolve } from 'node:path';
 
+import { isDecision } from '../../core/decision-record.ts';
 import { deliverablesViewSchema } from '../../core/deliverables-view.ts';
 import { designRecordsFilename, type DesignRecordView } from '../../core/design-record-view.ts';
 import type { NavigationTarget, SharedMapNode } from '../../core/shared-navigation.ts';
@@ -39,6 +40,7 @@ import { readDesignSources } from './read-design.ts';
 import { putPageRecords, recordOutputFile, recordRegistrationScript } from './record-output.ts';
 import {
 	prepareRecordPage,
+	attachDecisionDeliverables,
 	projectedDestinations,
 	projectRecords,
 	type RecordProjection,
@@ -70,15 +72,24 @@ export function checkRecordRelationships(
 	if (recordsById.size !== records.length) throw new Error('Duplicate design record ID.');
 	const replacements = new Map<string, string>();
 	for (const record of records) {
-		if (record.kind !== 'choice' || !record.supersedes) continue;
+		if (record.kind === 'choice') {
+			const optionIds = new Set(record.options.map(({ id }) => id));
+			if (optionIds.size !== record.options.length)
+				throw new Error(`${record.id}: option IDs must be unique.`);
+			if (record.recommended !== 'none' && !optionIds.has(record.recommended.option))
+				throw new Error(`${record.id}: recommendation names an unknown option.`);
+			if (record.authority.state !== 'owner-open' && !optionIds.has(record.authority.chosen))
+				throw new Error(`${record.id}: chosen option is unknown.`);
+		}
+		if (!isDecision(record) || !record.supersedes) continue;
 		const previous = recordsById.get(record.supersedes);
-		if (previous?.kind !== 'choice')
+		if (!isDecision(previous))
 			throw new Error(`${record.id} supersedes an unknown decision: ${record.supersedes}.`);
 		if (record.authority.state === 'owner-open')
 			throw new Error(
 				`${record.id}: settle the owner question before superseding ${record.supersedes}.`,
 			);
-		if (previous.authority.state !== 'lead-decided' && record.authority.state !== 'owner-decided')
+		if (previous.authority.state !== 'agent-decided' && record.authority.state !== 'owner-decided')
 			throw new Error(`${record.id}: only an Owner decision can supersede ${record.supersedes}.`);
 		if (replacements.has(record.supersedes))
 			throw new Error(`More than one decision supersedes ${record.supersedes}.`);
@@ -102,11 +113,30 @@ export function checkRecordRelationships(
 				throw new Error(
 					`${record.id} uses superseded decision ${link.targetId}. Review ${replacement}.`,
 				);
-			if (recordsById.get(link.targetId)?.kind !== kind)
+			const target = recordsById.get(link.targetId);
+			if (link.relation === 'governed-by' ? !isDecision(target) : target?.kind !== kind)
 				throw new Error(
 					`${record.id} ${link.relation} must resolve to a ${kind}: ${link.targetId}`,
 				);
 		}
+	}
+	for (const record of records) {
+		const weight =
+			record.kind === 'assumption'
+				? record.weight
+				: isDecision(record) && record.authority.state === 'agent-decided'
+					? record.authority.weight
+					: 'design';
+		if (weight === 'design') continue;
+		const governsRequirement = records.some(
+			(dependent) =>
+				(dependent.kind === 'need' || dependent.kind === 'rule') &&
+				recordRelationships(dependent).some(({ targetId }) => targetId === record.id),
+		);
+		if (governsRequirement)
+			throw new Error(
+				`${record.id}: a record that governs a need or rule must have design weight.`,
+			);
 	}
 	return recordsById;
 }
@@ -254,21 +284,26 @@ export async function openDesignCheck(siteRoot: string): Promise<DesignCheck> {
 		await Promise.all(
 			records.flatMap((record) => {
 				const sources =
-					record.kind === 'choice' || record.kind === 'assumption' ? (record.sources ?? []) : [];
-				const resolution = record.kind === 'assumption' ? record.resolution : undefined;
-				return [...sources, ...(resolution ? [resolution] : [])].map(async (source) => {
-					const target = resolveLink(source.href, sourceFile);
-					if (!target) throw new Error(`Source reference must be local: ${source.href}`);
-					await checkDestination(target.file, target.fragment, source.verbatim === true);
-					if (!source.verbatim) return;
-					if (!isHtml(target.file))
-						throw new Error(
-							`${record.id}: verbatim excerpts require an HTML source: ${source.href}`,
-						);
-					const text = passageText(await readSiteFile(target.file), target.fragment || undefined);
-					if (!text.includes(normalizeExcerpt(source.excerpt)))
-						throw new Error(`${record.id}: verbatim excerpt does not appear in ${source.href}.`);
-				});
+					isDecision(record) || record.kind === 'assumption' ? (record.sources ?? []) : [];
+				const resolution =
+					record.kind === 'assumption' && record.status !== 'open' ? record.resolution : undefined;
+				const basis =
+					isDecision(record) && 'source' in record.authority ? record.authority.source : undefined;
+				return [...sources, ...(resolution ? [resolution] : []), ...(basis ? [basis] : [])].map(
+					async (source) => {
+						const target = resolveLink(source.href, sourceFile);
+						if (!target) throw new Error(`Source reference must be local: ${source.href}`);
+						await checkDestination(target.file, target.fragment, source.verbatim === true);
+						if (!source.verbatim) return;
+						if (!isHtml(target.file))
+							throw new Error(
+								`${record.id}: verbatim excerpts require an HTML source: ${source.href}`,
+							);
+						const text = passageText(await readSiteFile(target.file), target.fragment || undefined);
+						if (!text.includes(normalizeExcerpt(source.excerpt)))
+							throw new Error(`${record.id}: verbatim excerpt does not appear in ${source.href}.`);
+					},
+				);
 			}),
 		);
 	}
@@ -297,7 +332,13 @@ export async function openDesignCheck(siteRoot: string): Promise<DesignCheck> {
 		for (const page of authored) {
 			const prepared = prepareRecordPage({ ...page, projection });
 			preparedPages.set(page.file, prepared.html);
-			if (prepared.records.placements.length === 0 && prepared.records.trees.length === 0) continue;
+			if (
+				prepared.records.placements.length === 0 &&
+				prepared.records.trees.length === 0 &&
+				!prepared.records.statuses?.length &&
+				!prepared.records.sectionItems?.length
+			)
+				continue;
 			const output = recordOutputFile(page.markup, page.file, siteDirectory, recordOutputs);
 			const view = recordOutputs.get(output);
 			if (!view) throw new Error('No registered record output at ' + output);
@@ -323,6 +364,7 @@ export async function openDesignCheck(siteRoot: string): Promise<DesignCheck> {
 			setDirectory,
 			readOwnedInput,
 			readOptionalOwnedInput,
+			authoringRoot ?? setDirectory,
 		);
 		const deliverySource = await readDeliveryEntries(
 			designFile,
@@ -572,7 +614,7 @@ export async function loadDesignSet(
 		set.design.records
 			.flatMap((record) => [
 				...recordRelationships(record).map(({ targetId }) => targetId),
-				...(record.kind === 'choice' && record.supersedes ? [record.supersedes] : []),
+				...(isDecision(record) && record.supersedes ? [record.supersedes] : []),
 			])
 			.find((reference): boolean => reference.includes('/')) ??
 		set.entries
@@ -613,6 +655,7 @@ export async function buildDesignSet(
 		entries,
 		projectedDestinations(projection, set.directory),
 	);
+	attachDecisionDeliverables(recordOutputs, delivery, set.directory, projection);
 	const plan = await reader.plan(delivery, { projection, preparedPages });
 	if (options.write)
 		await writeDesignBuild(

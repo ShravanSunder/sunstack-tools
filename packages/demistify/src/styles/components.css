@@ -335,7 +335,6 @@ button[aria-selected='true'] {
 }
 ex-markdown pre {
 	overflow: auto;
-	background: var(--surface-content);
 	border: 1px solid var(--rule);
 	padding: var(--space-4);
 	font: var(--text-xs)/1.6 var(--font-mono);
@@ -360,6 +359,9 @@ ex-document .ex-table-scroll:not(:is(ex-card, ex-callout, ex-compare, ex-grid) *
 }
 :is(ex-code, ex-pre, pre) {
 	tab-size: 2;
+}
+pre {
+	background: var(--surface-code);
 }
 ex-markdown ex-mermaid svg {
 	display: block;

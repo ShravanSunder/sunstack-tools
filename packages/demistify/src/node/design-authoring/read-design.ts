@@ -3,7 +3,9 @@ import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'nod
 import typescript from 'typescript';
 import { z } from 'zod';
 
-import { assumptionRecord, authoredDesignSchema, choiceRecord } from './schema.ts';
+import { assumptionRecord, decisionRecord } from '../../core/decision-record.ts';
+import { recordItemValidationError, releasedRecordMigration } from './record-item-diagnostics.ts';
+import { authoredDesignSchema } from './schema.ts';
 import type { AuthoredDesign, DesignCore, DesignRecord } from './schema.ts';
 
 export const designDeclarationFilename = 'design-schema.d.ts';
@@ -14,7 +16,8 @@ const recordHelperKinds: ReadonlyMap<string, DesignRecord['kind']> = new Map([
 	['defineRule', 'rule'],
 	['defineRealization', 'realization'],
 	['defineCheck', 'planned-check'],
-	['defineDecision', 'choice'],
+	['defineChoice', 'choice'],
+	['defineRuling', 'ruling'],
 	['defineAssumption', 'assumption'],
 ]);
 
@@ -139,6 +142,10 @@ function sdkBindings(
 		for (const binding of named.elements) {
 			if (binding.isTypeOnly) continue;
 			const name = (binding.propertyName ?? binding.name).text;
+			if (name === 'defineDecision')
+				throw new Error(
+					`${file}: defineDecision was replaced by defineChoice for alternatives and defineRuling for a settled statement. ${releasedRecordMigration}`,
+				);
 			if (
 				(name !== 'defineDesign' && !recordHelperKinds.has(name)) ||
 				bindings.has(binding.name.text)
@@ -364,21 +371,22 @@ export function readDesignItems(
 	file: string,
 	text: string,
 	kind: 'choice' | 'assumption',
-	sdkFile = join(dirname(file), deliverySdkFilename),
+	projectDirectory = dirname(file),
 ): DesignRecord[] {
-	const input = readDefaultRecords(file, text, sdkFile);
+	const input = readDefaultRecords(file, text, join(dirname(file), deliverySdkFilename));
 	const validated =
 		kind === 'choice'
-			? z.array(choiceRecord).safeParse(input)
+			? z.array(decisionRecord).safeParse(input)
 			: z.array(assumptionRecord).safeParse(input);
 	if (validated.success) return validated.data;
-	throw recordValidationError(file, input, validated.error, false);
+	throw recordItemValidationError(relative(projectDirectory, file), input, validated.error);
 }
 
 export async function readDesignSources(
 	directory: string,
 	read: (file: string) => Promise<string>,
 	readOptional: (file: string) => Promise<string | undefined>,
+	projectDirectory = directory,
 ): Promise<{
 	design: DesignCore;
 	designFile: string;
@@ -401,10 +409,12 @@ export async function readDesignSources(
 		...authored,
 		records: [
 			...authored.records,
-			...(decisions === undefined ? [] : readDesignItems(decisionFile, decisions, 'choice')),
+			...(decisions === undefined
+				? []
+				: readDesignItems(decisionFile, decisions, 'choice', projectDirectory)),
 			...(assumptions === undefined
 				? []
-				: readDesignItems(assumptionFile, assumptions, 'assumption')),
+				: readDesignItems(assumptionFile, assumptions, 'assumption', projectDirectory)),
 		],
 	};
 	return { design, designFile, designText, sources };

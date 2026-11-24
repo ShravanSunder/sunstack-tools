@@ -7,11 +7,15 @@ import { promisify } from 'node:util';
 
 import { expect, it } from 'vitest';
 
+import { decisionActorField } from '../core/decision-record.ts';
+
 const run = promisify(execFile);
 const script = fileURLToPath(
 	new URL('../../scripts/migrate-lean-design-records.ts', import.meta.url),
 );
 const cli = fileURLToPath(new URL('../../bin/demistify.ts', import.meta.url));
+const exampleLibrary =
+	'<link rel="stylesheet" href="https://demistify.getagentstudio.dev/v1/theme.css"><script type="module" src="https://demistify.getagentstudio.dev/v1/runtime.js"></script>';
 const plannedCases = [
 	{ given: 'Result exists', expect: 'The result is visible.' },
 	{ given: 'Result was updated', expect: 'The latest result is visible.' },
@@ -352,7 +356,27 @@ it('retains quoted container evidence and keeps public project record links at t
 					';',
 			),
 		]);
-		const command = [script, '--source', input, '--project', 'project', '--output', output];
+		const recordInput = join(scratch, 'required-record-input.json');
+		await writeFile(
+			recordInput,
+			JSON.stringify({
+				'project/A1': {
+					[decisionActorField]: { alias: 'Reader Lead', role: 'lead' },
+					settledBy: 'Reader Verifier',
+				},
+			}),
+		);
+		const command = [
+			script,
+			'--source',
+			input,
+			'--project',
+			'project',
+			'--record-input',
+			recordInput,
+			'--output',
+			output,
+		];
 		const { stdout } = await run(process.execPath, command);
 		const outProject = join(output, 'project');
 		const converted = await readFile(join(outProject, 'index.html'), 'utf8');
@@ -401,6 +425,263 @@ it('retains quoted container evidence and keeps public project record links at t
 		await expect(run(process.execPath, dryRun)).rejects.toThrow(
 			/source anchor #D1-source already exists/,
 		);
+	} finally {
+		await rm(scratch, { recursive: true, force: true });
+	}
+}, 30_000);
+
+it('copies a typed record project with explicit assumption roles and a single option carrier', async (): Promise<void> => {
+	const scratch = await mkdtemp(join(tmpdir(), 'demistify-record-authorship-'));
+	try {
+		const source = join(scratch, 'input');
+		const project = join(source, 'project');
+		const design = join(project, 'example');
+		const output = join(scratch, 'converted');
+		const recordInput = join(scratch, 'authors.json');
+		await mkdir(design, { recursive: true });
+		const choiceSource = `import { defineDecision } from './design-sdk.generated.ts';
+export default [defineDecision({ id: 'D1', question: 'Keep the fixture?', recommended: 'none',
+options: [{ id: 'yes', title: 'Keep it' }, { id: 'no', title: 'Remove it' }], authority: { state: 'owner-open' } })];`;
+		const pageSource = `<!doctype html><head><title>Example</title>${exampleLibrary}</head><body>
+<ex-nav for="content" src="./navigation.generated.json"></ex-nav><ex-document id="content">
+<h1>Example</h1>
+<ex-section id="open" title="Open" holds="needs-owner"></ex-section>
+<ex-section id="agent" title="Agent" holds="decided-by-agent"></ex-section>
+<ex-section id="settled" title="Settled" holds="settled"></ex-section>
+<ex-section-item record="D1"><ex-choice>
+<ex-option data-option="yes"><template slot="summary">Keep the fixture.</template><div slot="details"><p>Retain the link.</p></div></ex-option>
+<ex-option data-option="no"><template slot="summary">Remove the fixture.</template></ex-option>
+</ex-choice></ex-section-item>
+<ex-choice id="ordinary" title="Prefer a fixture?"><ex-option id="existing" title="Existing"><template slot="summary">An ordinary choice.</template><div slot="details">Ordinary choice.</div></ex-option></ex-choice>
+</ex-document></body>`;
+		await Promise.all([
+			writeFile(
+				join(project, 'project.ts'),
+				"import example from './example/design.ts'; export default { designs: { example } };",
+			),
+			writeFile(
+				join(design, 'design.ts'),
+				"import { defineDesign } from './design-sdk.generated.ts'; export default defineDesign({ pages: [{id:'page',href:'index.html',title:'Example',icon:'file'}], mapGroups: [], records: [] });",
+			),
+			writeFile(join(design, 'design-decisions.ts'), choiceSource),
+			writeFile(
+				join(design, 'design-assumptions.ts'),
+				"import { defineAssumption } from './design-sdk.generated.ts'; export default [defineAssumption({ id: 'A1', statement: 'The fixture can restart.', by: 'Reader Lead', weight: 'design', status: 'open', settles: 'Run the restart fixture.' })];",
+			),
+			writeFile(join(design, 'index.html'), pageSource),
+			writeFile(
+				recordInput,
+				JSON.stringify({
+					'example/A1': { [decisionActorField]: { alias: 'Reader Lead', role: 'lead' } },
+				}),
+			),
+		]);
+		const command = [script, '--source', source, '--project', 'project', '--record-authorship'];
+		await expect(run(process.execPath, [...command, '--dry-run'])).rejects.toHaveProperty(
+			'stderr',
+			expect.stringContaining('explicit role'),
+		);
+		for (const variant of [
+			{ details: '<div slot="details">Duplicate.</div>', message: /more than one Details child/ },
+			{
+				details:
+					'<div slot="details"><ex-option data-option="inner"><div slot="details">Inner.</div></ex-option></div>',
+				message: /Overlapping record authoring edits/,
+			},
+		]) {
+			// oxlint-disable-next-line no-await-in-loop -- one authored page, one deciding malformed input per run.
+			await writeFile(
+				join(design, 'index.html'),
+				pageSource.replace(
+					'<div slot="details"><p>Retain the link.</p></div>',
+					variant.details.includes('Duplicate')
+						? '<div slot="details"><p>Retain the link.</p></div>' + variant.details
+						: variant.details,
+				),
+			);
+			// oxlint-disable-next-line no-await-in-loop -- the next fixture would otherwise replace this input before it is read.
+			await expect(
+				run(process.execPath, [...command, '--record-input', recordInput, '--dry-run']),
+			).rejects.toThrow(variant.message);
+		}
+		await writeFile(join(design, 'index.html'), pageSource);
+		await run(process.execPath, [...command, '--record-input', recordInput, '--output', output]);
+		const migrated = join(output, 'project', 'example');
+		expect(await readFile(join(migrated, 'design-decisions.ts'), 'utf8')).toContain(
+			'defineChoice({',
+		);
+		expect(await readFile(join(design, 'design-decisions.ts'), 'utf8')).toBe(choiceSource);
+		expect(await readFile(join(migrated, 'design-assumptions.ts'), 'utf8')).toContain(
+			'{"alias":"Reader Lead","role":"lead"}',
+		);
+		const page = await readFile(join(migrated, 'index.html'), 'utf8');
+		expect(page).toContain('<template slot="details"><p>Retain the link.</p></template>');
+		expect(page).toContain('<div slot="details">Ordinary choice.</div>');
+		const checked = await run(process.execPath, [
+			cli,
+			'project',
+			'check',
+			join(output, 'project'),
+			'--site-root',
+			output,
+		]);
+		expect(checked.stdout).toContain('and 2 design record(s).');
+	} finally {
+		await rm(scratch, { recursive: true, force: true });
+	}
+});
+
+it('upgrades released lean sidecars and wraps sections without changing their authored content', async (): Promise<void> => {
+	const scratch = await mkdtemp(join(tmpdir(), 'demistify-released-lean-'));
+	try {
+		const source = join(scratch, 'input');
+		const project = join(source, 'project');
+		const design = join(project, 'example');
+		const output = join(scratch, 'converted');
+		const recordInput = join(scratch, 'records.json');
+		await mkdir(design, { recursive: true });
+		const decisionSource = `import { defineDecision } from './design-sdk.generated.ts';
+export default [
+  defineDecision({ id: 'D1', title: 'Expiry', authority: { state: 'owner-decided', owner: 'owner', decision: 'Use expiry.  ', decidedOn: '2026-11-24', sourceKind: 'owner-words' }, sources: [{ href: 'index.html#evidence', excerpt: 'Use expiry.', verbatim: true }, { href: 'index.html#evidence', excerpt: 'Approved by me.' }] }),
+  // weight: process
+  defineDecision({ id: 'D2', /* preserve this rationale note */ title: 'Review order', authority: { state: 'lead-decided', lead: 'reader-lead', decision: 'Run the narrow test first.', rationale: 'It is faster.', decidedOn: '2026-11-24', sourceKind: 'author' } }),
+  defineDecision({ id: 'D3', title: 'Reopen', authority: { state: 'owner-open', owner: 'owner', question: 'Should the fixture reopen?' } }),
+];`;
+		const assumptionSource = `import { defineAssumption } from './design-sdk.generated.ts';
+export default [
+  // weight: design
+  // by: reader-lead lead
+  // settles: unknown
+  defineAssumption({ id: 'A1', statement: 'The fixture can restart.', status: 'open' }),
+  defineAssumption({ id: 'A2', statement: 'Expiry is visible.', status: 'confirmed', resolution: { href: 'index.html#evidence', excerpt: 'Use expiry.' } }),
+];`;
+		const opening = '<ex-section title="Evidence" id="details">';
+		const content =
+			'\n  <p id="evidence">Use expiry.</p>\n  <a href="#D1">Keep the existing link</a>\n';
+		const prefix = `<!doctype html><head><title>Example</title>${exampleLibrary}</head><ex-nav for="content" src="./navigation.generated.json"></ex-nav><ex-document id="content"><h1>Example</h1><p data-design-record="D1"></p><div data-design-record="D2"></div><ex-choice data-design-record="D3"><ex-option id="yes" title="Reopen"><template slot="summary">Reopen the fixture.</template><div slot="details"><p id="explainer">The evidence stays here.</p></div></ex-option><ex-option id="no" title="Keep closed"><template slot="summary">Leave it closed.</template></ex-option></ex-choice><a href="#yes">Read the option</a><a href="#yes--choice-details">Read its Details</a><a href="#explainer">Read the evidence</a><p data-design-record="A1"></p><p data-design-record="A2"></p>`;
+		const pageSource = `${prefix}${opening}${content}</ex-section></ex-document>`;
+		await Promise.all([
+			writeFile(
+				join(project, 'project.ts'),
+				"import example from './example/design.ts'; export default { designs: { example } };",
+			),
+			writeFile(
+				join(design, 'design.ts'),
+				"import { defineDesign } from './design-sdk.generated.ts'; export default defineDesign({ pages: [{ id: 'page', href: 'index.html', title: 'Example', icon: 'file' }], mapGroups: [], records: [] });",
+			),
+			writeFile(join(design, 'design-decisions.ts'), decisionSource),
+			writeFile(join(design, 'design-assumptions.ts'), assumptionSource),
+			writeFile(join(design, 'index.html'), pageSource),
+		]);
+		const command = [
+			script,
+			'--source',
+			source,
+			'--project',
+			'project',
+			'--released-lean',
+			'--output',
+			output,
+		];
+		let blockedReport: unknown;
+		try {
+			await run(process.execPath, command);
+		} catch (error: unknown) {
+			if (!(error instanceof Error) || !('stdout' in error) || typeof error.stdout !== 'string')
+				throw error;
+			blockedReport = JSON.parse(error.stdout);
+		}
+		expect(blockedReport).toMatchObject({
+			blocked: true,
+			changedFiles: 0,
+			missingCount: 4,
+			sourceCandidates: {
+				'example/D1': [{ excerpt: 'Use expiry.' }, { excerpt: 'Approved by me.' }],
+			},
+			recordInput: {
+				'example/D1': { source: null },
+				'example/D3': { question: 'Should the fixture reopen?', recommended: null },
+				'example/A1': { settles: null },
+				'example/A2': { [decisionActorField]: null, weight: null, settledBy: null },
+			},
+		});
+		await expect(stat(output)).rejects.toMatchObject({ code: 'ENOENT' });
+		const author = { alias: 'reader-lead', role: 'lead' };
+		await writeFile(
+			recordInput,
+			JSON.stringify({
+				'example/D1': { source: { href: 'index.html#evidence', excerpt: 'Approved by me.' } },
+				'example/D2': { weight: 'minor' },
+				'example/D3': {
+					question: 'Should the fixture reopen?',
+					recommended: 'none',
+				},
+				'example/A1': { settles: 'Run the restart fixture.' },
+				'example/A2': { [decisionActorField]: author, weight: 'design', settledBy: 'reader-lead' },
+			}),
+		);
+		const withInput = [...command, '--record-input', recordInput];
+		const pageFile = join(design, 'index.html');
+		await writeFile(pageFile, pageSource.replace('href="#explainer"', 'href="missing.html"'));
+		await expect(run(process.execPath, [...withInput, '--dry-run'])).rejects.toThrow(
+			/Missing local link/,
+		);
+		await expect(run(process.execPath, withInput)).rejects.toHaveProperty(
+			'stdout',
+			expect.stringContaining('"validationError"'),
+		);
+		await expect(stat(output)).rejects.toMatchObject({ code: 'ENOENT' });
+		await writeFile(pageFile, pageSource);
+		const dryRun = await run(process.execPath, [...withInput, '--dry-run']);
+		expect(dryRun.stdout).toContain('and 5 design record(s).');
+		await expect(stat(output)).rejects.toMatchObject({ code: 'ENOENT' });
+		const result = await run(process.execPath, withInput);
+		const observed: unknown = JSON.parse(result.stdout);
+		expect(observed).toMatchObject({
+			changedFiles: 3,
+			missingCount: 0,
+			pages: [{ file: 'project/example/index.html', sections: ['details'], choices: ['D3'] }],
+			conflicts: [
+				{ id: 'example/D2', field: 'weight', comment: 'process', input: 'minor', used: 'input' },
+			],
+			records: [
+				{ id: 'example/D1', kind: 'ruling' },
+				{ id: 'example/D2', kind: 'ruling' },
+				{ id: 'example/D3', kind: 'choice' },
+				{ id: 'example/A1', kind: 'assumption' },
+				{ id: 'example/A2', kind: 'assumption' },
+			],
+		});
+		const migrated = join(output, 'project', 'example');
+		const migratedPage = await readFile(join(migrated, 'index.html'), 'utf8');
+		const migratedPrefix = prefix
+			.replace('id="yes" title="Reopen"', 'data-option="yes" data-option-anchor="yes" ')
+			.replace('id="no" title="Keep closed"', 'data-option="no" data-option-anchor="no" ')
+			.replace(
+				'<div slot="details"><p id="explainer">The evidence stays here.</p></div>',
+				'<template slot="details"><p id="explainer">The evidence stays here.</p></template>',
+			);
+		expect(migratedPage).toBe(
+			`${migratedPrefix}${opening}</ex-section><ex-section-item section="details">${content}</ex-section-item></ex-document>`,
+		);
+		expect(await readFile(join(design, 'index.html'), 'utf8')).toBe(pageSource);
+		const convertedDecisions = await readFile(join(migrated, 'design-decisions.ts'), 'utf8');
+		expect(convertedDecisions).toContain('"statement": "Use expiry.  "');
+		expect(convertedDecisions).toContain('"weight": "minor"');
+		expect(convertedDecisions).toContain('/* preserve this rationale note */');
+		expect(convertedDecisions).toMatch(
+			/"source": \{\s*"href": "index.html#evidence",\s*"excerpt": "Approved by me\."/,
+		);
+		const checked = await run(process.execPath, [
+			cli,
+			'project',
+			'check',
+			join(output, 'project'),
+			'--site-root',
+			output,
+			'--write',
+		]);
+		expect(checked.stdout).toContain('and 5 design record(s).');
 	} finally {
 		await rm(scratch, { recursive: true, force: true });
 	}
