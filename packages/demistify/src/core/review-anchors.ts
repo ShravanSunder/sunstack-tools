@@ -55,6 +55,10 @@ export function ensureReviewTargetId(element: Element, root: HTMLElement): void 
 	while (current && current !== root && !current.id) {
 		const parent: Element | null = current.parentElement;
 		if (!parent) break;
+		if (current.matches('.ex-record-surface') && parent.matches('ex-section-item[record]')) {
+			current = parent;
+			continue;
+		}
 		const siblings = [...parent.children].filter(
 			(sibling): boolean => sibling.localName === current?.localName,
 		);

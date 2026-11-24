@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { renderMermaidSVG } from 'beautiful-mermaid';
 
 import { decodeEscapedHtmlText } from '../core/html-text.ts';
-import { badgeKindIcons } from '../core/icons.ts';
+import { badgeIconNames } from '../core/icons.ts';
 import {
 	markdownSourceMarkup,
 	parseMarkdownSource,
@@ -73,7 +73,7 @@ const fontFamilies = [
 /** Icons the theme ships: library controls, the tone vocabulary, and the few the lab pages name. */
 export const shippedIconNames = [
 	...subjectIcons,
-	...Object.values(badgeKindIcons),
+	...badgeIconNames,
 	'files',
 	'copy',
 	'download-simple',

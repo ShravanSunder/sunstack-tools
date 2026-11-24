@@ -18,32 +18,71 @@ function sourceLink(source: {
 	return link;
 }
 
-const kindLabel = {
-	need: 'requirements',
-	rule: 'spec',
-	realization: 'program',
-	'planned-check': 'verification',
+const recordKindBadges = {
+	need: { label: 'requirements', icon: 'target' },
+	rule: { label: 'spec', icon: 'article' },
+	realization: { label: 'program', icon: 'code' },
+	'planned-check': { label: 'verification', icon: 'shield-check' },
 } as const;
 
-export function recordCategoryBadge(label: string, tone?: 'done' | 'note' | 'risk'): HTMLElement {
+export function recordCategoryBadge(
+	label: string,
+	tone?: 'done' | 'note' | 'risk' | 'question' | 'decision',
+): HTMLElement {
 	const badge = textNode('ex-badge', label);
 	if (tone) badge.setAttribute('tone', tone);
 	return badge;
 }
 
+function recordPresentation(record: RecordFace['record']): {
+	readonly label: string;
+	readonly metadataLabel?: string;
+	readonly tone: 'done' | 'risk' | 'question' | 'decision';
+	readonly reviewPending: boolean;
+} {
+	if (record.kind === 'assumption') {
+		if (record.status === 'confirmed')
+			return { label: 'Confirmed', tone: 'done', reviewPending: false };
+		if (record.status === 'open')
+			return {
+				label: 'Assumed',
+				metadataLabel: 'Not confirmed',
+				tone: 'risk',
+				reviewPending: false,
+			};
+		return { label: 'Refuted', tone: 'risk', reviewPending: false };
+	}
+	const { authority } = record;
+	if (authority.state === 'owner-open')
+		return { label: 'Needs you', tone: 'question', reviewPending: false };
+	if (authority.state === 'owner-decided')
+		return { label: 'You decided', tone: 'decision', reviewPending: false };
+	const reviewPending = authority.sourceKind !== 'contract' && authority.weight === 'design';
+	return {
+		label: `${authority.by.alias} decided`,
+		tone: reviewPending ? 'risk' : 'decision',
+		reviewPending,
+	};
+}
+
 export function recordStateLine({ record, held, ruledBy, replacement }: RecordFace): HTMLElement {
 	const metadata = document.createElement('div');
 	metadata.className = 'ex-record-state-line';
-	if (ruledBy) metadata.append(recordCategoryBadge(kindLabel[ruledBy]));
+	if (ruledBy) {
+		const { label, icon } = recordKindBadges[ruledBy];
+		const badge = recordCategoryBadge(label);
+		badge.setAttribute('icon', icon);
+		metadata.append(badge);
+	}
+	const presentation = recordPresentation(record);
 
 	const facts = [record.id];
 	let date: string | undefined;
 	if (record.kind === 'assumption') {
 		metadata.append(recordCategoryBadge(record.weight));
-		if (record.status === 'open') metadata.append(recordCategoryBadge('Not confirmed', 'risk'));
-		else if (record.status === 'confirmed')
-			metadata.append(recordCategoryBadge('Confirmed', 'done'));
-		else metadata.append(recordCategoryBadge('Refuted', 'risk'));
+		metadata.append(
+			recordCategoryBadge(presentation.metadataLabel ?? presentation.label, presentation.tone),
+		);
 	} else {
 		const { authority } = record;
 		if (authority.state === 'owner-open') {
@@ -52,7 +91,7 @@ export function recordStateLine({ record, held, ruledBy, replacement }: RecordFa
 			date = authority.decidedOn;
 			if (authority.state === 'agent-decided') {
 				metadata.append(recordCategoryBadge(authority.weight));
-				if (authority.sourceKind !== 'contract' && authority.weight === 'design')
+				if (presentation.reviewPending)
 					metadata.append(recordCategoryBadge('Not reviewed by you', 'risk'));
 				facts.push(authority.by.alias);
 				if (authority.sourceKind === 'contract') facts.push('from contract');
@@ -75,7 +114,7 @@ export function recordStateLine({ record, held, ruledBy, replacement }: RecordFa
 	return metadata;
 }
 
-function recordReason({ record }: RecordFace): HTMLElement | undefined {
+function recordReason({ record }: RecordFace, chosenTitle?: string): HTMLElement | undefined {
 	if (record.kind === 'assumption') {
 		if (record.status === 'open') return textNode('p', record.settles);
 		const reason = textNode('p', record.settledBy + ' · ');
@@ -90,12 +129,28 @@ function recordReason({ record }: RecordFace): HTMLElement | undefined {
 		return reason;
 	}
 	const reason = document.createElement('p');
-	reason.append(sourceLink(authority.source));
+
+	const label = authority.sourceKind === 'owner-words' ? 'Your words' : 'Wording you accepted';
+	reason.append(
+		textNode('strong', label),
+		' ',
+		sourceLink({
+			href: authority.source.href,
+			excerpt: chosenTitle === authority.source.excerpt ? 'your answer' : authority.source.excerpt,
+		}),
+	);
 	return reason;
 }
 
-export function appendRecordBasis(parent: HTMLElement, face: RecordFace): void {
-	const reason = recordReason(face);
+export function appendRecordBasis(
+	parent: HTMLElement,
+	face: RecordFace,
+	{
+		body = parent,
+		chosenTitle,
+	}: { readonly body?: HTMLElement; readonly chosenTitle?: string } = {},
+): void {
+	const reason = recordReason(face, chosenTitle);
 	if (reason && face.record.kind === 'choice') {
 		reason.className = 'ex-record-basis';
 		parent.append(reason);
@@ -111,12 +166,12 @@ export function appendRecordBasis(parent: HTMLElement, face: RecordFace): void {
 				fragment ? sourceLink({ href: '#' + encodeURIComponent(fragment), excerpt: label }) : label,
 			);
 		}
-		parent.append(linkedWork);
+		body.append(linkedWork);
 	}
 	const anchor =
 		(face.record.kind === 'choice' ? reason : undefined) ??
 		linkedWork ??
-		parent.querySelector<HTMLElement>('legend, .ex-record-item-title');
+		body.querySelector<HTMLElement>('legend, .ex-record-item-title');
 	if (anchor) anchor.id = decisionDetailsId(parent.id);
 }
 
@@ -134,39 +189,29 @@ export function renderRecordCard(card: HTMLElement, face: RecordFace): void {
 	appendRecordBasis(card, face);
 }
 
+export function renderSectionRecord(item: HTMLElement, face: RecordFace): void {
+	if (face.record.kind === 'choice') return;
+	const title = textNode('h4', face.record.statement);
+	title.className = 'ex-record-item-title';
+	item.dataset['commentLabel'] = face.record.statement;
+	const body = document.createElement('article');
+	body.className = 'ex-record-surface';
+	body.dataset['commentSlot'] = '';
+	const reason = recordReason(face);
+	body.append(title, recordStateLine(face), ...(reason ? [reason] : []), ...item.childNodes);
+	item.append(body);
+	appendRecordBasis(item, face, { body });
+}
+
 export function inlineRecordStatus(
 	element: HTMLElement,
 	record: RecordFace['record'],
 	href: string,
 ): void {
-	let state: string;
-	let tone: string;
-	if (record.kind === 'assumption') {
-		state =
-			record.status === 'open'
-				? 'Assumed'
-				: record.status === 'confirmed'
-					? 'Confirmed'
-					: 'Refuted';
-		tone = record.status === 'confirmed' ? 'done' : 'risk';
-	} else {
-		const { authority } = record;
-		if (authority.state === 'owner-open') {
-			state = 'Needs you';
-			tone = 'question';
-		} else if (authority.state === 'owner-decided') {
-			state = 'You decided';
-			tone = 'decision';
-		} else {
-			state = `${authority.by.alias} decided`;
-			tone =
-				authority.sourceKind === 'contract' || authority.weight !== 'design' ? 'decision' : 'risk';
-		}
-	}
+	const { label, tone } = recordPresentation(record);
 	const link = document.createElement('a');
 	link.href = href;
-	const badge = textNode('ex-badge', state);
-	badge.setAttribute('tone', tone);
+	const badge = recordCategoryBadge(label, tone);
 	link.append(badge);
 	element.replaceChildren(link);
 }

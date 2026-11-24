@@ -121,7 +121,7 @@ When there is no meaningful phase comparison, leave the bars out. For example, `
 <p><ex-badge>Observation supplied</ex-badge> The follow-up is not classified.</p>
 ```
 
-Use a badge for a compact status or category label. In the combined row, `done` uses the shared green added-state paint, `note` uses the accent family, and `risk` uses its existing risk paint. Keep a known queued state neutral by omitting `tone`. These appearance rules apply to `ex-badge`; other components keep their own tone styles. Keep a sentence in prose, and do not use badge color to stand in for a count or phase category.
+Use a badge for a compact status or category label. Without a tone, the badge is neutral and has no dot. Use an explicit `icon` when the label needs one of the shipped badge symbols: `target`, `article`, `code`, or `shield-check`. The badge text by itself never selects an icon. `done`, `note`, `risk`, `question` and `decision` add a dot and use the shared semantic paint. Other valid tones render with neutral paint. Keep a known queued state neutral by omitting `tone`. These appearance rules apply to `ex-badge`; other components keep their own tone styles. Keep a sentence in prose, and do not use badge color to stand in for a count or phase category.
 
 ## Exact counts and the selected ring
 

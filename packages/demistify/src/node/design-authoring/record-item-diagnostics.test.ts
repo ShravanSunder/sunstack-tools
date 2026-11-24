@@ -1,7 +1,10 @@
 import { expect, test } from 'vitest';
 
-import { decisionActorField } from '../../core/decision-record.ts';
+import { choiceRecord, decisionActorField, rulingRecord } from '../../core/decision-record.ts';
+import { readPageMarkup } from './design-page-markup.ts';
 import { readDesignItems } from './read-design.ts';
+import { prepareRecordPage, projectRecords } from './record-projection.ts';
+import type { DesignRecord } from './schema.ts';
 
 const project = '/private/tmp/design-check';
 const decisions = project + '/examples/design-decisions.ts';
@@ -107,4 +110,53 @@ test.each([
 	expect(() => readDesignItems(file, source, kind, project)).toThrow(
 		`examples/design-${kind === 'assumption' ? 'assumptions' : 'decisions'}.ts: ${message}`,
 	);
+});
+
+const recordPagePath = '/project/index.html';
+const sections = `<ex-section id="settled" holds="settled"></ex-section>
+<ex-section id="agent" holds="decided-by-agent"></ex-section>`;
+const nativeChoice = `<ex-choice><ex-option data-option="wait"><template slot="summary">Wait.</template></ex-option>
+<ex-option data-option="resume"><template slot="summary">Resume.</template></ex-option></ex-choice>`;
+
+function checkRecordPage(body: string): string {
+	const html = sections + body;
+	const markup = readPageMarkup(html, recordPagePath);
+	const records: DesignRecord[] = [choiceRecord.parse(answered), rulingRecord.parse(ruling)];
+	const projection = projectRecords(records, [{ file: recordPagePath, markup }]);
+	return prepareRecordPage({ html, file: recordPagePath, markup, projection }).html;
+}
+
+test('one authored record item preserves Choice fragments and accepts a bare ruling body', () => {
+	const html = checkRecordPage(`<ex-section-item record="D5">${nativeChoice}</ex-section-item>
+<ex-section-item record="D7"><p>The table keeps a time floor.</p></ex-section-item>`);
+	expect(html).toContain('<ex-choice id="D5" data-decision="D5"');
+	expect(html).toContain('id="D5--option--resume--details"');
+	expect(html).toContain(
+		'<ex-section-item record="D7" id="D7"><p>The table keeps a time floor.</p>',
+	);
+});
+
+test.each([
+	[
+		'<ex-section-item record="D5"><p>No answer control.</p></ex-section-item>',
+		'exactly one native ex-choice',
+	],
+	[
+		`<ex-section-item record="D5">${nativeChoice}${nativeChoice}</ex-section-item>`,
+		'exactly one native ex-choice',
+	],
+	[
+		`<ex-section-item record="D5">${nativeChoice.replace(' data-option="resume"', ' data-option="other"')}</ex-section-item>`,
+		'unknown option other',
+	],
+	[
+		'<ex-section-item record="D7"><p>One.</p></ex-section-item><ex-section-item record="D7"><p>Two.</p></ex-section-item>',
+		'Duplicate HTML id or record placement',
+	],
+	[
+		'<ex-section-item record="D7" data-design-record="D7"><p>One.</p></ex-section-item>',
+		'Write the record ID once',
+	],
+])('section record rejects invalid shape %#', (html, message) => {
+	expect(() => checkRecordPage(html)).toThrow(message);
 });

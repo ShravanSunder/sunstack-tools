@@ -1,7 +1,7 @@
 import { parse, type DefaultTreeAdapterMap } from 'parse5';
 
 import { decisionDetailsId } from '../../core/design-record-view.ts';
-import { readSectionLayout, type SectionLayout } from './section-layout.ts';
+import { readSectionLayout, sectionMarkupProblem, type SectionLayout } from './section-layout.ts';
 
 interface MarkupRange {
 	readonly start: number;
@@ -111,17 +111,47 @@ export function readPageMarkup(html: string, file: string): PageMarkup {
 	function visit(node: DefaultTreeAdapterMap['node']): void {
 		if ('attrs' in node) {
 			elements.push(node);
+			const sectionProblem = sectionMarkupProblem(node);
+			if (sectionProblem)
+				throw new Error(`${file}:${node.sourceCodeLocation?.startLine ?? 1}: ${sectionProblem}`);
 			const get = (name: string): string | undefined =>
 				node.attrs.find(({ name: attribute }): boolean => attribute === name)?.value;
 			const id = get('id');
-			const reference = get('data-design-record');
+			const sectionReference =
+				node.tagName === 'ex-section-item' ? get('record')?.trim() : undefined;
+			const boundReference = get('data-design-record');
+			if (sectionReference && boundReference !== undefined)
+				throw new Error(
+					`${file}: Write the record ID once, in the section item's record attribute.`,
+				);
+			const reference = sectionReference ?? boundReference;
+			const choiceChildren = sectionReference
+				? node.childNodes.filter(
+						(child): child is PageElement => 'tagName' in child && child.tagName === 'ex-choice',
+					)
+				: [];
+			if (choiceChildren.length > 1)
+				throw new Error(`${file}: ${sectionReference} needs exactly one native ex-choice.`);
+			const choiceChild = choiceChildren[0];
+			if (
+				choiceChild &&
+				node.childNodes.some(
+					(child) =>
+						child !== choiceChild &&
+						('tagName' in child || ('value' in child && child.value.trim())),
+				)
+			)
+				throw new Error(
+					`${file}: Write the Choice body and options inside its single ex-choice in ${sectionReference}.`,
+				);
 			const need = get('data-design-need');
 			const status = get('data-design-status');
 			const anchor = reference ?? id;
 			if (anchor) addAnchor(anchor);
 			if (reference !== undefined || need !== undefined || status !== undefined) {
-				const location = node.sourceCodeLocation;
-				const tag = node.tagName;
+				const binding = choiceChild ?? node;
+				const location = binding.sourceCodeLocation;
+				const tag = binding.tagName;
 				if (!location?.startTag || !location.endTag)
 					throw new Error(`${file}: <${tag}> bindings need explicit closing tags.`);
 				const { startTag, endTag } = location;
@@ -146,15 +176,16 @@ export function readPageMarkup(html: string, file: string): PageMarkup {
 					});
 				}
 				if (reference !== undefined) {
-					if (!recordTextTags.has(tag))
+					if (!sectionReference && !recordTextTags.has(tag))
 						throw new Error(`${file}: <${tag}> cannot hold a record placement.`);
 					if (
 						id !== undefined ||
 						((tag === 'ex-choice' || tag === 'ex-card') &&
-							(get('title') !== undefined || get('data-decision') !== undefined))
+							binding.attrs.some(({ name }) => ['id', 'title', 'data-decision'].includes(name)))
 					)
 						throw new Error(`${file}: ${reference} supplies its own anchor and Choice question.`);
 					if (
+						!sectionReference &&
 						tag !== 'ex-choice' &&
 						tag !== 'ex-card' &&
 						html.slice(startTag.endOffset, endTag.startOffset).trim()
@@ -162,11 +193,11 @@ export function readPageMarkup(html: string, file: string): PageMarkup {
 						throw new Error(`${file}: record placement ${reference} must be empty.`);
 					const options: { id: string; start: number; end: number }[] = [];
 					let explanation: MarkupRange | undefined;
-					if (tag === 'ex-card' || tag === 'ex-choice') {
+					if (sectionReference || tag === 'ex-card' || tag === 'ex-choice') {
 						addAnchor(decisionDetailsId(reference));
 					}
 					if (tag === 'ex-choice') {
-						for (const child of node.childNodes) {
+						for (const child of binding.childNodes) {
 							if (!('tagName' in child)) continue;
 							if (
 								child.tagName === 'template' &&
@@ -265,7 +296,12 @@ type PageNode = DefaultTreeAdapterMap['node'];
 type PageElement = DefaultTreeAdapterMap['element'];
 
 function elementId(element: PageElement): string | undefined {
-	return element.attrs.find(({ name }) => name === 'id' || name === 'data-design-record')?.value;
+	return element.attrs.find(
+		({ name }) =>
+			name === 'id' ||
+			name === 'data-design-record' ||
+			(element.tagName === 'ex-section-item' && name === 'record'),
+	)?.value;
 }
 
 function sectionOwner(element: PageElement): PageElement | undefined {

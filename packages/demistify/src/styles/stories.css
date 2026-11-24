@@ -55,6 +55,25 @@ ex-section.ex-section-floating {
 	padding: calc(var(--space-2) + 1px) var(--space-5);
 	border: 0;
 	border-radius: var(--radius-md);
+	isolation: isolate;
+	background: transparent;
+}
+.ex-section-floating > .ex-section-head::before,
+.ex-section-floating > .ex-section-head::after {
+	content: '';
+	position: absolute;
+	pointer-events: none;
+}
+.ex-section-floating > .ex-section-head::before {
+	z-index: -2;
+	inset: calc(-1 * var(--section-sticky-gap)) 0 calc(-1 * var(--space-3));
+	background: linear-gradient(var(--surface-page) calc(100% - var(--space-2)), transparent);
+}
+.ex-section-floating > .ex-section-head::after {
+	z-index: -1;
+	inset: 0;
+	border-radius: inherit;
+	background: var(--section-heading-fill);
 }
 ex-section.ex-section-floating:not(:has(> ex-section-item)) {
 	padding-block-end: 0;
@@ -257,6 +276,7 @@ ex-section-item + ex-section-item {
 	margin-block-start: var(--space-8);
 }
 ex-section > ex-section-item[record] {
+	--record-surface-width: calc(var(--width-reading) + 2 * var(--space-4) + 2px);
 	position: relative;
 	padding-block: var(--space-4) var(--space-8);
 }
@@ -264,13 +284,26 @@ ex-section > ex-section-item[record]::before {
 	content: '';
 	position: absolute;
 	inset-block: var(--space-4) var(--space-8);
-	inset-inline-start: calc(3px - var(--section-padding));
-	inline-size: 9px;
+	inset-inline-start: calc(2px - var(--section-padding));
+	inline-size: 6px;
 	border-radius: var(--radius-pill);
 	background: var(--section-heading-fill);
 	pointer-events: none;
 }
 ex-section-item[record] > :is(.ex-bound-choice, .ex-record-prose) {
+	margin-block: 0;
+}
+.ex-record-surface {
+	box-sizing: border-box;
+	inline-size: 100%;
+	max-inline-size: var(--record-surface-width);
+	margin: 0;
+	padding: var(--space-4);
+	border: 1px solid var(--rule);
+	border-radius: var(--radius-md);
+	background: var(--surface-content);
+}
+.ex-record-surface > ex-choice {
 	margin-block: 0;
 }
 ex-card.ex-record-prose {

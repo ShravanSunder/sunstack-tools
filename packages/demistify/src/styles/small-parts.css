@@ -45,17 +45,12 @@ ex-badge[tone='decision'] {
 	--tone: var(--tone-decision);
 	--tone-bg: var(--tone-decision-surface);
 }
-ex-badge[tone='removed'] {
-	--tone: var(--tone-removed);
-	--tone-bg: var(--tone-removed-surface);
-}
 ex-badge:is(
 		[tone='done'],
 		[tone='note'],
 		[tone='risk'],
 		[tone='question'],
-		[tone='decision'],
-		[tone='removed']
+		[tone='decision']
 	)::before {
 	content: '';
 	flex: none;

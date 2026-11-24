@@ -1,4 +1,4 @@
-import { badgeKindIcons, createPhosphorIcon } from '../core/icons.ts';
+import { badgeIconNames, createPhosphorIcon } from '../core/icons.ts';
 import { reportIssue } from '../core/issues.ts';
 import {
 	parseBreakdownValue,
@@ -46,9 +46,9 @@ export class BadgeIsland extends HTMLElement {
 	connectedCallback(): void {
 		if (this.hasAttribute('prepared')) return;
 		const label = this.textContent?.trim() ?? '';
-		const tone = readTone(this, undefined);
-		const kindIcon =
-			!tone && Object.hasOwn(badgeKindIcons, label) ? badgeKindIcons[label] : undefined;
+		readTone(this, undefined);
+		const requested = this.getAttribute('icon');
+		const kindIcon = badgeIconNames.find((icon) => icon === requested);
 		const text = this.ownerDocument.createTextNode(label);
 		this.replaceChildren(...(kindIcon ? [createPhosphorIcon(kindIcon), text] : [text]));
 		this.setAttribute('prepared', '');

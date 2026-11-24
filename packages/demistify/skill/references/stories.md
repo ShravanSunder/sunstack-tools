@@ -63,11 +63,17 @@ What the reader gets, with no page script, style or overlay from you:
 <ex-section id="settled" title="You decided" holds="settled"></ex-section>
 <ex-section id="agent" title="Decided without you" holds="decided-by-agent"></ex-section>
 <ex-section-item record="D5">
-  <ex-choice data-design-record="D5">
+  <ex-choice>
     <ex-option data-option="keep"><template slot="summary">Keep the current value.</template></ex-option>
     <ex-option data-option="change"><template slot="summary">Store the replacement.</template></ex-option>
   </ex-choice>
 </ex-section-item>
 ```
 
-The decision record supplies the question, option IDs and titles. The page supplies the option summaries and Details. Run the typed design checker after editing either file.
+The decision record supplies the question, option IDs and titles. Write the record ID once, on `ex-section-item`. Put the explanation, option summaries and optional option Details inside its one native `ex-choice`. A ruling or assumption uses the same section item with its authored explanation as direct content. Demistify supplies its title, metadata and card surface.
+
+```html
+<ex-section-item record="A1"><p>The planned check uses a restart fixture.</p></ex-section-item>
+```
+
+Run the typed design checker after editing the page or the record.

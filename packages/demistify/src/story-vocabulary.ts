@@ -76,7 +76,8 @@ export function storyElementVocabulary(
 				'Content belonging to a section. Use exactly one record or section attribute, outside all ex-section and ex-section-item elements.',
 			attributes: {
 				record: {
-					description: 'Decision or assumption ID that routes this item.',
+					description:
+						'Decision or assumption ID that routes this item. Use a single native ex-choice for a choice, or direct authored prose for a ruling or assumption.',
 					type: { kind: 'text' },
 				},
 				section: {

@@ -61,8 +61,6 @@ export function readSectionLayout(elements: readonly Element[], file: string): S
 	const items: SectionLayout['items'][number][] = [];
 	for (const element of elements) {
 		const line = element.sourceCodeLocation?.startLine ?? 1;
-		const problem = sectionMarkupProblem(element);
-		if (problem) throw new Error(`${file}:${line}: ${problem}`);
 		if (element.tagName === 'ex-section') {
 			const id = attribute(element, 'id');
 			const holds = attribute(element, 'holds');

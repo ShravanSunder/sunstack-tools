@@ -51,6 +51,8 @@ export function projectRecords(
 			const record = recordsById.get(id);
 			if (!record) throw new Error(`${file}: unknown design record ${id}.`);
 			if (placements.has(id)) throw new Error(`${file}: duplicate placement for ${id}.`);
+			if (tag === 'ex-section-item' && record.kind === 'choice')
+				throw new Error(`${file}: ${id} needs exactly one native ex-choice.`);
 			if (tag === 'ex-choice' && record.kind !== 'choice')
 				throw new Error(`${file}: ${id} is not a choice.`);
 			if (tag === 'ex-card' && record.kind !== 'ruling' && record.kind !== 'assumption')
@@ -84,6 +86,25 @@ function treeLabel(
 	if (!target) return label;
 	const href = `${target.file === file ? '' : relativePage(dirname(file), target.file)}#${encodeURIComponent(target.fragment)}`;
 	return `[${label}](<${href}>)`;
+}
+
+function dependentFragmentOnThisPage({
+	id,
+	placement,
+	file,
+	namespace,
+	anchors,
+}: {
+	readonly id: string;
+	readonly placement: RecordPlacement | undefined;
+	readonly file: string;
+	readonly namespace: string | undefined;
+	readonly anchors: ReadonlySet<string>;
+}): string | undefined {
+	if (placement) return placement.file === file ? placement.fragment : undefined;
+	const localId = id.split('/').at(-1);
+	if (!localId || qualifyRecord(namespace, localId) !== id) return undefined;
+	return anchors.has(localId) ? localId : undefined;
 }
 
 export function prepareRecordPage(options: {
@@ -147,21 +168,17 @@ export function prepareRecordPage(options: {
 			statement,
 			...(tag === 'ex-choice' && { decision: id }),
 			...(boundRecord &&
-				(tag === 'ex-choice' || tag === 'ex-card') && {
+				(tag === 'ex-choice' || tag === 'ex-card' || tag === 'ex-section-item') && {
 					face: {
 						record: boundRecord,
 						dependents: dependents.map((item) => {
-							const placement = projection.placements.get(item.id);
-							const localId = item.id.split('/').at(-1);
-							const fragment = placement
-								? placement.file === file
-									? placement.fragment
-									: undefined
-								: localId &&
-									  qualifyRecord(namespace, localId) === item.id &&
-									  markup.ids.has(localId)
-									? localId
-									: undefined;
+							const fragment = dependentFragmentOnThisPage({
+								id: item.id,
+								placement: projection.placements.get(item.id),
+								file,
+								namespace,
+								anchors: markup.ids,
+							});
 							const label = recordLabel(item);
 							return fragment ? { id: item.id, label, fragment } : { id: item.id, label };
 						}),
@@ -204,12 +221,12 @@ export function prepareRecordPage(options: {
 				end: endTag.end,
 				text: targets.map((value) => `<span id="${escapeHtml(value)}" hidden></span>`).join(''),
 			});
-		} else if (tag === 'ex-card' && boundRecord) {
+		} else if ((tag === 'ex-card' || tag === 'ex-section-item') && boundRecord) {
 			const tone = boundRecord.kind === 'assumption' ? 'note' : 'decision';
 			edits.push({
 				start: startTag.end - 1,
 				end: startTag.end - 1,
-				text: `${anchor} title="${text}" tone="${tone}"`,
+				text: tag === 'ex-card' ? `${anchor} title="${text}" tone="${tone}"` : anchor,
 			});
 			edits.push({
 				start: endTag.end,

@@ -9,6 +9,7 @@ import {
 	choiceRecordFaces,
 	inlineRecordStatus,
 	renderRecordCard,
+	renderSectionRecord,
 } from '../islands/design-record-face.ts';
 
 const placementSelector =
@@ -95,10 +96,32 @@ function restoreFragment(): void {
 	if (!hash) return;
 	try {
 		const anchor = document.getElementById(decodeURIComponent(hash));
-		if (anchor?.hasAttribute('data-design-record'))
+		if (
+			anchor?.matches(
+				'[data-design-record], ex-section-item[record], ex-section-item[record] ex-choice',
+			)
+		)
 			requestAnimationFrame((): void => anchor.scrollIntoView());
 	} catch {
 		// A malformed URL fragment has no target.
+	}
+}
+
+type GeneratedPlacement = DesignRecordView['pages'][string]['placements'][number];
+
+function hydrateChoice(choice: HTMLElement, placement: GeneratedPlacement): void {
+	if (!placement.decision || placement.face?.record.kind !== 'choice') return;
+	choice.id = placement.reference;
+	choice.setAttribute('data-decision', placement.decision);
+	choice.title = placement.statement;
+	choiceRecordFaces.set(choice, placement.face);
+	const authored = [...choice.querySelectorAll(':scope > ex-option[data-option]')];
+	for (const option of placement.face.record.options) {
+		const declaration = authored.find((item) => item.getAttribute('data-option') === option.id);
+		if (!declaration) continue;
+		declaration.id = `${placement.reference}--${option.id}`;
+		declaration.setAttribute('title', option.title);
+		choice.append(declaration);
 	}
 }
 
@@ -119,7 +142,14 @@ async function fillBindings(elements: readonly HTMLElement[]): Promise<void> {
 			if (element.matches('ex-section-item[record]')) {
 				const reference = element.getAttribute('record');
 				const item = page.sectionItems?.find((entry) => entry.reference === reference);
-				if (!item) throw new Error(`No checked section for ${reference}.`);
+				const placement = reference ? placements.get(reference) : undefined;
+				if (!item || !placement?.face)
+					throw new Error(`No checked section record for ${reference}.`);
+				const choice = element.querySelector<HTMLElement>(':scope > ex-choice');
+				if (Boolean(choice) !== (placement.face.record.kind === 'choice'))
+					throw new Error(
+						`The checked section record ${reference} does not match its authored item.`,
+					);
 				element.dataset['sectionHold'] = item.holds;
 				continue;
 			}
@@ -140,7 +170,27 @@ async function fillBindings(elements: readonly HTMLElement[]): Promise<void> {
 			}
 		}
 		for (const element of elements) {
-			if (element.matches('ex-section-item[record]')) continue;
+			if (element.matches('ex-section-item[record]')) {
+				const placement = placements.get(element.getAttribute('record') ?? '');
+				if (!placement?.face) continue;
+				const choice = element.querySelector<HTMLElement>(':scope > ex-choice');
+				if (choice) {
+					hydrateChoice(choice, placement);
+					if (
+						placement.face.record.kind === 'choice' &&
+						placement.face.record.authority.state !== 'owner-open'
+					) {
+						const surface = document.createElement('div');
+						surface.className = 'ex-record-surface';
+						choice.before(surface);
+						surface.append(choice);
+					}
+				} else {
+					element.id = placement.reference;
+					renderSectionRecord(element, placement.face);
+				}
+				continue;
+			}
 			const status = page.statuses?.find(
 				({ reference }) => reference === element.getAttribute('data-design-status'),
 			);
@@ -152,21 +202,7 @@ async function fillBindings(elements: readonly HTMLElement[]): Promise<void> {
 			if (record) {
 				element.id = record.reference;
 				if (record.decision !== undefined) {
-					element.setAttribute('data-decision', record.decision);
-					element.title = record.statement;
-					if (record.face?.record.kind === 'choice') {
-						choiceRecordFaces.set(element, record.face);
-						const authored = [...element.querySelectorAll(':scope > ex-option[data-option]')];
-						for (const option of record.face.record.options) {
-							const declaration = authored.find(
-								(item) => item.getAttribute('data-option') === option.id,
-							);
-							if (!declaration) continue;
-							declaration.id = `${record.reference}--${option.id}`;
-							declaration.setAttribute('title', option.title);
-							element.append(declaration);
-						}
-					}
+					hydrateChoice(element, record);
 				} else if (record.face && element.localName === 'ex-card') {
 					renderRecordCard(element, record.face);
 				} else {

@@ -4,7 +4,12 @@ import { reportIssue } from '../core/issues.ts';
 import { type ChoiceResponse, choiceResponseSchema } from '../core/review-model.ts';
 import { checkAttributes } from '../vocabulary.ts';
 import { ChoiceDetailPanel } from './choice-detail-panel.ts';
-import { appendRecordBasis, choiceRecordFaces, recordStateLine } from './design-record-face.ts';
+import {
+	appendRecordBasis,
+	choiceRecordFaces,
+	recordCategoryBadge,
+	recordStateLine,
+} from './design-record-face.ts';
 import { copyInspectionContent, registerInspectionCopy } from './inspection-copy.ts';
 import { installIslandInspector, openIsland } from './inspector.ts';
 
@@ -29,6 +34,8 @@ export class ChoiceIsland extends HTMLElement {
 	private events = new AbortController();
 	private copiedResponse: ChoiceResponse | undefined;
 	private initialized = false;
+	private contextResize: ResizeObserver | undefined;
+	private contextEnd: HTMLElement | undefined;
 
 	get response(): ChoiceResponse {
 		return choiceResponseSchema.parse({
@@ -65,11 +72,13 @@ export class ChoiceIsland extends HTMLElement {
 
 	disconnectedCallback(): void {
 		this.events.abort();
+		this.contextResize?.disconnect();
 	}
 
 	private async initialize(): Promise<void> {
 		const face = choiceRecordFaces.get(this);
 		const bound = face?.record.kind === 'choice' ? face.record : undefined;
+		const inRecordSection = Boolean(bound && this.closest('ex-section-item[record]'));
 		const settled = bound && bound.authority.state !== 'owner-open' ? bound.authority : undefined;
 		const explanation = this.querySelector<HTMLTemplateElement>(
 			':scope > template[data-record-body]',
@@ -215,17 +224,30 @@ export class ChoiceIsland extends HTMLElement {
 			titleRow.className = 'ex-choice-title-row';
 			const optionTitle = document.createElement('span');
 			optionTitle.append(label);
-			if (
-				settled ||
-				(bound?.recommended !== 'none' && bound?.recommended?.option === recordOption)
-			) {
+			const recommendation =
+				bound && bound.recommended !== 'none' && bound.recommended.option === recordOption
+					? bound.recommended
+					: undefined;
+			if (inRecordSection) {
+				optionTitle.className = 'ex-record-option-title';
+				if (settled)
+					optionTitle.append(
+						recordCategoryBadge(chosen ? 'Chosen' : 'Not chosen', chosen ? 'done' : undefined),
+					);
+				else if (recommendation) {
+					const recommender = document.createElement('span');
+					recommender.className = 'ex-record-option-mark';
+					recommender.textContent = recommendation.by.alias;
+					optionTitle.append(recordCategoryBadge('Recommended', 'note'), recommender);
+				}
+			} else if (settled || recommendation) {
 				const mark = document.createElement('span');
 				mark.className = chosen ? 'ex-card-pick' : 'ex-record-option-mark';
 				mark.textContent = settled
 					? chosen
 						? 'Chosen'
 						: 'Not chosen'
-					: `Recommended · ${bound?.recommended !== 'none' ? bound?.recommended?.by.alias : ''}`;
+					: `Recommended · ${recommendation?.by.alias ?? ''}`;
 				optionTitle.append(mark);
 			}
 			titleRow.append(bound ? optionTitle : label);
@@ -301,9 +323,37 @@ export class ChoiceIsland extends HTMLElement {
 		this.options = rendered;
 		this.replaceChildren(this.source, fieldset);
 		if (face && beside) {
-			this.prepend(recordStateLine(face));
+			const metadata = recordStateLine(face);
+			if (inRecordSection) {
+				legend.after(metadata);
+				if (!settled) {
+					const context = [legend, metadata];
+					for (
+						let child = metadata.nextElementSibling;
+						child && child !== beside.layout;
+						child = child.nextElementSibling
+					) {
+						if (
+							!(child instanceof HTMLElement) ||
+							child.matches('ex-mermaid, ex-gallery, figure, [data-width="canvas"]')
+						)
+							break;
+						context.push(child);
+					}
+					for (const block of context) block.classList.add('ex-record-choice-context-part');
+					const last = context.at(-1);
+					if (last) {
+						last.classList.add('ex-record-choice-context-end');
+						this.contextEnd = last;
+						this.classList.add('ex-record-choice-context');
+					}
+				}
+			} else this.prepend(metadata);
 			legend.classList.add('ex-record-item-title');
-			appendRecordBasis(this, face);
+			const chosenTitle = settled
+				? rendered.find((option) => option.input.checked)?.label
+				: undefined;
+			appendRecordBasis(this, face, chosenTitle ? { chosenTitle } : undefined);
 			this.removeAttribute('title');
 			this.classList.add('ex-bound-choice');
 		}
@@ -314,6 +364,19 @@ export class ChoiceIsland extends HTMLElement {
 		this.setAttribute('label', this.question);
 		if (!bound) installIslandInspector(this);
 		this.dispatchEvent(new Event('island-ready', { bubbles: true }));
+	}
+
+	private observeContextWidth(): void {
+		const endpoint = this.contextEnd;
+		if (!endpoint) return;
+		const measure = (): void => {
+			const height = endpoint.getBoundingClientRect().bottom - this.getBoundingClientRect().top;
+			this.style.setProperty('--record-choice-context-height', `${height}px`);
+		};
+		this.contextResize ??= new ResizeObserver(measure);
+		this.contextResize.observe(endpoint);
+		this.contextResize.observe(this);
+		measure();
 	}
 
 	private normalizeDetailHeadings(): void {
@@ -331,6 +394,7 @@ export class ChoiceIsland extends HTMLElement {
 	}
 
 	private connectControls(): void {
+		this.observeContextWidth();
 		this.events.abort();
 		this.events = new AbortController();
 		const { signal } = this.events;

@@ -718,6 +718,7 @@ ex-choice.ex-choice-cards ex-option:has(:focus-visible) > .ex-entity-comment {
 	font: 600 var(--text-xl)/1.35 var(--font-body);
 }
 .ex-record-prose > p:last-child,
+.ex-record-surface > p:last-of-type,
 .ex-bound-choice > .ex-record-dependents:last-child {
 	margin-block-end: 0;
 }
@@ -735,4 +736,70 @@ ex-choice.ex-choice-cards ex-option:has(:focus-visible) > .ex-entity-comment {
 		.ex-choice-detail-layout:not(:has(.ex-choice-detail-panel:not([hidden])))
 	) {
 	max-inline-size: var(--width-reading);
+}
+
+ex-section-item[record] .ex-record-item-title {
+	margin-block-end: var(--space-2);
+}
+ex-section-item[record] .ex-record-state-line {
+	max-inline-size: var(--width-reading);
+	margin-block-end: var(--space-3);
+}
+ex-section-item[record] .ex-record-option-title {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: var(--space-1) var(--space-2);
+	min-inline-size: 0;
+	overflow-wrap: anywhere;
+}
+ex-section-item[record] .ex-record-option-title > ex-badge {
+	white-space: nowrap;
+}
+ex-section-item[record] .ex-record-option-mark {
+	font-weight: 400;
+}
+ex-section-item[record] .ex-choice-option {
+	--record-option-fill: color-mix(in srgb, var(--strong-bg) 40%, var(--surface-content));
+}
+ex-section-item[record] .ex-choice-option:not(:has(> input:checked)) {
+	background: var(--record-option-fill);
+}
+ex-section-item[record] .ex-choice-option:hover:not(:has(> input:checked)) {
+	background: color-mix(in srgb, var(--ink) 3%, var(--record-option-fill));
+}
+ex-section-item[record] .ex-record-detail-button {
+	background: transparent;
+}
+ex-section-item[record] .ex-record-detail-button:hover {
+	background: color-mix(in srgb, currentColor 10%, transparent);
+}
+.ex-record-surface > .ex-bound-choice.ex-choice-cards > fieldset {
+	padding-inline-end: 0;
+}
+.ex-record-choice-context {
+	isolation: isolate;
+}
+.ex-record-choice-context::before {
+	content: '';
+	position: absolute;
+	z-index: -1;
+	inset: 0 auto auto 0;
+	box-sizing: border-box;
+	inline-size: min(100%, var(--record-surface-width));
+	block-size: var(--record-choice-context-height, 0px);
+	border: 1px solid var(--rule);
+	border-radius: var(--radius-md);
+	background: var(--surface-content);
+	pointer-events: none;
+}
+.ex-record-choice-context > fieldset > .ex-record-choice-context-part {
+	box-sizing: border-box;
+	padding-inline: var(--space-4);
+}
+.ex-record-choice-context > fieldset > legend.ex-record-choice-context-part {
+	padding-block-start: var(--space-4);
+}
+.ex-record-choice-context > fieldset > .ex-record-choice-context-end {
+	padding-block-end: var(--space-4);
 }
