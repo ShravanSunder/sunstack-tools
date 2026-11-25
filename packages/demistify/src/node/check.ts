@@ -9,8 +9,8 @@ import { type DefaultTreeAdapterMap, parse } from 'parse5';
 
 import { parseDeliverablesView } from '../core/deliverables-view.ts';
 import { availableHeadingFragment, headingSlug } from '../core/heading-fragments.ts';
-import { parseMarkdownSource } from '../core/markdown-source.ts';
 import { parseInitiativeView } from '../core/initiative-view.ts';
+import { parseMarkdownSource } from '../core/markdown-source.ts';
 import {
 	parseBreakdownValue,
 	parseProgressValue,

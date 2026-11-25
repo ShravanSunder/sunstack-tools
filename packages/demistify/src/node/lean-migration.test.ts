@@ -396,9 +396,9 @@ it('retains quoted container evidence and keeps public project record links at t
 		const assumptions = await readFile(join(outProject, 'initiative-assumptions.ts'), 'utf8');
 		expect(assumptions).toContain('"href": "./index.html#A1-source"');
 		expect(assumptions).toContain('"href": "index.html#A1-source"');
-		expect((await run(process.execPath, [cli, 'initiative', 'check', outProject])).stdout).toContain(
-			'Checked 0 project(s) in order: .',
-		);
+		expect(
+			(await run(process.execPath, [cli, 'initiative', 'check', outProject])).stdout,
+		).toContain('Checked 0 project(s) in order: .');
 		const report: unknown = JSON.parse(stdout);
 		expect(report).toMatchObject({
 			passages: [

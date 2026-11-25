@@ -71,7 +71,8 @@ async function main(): Promise<number> {
 	}
 	if (command === 'initiative') {
 		const [action, ...args] = rest;
-		const usage = 'Usage: demistify initiative check [directory] [--site-root <directory>] [--write]';
+		const usage =
+			'Usage: demistify initiative check [directory] [--site-root <directory>] [--write]';
 		if (!action || action === '--help') {
 			write(usage);
 			return 0;

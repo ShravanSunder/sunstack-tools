@@ -2,7 +2,7 @@ import { idPrefixGlossary, recordKindGlossary } from '../core/glossary.ts';
 import { createPhosphorIcon } from '../core/icons.ts';
 
 type RecordKind = keyof typeof recordKindGlossary;
-const prefixes = new Map<string, string>(Object.entries(idPrefixGlossary));
+const prefixes: ReadonlyMap<string, string> = idPrefixGlossary;
 
 interface GlossaryPopup {
 	readonly element: HTMLSpanElement;

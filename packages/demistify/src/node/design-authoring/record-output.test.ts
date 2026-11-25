@@ -16,7 +16,8 @@ const outputs = new Map<string, DesignRecordView>([
 	[projectOutput, { version: 1, pages: {} }],
 ]);
 const nav = '<ex-nav src="navigation.generated.json"></ex-nav>';
-const overview = '<ex-initiative-overview src="../initiative.generated.json"></ex-initiative-overview>';
+const overview =
+	'<ex-initiative-overview src="../initiative.generated.json"></ex-initiative-overview>';
 const marker = '<meta name="demistify-records" content="../records.generated.js">';
 
 it.each([

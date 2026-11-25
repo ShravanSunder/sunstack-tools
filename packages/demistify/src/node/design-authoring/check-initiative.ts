@@ -21,11 +21,7 @@ import {
 import { compileDesignNavigation } from './design-navigation.ts';
 import { designTypeSource } from './design-type-source.ts';
 import { projectIgnoreDirectory } from './generated-ignore.ts';
-import {
-	orderInitiativeProjects,
-	projectProgress,
-	transitiveDependencies,
-} from './initiative-order.ts';
+import { orderInitiativeProjects, projectProgress } from './initiative-order.ts';
 import { checkAuthoringTypes, readDesignItems } from './read-design.ts';
 import {
 	projectRecordTypeImports,
@@ -260,7 +256,10 @@ interface LoadedInitiative {
 	readonly dependencies: ReadonlyMap<string, readonly string[]>;
 }
 
-export async function loadInitiative(directory: string, siteRoot?: string): Promise<LoadedInitiative> {
+export async function loadInitiative(
+	directory: string,
+	siteRoot?: string,
+): Promise<LoadedInitiative> {
 	const root = await realpath(resolve(directory));
 	const initiativeFile = join(root, 'initiative.ts');
 	const check = await openDesignCheck(siteRoot ?? root);
@@ -327,6 +326,11 @@ export async function loadInitiative(directory: string, siteRoot?: string): Prom
 			});
 		entries.push(...set.entries.map((entry) => projectEntry(entry, set.name, href)));
 	}
+	checkDeliverableDependencies(entries);
+	const dependencies = new Map(
+		Object.entries(manifest.projects).map(([name, { dependsOn }]) => [name, dependsOn]),
+	);
+	const sequencedEntries = withProjectPrerequisites(entries, dependencies);
 	const qualifiedIds = design.records.map(({ id }) => id);
 	const records = checkRecordRelationships(design.records);
 	for (const set of sets) {
@@ -341,40 +345,73 @@ export async function loadInitiative(directory: string, siteRoot?: string): Prom
 		sets,
 		shared,
 		design,
-		entries,
+		entries: sequencedEntries,
 		projects: new Map(sets.map((set) => [set.directory, set.name])),
-		dependencies: new Map(
-			Object.entries(manifest.projects).map(([name, { dependsOn }]) => [name, dependsOn]),
-		),
+		dependencies,
 	};
 }
 
-/** A deliverable may depend across projects only on a project its own project depends on. */
-function checkDeliverableDependencies(
-	entries: readonly DeliveryEntry[],
-	dependencies: ReadonlyMap<string, readonly string[]>,
-): void {
-	const namespace = (id: string): string => id.slice(0, id.indexOf('/'));
+function projectOf(qualifiedId: string): string {
+	return qualifiedId.slice(0, qualifiedId.indexOf('/'));
+}
+
+/**
+ * Deliverables are sequenced inside their project; projects are sequenced by the
+ * initiative. A deliverable that names a deliverable in another project is refused.
+ */
+function checkDeliverableDependencies(entries: readonly DeliveryEntry[]): void {
 	for (const { deliverable, dependsOn } of entries) {
-		const own = namespace(deliverable.id);
-		const allowed = transitiveDependencies(dependencies, own);
+		const own = projectOf(deliverable.id);
 		for (const prerequisite of dependsOn) {
-			const other = namespace(prerequisite);
-			if (other !== own && !allowed.has(other))
+			const other = projectOf(prerequisite);
+			if (other !== own)
 				throw new Error(
-					`${deliverable.id} depends on ${prerequisite}, but project ${own} does not depend on project ${other}. Add ${other} to ${own}'s dependsOn in initiative.ts.`,
+					`${deliverable.id} depends on ${prerequisite} in another project. Deliverables depend only on deliverables in their own project; put ${other} in ${own}'s dependsOn in initiative.ts instead.`,
 				);
 		}
 	}
+}
+
+/**
+ * A project waits for every project it depends on: each deliverable that starts
+ * its project (one with no prerequisite inside it) also waits for every core
+ * deliverable of those projects, so delivery states and briefs show the wait.
+ */
+function withProjectPrerequisites(
+	entries: readonly DeliveryEntry[],
+	dependencies: ReadonlyMap<string, readonly string[]>,
+): DeliveryEntry[] {
+	const coreByProject = new Map<string, string[]>();
+	for (const { deliverable } of entries) {
+		if (deliverable.kind !== 'core') continue;
+		const project = projectOf(deliverable.id);
+		coreByProject.set(project, [...(coreByProject.get(project) ?? []), deliverable.id]);
+	}
+	return entries.map((entry): DeliveryEntry => {
+		if (entry.dependsOn.length) return entry;
+		const waits = (dependencies.get(projectOf(entry.deliverable.id)) ?? []).flatMap(
+			(project) => coreByProject.get(project) ?? [],
+		);
+		return waits.length ? { ...entry, dependsOn: waits } : entry;
+	});
 }
 
 export async function buildInitiative(
 	directory: string,
 	options: InitiativeCheckOptions = {},
 ): Promise<CheckedInitiativeBuild> {
-	const { root, initiativeFile, check, owner, sets, shared, design, entries, projects, dependencies } =
-		await loadInitiative(directory, options.siteRoot);
-	checkDeliverableDependencies(entries, dependencies);
+	const {
+		root,
+		initiativeFile,
+		check,
+		owner,
+		sets,
+		shared,
+		design,
+		entries,
+		projects,
+		dependencies,
+	} = await loadInitiative(directory, options.siteRoot);
 	const projectOutput = join(root, 'initiative.generated.json');
 	const [preparedSets] = await Promise.all([
 		Promise.all(sets.map(async (set) => Object.assign({}, set, await check.prepare(set)))),
@@ -414,9 +451,7 @@ export async function buildInitiative(
 	const accepted = new Set<string>();
 	const progressByProject = new Map<string, ReturnType<typeof projectProgress>>();
 	for (const name of order) {
-		const own = Object.values(delivery.deliverables).filter(({ id }) =>
-			id.startsWith(`${name}/`),
-		);
+		const own = Object.values(delivery.deliverables).filter(({ id }) => id.startsWith(`${name}/`));
 		const progress = projectProgress(
 			name,
 			dependencies.get(name) ?? [],
@@ -432,7 +467,8 @@ export async function buildInitiative(
 		...(owner === undefined ? {} : { owner }),
 		projects: Object.fromEntries(
 			preparedSets.map((set) => {
-				const progress = progressByProject.get(set.name) as ReturnType<typeof projectProgress>;
+				const progress = progressByProject.get(set.name);
+				if (!progress) throw new Error(`${set.name}: project missing from the initiative order.`);
 				return [
 					set.name,
 					{

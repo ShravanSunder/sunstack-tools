@@ -175,7 +175,9 @@ it('opens exact authored bytes and writes external-page data without accepting c
 				expect(view.status).toBe(200);
 			});
 		}
-		expect(await readFile(join(project, 'initiative.generated.json'), 'utf8')).toContain('notes/N1');
+		expect(await readFile(join(project, 'initiative.generated.json'), 'utf8')).toContain(
+			'notes/N1',
+		);
 		await writeFile(page, html);
 		await createExternalPageProject(join(site, 'other-project'));
 		await expect(
@@ -290,7 +292,9 @@ it.skipIf(process.platform === 'win32' || process.getuid?.() === 0)(
 					],
 				});
 			});
-			expect(await readFile(join(project, 'initiative.generated.json'), 'utf8')).toContain('notes/N1');
+			expect(await readFile(join(project, 'initiative.generated.json'), 'utf8')).toContain(
+				'notes/N1',
+			);
 		} finally {
 			await chmod(unreadableHint, 0o700);
 			await rm(site, { recursive: true, force: true });

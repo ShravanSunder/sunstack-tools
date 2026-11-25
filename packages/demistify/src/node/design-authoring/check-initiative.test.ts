@@ -101,11 +101,11 @@ export default defineDeliverable(${JSON.stringify({
 	})});`;
 }
 
-function deliverySource(dependency?: string): string {
+function deliverySource(dependency?: string, lead?: string): string {
 	return `import design from './design.ts';
 import unit from './deliverables/unit.ts';
 import { defineDelivery } from './design-sdk.generated.ts';
-export default defineDelivery(design, [{ deliverable: unit${dependency ? `, dependsOn: ['${dependency}']` : ''} }]${dependency ? ", { lead: 'messages-lead' }" : ''});`;
+export default defineDelivery(design, [{ deliverable: unit${dependency ? `, dependsOn: ['${dependency}']` : ''} }]${lead ? `, { lead: '${lead}' }` : ''});`;
 }
 
 it('checks an empty project without discovering files beside the manifest', async (): Promise<void> => {
@@ -477,7 +477,7 @@ it('checks explicit project records, qualified prerequisites, and Lead aliases a
 					writeFile(join(directory, 'design.ts'), designSource(directory === messages)),
 					writeFile(
 						join(directory, 'design-delivery.ts'),
-						deliverySource(directory === messages ? 'sessions/DEL-01' : undefined),
+						deliverySource(undefined, directory === messages ? 'messages-lead' : undefined),
 					),
 					writeFile(
 						join(directory, 'deliverables/unit.ts'),
@@ -699,7 +699,7 @@ resolution: { href: 'evidence.txt', excerpt: 'Available.' }
 		expect(await readFile(outputPath, 'utf8')).toBe(previous);
 		await writeFile(join(messages, 'design.ts'), currentMessages);
 		await writeFile(join(sessions, 'design-delivery.ts'), deliverySource('messages/DEL-01'));
-		await expect(check()).rejects.toThrow(/project sessions does not depend on project messages/);
+		await expect(check()).rejects.toThrow(/depends on messages\/DEL-01 in another project/);
 		expect(await readFile(outputPath, 'utf8')).toBe(previous);
 		await writeFile(join(sessions, 'design-delivery.ts'), deliverySource());
 

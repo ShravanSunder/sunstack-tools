@@ -98,7 +98,8 @@ export async function planReleasedProject({
 }> {
 	const manifestFile = join(project, 'initiative.ts');
 	const originalManifest = await read(manifestFile);
-	if (originalManifest === undefined) throw new Error(`Missing initiative manifest: ${manifestFile}.`);
+	if (originalManifest === undefined)
+		throw new Error(`Missing initiative manifest: ${manifestFile}.`);
 	const manifest = readInitiativeManifest(manifestFile, originalManifest);
 	const sidecars: { file: string; namespace: string; type: 'decision' | 'assumption' }[] = [];
 	if (manifest.decisions)

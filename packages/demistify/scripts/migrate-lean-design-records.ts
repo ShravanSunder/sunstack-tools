@@ -456,12 +456,16 @@ async function planMigration({
 	const manifestFile = join(project, 'initiative.ts');
 	const manifest = readInitiativeManifest(manifestFile, await required(read, manifestFile));
 	const generatorMilestones = [...new Set(generatorOwned)].map((name) => {
-		const registered = Object.hasOwn(manifest.projects, name) ? manifest.projects[name]?.design : undefined;
+		const registered = Object.hasOwn(manifest.projects, name)
+			? manifest.projects[name]?.design
+			: undefined;
 		if (!registered) throw new Error(`Unknown generator-owned milestone namespace: ${name}.`);
 		return { name, directory: relative(source, dirname(registered)) };
 	});
 	const sets = await Promise.all(
-		Object.entries(manifest.projects).map(([namespace, { design: file }]) => milestone(namespace, file, read)),
+		Object.entries(manifest.projects).map(([namespace, { design: file }]) =>
+			milestone(namespace, file, read),
+		),
 	);
 	if (new Set(sets.map(({ file }) => file)).size !== sets.length)
 		throw new Error('Register each design directory only once.');

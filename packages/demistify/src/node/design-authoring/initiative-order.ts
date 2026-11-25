@@ -38,8 +38,7 @@ function dependencyLoops(
 	const reaches = (from: string, to: string): boolean => {
 		const seen = new Set<string>();
 		const pending = [...(projects.get(from) ?? [])];
-		while (pending.length) {
-			const next = pending.pop() as string;
+		for (let next = pending.pop(); next !== undefined; next = pending.pop()) {
 			if (next === to) return true;
 			if (seen.has(next)) continue;
 			seen.add(next);
@@ -60,30 +59,15 @@ function dependencyLoops(
 	return loops;
 }
 
-/** Every project a project depends on, directly or through others. */
-export function transitiveDependencies(
-	projects: ReadonlyMap<string, readonly string[]>,
-	name: string,
-): Set<string> {
-	const reached = new Set<string>();
-	const pending = [...(projects.get(name) ?? [])];
-	while (pending.length) {
-		const next = pending.pop() as string;
-		if (reached.has(next)) continue;
-		reached.add(next);
-		pending.push(...(projects.get(next) ?? []));
-	}
-	return reached;
-}
-
 export interface ProjectProgress {
 	readonly state: ProjectState;
 	readonly reason: string;
 }
 
 /**
- * A project's state from its own deliverables and the projects it depends on.
- * A project waits on a dependency until every core deliverable there is accepted.
+ * A project's state. Projects are sequenced by the initiative: a project waits
+ * until every project it depends on is accepted. Inside a project, its own
+ * deliverables' states decide the rest.
  */
 export function projectProgress(
 	name: string,
@@ -104,19 +88,23 @@ export function projectProgress(
 	if (!core.length) return { state: 'later', reason: 'Only later deliverables are named.' };
 	if (core.every((deliverable) => deliverable.state === 'accepted'))
 		return { state: 'accepted', reason: 'Every core deliverable is accepted.' };
-	const designBlocked = core.filter((deliverable) => deliverable.state === 'design-blocked');
-	if (designBlocked.length)
+	const open = core.filter((deliverable) => deliverable.state !== 'accepted');
+	const designBlocked = open.filter((deliverable) => deliverable.state === 'design-blocked');
+	if (designBlocked.length === open.length)
 		return {
 			state: 'design-blocked',
 			reason: `${designBlocked.map(({ id }) => id).join(', ')} wait on an open owner decision.`,
 		};
 	const started = core.filter(
-		(deliverable) => deliverable.state !== 'planned' && deliverable.state !== 'dependency-blocked',
+		(deliverable) =>
+			deliverable.state !== 'planned' &&
+			deliverable.state !== 'dependency-blocked' &&
+			deliverable.state !== 'design-blocked',
 	);
 	if (started.length)
 		return {
 			state: 'in-progress',
 			reason: `${started.length} of ${core.length} core deliverables started or done.`,
 		};
-	return { state: 'planned', reason: 'No core deliverable has started.' };
+	return { state: 'planned', reason: 'Ready to start; no core deliverable has started.' };
 }
