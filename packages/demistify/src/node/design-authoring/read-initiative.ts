@@ -14,7 +14,7 @@ const sentence = z.string().trim().min(1);
 const initiativeProjectSchema = z.strictObject({
 	design: filePath,
 	/** The initiative's order: lower first; the same number means side by side. */
-	number: z.number().int().positive(),
+	number: z.number().int().nonnegative(),
 	/** What the project achieves, in one sentence. */
 	achieves: sentence.optional(),
 	/** What the owner checks to accept the project. */
