@@ -72,7 +72,7 @@ async function main(): Promise<number> {
 	if (command === 'initiative') {
 		const [action, ...args] = rest;
 		const usage =
-			'Usage: demistify initiative check [directory] [--site-root <directory>] [--write]';
+			'Usage: demistify initiative check [directory] [--site-root <directory>] [--write]\n       demistify initiative status [directory] [--site-root <directory>] [--json]';
 		if (!action || action === '--help') {
 			write(usage);
 			return 0;
@@ -83,6 +83,7 @@ async function main(): Promise<number> {
 			options: {
 				'site-root': { type: 'string' },
 				write: { type: 'boolean' },
+				json: { type: 'boolean' },
 				help: { type: 'boolean' },
 			},
 		});
@@ -90,14 +91,24 @@ async function main(): Promise<number> {
 			write(usage);
 			return 0;
 		}
-		if (action !== 'check' || positionals.length > 1) {
-			write(usage);
-			return 1;
-		}
 		const [directory = '.'] = positionals;
-		const { checkInitiative } = await import('../src/node/design-authoring/check-initiative.ts');
-		write(await checkInitiative(directory, { siteRoot: values['site-root'], write: values.write }));
-		return 0;
+		if (action === 'check' && positionals.length <= 1 && !values.json) {
+			const { checkInitiative } = await import('../src/node/design-authoring/check-initiative.ts');
+			write(
+				await checkInitiative(directory, { siteRoot: values['site-root'], write: values.write }),
+			);
+			return 0;
+		}
+		if (action === 'status' && positionals.length <= 1 && !values.write) {
+			const { initiativeStatus } =
+				await import('../src/node/design-authoring/initiative-status.ts');
+			write(
+				await initiativeStatus(directory, { siteRoot: values['site-root'], json: values.json }),
+			);
+			return 0;
+		}
+		write(usage);
+		return 1;
 	}
 	if (command === 'brief') {
 		const usage = 'Usage: demistify brief <deliverable> [directory] [--site-root <directory>]';
@@ -233,7 +244,7 @@ async function main(): Promise<number> {
 	}
 	if (command !== 'check') {
 		write(
-			'Usage: demistify check [--fix] [--render] [--no-diagrams] <page.html …>\n       demistify check --hook\n       demistify open <page.html> [--site-root <directory>] [--no-browser]\n       demistify design --help\n       demistify brief <deliverable> [directory] [--site-root <directory>]\n       demistify initiative check [directory] [--site-root <directory>] [--write]',
+			'Usage: demistify check [--fix] [--render] [--no-diagrams] <page.html …>\n       demistify check --hook\n       demistify open <page.html> [--site-root <directory>] [--no-browser]\n       demistify design --help\n       demistify brief <deliverable> [directory] [--site-root <directory>]\n       demistify initiative check [directory] [--site-root <directory>] [--write]\n       demistify initiative status [directory] [--site-root <directory>] [--json]',
 		);
 		return !command || ['--help', '-h', 'help'].includes(command) ? 0 : 1;
 	}

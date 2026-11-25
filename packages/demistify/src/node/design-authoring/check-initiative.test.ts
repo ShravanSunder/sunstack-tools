@@ -634,6 +634,25 @@ resolution: { href: 'evidence.txt', excerpt: 'Available.' }
 		await writeFile(sharedPage, sharedMarkup);
 		const before = await readView();
 		expect(before.deliverables['messages/DEL-01']?.state).toBe('dependency-blocked');
+		const status = z
+			.object({
+				projects: z.array(
+					z.object({
+						name: z.string(),
+						deliverables: z.array(z.object({ id: z.string(), state: z.string() })),
+					}),
+				),
+			})
+			.parse(
+				JSON.parse(
+					(await run(process.execPath, [cli, 'initiative', 'status', root, '--json'])).stdout,
+				),
+			);
+		expect(status.projects.map(({ name }) => name)).toEqual(['sessions', 'messages']);
+		expect(status.projects[1]?.deliverables[0]).toMatchObject({
+			id: 'messages/DEL-01',
+			state: 'dependency-blocked',
+		});
 		expect(coreView(before, 'sessions/DEL-01').links.plan.page).toBe(
 			'milestones/2026-11-sessions%23archive/index.html',
 		);

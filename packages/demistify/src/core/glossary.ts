@@ -19,6 +19,19 @@ export const deliverableStateGlossary = {
 
 export type GlossaryDeliverableState = keyof typeof deliverableStateGlossary;
 
+/** What each level of a typed plan is, and what a project's number means. */
+export const levelGlossary = {
+	initiative:
+		'Initiative: the whole plan. It holds its projects, each with a number, and the decisions they share.',
+	project:
+		'Project: one piece of work that finishes, with its own design. It says what it achieves and what the owner checks to accept it.',
+	deliverable:
+		'Deliverable: a piece of a project that is built, checked and accepted. It can depend on deliverables in any project.',
+	number:
+		'Number: the order the owner wants. Every project numbered 1 runs side by side; projects numbered 2 come after them, then 3, and so on.',
+	dependsOn: 'Depends on: this deliverable cannot be accepted before the deliverables it names.',
+} as const;
+
 /** Plain-language meaning of each project state in an initiative. */
 export const projectStateGlossary: Readonly<Record<ProjectState, string>> = {
 	accepted: 'Every core deliverable in this project is accepted.',
