@@ -1,4 +1,4 @@
-import { readdir, readFile } from 'node:fs/promises';
+import { readdir, readFile, realpath } from 'node:fs/promises';
 import { join, relative } from 'node:path';
 
 import { readPageMarkup } from './design-page-markup.ts';
@@ -26,6 +26,11 @@ function placesRecords(html: string, file: string): boolean {
 	}
 }
 
+/** A page's real path: an authored path may differ from the scanned one by a link or by case. */
+function pageIdentity(file: string): Promise<string> {
+	return realpath(file).catch((): string => file);
+}
+
 /**
  * HTML pages under the initiative that bind design records while no design.ts or
  * initiative.ts registers them: the checker never reads them, so their records stay empty.
@@ -34,7 +39,13 @@ export async function unregisteredRecordPages(
 	root: string,
 	registered: ReadonlySet<string>,
 ): Promise<string[]> {
-	const candidates = (await htmlFiles(root)).filter((file) => !registered.has(file));
+	const registeredFiles = new Set(await Promise.all([...registered].map(pageIdentity)));
+	const scanned = await htmlFiles(root);
+	const scannedIdentities = await Promise.all(scanned.map(pageIdentity));
+	const candidates = scanned.filter((_, index) => {
+		const file = scannedIdentities[index];
+		return file !== undefined && !registeredFiles.has(file);
+	});
 	const pages = await Promise.all(
 		candidates.map(async (file): Promise<string | undefined> =>
 			placesRecords(await readFile(file, 'utf8'), file) ? relative(root, file) : undefined,
