@@ -3,10 +3,16 @@ import {
 	type DeliverableView,
 	parseDeliverablesView,
 } from '../core/deliverables-view.ts';
+import {
+	checkStateGlossary,
+	deliverableStateGlossary,
+	taskStateGlossary,
+} from '../core/glossary.ts';
 import { reportIssue } from '../core/issues.ts';
 import { registerReviewSource, type ReviewSourceResult } from '../core/review-document.ts';
+import { explainRecord, glossaryTerm } from './glossary.ts';
 
-export const deliveryStateLabels = {
+const deliveryStateLabels = {
 	planned: 'Planned',
 	later: 'Later',
 	'implementation-in-progress': 'Implementation in progress',
@@ -18,6 +24,22 @@ export const deliveryStateLabels = {
 	accepted: 'Accepted',
 	'dependency-blocked': 'Blocked on prerequisite',
 } satisfies Record<DeliverableView['state'], string>;
+
+export function deliveryState(state: DeliverableView['state']): HTMLButtonElement {
+	return glossaryTerm(deliveryStateLabels[state], deliverableStateGlossary[state]);
+}
+
+const checkStateLabels = {
+	missing: 'No result',
+	stale: 'Older build',
+	passed: 'Passed',
+	failed: 'Failed',
+	blocked: 'Blocked',
+} satisfies Record<keyof typeof checkStateGlossary, string>;
+
+function checkState(state: keyof typeof checkStateGlossary): HTMLButtonElement {
+	return glossaryTerm(checkStateLabels[state], checkStateGlossary[state]);
+}
 
 export function linkTo(
 	base: URL,
@@ -51,14 +73,26 @@ export function deliveryDetails(
 	};
 	if (showAssignments) {
 		if (item.builder) add(`Builder: ${item.builder}`);
-		if (item.dependsOn.length) add(`Prerequisites: ${item.dependsOn.join(', ')}`);
+		if (item.dependsOn.length) {
+			const prerequisites = add('Prerequisites ');
+			for (const [index, id] of item.dependsOn.entries())
+				prerequisites.append(index ? ', ' : '', id, explainRecord(id, 'deliverable'));
+		}
 	}
 	if (item.implementation.candidate) add(`Candidate: ${item.implementation.candidate}`);
 	if (item.verification.build) add(`Verification build: ${item.verification.build}`);
-	for (const task of item.implementation.tasks) add(`${task.id} · ${task.state}`);
+	for (const task of item.implementation.tasks)
+		add(`${task.id} · `).append(
+			glossaryTerm(
+				task.state === 'completed' ? 'Completed' : 'Open',
+				taskStateGlossary[task.state],
+			),
+		);
 	for (const check of item.verification.checks) {
 		const reason = 'reason' in check ? check.reason : undefined;
-		const entry = add(`${check.id} · ${check.state}${reason ? ` · ${reason}` : ''}`);
+		const entry = add(check.id);
+		entry.append(explainRecord(check.id, 'planned-check'), ' · ', checkState(check.state));
+		if (reason) entry.append(` · ${reason}`);
 		if ('outcome' in check && check.outcome.kind !== 'blocked') {
 			entry.append(` · ${check.outcome.observation}`);
 			entry.append(' · ', linkTo(source, check.outcome.evidence, 'Evidence'));
@@ -68,7 +102,9 @@ export function deliveryDetails(
 		add('').append(linkTo(source, item.progress.acceptance.evidence, 'Lead acceptance evidence'));
 	for (const past of item.verification.history ?? []) {
 		for (const [id, outcome] of Object.entries(past.outcomes)) {
-			const entry = add(`Historical · ${past.build} · ${id} · ${outcome.kind}`);
+			const entry = add(`Historical · ${past.build} · ${id}`);
+			entry.append(explainRecord(id, 'planned-check'), ' · ', checkState('stale'));
+			entry.append(` · Recorded result ${checkStateLabels[outcome.kind]}`);
 			if (outcome.kind === 'blocked') entry.append(` · ${outcome.reason}`);
 			else
 				entry.append(` · ${outcome.observation} · `, linkTo(source, outcome.evidence, 'Evidence'));
@@ -83,8 +119,10 @@ export function deliveryDetails(
 		...item.links.verificationChecks,
 	]) {
 		const title = `${id} · ${label}`;
-		if (destination) add('').append(linkTo(source, destination.page, title, destination.fragment));
-		else add(title);
+		const value = destination
+			? linkTo(source, destination.page, title, destination.fragment)
+			: title;
+		add('').append(value, explainRecord(id));
 	}
 	details.append(list);
 	return details;
@@ -148,8 +186,8 @@ export class DeliverablesIsland extends HTMLElement {
 			title.scope = 'row';
 			row.append(title);
 			if (item.kind === 'later') {
-				title.textContent = `${item.id} · ${item.title}`;
-				row.insertCell().textContent = deliveryStateLabels.later;
+				title.append(`${item.id} · ${item.title}`, explainRecord(item.id, 'deliverable'));
+				row.insertCell().append(deliveryState('later'));
 				row.insertCell();
 				continue;
 			}
@@ -160,11 +198,10 @@ export class DeliverablesIsland extends HTMLElement {
 					`${item.id} · ${item.title}`,
 					item.links.plan.fragment,
 				),
+				explainRecord(item.id, 'deliverable'),
 			);
-			const summary = document.createElement('strong');
-			summary.textContent = deliveryStateLabels[item.state];
 			const state = row.insertCell();
-			state.append(summary);
+			state.append(deliveryState(item.state));
 			for (const reason of item.state === 'accepted' ? [] : item.reasons) {
 				const paragraph = document.createElement('p');
 				paragraph.textContent = reason;

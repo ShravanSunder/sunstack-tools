@@ -20,7 +20,7 @@ export function recordOutputFile(
 		throw new Error(`${file}: remove <base href> so design links resolve from the authored page.`);
 	for (const [kind, sources, name] of [
 		['navigation', markup.navigationSources, 'navigation.generated.json'],
-		['overview', markup.projectOverviewSources, 'project.generated.json'],
+		['overview', markup.projectOverviewSources, 'initiative.generated.json'],
 	] as const) {
 		const candidates = sources.flatMap((source): string[] => {
 			const href = recordSourceHref(source, name);

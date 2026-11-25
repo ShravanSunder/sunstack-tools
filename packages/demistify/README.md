@@ -111,22 +111,22 @@ Serve these pages and the JSON over HTTP. Direct-file compilation and standalone
 
 ### Project decisions in shared navigation
 
-The project overview shows open owner questions, dated decisions, replacements and assumptions.
+The initiative overview shows open owner questions, dated decisions, replacements and assumptions.
 Authority identifies the Lead or Owner. Status shows Open, Decided or Superseded. The reader
 derives Superseded from the replacement decision's `supersedes` link and links to affected
 design records.
 
 In `design.ts`, use `target: { record: 'D6' }` for a Map node or Walkthrough step. A qualified
-reference such as `messages/D6` or `project/D6` resolves during `demistify project check`.
+reference such as `messages/D6` or `initiative/D6` resolves during `demistify initiative check`.
 Declare the destination page in the design's `pages`. The checker resolves the record to its
-reviewed HTML fragment when generating navigation. Run `demistify design types <milestone>`
+reviewed HTML fragment when generating navigation. Run `demistify design types <project>`
 before adding record targets to a typed design that uses older generated declarations.
 
 An authored `<ex-choice id="D6" data-decision="D6" title="…">` can serve as an open owner
 decision's destination. Use its recorded question as the title. The review handoff carries the
 decision ID with the selected options. The Lead records the actual answer in the decision file.
-On a shared project page, use the qualified decision ID, such as `data-decision="messages/D6"`.
-`project check` validates Choices across the project's declared and referenced record pages.
+On a shared initiative page, use the qualified decision ID, such as `data-decision="messages/D6"`.
+`initiative check` validates Choices across the initiative's declared and referenced record pages.
 `design check` validates Choices on the design's own pages and at its own decision destinations.
 
 ### Reading measure and visual canvas

@@ -1,10 +1,55 @@
-ex-project-overview {
+ex-initiative-overview {
 	display: block;
 	min-width: 0;
 	overflow-wrap: anywhere;
 }
-ex-project-overview li {
+ex-initiative-overview li {
 	margin-block: 0.25rem;
+}
+.ex-initiative-project-group {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+	gap: var(--space-4);
+}
+.ex-initiative-project > p {
+	margin-block: var(--space-2);
+}
+.ex-initiative-project-state {
+	color: var(--ink-soft);
+}
+.ex-glossary-term {
+	padding: 0;
+	border: 0;
+	background: transparent;
+	color: inherit;
+	font: inherit;
+	text-align: start;
+	text-decoration: underline dotted;
+	text-underline-offset: 0.2em;
+	cursor: help;
+}
+.ex-glossary-marker {
+	margin-inline-start: var(--space-1);
+	padding-inline: var(--space-1);
+	min-inline-size: var(--space-6);
+	min-block-size: var(--space-6);
+	color: var(--ink-soft);
+	text-decoration: none;
+}
+.ex-glossary-popup {
+	position: fixed;
+	inset: auto;
+	margin: 0;
+	box-sizing: border-box;
+	max-inline-size: min(24rem, calc(100vw - 16px));
+	padding: var(--space-2) var(--space-3);
+	border: 1px solid var(--rule);
+	border-radius: var(--radius-md);
+	background: var(--surface-content);
+	color: var(--ink);
+	font: var(--text-md)/1.4 var(--font-body);
+	white-space: normal;
+	overflow-wrap: anywhere;
 }
 
 /* Two section widths share one left edge: Reading starts where Canvas starts. HTML and nested

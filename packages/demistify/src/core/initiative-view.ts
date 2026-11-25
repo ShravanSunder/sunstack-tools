@@ -25,24 +25,52 @@ const projectRecord = z.looseObject({
 	relationships: z.array(z.object({ relation: z.string(), targetId: z.string() })).optional(),
 });
 
-export const projectViewSchema = z.strictObject({
-	version: z.literal(1),
+export const projectStates = [
+	'accepted',
+	'dependency-blocked',
+	'design-blocked',
+	'in-progress',
+	'planned',
+	'later',
+] as const;
+export type ProjectState = (typeof projectStates)[number];
+
+/** The generated view of an initiative: its projects, the order their dependencies produce, records and deliverables. */
+export const initiativeViewSchema = z.strictObject({
+	version: z.literal(2),
 	owner: z.string().optional(),
-	designs: z.record(
+	projects: z.record(
 		z.string(),
 		z.strictObject({
 			path: localDeliveryHref,
 			lead: z.string().optional(),
 			firstPage: localDeliveryHref.optional(),
 			title: z.string().min(1).optional(),
+			/** The initiative's order: lower first; the same number means side by side. */
+			number: z.number().int().nonnegative(),
+			achieves: z.string().min(1).optional(),
+			acceptance: z.string().min(1).optional(),
+			state: z.enum(projectStates),
+			reason: z.string().min(1),
 		}),
 	),
+	/** Computed from deliverable states and dependencies. */
+	work: z.strictObject({
+		/** Core deliverables that may start now. */
+		readyNow: z.array(z.string()),
+		/** Unaccepted deliverables ranked by how many other open deliverables wait on them. */
+		blocksMost: z.array(z.strictObject({ id: z.string(), waiting: z.number().int().positive() })),
+		/** Deliverables with a recorded candidate that are not accepted. */
+		builtNotAccepted: z.array(z.string()),
+	}),
+	/** Project names by number, then in the initiative's authored order. */
+	order: z.array(z.string()),
 	records: z.array(projectRecord),
 	deliverables: z.record(z.string(), deliverableViewSchema),
 });
 
-export type ProjectView = z.infer<typeof projectViewSchema>;
-export type ProjectRecord = ProjectView['records'][number];
+export type InitiativeView = z.infer<typeof initiativeViewSchema>;
+export type ProjectRecord = InitiativeView['records'][number];
 
 export interface ProjectDecision {
 	readonly record: ProjectRecord;
@@ -52,8 +80,8 @@ export interface ProjectDecision {
 	readonly governedRecords: readonly ProjectRecord[];
 }
 
-export function parseProjectView(source: string): ProjectView {
-	return projectViewSchema.parse(JSON.parse(source));
+export function parseInitiativeView(source: string): InitiativeView {
+	return initiativeViewSchema.parse(JSON.parse(source));
 }
 
 export function projectDecisions(records: readonly ProjectRecord[]): ProjectDecision[] {

@@ -113,8 +113,8 @@ it('plans without writing and migrates a copy with row and verbatim evidence anc
 		await mkdir(set, { recursive: true });
 		await Promise.all([
 			writeFile(
-				join(project, 'project.ts'),
-				"import phase from './phase/design.ts'; export default { designs: { phase } };",
+				join(project, 'initiative.ts'),
+				"import phase from './phase/design.ts'; export default { projects: { phase: { design: phase, number: 1 } } };",
 			),
 			writeFile(join(set, 'index.html'), oldHtml),
 			writeFile(join(set, 'design.ts'), oldSource),
@@ -222,8 +222,8 @@ it('plans without writing and migrates a copy with row and verbatim evidence anc
 		await expect(stat(join(outSet, 'navigation.generated.json'))).rejects.toMatchObject({
 			code: 'ENOENT',
 		});
-		const checked = await run(process.execPath, [cli, 'project', 'check', outProject]);
-		expect(checked.stdout).toContain('Checked 1 project design(s).');
+		const checked = await run(process.execPath, [cli, 'initiative', 'check', outProject]);
+		expect(checked.stdout).toContain('Checked 1 project(s) by number: 1 phase.');
 		expect(await readFile(join(set, 'index.html'), 'utf8')).toBe(oldHtml);
 		await expect(run(process.execPath, command)).rejects.toThrow(/Output already exists/);
 	} finally {
@@ -260,10 +260,10 @@ it.each(['design.ts', 'design-delivery.ts'])(
 			await mkdir(deliverables, { recursive: true });
 			await Promise.all([
 				writeFile(
-					join(project, 'project.ts'),
+					join(project, 'initiative.ts'),
 					"import phase from './phase/" +
 						manifestEntry +
-						"'; export default { designs: { phase } };",
+						"'; export default { projects: { phase: { design: phase, number: 1 } } };",
 				),
 				writeFile(join(set, 'index.html'), oldHtml),
 				writeFile(join(set, 'design.ts'), 'export default ' + JSON.stringify(oldDesign)),
@@ -280,7 +280,7 @@ it.each(['design.ts', 'design-delivery.ts'])(
 			expect(await readFile(join(deliverables, 'core.ts'), 'utf8')).toBe(coreSource);
 			const checked = await run(process.execPath, [
 				cli,
-				'project',
+				'initiative',
 				'check',
 				join(output, 'project'),
 			]);
@@ -320,20 +320,20 @@ it('retains quoted container evidence and keeps public project record links at t
 <ex-callout id="A1" title="Confirmed assumption"><p>The reader has permission.</p>
 <p>Confirmed on the primary reader.</p></ex-callout>
 <p><a href="#D1">Read the decision</a> and <a href="#A1">read the assumption</a>.</p>
-<ex-project-overview src="./project.generated.json"></ex-project-overview></ex-document></body></html>`;
+<ex-initiative-overview src="./initiative.generated.json"></ex-initiative-overview></ex-document></body></html>`;
 		await mkdir(project, { recursive: true });
 		await Promise.all([
 			writeFile(page, html),
 			writeFile(
-				join(project, 'project.ts'),
-				"import decisions from './project-decisions.ts'; import assumptions from './project-assumptions.ts'; export default { decisions, assumptions };",
+				join(project, 'initiative.ts'),
+				"import decisions from './initiative-decisions.ts'; import assumptions from './initiative-assumptions.ts'; export default { decisions, assumptions };",
 			),
 			writeFile(
-				join(project, 'project-decisions.ts'),
+				join(project, 'initiative-decisions.ts'),
 				`export default ${JSON.stringify(oldDecision)};`,
 			),
 			writeFile(
-				join(project, 'project-assumptions.ts'),
+				join(project, 'initiative-assumptions.ts'),
 				'export default ' +
 					JSON.stringify([
 						{
@@ -360,7 +360,7 @@ it('retains quoted container evidence and keeps public project record links at t
 		await writeFile(
 			recordInput,
 			JSON.stringify({
-				'project/A1': {
+				'initiative/A1': {
 					[decisionActorField]: { alias: 'Reader Lead', role: 'lead' },
 					settledBy: 'Reader Verifier',
 				},
@@ -382,34 +382,34 @@ it('retains quoted container evidence and keeps public project record links at t
 		const converted = await readFile(join(outProject, 'index.html'), 'utf8');
 		expect(converted).toContain('<details id="D1-source">');
 		expect(converted).toMatch(
-			/<\/details>\s*<span id="D1"><\/span>\s*<p data-design-record="project\/D1"><\/p>/,
+			/<\/details>\s*<span id="D1"><\/span>\s*<p data-design-record="initiative\/D1"><\/p>/,
 		);
 		expect(converted).toContain('<ex-callout id="A1-source"');
 		expect(converted).toMatch(
-			/<\/ex-callout>\s*<span id="A1"><\/span>\s*<p data-design-record="project\/A1"><\/p>/,
+			/<\/ex-callout>\s*<span id="A1"><\/span>\s*<p data-design-record="initiative\/A1"><\/p>/,
 		);
 		expect(converted).toContain('<a href="#D1">Read the decision</a>');
 		expect(converted).toContain('<a href="#A1">read the assumption</a>');
-		expect(await readFile(join(outProject, 'project-decisions.ts'), 'utf8')).toContain(
+		expect(await readFile(join(outProject, 'initiative-decisions.ts'), 'utf8')).toContain(
 			'"href": "index.html#D1-source"',
 		);
-		const assumptions = await readFile(join(outProject, 'project-assumptions.ts'), 'utf8');
+		const assumptions = await readFile(join(outProject, 'initiative-assumptions.ts'), 'utf8');
 		expect(assumptions).toContain('"href": "./index.html#A1-source"');
 		expect(assumptions).toContain('"href": "index.html#A1-source"');
-		expect((await run(process.execPath, [cli, 'project', 'check', outProject])).stdout).toContain(
-			'Checked 0 project design(s).',
-		);
+		expect(
+			(await run(process.execPath, [cli, 'initiative', 'check', outProject])).stdout,
+		).toContain('Checked 0 project(s) by number: .');
 		const report: unknown = JSON.parse(stdout);
 		expect(report).toMatchObject({
 			passages: [
 				{
-					id: 'project/D1',
+					id: 'initiative/D1',
 					sourceSplit: {
 						anchor: 'D1-source',
 						retargeted: [{ from: 'index.html#D1', to: 'index.html#D1-source' }],
 					},
 				},
-				{ id: 'project/A1', sourceSplit: { anchor: 'A1-source' } },
+				{ id: 'initiative/A1', sourceSplit: { anchor: 'A1-source' } },
 			],
 		});
 		expect(await readFile(page, 'utf8')).toBe(html);
@@ -456,8 +456,8 @@ options: [{ id: 'yes', title: 'Keep it' }, { id: 'no', title: 'Remove it' }], au
 </ex-document></body>`;
 		await Promise.all([
 			writeFile(
-				join(project, 'project.ts'),
-				"import example from './example/design.ts'; export default { designs: { example } };",
+				join(project, 'initiative.ts'),
+				"import example from './example/design.ts'; export default { projects: { example: { design: example, number: 1 } } };",
 			),
 			writeFile(
 				join(design, 'design.ts'),
@@ -519,7 +519,7 @@ options: [{ id: 'yes', title: 'Keep it' }, { id: 'no', title: 'Remove it' }], au
 		expect(page).toContain('<div slot="details">Ordinary choice.</div>');
 		const checked = await run(process.execPath, [
 			cli,
-			'project',
+			'initiative',
 			'check',
 			join(output, 'project'),
 			'--site-root',
@@ -562,8 +562,8 @@ export default [
 		const pageSource = `${prefix}${opening}${content}</ex-section></ex-document>`;
 		await Promise.all([
 			writeFile(
-				join(project, 'project.ts'),
-				"import example from './example/design.ts'; export default { designs: { example } };",
+				join(project, 'initiative.ts'),
+				"import example from './example/design.ts'; export default { projects: { example: { design: example, number: 1 } } };",
 			),
 			writeFile(
 				join(design, 'design.ts'),
@@ -674,7 +674,7 @@ export default [
 		);
 		const checked = await run(process.execPath, [
 			cli,
-			'project',
+			'initiative',
 			'check',
 			join(output, 'project'),
 			'--site-root',

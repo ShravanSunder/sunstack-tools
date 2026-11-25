@@ -21,12 +21,12 @@ import {
 	decisionSource,
 	recordActor,
 } from '../src/core/decision-record.ts';
-import { checkProject } from '../src/node/design-authoring/check-project.ts';
+import { checkInitiative } from '../src/node/design-authoring/check-initiative.ts';
 import {
 	declaredDesignPagePath,
 	resolveDesignLink,
 } from '../src/node/design-authoring/design-location.ts';
-import { readProjectManifest } from '../src/node/design-authoring/read-project.ts';
+import { readInitiativeManifest } from '../src/node/design-authoring/read-initiative.ts';
 import type { DesignRecord } from '../src/node/design-authoring/schema.ts';
 import { containsPath } from '../src/node/local-site.ts';
 import {
@@ -453,15 +453,19 @@ async function planMigration({
 	readonly report: Record<string, unknown>;
 }> {
 	const read = guardedReader(source);
-	const manifestFile = join(project, 'project.ts');
-	const manifest = readProjectManifest(manifestFile, await required(read, manifestFile));
+	const manifestFile = join(project, 'initiative.ts');
+	const manifest = readInitiativeManifest(manifestFile, await required(read, manifestFile));
 	const generatorMilestones = [...new Set(generatorOwned)].map((name) => {
-		const registered = Object.hasOwn(manifest.designs, name) ? manifest.designs[name] : undefined;
+		const registered = Object.hasOwn(manifest.projects, name)
+			? manifest.projects[name]?.design
+			: undefined;
 		if (!registered) throw new Error(`Unknown generator-owned milestone namespace: ${name}.`);
 		return { name, directory: relative(source, dirname(registered)) };
 	});
 	const sets = await Promise.all(
-		Object.entries(manifest.designs).map(([namespace, file]) => milestone(namespace, file, read)),
+		Object.entries(manifest.projects).map(([namespace, { design: file }]) =>
+			milestone(namespace, file, read),
+		),
 	);
 	if (new Set(sets.map(({ file }) => file)).size !== sets.length)
 		throw new Error('Register each design directory only once.');
@@ -479,7 +483,7 @@ async function planMigration({
 			),
 		]),
 		...shared.flatMap((entry) =>
-			entry.records.map((record) => ({ namespace: 'project', file: entry.file, record })),
+			entry.records.map((record) => ({ namespace: 'initiative', file: entry.file, record })),
 		),
 	];
 	const registry = new Map(
@@ -593,7 +597,7 @@ async function planMigration({
 		for (const [file, text] of set.deliveries.modules) edits.set(file, text);
 	}
 	for (const entry of shared)
-		edits.set(entry.file, emitSidecar(select('project', entry.records), entry.text, true));
+		edits.set(entry.file, emitSidecar(select('initiative', entry.records), entry.text, true));
 	const ignoreFile = join(project, '.gitignore');
 	const previousIgnore = (await read(ignoreFile)) ?? '';
 	const retainedPatterns = new Set(previousIgnore.split(/\r?\n/u));
@@ -718,7 +722,7 @@ async function validateMigration(
 			// oxlint-disable-next-line no-await-in-loop -- only write planned files into the staged tree.
 			await writeFile(file, text);
 		}
-		const validation = await checkProject(join(stage, relative(source, project)), {
+		const validation = await checkInitiative(join(stage, relative(source, project)), {
 			siteRoot: stage,
 		});
 		if (output) await rename(stage, await newOutput(output, source));

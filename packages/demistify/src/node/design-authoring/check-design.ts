@@ -631,7 +631,7 @@ export async function loadDesignSet(
 			])
 			.find((reference): boolean => reference.includes('/'));
 	if (qualified)
-		throw new Error(`Qualified reference ${qualified} requires demistify project check.`);
+		throw new Error(`Qualified reference ${qualified} requires demistify initiative check.`);
 	set.checkTypes(set.design.records.map(({ id }) => id));
 	const records = checkRecordRelationships(set.design.records);
 	compileDesignNavigation(set.design, { source: set.designFile, records });
@@ -681,7 +681,7 @@ export async function buildDesignSet(
 }
 
 export async function generatedViewNotes(
-	kind: 'design' | 'project',
+	kind: 'design' | 'initiative',
 	generated: ReadonlyMap<string, unknown>,
 	recordOutputs: ReadonlyMap<string, DesignRecordView>,
 ): Promise<string[]> {

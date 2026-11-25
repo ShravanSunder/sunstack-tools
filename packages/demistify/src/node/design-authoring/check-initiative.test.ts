@@ -49,7 +49,7 @@ export default ${JSON.stringify({
 				statement: 'Return the current result.',
 
 				serves: 'U1',
-				...(shared ? { governedBy: ['project/D1'], reliesOn: ['project/A1'] } : {}),
+				...(shared ? { governedBy: ['initiative/D1'], reliesOn: ['initiative/A1'] } : {}),
 			},
 			{
 				id: 'V1',
@@ -101,35 +101,37 @@ export default defineDeliverable(${JSON.stringify({
 	})});`;
 }
 
-function deliverySource(dependency?: string): string {
+function deliverySource(dependency?: string, lead?: string): string {
 	return `import design from './design.ts';
 import unit from './deliverables/unit.ts';
 import { defineDelivery } from './design-sdk.generated.ts';
-export default defineDelivery(design, [{ deliverable: unit${dependency ? `, dependsOn: ['${dependency}']` : ''} }]${dependency ? ", { lead: 'messages-lead' }" : ''});`;
+export default defineDelivery(design, [{ deliverable: unit${dependency ? `, dependsOn: ['${dependency}']` : ''} }]${lead ? `, { lead: '${lead}' }` : ''});`;
 }
 
 it('checks an empty project without discovering files beside the manifest', async (): Promise<void> => {
 	const directory = await mkdtemp(join(tmpdir(), 'demistify-project-empty-'));
 	try {
 		await Promise.all([
-			writeFile(join(directory, 'project.ts'), 'export default {};'),
-			writeFile(join(directory, 'project-decisions.ts'), 'throw new Error("not registered");'),
+			writeFile(join(directory, 'initiative.ts'), 'export default {};'),
+			writeFile(join(directory, 'initiative-decisions.ts'), 'throw new Error("not registered");'),
 			writeFile(join(directory, 'agents-identity.ts'), 'throw new Error("not registered");'),
 		]);
-		const checked = await run(process.execPath, [cli, 'project', 'check', directory]);
+		const checked = await run(process.execPath, [cli, 'initiative', 'check', directory]);
 		expect(checked.stdout).toContain('Read-only check');
-		const output = join(directory, 'project.generated.json');
+		const output = join(directory, 'initiative.generated.json');
 		await expect(stat(output)).rejects.toMatchObject({ code: 'ENOENT' });
-		await run(process.execPath, [cli, 'project', 'check', directory, '--write']);
+		await run(process.execPath, [cli, 'initiative', 'check', directory, '--write']);
 		const empty = await readFile(output, 'utf8');
 		expect(JSON.parse(empty)).toEqual({
-			version: 1,
-			designs: {},
+			version: 2,
+			projects: {},
+			order: [],
+			work: { readyNow: [], blocksMost: [], builtNotAccepted: [] },
 			records: [],
 			deliverables: {},
 		});
-		await writeFile(join(directory, 'project.ts'), "export default { identities: '' };");
-		await expect(run(process.execPath, [cli, 'project', 'check', directory])).rejects.toThrow(
+		await writeFile(join(directory, 'initiative.ts'), "export default { identities: '' };");
+		await expect(run(process.execPath, [cli, 'initiative', 'check', directory])).rejects.toThrow(
 			/identities/,
 		);
 		expect(await readFile(output, 'utf8')).toBe(empty);
@@ -152,7 +154,7 @@ it('writes records under the shared projects ignore scope and clears obsolete pa
 		'</ex-document>',
 		'<ex-tree data-design-need="U1"></ex-tree></ex-document>',
 	);
-	const check = [cli, 'project', 'check', project];
+	const check = [cli, 'initiative', 'check', project];
 	const git = (args: string[]): ReturnType<typeof run> => run('git', ['-C', root, ...args]);
 	try {
 		await mkdir(phase, { recursive: true });
@@ -162,14 +164,14 @@ it('writes records under the shared projects ignore scope and clears obsolete pa
 			writeFile(join(root, '.git/info/exclude'), patterns),
 			writeFile(join(project, '.gitignore'), patterns),
 			writeFile(
-				join(project, 'project.ts'),
-				"import phase from './phase/design.ts'; export default { designs: { phase } };",
+				join(project, 'initiative.ts'),
+				"import phase from './phase/design.ts'; export default { projects: { phase: { design: phase, number: 1 } } };",
 			),
 			writeFile(join(phase, 'design.ts'), designSource(false)),
 			writeFile(page, original),
 		]);
 		const advisory =
-			'Generated views are missing or stale. Run demistify project check --write to refresh them.';
+			'Generated views are missing or stale. Run demistify initiative check --write to refresh them.';
 		const missing = await run(process.execPath, check);
 		expect(missing.stdout.split(advisory)).toHaveLength(2);
 		await expect(stat(ignore)).rejects.toHaveProperty('code', 'ENOENT');
@@ -235,10 +237,10 @@ it('initializes a design under the shared projects ignore scope without editing 
 		await mkdir(phase, { recursive: true });
 		await git(['init', '--quiet', '--template=']);
 		await writeFile(
-			join(project, 'project.ts'),
-			"import phase from './phase/design.ts'; export default { designs: { phase } };",
+			join(project, 'initiative.ts'),
+			"import phase from './phase/design.ts'; export default { projects: { phase: { design: phase, number: 1 } } };",
 		);
-		await writeFile(join(phase, 'project.ts'), 'export const settings = { app: true };');
+		await writeFile(join(phase, 'initiative.ts'), 'export const settings = { app: true };');
 		await writeFile(ignore, tracked);
 		await git(['add', 'docs/projects/.gitignore']);
 		const init = [cli, 'design', 'init', phase];
@@ -266,12 +268,12 @@ it.each(['absent', 'untracked'] as const)(
 	async (initial): Promise<void> => {
 		const root = await mkdtemp(join(tmpdir(), 'demistify-root-ignore-'));
 		const ignore = join(root, '.gitignore');
-		const project = join(root, 'project.ts');
-		const output = join(root, 'project.generated.json');
+		const project = join(root, 'initiative.ts');
+		const output = join(root, 'initiative.generated.json');
 		const original = '# unrelated untracked rule\n*.bak\n';
 		const coverage =
 			'*.generated.json\ndesign-sdk.generated.ts\ndesign-schema.d.ts\nrecords.generated.js\n';
-		const cliCheck = [cli, 'project', 'check', root, '--write'];
+		const cliCheck = [cli, 'initiative', 'check', root, '--write'];
 		try {
 			await run('git', ['-C', root, 'init', '--quiet', '--template=']);
 			await writeFile(project, 'export default {};');
@@ -302,7 +304,7 @@ it.each([
 	['application code', 'export const settings = { app: true };'],
 	['unregistered design', 'export default {};'],
 ])(
-	'keeps standalone ignore scope under a project.ts containing %s',
+	'keeps standalone ignore scope under an initiative.ts containing %s',
 	async (_name, manifest): Promise<void> => {
 		const root = await mkdtemp(join(tmpdir(), 'demistify-standalone-ignore-'));
 		const projects = join(root, 'docs', 'projects');
@@ -312,7 +314,7 @@ it.each([
 		try {
 			await mkdir(existing, { recursive: true });
 			await run('git', ['-C', root, 'init', '--quiet', '--template=']);
-			await writeFile(join(project, 'project.ts'), manifest ?? '');
+			await writeFile(join(project, 'initiative.ts'), manifest ?? '');
 			await run(process.execPath, [cli, 'design', 'init', initialized]);
 			expect(await readFile(join(initialized, '.gitignore'), 'utf8')).toContain(
 				'records.generated.js',
@@ -367,8 +369,8 @@ it('qualifies need coverage and deduplicates scoped rule notes across a checked 
 		const queueDeliverable = deliverableSource(receipt);
 		await Promise.all([
 			writeFile(
-				join(root, 'project.ts'),
-				`import queue from './queue/design.ts'; import history from './history/design.ts'; export default { designs: { queue, history } };`,
+				join(root, 'initiative.ts'),
+				`import queue from './queue/design.ts'; import history from './history/design.ts'; export default { projects: { queue: { design: queue, number: 1 }, history: { design: history, number: 1 } } };`,
 			),
 			writeFile(queueFile, designSource(false, receipt)),
 			writeFile(historyFile, realizedHistory),
@@ -399,7 +401,7 @@ it('qualifies need coverage and deduplicates scoped rule notes across a checked 
 					.replace('{ deliverable: unit }]', '{ deliverable: unit }, { deliverable: other }]'),
 			),
 		]);
-		const check = [cli, 'project', 'check', root];
+		const check = [cli, 'initiative', 'check', root];
 		const first = (await run(process.execPath, [...check, '--write'])).stdout;
 		expect(first).toContain('queue/DEL-01 · awaiting-verification');
 		expect(first).toContain('Link scoped rules to scoped needs: history/U1.');
@@ -411,7 +413,7 @@ it('qualifies need coverage and deduplicates scoped rule notes across a checked 
 		expect(first).not.toMatch(/(?:queue|history)\/U1: No rule serves/);
 		expect(first.split(note)).toHaveLength(2);
 		expect(first).not.toContain('history/R1: No realization');
-		expect(await readFile(join(root, 'project.generated.json'), 'utf8')).not.toMatch(
+		expect(await readFile(join(root, 'initiative.generated.json'), 'utf8')).not.toMatch(
 			/No rule serves|No realization|statement (?:is|has)/,
 		);
 		const brief = [cli, 'brief', 'queue/DEL-01', root];
@@ -461,9 +463,9 @@ it('checks explicit project records, qualified prerequisites, and Lead aliases a
 	const root = join(sandbox, 'docs/projects/2026-11-messaging');
 	const messages = join(root, 'milestones/2026-11-messages');
 	const sessions = join(root, 'milestones/2026-11-sessions#archive');
-	const outputPath = join(root, 'project.generated.json');
+	const outputPath = join(root, 'initiative.generated.json');
 	const check = (write = true): ReturnType<typeof run> =>
-		run(process.execPath, [cli, 'project', 'check', root, ...(write ? ['--write'] : [])]);
+		run(process.execPath, [cli, 'initiative', 'check', root, ...(write ? ['--write'] : [])]);
 	const readView = async (): Promise<z.infer<typeof projectView>> =>
 		projectView.parse(JSON.parse(await readFile(outputPath, 'utf8')));
 	try {
@@ -476,7 +478,10 @@ it('checks explicit project records, qualified prerequisites, and Lead aliases a
 					writeFile(join(directory, 'design.ts'), designSource(directory === messages)),
 					writeFile(
 						join(directory, 'design-delivery.ts'),
-						deliverySource(directory === messages ? 'sessions/DEL-01' : undefined),
+						deliverySource(
+							directory === messages ? 'sessions/DEL-01' : undefined,
+							directory === messages ? 'messages-lead' : undefined,
+						),
 					),
 					writeFile(
 						join(directory, 'deliverables/unit.ts'),
@@ -494,13 +499,13 @@ it('checks explicit project records, qualified prerequisites, and Lead aliases a
 sources: [{ href: 'evidence.txt', excerpt: 'Use the current result.' }] }`;
 		await Promise.all([
 			writeFile(
-				join(root, 'project.ts'),
+				join(root, 'initiative.ts'),
 				`import messagesDesign from './milestones/2026-11-messages/design.ts';
 import sessionsDesign from './milestones/2026-11-sessions#archive/design-delivery.ts';
-import decisions from './shared/project-decisions.ts';
-import assumptions from './shared/project-assumptions.ts';
+import decisions from './shared/initiative-decisions.ts';
+import assumptions from './shared/initiative-assumptions.ts';
 import agents from './agents-identity.ts';
-export default { designs: { messages: messagesDesign, sessions: sessionsDesign }, decisions, assumptions, identities: agents };`,
+export default { projects: { messages: { design: messagesDesign, number: 2 }, sessions: { design: sessionsDesign, number: 1 } }, decisions, assumptions, identities: agents };`,
 			),
 			writeFile(
 				join(root, 'agents-identity.ts'),
@@ -510,7 +515,7 @@ const builder = agentId('private-builder-session');
 export default { owner: 'owner', agents: { 'messages-lead': lead, 'messages-builder': builder } };`,
 			),
 			writeFile(
-				join(shared, 'project-decisions.ts'),
+				join(shared, 'initiative-decisions.ts'),
 				`import type { DesignDecision } from '../milestones/2026-11-messages/design-schema.d.ts';
 export default [${decision}, {
 id: 'D2', kind: 'choice', title: 'Unassigned question',
@@ -519,7 +524,7 @@ sources: [{ href: 'evidence.txt', excerpt: 'Context.' }]
 }] as const satisfies readonly DesignDecision[];`,
 			),
 			writeFile(
-				join(shared, 'project-assumptions.ts'),
+				join(shared, 'initiative-assumptions.ts'),
 				`export default [{
 id: 'A1', kind: 'assumption', title: 'Target', statement: 'Target is available.', status: 'confirmed', by: { alias: 'messages-lead', role: 'lead' }, weight: 'design', settledBy: 'messages-lead',
 sources: [{ href: 'evidence.txt', excerpt: 'Available.' }],
@@ -528,7 +533,7 @@ resolution: { href: 'evidence.txt', excerpt: 'Available.' }
 			),
 			writeFile(
 				join(shared, 'index.html'),
-				'<!doctype html><title>Project evidence</title><meta name="demistify-records" content="../records.generated.js"><p data-design-record="project/D1"></p><p data-design-record="project/A1"></p><p data-design-record="project/D2"></p>',
+				'<!doctype html><title>Project evidence</title><meta name="demistify-records" content="../records.generated.js"><p data-design-record="initiative/D1"></p><p data-design-record="initiative/A1"></p><p data-design-record="initiative/D2"></p>',
 			),
 			writeFile(join(shared, 'evidence.txt'), 'Available. Use the current result.'),
 		]);
@@ -544,7 +549,7 @@ resolution: { href: 'evidence.txt', excerpt: 'Available.' }
 				.replace(
 					'"mapGroups":[]',
 					`"mapGroups":[{ title: 'Owner call', description: 'Open the shared question.',
-					icon: 'file', target: { record: 'project/D2' } }]`,
+					icon: 'file', target: { record: 'initiative/D2' } }]`,
 				)
 				.replace(
 					'"href":"index.html","icon":"file"}]',
@@ -552,32 +557,32 @@ resolution: { href: 'evidence.txt', excerpt: 'Available.' }
 				),
 		);
 		const readOnly = await check(false);
-		expect(readOnly.stdout).toMatch(/Waiting on owner[\s\S]*project\/D2[\s\S]*messages\/DEL-01/);
+		expect(readOnly.stdout).toMatch(/Waiting on owner[\s\S]*initiative\/D2[\s\S]*messages\/DEL-01/);
 		await expect(stat(outputPath)).rejects.toMatchObject({ code: 'ENOENT' });
 		const milestonePath = join(messages, 'deliverables.generated.json');
 		await expect(stat(milestonePath)).rejects.toMatchObject({ code: 'ENOENT' });
 		await check();
 		await run(process.execPath, [cli, 'design', 'types', messages]);
 		const generatedTypes = await readFile(join(messages, 'design-schema.d.ts'), 'utf8');
-		expect(generatedTypes).toContain('"project/D2"');
+		expect(generatedTypes).toContain('"initiative/D2"');
 		expect(generatedTypes).toContain('"sessions/R1"');
 		const typedDesign = await readFile(messagesDesign, 'utf8');
-		await writeFile(messagesDesign, typedDesign.replace('project/D2', 'project/DX'));
-		await expect(check(false)).rejects.toThrow(/TS(?:2322|2820).*project\/DX/s);
+		await writeFile(messagesDesign, typedDesign.replace('initiative/D2', 'initiative/DX'));
+		await expect(check(false)).rejects.toThrow(/TS(?:2322|2820).*initiative\/DX/s);
 		await writeFile(
 			messagesDesign,
-			typedDesign.replace("'project/D2'", "'project/DX' as 'project/D2'"),
+			typedDesign.replace("'initiative/D2'", "'initiative/DX' as 'initiative/D2'"),
 		);
-		await expect(check(false)).rejects.toThrow(/unknown design record project\/DX/);
+		await expect(check(false)).rejects.toThrow(/unknown design record initiative\/DX/);
 		await expect(run(process.execPath, [cli, 'brief', 'messages/DEL-01', root])).rejects.toThrow(
-			/unknown design record project\/DX/,
+			/unknown design record initiative\/DX/,
 		);
 		await writeFile(messagesDesign, typedDesign);
 		const generatedNavigation: unknown = JSON.parse(
 			await readFile(join(messages, 'navigation.generated.json'), 'utf8'),
 		);
 		expect(generatedNavigation).toMatchObject({
-			map: [{ target: { page: 'shared', fragment: 'project/D2' } }],
+			map: [{ target: { page: 'shared', fragment: 'initiative/D2' } }],
 		});
 		const sharedPage = join(shared, 'index.html');
 		const sharedMarkup = await readFile(sharedPage, 'utf8');
@@ -585,12 +590,12 @@ resolution: { href: 'evidence.txt', excerpt: 'Available.' }
 			sharedPage,
 			sharedMarkup
 				.replace(
-					'<p data-design-record="project/D1"></p>',
-					'<ex-section id="settled" title="Settled" holds="settled"></ex-section><ex-section-item record="project/D1"></ex-section-item>',
+					'<p data-design-record="initiative/D1"></p>',
+					'<ex-section id="settled" title="Settled" holds="settled"></ex-section><ex-section-item record="initiative/D1"></ex-section-item>',
 				)
 				.replace(
-					'<p data-design-record="project/A1"></p>',
-					'<ex-section id="assumed" title="Assumed" holds="assumed"></ex-section><ex-section-item record="project/A1"></ex-section-item>',
+					'<p data-design-record="initiative/A1"></p>',
+					'<ex-section id="assumed" title="Assumed" holds="assumed"></ex-section><ex-section-item record="initiative/A1"></ex-section-item>',
 				),
 		);
 		await check();
@@ -603,7 +608,7 @@ resolution: { href: 'evidence.txt', excerpt: 'Available.' }
 		);
 		if (typeof encoded !== 'string') throw new Error('Expected a serialized record view.');
 		const recordView = designRecordViewSchema.parse(JSON.parse(encoded));
-		for (const reference of ['project/D1', 'project/A1'])
+		for (const reference of ['initiative/D1', 'initiative/A1'])
 			expect(
 				recordView.pages['shared/index.html']?.placements.find(
 					(item) => item.reference === reference,
@@ -612,8 +617,8 @@ resolution: { href: 'evidence.txt', excerpt: 'Available.' }
 		await writeFile(
 			sharedPage,
 			sharedMarkup.replace(
-				'<p data-design-record="project/D2"></p>',
-				'<ex-choice data-design-record="project/D2"><ex-option data-option="end-state"><template slot="summary">Keep the completed state visible.</template></ex-option><ex-option data-option="timeline"><template slot="summary">Show every step.</template></ex-option></ex-choice>',
+				'<p data-design-record="initiative/D2"></p>',
+				'<ex-choice data-design-record="initiative/D2"><ex-option data-option="end-state"><template slot="summary">Keep the completed state visible.</template></ex-option><ex-option data-option="timeline"><template slot="summary">Show every step.</template></ex-option></ex-choice>',
 			),
 		);
 		await check(false);
@@ -624,17 +629,36 @@ resolution: { href: 'evidence.txt', excerpt: 'Available.' }
 			sharedChoiceMarkup + sharedChoice.replace('id="end-state"', 'id="other-end-state"'),
 		);
 		await expect(check(false)).rejects.toThrow(
-			/Duplicate HTML id or record placement.*project\/D2/,
+			/Duplicate HTML id or record placement.*initiative\/D2/,
 		);
 		await writeFile(sharedPage, sharedMarkup);
 		const before = await readView();
 		expect(before.deliverables['messages/DEL-01']?.state).toBe('dependency-blocked');
+		const status = z
+			.object({
+				projects: z.array(
+					z.object({
+						name: z.string(),
+						deliverables: z.array(z.object({ id: z.string(), state: z.string() })),
+					}),
+				),
+			})
+			.parse(
+				JSON.parse(
+					(await run(process.execPath, [cli, 'initiative', 'status', root, '--json'])).stdout,
+				),
+			);
+		expect(status.projects.map(({ name }) => name)).toEqual(['sessions', 'messages']);
+		expect(status.projects[1]?.deliverables[0]).toMatchObject({
+			id: 'messages/DEL-01',
+			state: 'dependency-blocked',
+		});
 		expect(coreView(before, 'sessions/DEL-01').links.plan.page).toBe(
 			'milestones/2026-11-sessions%23archive/index.html',
 		);
 		expect(coreView(before, 'messages/DEL-01').links.governingItems.map(({ id }) => id)).toEqual([
-			'project/D1',
-			'project/A1',
+			'initiative/D1',
+			'initiative/A1',
 		]);
 		const published = await readFile(outputPath, 'utf8');
 		expect(published).toContain('messages-lead');
@@ -710,15 +734,15 @@ resolution: { href: 'evidence.txt', excerpt: 'Available.' }
 			"{ state: 'agent-decided', sourceKind: 'author', by: { alias: 'messages-lead', role: 'lead' }, weight: 'design', rationale: 'Reuse the target.', decidedOn: '2026-11-21' }",
 		);
 		await writeFile(
-			join(shared, 'project-decisions.ts'),
+			join(shared, 'initiative-decisions.ts'),
 			`export default [${decision}, ${leadReplacement}];`,
 		);
-		await expect(check()).rejects.toThrow(/only an Owner decision can supersede project\/D1/);
+		await expect(check()).rejects.toThrow(/only an Owner decision can supersede initiative\/D1/);
 		await writeFile(
-			join(shared, 'project-decisions.ts'),
+			join(shared, 'initiative-decisions.ts'),
 			`export default [${decision}, ${replacement}];`,
 		);
-		await expect(check()).rejects.toThrow(/uses superseded decision project\/D1/);
+		await expect(check()).rejects.toThrow(/uses superseded decision initiative\/D1/);
 		expect(await readFile(outputPath, 'utf8')).toBe(previous);
 	} finally {
 		await rm(sandbox, { recursive: true, force: true });
@@ -732,9 +756,9 @@ it('uses one declared external page in two milestone scopes and confines authori
 	const canonicalPage = join(site, 'Reviewed Guide.html');
 	const canonicalHref = '../../Reviewed%20Guide.html';
 	const names = ['north', 'south'];
-	const viewFile = join(project, 'project.generated.json');
+	const viewFile = join(project, 'initiative.generated.json');
 	const check = (options: readonly string[] = []): ReturnType<typeof run> =>
-		run(process.execPath, [cli, 'project', 'check', project, '--site-root', site, ...options]);
+		run(process.execPath, [cli, 'initiative', 'check', project, '--site-root', site, ...options]);
 	const readView = async (): Promise<z.infer<typeof projectView>> =>
 		projectView.parse(JSON.parse(await readFile(viewFile, 'utf8')));
 	const authoredDesign = (receipt?: { build: string }): string =>
@@ -768,10 +792,10 @@ it('uses one declared external page in two milestone scopes and confines authori
 		);
 		const projectSource = `import north from './north/design.ts';
 import south from './south/design.ts';
-export default { designs: { north, south } };`;
+export default { projects: { north: { design: north, number: 1 }, south: { design: south, number: 1 } } };`;
 		await Promise.all([
 			writeFile(canonicalPage, html),
-			writeFile(join(project, 'project.ts'), projectSource),
+			writeFile(join(project, 'initiative.ts'), projectSource),
 		]);
 		await check();
 		await expect(stat(viewFile)).rejects.toMatchObject({ code: 'ENOENT' });
@@ -831,10 +855,10 @@ export default { designs: { north, south } };`;
 		);
 		await symlink(join(site, 'agents-identity.ts'), join(project, 'agents-identity.ts'));
 		await writeFile(
-			join(project, 'project.ts'),
+			join(project, 'initiative.ts'),
 			projectSource
 				.replace('export default', "import identities from './agents-identity.ts';\nexport default")
-				.replace('{ designs:', '{ identities, designs:'),
+				.replace('{ projects:', '{ identities, projects:'),
 		);
 		await expect(check()).rejects.toThrow(/resolves outside the project root/);
 	} finally {

@@ -19,7 +19,7 @@ function recordsSource(): URL | undefined {
 	let implicit: string[] = [];
 	for (const [selector, filename] of [
 		['ex-nav[src]', 'navigation.generated.json'],
-		['ex-project-overview[src]', 'project.generated.json'],
+		['ex-initiative-overview[src]', 'initiative.generated.json'],
 	] as const) {
 		implicit = Array.from(document.querySelectorAll(selector)).flatMap((element): string[] => {
 			const source = recordSourceHref(element.getAttribute('src') ?? '', filename);
@@ -223,7 +223,7 @@ async function fillBindings(elements: readonly HTMLElement[]): Promise<void> {
 		message.className = 'ex-design-records-status';
 		message.setAttribute('role', 'status');
 		message.textContent =
-			'Design records are unavailable. Run demistify project check --write (or demistify design check --write for a single milestone), then reload.';
+			'Design records are unavailable. Run demistify initiative check --write (or demistify design check --write for a standalone project), then reload.';
 		const scope = document.querySelector('ex-document');
 		if (scope) scope.before(message);
 		else document.body.prepend(message);

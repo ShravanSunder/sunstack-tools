@@ -13,7 +13,7 @@ import {
 } from './generated-ignore.ts';
 import { deliveryEntryFilename, deliverySdkFilename } from './read-delivery.ts';
 import { designDeclarationFilename, readDesignItems, readDesignSources } from './read-design.ts';
-import { findRegisteredProject } from './read-project.ts';
+import { findRegisteredInitiative } from './read-initiative.ts';
 
 const authoringSupport = [
 	[designDeclarationFilename, designTypeSource],
@@ -35,7 +35,7 @@ export default defineDelivery(design, []);
 `;
 
 async function authoredRecordIds(directory: string): Promise<string[]> {
-	const project = await findRegisteredProject(directory);
+	const project = await findRegisteredInitiative(directory);
 	const check = await openDesignCheck(project?.directory ?? directory);
 	async function readRecords(setDirectory: string): Promise<string[]> {
 		const read = (file: string): Promise<string> => check.read(file, setDirectory);
@@ -51,9 +51,9 @@ async function authoredRecordIds(directory: string): Promise<string[]> {
 	if (!project) return localIds;
 
 	const { directory: projectDirectory, manifest } = project;
-	const sets = Object.entries(manifest.designs);
-	const milestoneIds = await Promise.all(
-		sets.map(async ([name, path]): Promise<string[]> => {
+	const sets = Object.entries(manifest.projects);
+	const projectIds = await Promise.all(
+		sets.map(async ([name, { design: path }]): Promise<string[]> => {
 			const setDirectory = await realpath(dirname(path));
 			const ids = setDirectory === directory ? localIds : await readRecords(setDirectory);
 			return ids.map((id): string => `${name}/${id}`);
@@ -71,10 +71,10 @@ async function authoredRecordIds(directory: string): Promise<string[]> {
 						await check.read(path, projectDirectory),
 						kind,
 						projectDirectory,
-					).map(({ id }) => `project/${id}`),
+					).map(({ id }) => `initiative/${id}`),
 		),
 	);
-	return [...localIds, ...milestoneIds.flat(), ...shared.flat()];
+	return [...localIds, ...projectIds.flat(), ...shared.flat()];
 }
 
 /** Refresh editor support for an existing authored design. */

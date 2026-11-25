@@ -94,7 +94,7 @@ export function readSectionLayout(elements: readonly Element[], file: string): S
 	return { sections, items };
 }
 
-function requiredSectionHolds(record: DesignRecord): readonly SectionHold[] {
+export function requiredSectionHolds(record: DesignRecord): readonly SectionHold[] {
 	if (record.kind === 'assumption') return ['assumed'];
 	if (!isDecision(record)) return [];
 	if (record.authority.state === 'owner-open')

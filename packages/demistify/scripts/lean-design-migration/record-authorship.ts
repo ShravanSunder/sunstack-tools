@@ -6,7 +6,7 @@ import typescript from 'typescript';
 import { decisionActorField, type recordActor } from '../../src/core/decision-record.ts';
 import { declaredDesignPagePath } from '../../src/node/design-authoring/design-location.ts';
 import { readDesign } from '../../src/node/design-authoring/read-design.ts';
-import { readProjectManifest } from '../../src/node/design-authoring/read-project.ts';
+import { readInitiativeManifest } from '../../src/node/design-authoring/read-initiative.ts';
 import { containsPath } from '../../src/node/local-site.ts';
 import type { SourceReader } from './legacy-records.ts';
 
@@ -183,10 +183,10 @@ export async function planRecordAuthorship({
 	readonly edits: ReadonlyMap<string, string>;
 	readonly report: Record<string, unknown>;
 }> {
-	const projectFile = join(project, 'project.ts');
+	const projectFile = join(project, 'initiative.ts');
 	const manifestText = await read(projectFile);
 	if (manifestText === undefined) throw new Error(`Missing migration input: ${projectFile}.`);
-	const manifest = readProjectManifest(projectFile, manifestText);
+	const manifest = readInitiativeManifest(projectFile, manifestText);
 	const edits = new Map<string, string>();
 	const usedActors = new Set<string>();
 	const pages = new Set([join(project, 'index.html')]);
@@ -198,7 +198,7 @@ export async function planRecordAuthorship({
 		return next;
 	}
 	await Promise.all(
-		Object.entries(manifest.designs).map(async ([namespace, registered]) => {
+		Object.entries(manifest.projects).map(async ([namespace, { design: registered }]) => {
 			const directory = dirname(registered);
 			const designFile = join(directory, 'design.ts');
 			const designSource = await upgrade(designFile, namespace);
@@ -222,7 +222,7 @@ export async function planRecordAuthorship({
 	await Promise.all(
 		[manifest.decisions, manifest.assumptions]
 			.filter((file) => file !== undefined)
-			.map((file) => upgrade(file, 'project')),
+			.map((file) => upgrade(file, 'initiative')),
 	);
 	await Promise.all(
 		[...pages].map(async (file) => {

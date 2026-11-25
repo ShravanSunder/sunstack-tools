@@ -9,8 +9,8 @@ import { type DefaultTreeAdapterMap, parse } from 'parse5';
 
 import { parseDeliverablesView } from '../core/deliverables-view.ts';
 import { availableHeadingFragment, headingSlug } from '../core/heading-fragments.ts';
+import { parseInitiativeView } from '../core/initiative-view.ts';
 import { parseMarkdownSource } from '../core/markdown-source.ts';
-import { parseProjectView } from '../core/project-view.ts';
 import {
 	parseBreakdownValue,
 	parseProgressValue,
@@ -713,7 +713,7 @@ export async function checkHtml(source: string, options: CheckOptions = {}): Pro
 			}
 		}
 
-		if ((name === 'ex-deliverables' || name === 'ex-project-overview') && options.readSource) {
+		if ((name === 'ex-deliverables' || name === 'ex-initiative-overview') && options.readSource) {
 			const file = attributes.get('src')?.trim();
 			// oxlint-disable-next-line no-await-in-loop -- inspect this island's declared data source.
 			const deliverySource = file ? await options.readSource(file) : undefined;
@@ -721,7 +721,7 @@ export async function checkHtml(source: string, options: CheckOptions = {}): Pro
 				if (deliverySource === undefined)
 					throw new Error(`Cannot read generated data for <${name}>.`);
 				if (name === 'ex-deliverables') parseDeliverablesView(deliverySource);
-				else parseProjectView(deliverySource);
+				else parseInitiativeView(deliverySource);
 			} catch (error) {
 				report(
 					element,

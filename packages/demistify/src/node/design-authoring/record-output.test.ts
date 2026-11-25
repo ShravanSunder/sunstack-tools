@@ -16,7 +16,8 @@ const outputs = new Map<string, DesignRecordView>([
 	[projectOutput, { version: 1, pages: {} }],
 ]);
 const nav = '<ex-nav src="navigation.generated.json"></ex-nav>';
-const overview = '<ex-project-overview src="../project.generated.json"></ex-project-overview>';
+const overview =
+	'<ex-initiative-overview src="../initiative.generated.json"></ex-initiative-overview>';
 const marker = '<meta name="demistify-records" content="../records.generated.js">';
 
 it.each([
@@ -43,7 +44,7 @@ it.each([
 	},
 	{
 		name: 'navigation with an invalid lower-priority hint',
-		html: nav + overview.replace('project.generated.json', '%GG/project.generated.json'),
+		html: nav + overview.replace('initiative.generated.json', '%GG/initiative.generated.json'),
 		expected: navOutput,
 	},
 	{

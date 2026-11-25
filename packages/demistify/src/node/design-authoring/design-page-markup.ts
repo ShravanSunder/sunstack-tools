@@ -63,7 +63,7 @@ export function designPreviewSources(html: string): readonly string[] | undefine
 	const generatedSources = new Map([
 		['ex-nav', 'navigation.generated.json'],
 		['ex-deliverables', 'deliverables.generated.json'],
-		['ex-project-overview', 'project.generated.json'],
+		['ex-initiative-overview', 'initiative.generated.json'],
 	]);
 	let bound = false;
 	const sources = new Set<string>();
@@ -304,7 +304,7 @@ export function readPageMarkup(html: string, file: string): PageMarkup {
 			if (node.tagName === 'base' && href !== undefined) result.hasDocumentBase = true;
 			if (node.tagName === 'ex-nav') result.navigationSources.push(get('src') ?? '');
 			if (node.tagName === 'ex-deliverables') result.deliverySources.push(get('src') ?? '');
-			if (node.tagName === 'ex-project-overview')
+			if (node.tagName === 'ex-initiative-overview')
 				result.projectOverviewSources.push(get('src') ?? '');
 			if (node.tagName === 'meta' && get('name') === 'demistify-records')
 				result.recordSourceMarkers.push(get('content') ?? '');

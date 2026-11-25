@@ -5,7 +5,7 @@ import { containsPath } from '../local-site.ts';
 
 export async function findDesignInput(
 	directory: string,
-	name: 'design.ts' | 'project.ts',
+	name: 'design.ts' | 'initiative.ts',
 	limit?: string,
 ): Promise<string | undefined> {
 	for (let candidate = directory; ; candidate = dirname(candidate)) {

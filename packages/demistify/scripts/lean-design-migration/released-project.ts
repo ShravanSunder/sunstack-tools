@@ -6,7 +6,7 @@ import { parse, type DefaultTreeAdapterMap } from 'parse5';
 import { escapeHtml } from '../../src/core/html-text.ts';
 import { declaredDesignPagePath } from '../../src/node/design-authoring/design-location.ts';
 import { readDesign } from '../../src/node/design-authoring/read-design.ts';
-import { readProjectManifest } from '../../src/node/design-authoring/read-project.ts';
+import { readInitiativeManifest } from '../../src/node/design-authoring/read-initiative.ts';
 import { qualifyRecord } from '../../src/node/design-authoring/schema.ts';
 import { containsPath } from '../../src/node/local-site.ts';
 import type { SourceReader } from './legacy-records.ts';
@@ -96,17 +96,18 @@ export async function planReleasedProject({
 	readonly report: Record<string, unknown>;
 	readonly blocked: boolean;
 }> {
-	const manifestFile = join(project, 'project.ts');
+	const manifestFile = join(project, 'initiative.ts');
 	const originalManifest = await read(manifestFile);
-	if (originalManifest === undefined) throw new Error(`Missing project manifest: ${manifestFile}.`);
-	const manifest = readProjectManifest(manifestFile, originalManifest);
+	if (originalManifest === undefined)
+		throw new Error(`Missing initiative manifest: ${manifestFile}.`);
+	const manifest = readInitiativeManifest(manifestFile, originalManifest);
 	const sidecars: { file: string; namespace: string; type: 'decision' | 'assumption' }[] = [];
 	if (manifest.decisions)
-		sidecars.push({ file: manifest.decisions, namespace: 'project', type: 'decision' });
+		sidecars.push({ file: manifest.decisions, namespace: 'initiative', type: 'decision' });
 	if (manifest.assumptions)
-		sidecars.push({ file: manifest.assumptions, namespace: 'project', type: 'assumption' });
+		sidecars.push({ file: manifest.assumptions, namespace: 'initiative', type: 'assumption' });
 	const declared = await Promise.all(
-		Object.entries(manifest.designs).map(async ([namespace, file]) => {
+		Object.entries(manifest.projects).map(async ([namespace, { design: file }]) => {
 			const designSource = await read(file);
 			if (designSource === undefined) throw new Error(`Missing design: ${file}.`);
 			const { design } = await readDesign(file, designSource, async (path) => {
