@@ -47,9 +47,17 @@ export function projectProgress(deliverables: readonly DeliverableView[]): Proje
 	return { state: 'planned', reason: 'A core deliverable can start; none has started.' };
 }
 
-/** What may start now, what blocks the most open work, and what is built but not accepted. */
-export function initiativeWork(deliverables: Readonly<Record<string, DeliverableView>>): {
+/**
+ * What may start now (planned, with its steps written, lower project numbers first),
+ * what still needs its plan, what blocks the most open work, and what is built but
+ * not accepted.
+ */
+export function initiativeWork(
+	deliverables: Readonly<Record<string, DeliverableView>>,
+	projectNumber: (deliverableId: string) => number = (): number => 0,
+): {
 	readyNow: string[];
+	needsPlan: string[];
 	blocksMost: { id: string; waiting: number }[];
 	builtNotAccepted: string[];
 } {
@@ -71,7 +79,17 @@ export function initiativeWork(deliverables: Readonly<Record<string, Deliverable
 		return seen.size;
 	};
 	return {
-		readyNow: open.filter((view) => view.state === 'planned').map(({ id }) => id),
+		readyNow: open
+			.filter(
+				(view) =>
+					view.kind === 'core' && view.state === 'planned' && view.implementation.tasks.length > 0,
+			)
+			.map(({ id }) => id)
+			.toSorted((left, right) => projectNumber(left) - projectNumber(right)),
+		needsPlan: open
+			.filter((view) => view.kind === 'core' && view.implementation.tasks.length === 0)
+			.map(({ id }) => id)
+			.toSorted((left, right) => projectNumber(left) - projectNumber(right)),
 		blocksMost: open
 			.map(({ id }) => ({ id, waiting: waitingOn(id) }))
 			.filter(({ waiting }) => waiting > 0)

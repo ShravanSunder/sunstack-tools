@@ -460,7 +460,10 @@ export async function buildInitiative(
 			}),
 		),
 		order: [...order],
-		work: initiativeWork(delivery.deliverables),
+		work: initiativeWork(
+			delivery.deliverables,
+			(id) => manifest.projects[id.slice(0, id.indexOf('/'))]?.number ?? Number.MAX_SAFE_INTEGER,
+		),
 		records: design.records.map((record) => ({
 			...record,
 			title: recordLabel(record),

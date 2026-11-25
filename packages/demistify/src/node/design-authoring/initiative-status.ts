@@ -90,6 +90,7 @@ function formatStatus(status: InitiativeStatus): string {
 	};
 	lines.push('');
 	list('Ready now', status.work.readyNow);
+	list('Needs a plan', status.work.needsPlan);
 	list(
 		'Blocks the most',
 		status.work.blocksMost.map(({ id, waiting }) => `${id} (${waiting} waiting)`),
