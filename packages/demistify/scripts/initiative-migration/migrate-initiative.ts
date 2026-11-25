@@ -22,6 +22,7 @@ import {
 } from './migration-workspace.ts';
 import { projectOf, resolveMigration, type InitiativeSnapshot } from './move-resolution.ts';
 import { planPages, type PageMoveRequest, type PageSource } from './page-moves.ts';
+import { adoptedPageName, commonParent, plannedFolder } from './project-folders.ts';
 import { scaffoldProjectSources } from './project-scaffold.ts';
 import { projectShellPage, shellRuntime } from './project-shell.ts';
 import { planSources } from './source-moves.ts';
@@ -79,11 +80,6 @@ function exists(path: string): boolean {
 	}
 }
 
-function commonParent(directories: readonly string[], fallback: string): string {
-	const parents = [...new Set(directories.map((directory) => dirname(directory)))];
-	return parents.length === 1 && parents[0] ? parents[0] : fallback;
-}
-
 function snapshotOf(loaded: LoadedInitiative): InitiativeSnapshot {
 	return {
 		projects: loaded.sets.map((set) => ({
@@ -112,15 +108,15 @@ function migrationProjects(loaded: LoadedInitiative, plan: CutPlan): Map<string,
 	for (const planned of plan.projects) {
 		if (projects.has(planned.key)) continue;
 		const directory = join(parent, planned.folder);
-		if (exists(directory))
-			throw new Error(
-				`${planned.key}: ${relative(loaded.root, directory)} already exists and is not a registered project.`,
-			);
+		const folder = plannedFolder(directory, relative(loaded.root, directory));
+		if (folder.kind === 'refuse') throw new Error(`${planned.key}: ${folder.reason}`);
 		projects.set(planned.key, {
 			name: planned.key,
 			directory,
 			designFile: join(directory, 'design.ts'),
 			created: true,
+			shellPage: join(directory, folder.kind === 'adopt' ? adoptedPageName : 'index.html'),
+			...(folder.kind === 'adopt' && { leftAlone: folder.leftAlone }),
 		});
 	}
 	return projects;
@@ -257,10 +253,10 @@ async function migrate(run: MigrationRun): Promise<MigrateInitiativeResult> {
 	const rootIndex = join(root, 'index.html');
 	for (const planned of plan.projects) {
 		const project = projects.get(planned.key);
-		if (!project?.created) continue;
+		if (!project?.created || !project.shellPage) continue;
 		scaffoldProjectSources(project, planned.title, planned.lead, workspace);
 		workspace.write(
-			join(project.directory, 'index.html'),
+			project.shellPage,
 			projectShellPage({
 				title: planned.title,
 				achieves: planned.achieves,
@@ -285,8 +281,8 @@ async function migrate(run: MigrationRun): Promise<MigrateInitiativeResult> {
 	const ownedPages = new Map<string, string>();
 	const targetPages = new Map<string, string>();
 	for (const project of projects.values()) {
-		const pages = project.created
-			? new Map([[join(project.directory, 'index.html'), { title: '', icon: 'file', id: 'home' }]])
+		const pages = project.shellPage
+			? new Map([[project.shellPage, { title: '', icon: 'file', id: 'home' }]])
 			: (declared.get(project.name) ??
 				new Map<string, { title: string; icon: string; id: string }>());
 		for (const file of pages.keys())
@@ -303,7 +299,10 @@ async function migrate(run: MigrationRun): Promise<MigrateInitiativeResult> {
 		...htmlFiles(root),
 		...[...workspace.changes.keys()].filter((file) => file.endsWith('.html')),
 	]);
+	// An adopted folder's own files are never read as pages, so nothing rewrites them.
+	const leftAlone = new Set([...projects.values()].flatMap((project) => project.leftAlone ?? []));
 	const pageSources: PageSource[] = [...pageFiles].flatMap((file): PageSource[] => {
+		if (leftAlone.has(file)) return [];
 		const text = workspace.read(file);
 		return text === undefined ? [] : [{ file, text, owner: ownerOf(file) }];
 	});
@@ -358,16 +357,14 @@ async function migrate(run: MigrationRun): Promise<MigrateInitiativeResult> {
 			const info = pages.get(file);
 			if (info) return info;
 		}
-		const created = plan.projects.find(
-			(planned) => join(projects.get(planned.key)?.directory ?? '', 'index.html') === file,
-		);
+		const created = plan.projects.find((planned) => projects.get(planned.key)?.shellPage === file);
 		return created ? { title: created.title, icon: 'file', id: created.key } : undefined;
 	};
 	const declarePage = (projectName: string, file: string, reason: string): void => {
 		const project = projects.get(projectName);
 		if (!project) return;
-		const already = project.created
-			? new Set([join(project.directory, 'index.html')])
+		const already = project.shellPage
+			? new Set([project.shellPage])
 			: new Set(declared.get(projectName)?.keys() ?? []);
 		const pending = declaredPages.get(projectName) ?? [];
 		const href = relativeHref(project.directory, file);
@@ -462,6 +459,11 @@ async function migrate(run: MigrationRun): Promise<MigrateInitiativeResult> {
 				: [];
 		});
 
+	const touched = [...workspace.changes.keys()].filter((file) => leftAlone.has(file));
+	if (touched.length)
+		throw new Error(
+			`The move would change files of an adopted folder: ${touched.map((file) => relative(root, file)).join(', ')}.`,
+		);
 	const check = run.dryRun ? undefined : await checkStaged(run.root, siteRoot, workspace);
 	const applied = check?.passed === true;
 	if (applied) await workspace.applyTo(run.root);

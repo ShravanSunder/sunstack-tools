@@ -1,4 +1,4 @@
-import { readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { dirname, join, relative } from 'node:path';
 
 import { expect, it } from 'vitest';
@@ -284,3 +284,58 @@ it('refuses two dependsOn changes for one deliverable', (): void => {
 		'plan.json: beta/DEL-01 has two dependsOn changes; write them as one row.',
 	);
 });
+
+const adoptPlan = {
+	projects: [
+		{ key: 'gamma', folder: 'gamma', number: 1, title: 'Gamma' },
+		{ key: 'alpha', folder: 'alpha', number: 1, title: 'Alpha' },
+		{ key: 'beta', folder: 'beta', number: 2, title: 'Beta' },
+	],
+	moves: [{ from: 'alpha/DEL-01', to: 'gamma' }],
+};
+const handMadePage = `<!doctype html><html lang="en"><head><title>Gamma by hand</title></head><body>
+<h1>Gamma</h1><p>The rule is <a href="../alpha/index.html#R1">alpha's R1</a>, see project/D1.</p>
+</body></html>
+`;
+
+it('adopts a planned folder without design.ts and leaves its own files alone', async (): Promise<void> => {
+	await withFixture(adoptPlan, async (root, planFile) => {
+		const gamma = join(root, 'projects/gamma');
+		await mkdir(gamma, { recursive: true });
+		await writeFile(join(gamma, 'index.html'), handMadePage);
+		await writeFile(join(gamma, 'requirements.html'), handMadePage);
+
+		const dry = await migrateInitiative(root, { plan: planFile, dryRun: true });
+		expect(dry.report).toContain('adopt  1 gamma (projects/gamma)');
+		expect(dry.report).toContain(
+			'left alone (byte for byte, not registered; register them in design.ts later): projects/gamma/index.html, projects/gamma/requirements.html',
+		);
+
+		const { applied, report } = await migrateInitiative(root, { plan: planFile, dryRun: false });
+		expect(report).toContain('Initiative check on the staged tree: passed');
+		expect(applied).toBe(true);
+		expect(await readFile(join(gamma, 'index.html'), 'utf8')).toBe(handMadePage);
+		expect(await readFile(join(gamma, 'requirements.html'), 'utf8')).toBe(handMadePage);
+		expect(await readFile(join(gamma, 'design.ts'), 'utf8')).toContain(
+			'href: "moved-records.html"',
+		);
+		const moved = await readFile(join(gamma, 'moved-records.html'), 'utf8');
+		expect(moved).toContain('<p data-design-record="R1"></p>');
+		expect(moved).toContain('<ex-section-item record="D1">');
+		expect(await readFile(join(gamma, 'deliverables/del-01-expire.ts'), 'utf8')).toContain(
+			"destination: { page: 'moved-records.html', fragment: 'DEL-01' }",
+		);
+		expect(await checkInitiative(root)).toContain('gamma/DEL-01 · accepted · Expire rows');
+	});
+}, 60_000);
+
+it('refuses a planned folder that has a design.ts the initiative does not register', async (): Promise<void> => {
+	await withFixture(adoptPlan, async (root, planFile) => {
+		const gamma = join(root, 'projects/gamma');
+		await mkdir(gamma, { recursive: true });
+		await writeFile(join(gamma, 'design.ts'), 'export default {};\n');
+		await expect(migrateInitiative(root, { plan: planFile, dryRun: true })).rejects.toThrow(
+			'gamma: projects/gamma already exists and is not a registered project.',
+		);
+	});
+}, 30_000);

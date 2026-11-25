@@ -52,8 +52,19 @@ export function formatMigrationReport(input: MigrationReportInput): string {
 	const projectLines = plan.projects.map((planned) => {
 		const project = input.projects.get(planned.key);
 		const where = project ? relativePath(project.directory) : planned.folder;
-		return `${project?.created ? 'create' : 'keep  '} ${planned.number} ${planned.key} (${where})`;
+		const verb = project?.leftAlone ? 'adopt ' : project?.created ? 'create' : 'keep  ';
+		return `${verb} ${planned.number} ${planned.key} (${where})`;
 	});
+	const adoptedLines = [...input.projects.values()].flatMap((project) =>
+		project.leftAlone
+			? [
+					`${project.name}: ${relativePath(project.directory)} had no design.ts; typed files and ${relativePath(project.shellPage ?? '')} added beside its own files`,
+					`  left alone (byte for byte, not registered; register them in design.ts later): ${
+						project.leftAlone.map((file) => relativePath(file)).join(', ') || 'none'
+					}`,
+				]
+			: [],
+	);
 	const emptyLines = resolution.leftEmpty.map(({ project, records }) => {
 		const removed = plan.remove.includes(project);
 		return `${project}: no deliverables left; ${
@@ -159,6 +170,7 @@ export function formatMigrationReport(input: MigrationReportInput): string {
 		header,
 		...section('Converted from project.ts', conversionLines),
 		...section('Projects', [...projectLines, ...emptyLines]),
+		...section('Adopted folders', adoptedLines),
 		...section('Moves', moveLines),
 		...section('Records placed by the plan', placedRecords),
 		...section('Shared records', sharedLines),
