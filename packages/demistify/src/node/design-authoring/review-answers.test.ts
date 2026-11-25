@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -89,6 +89,7 @@ function copiedReview(
 
 it('applies a copied review answer to its open choice, with the owner words on the page', async (): Promise<void> => {
 	const root = await mkdtemp(join(tmpdir(), 'demistify-initiative-answer-'));
+	await mkdir(join(root, 'records'));
 	const answer = (review: string, ...flags: string[]): ReturnType<typeof run> =>
 		run(process.execPath, [
 			cli,
@@ -102,10 +103,10 @@ it('applies a copied review answer to its open choice, with the owner words on t
 		]);
 	try {
 		await Promise.all([
-			writeFile(join(root, 'initiative-decisions.ts'), decisionsSource),
+			writeFile(join(root, 'records/initiative-decisions.ts'), decisionsSource),
 			writeFile(
 				join(root, 'initiative.ts'),
-				`import decisions from './initiative-decisions.ts';\nexport default { decisions, pages: ['decisions.html'] };`,
+				`import decisions from './records/initiative-decisions.ts';\nexport default { decisions, pages: ['decisions.html'] };`,
 			),
 			writeFile(join(root, 'decisions.html'), decisionsPage),
 			writeFile(
@@ -125,15 +126,17 @@ it('applies a copied review answer to its open choice, with the owner words on t
 		const preview = await answer(join(root, 'worded.md'));
 		expect(preview.stdout).toContain('initiative/D2 · When can a request pick up leftover work?');
 		expect(preview.stdout).toContain('Preview only; nothing written.');
-		expect(await readFile(join(root, 'initiative-decisions.ts'), 'utf8')).toBe(decisionsSource);
+		expect(await readFile(join(root, 'records/initiative-decisions.ts'), 'utf8')).toBe(
+			decisionsSource,
+		);
 
 		const applied = await answer(join(root, 'worded.md'), '--write');
 		expect(applied.stdout).toContain('Applied.');
 		const page = await readFile(join(root, 'decisions.html'), 'utf8');
 		expect(page).toContain(
-			'<p id="D2-answer">Decision initiative/D2. Your words, 2026-11-25, in review review-1: "yes resume it, &lt;and&gt; log each one"</p>\n</ex-document>',
+			'<p id="initiative/D2-answer">Decision initiative/D2. Your words, 2026-11-25, in review review-1: "yes resume it, &lt;and&gt; log each one"</p>\n</ex-document>',
 		);
-		const decided = await readFile(join(root, 'initiative-decisions.ts'), 'utf8');
+		const decided = await readFile(join(root, 'records/initiative-decisions.ts'), 'utf8');
 		expect(decided).toContain(`    authority: {
       state: 'owner-decided',
       sourceKind: 'owner-words',
@@ -141,14 +144,14 @@ it('applies a copied review answer to its open choice, with the owner words on t
       chosen: 'resume',
       decision: 'Resume overdue work',
       source: {
-        href: 'decisions.html#D2-answer',
+        href: '../decisions.html#initiative%2FD2-answer',
         excerpt: 'yes resume it, <and> log each one',
         verbatim: true
       }
     },`);
 		expect(decided).toContain("authority: { state: 'owner-open' },");
 
-		const clashingPage = page.replace('<h1>', "<span id='D3-answer'></span><h1>");
+		const clashingPage = page.replace('<h1>', "<span id='initiative/D3-answer'></span><h1>");
 		await Promise.all([
 			writeFile(join(root, 'decisions.html'), clashingPage),
 			writeFile(
@@ -163,11 +166,11 @@ it('applies a copied review answer to its open choice, with the owner words on t
 			'every changed file was restored',
 		);
 		expect(await readFile(join(root, 'decisions.html'), 'utf8')).toBe(clashingPage);
-		expect(await readFile(join(root, 'initiative-decisions.ts'), 'utf8')).toBe(decided);
+		expect(await readFile(join(root, 'records/initiative-decisions.ts'), 'utf8')).toBe(decided);
 		await writeFile(join(root, 'decisions.html'), page);
 
 		await answer(join(root, 'clicked.md'), '--write');
-		expect(await readFile(join(root, 'initiative-decisions.ts'), 'utf8')).toContain(
+		expect(await readFile(join(root, 'records/initiative-decisions.ts'), 'utf8')).toContain(
 			"sourceKind: 'owner-accepted'",
 		);
 		const view = z

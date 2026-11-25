@@ -197,8 +197,16 @@ export function parseReviewAnswers(text: string): {
 		if (decisionId) index += 1;
 		const selected: { optionId: string; label: string }[] = [];
 		const comments: { targetId: string; body: string }[] = [];
+		// A record choice names each option `<question>--<option>`; requiring that prefix
+		// keeps a list item in the owner's comment from reading as a selected option.
+		const optionAt = (lineIndex: number): RegExpExecArray | undefined => {
+			const option = reviewOptionLine.exec(lines[lineIndex] ?? '') ?? undefined;
+			return option && (!decisionId || option[2]?.startsWith(`${questionId}--`))
+				? option
+				: undefined;
+		};
 		while (!answerEnds(index)) {
-			const option = reviewOptionLine.exec(lines[index] ?? '');
+			const option = optionAt(index);
 			if (option?.[1] && option[2]) {
 				selected.push({ label: option[1], optionId: option[2] });
 				index += 1;
@@ -208,11 +216,7 @@ export function parseReviewAnswers(text: string): {
 				while (index < lines.length && lines[index] !== '') index += 1;
 				index += 1;
 				const body: string[] = [];
-				while (
-					!answerEnds(index) &&
-					!commentStarts(index) &&
-					!reviewOptionLine.test(lines[index] ?? '')
-				) {
+				while (!answerEnds(index) && !commentStarts(index) && !optionAt(index)) {
 					body.push(lines[index] ?? '');
 					index += 1;
 				}

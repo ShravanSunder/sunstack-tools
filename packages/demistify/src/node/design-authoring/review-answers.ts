@@ -1,5 +1,5 @@
 import { readFile, realpath, writeFile } from 'node:fs/promises';
-import { join, relative, resolve } from 'node:path';
+import { dirname, join, relative, resolve } from 'node:path';
 
 import typescript from 'typescript';
 
@@ -148,7 +148,9 @@ async function recordFiles(
 	if (namespace === 'initiative') {
 		const initiativeFile = join(root, 'initiative.ts');
 		const manifest = readInitiativeManifest(initiativeFile, await readFile(initiativeFile, 'utf8'));
-		return { base: root, files: manifest.decisions ? [manifest.decisions] : [] };
+		// Shared records resolve their links from the decisions file, as the check does.
+		if (!manifest.decisions) return { base: root, files: [] };
+		return { base: dirname(manifest.decisions), files: [manifest.decisions] };
 	}
 	const directory = [...projects].find(([, name]) => name === namespace)?.[0];
 	if (!directory) throw new Error(`No project named ${namespace} in this initiative.`);
@@ -226,9 +228,10 @@ export async function applyReviewAnswers(
 		let answerParagraph: string | undefined;
 		let source: { href: string; excerpt: string; verbatim?: true };
 		if (words) {
-			const paragraphId = `${localId}-answer`;
+			// The placement's reference is unique on its page, unlike the local ID.
+			const paragraphId = `${placement.fragment}-answer`;
 			const pageText = await textOf(placement.file);
-			if (pageText.includes(`id="${paragraphId}"`))
+			if (pageText.includes(`id="${escapeHtml(paragraphId)}"`))
 				throw new Error(`${id}: ${relative(root, placement.file)} already has #${paragraphId}.`);
 			const close = pageText.lastIndexOf('</ex-document>');
 			const insertAt = close === -1 ? pageText.lastIndexOf('</body>') : close;
@@ -236,7 +239,7 @@ export async function applyReviewAnswers(
 				throw new Error(
 					`${id}: ${relative(root, placement.file)} has no </ex-document> or </body> to write the answer before.`,
 				);
-			answerParagraph = `<p id="${paragraphId}">Decision ${escapeHtml(id)}. Your words, ${decidedOn}, in review ${escapeHtml(review.reviewId)}: "${escapeHtml(words)}"</p>`;
+			answerParagraph = `<p id="${escapeHtml(paragraphId)}">Decision ${escapeHtml(id)}. Your words, ${decidedOn}, in review ${escapeHtml(review.reviewId)}: "${escapeHtml(words)}"</p>`;
 			// On its own line, at the closing tag's indentation; otherwise just before the tag.
 			const lineStart = pageText.lastIndexOf('\n', insertAt - 1) + 1;
 			const indent = pageText.slice(lineStart, insertAt);
@@ -250,7 +253,11 @@ export async function applyReviewAnswers(
 					text: `${ownLine ? indent : ''}${answerParagraph}\n`,
 				},
 			]);
-			source = { href: `${page}#${paragraphId}`, excerpt: words, verbatim: true };
+			source = {
+				href: `${page}#${encodeURIComponent(paragraphId)}`,
+				excerpt: words,
+				verbatim: true,
+			};
 		} else
 			source = { href: `${page}#${encodeURIComponent(placement.fragment)}`, excerpt: option.title };
 		const sourceKind = words ? 'owner-words' : 'owner-accepted';
