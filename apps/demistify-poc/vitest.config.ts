@@ -12,8 +12,6 @@ export default mergeConfig(
 				'src/**/*.test.ts',
 				'tests/integration/**/*.test.ts',
 				'../../packages/demistify/src/**/*.test.ts',
-				// Temporary: delete with packages/demistify/scripts/initiative-migration.
-				'../../packages/demistify/scripts/initiative-migration/**/*.test.ts',
 			],
 		},
 	}),

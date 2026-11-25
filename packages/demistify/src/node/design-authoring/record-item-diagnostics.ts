@@ -1,7 +1,7 @@
 import type { ZodError } from 'zod';
 
 export const releasedRecordMigration =
-	'From a Demistify source checkout at the 1.33.0 release commit a9e9a34c, run: node packages/demistify/scripts/migrate-lean-design-records.ts --released-lean --source <copied-docs> --project <relative-project> --dry-run; then run packages/demistify/scripts/initiative-migration on main.';
+	'From a Demistify source checkout at the 1.33.0 release commit a9e9a34c, run: node packages/demistify/scripts/migrate-lean-design-records.ts --released-lean --source <copied-docs> --project <relative-project> --dry-run; then run packages/demistify/scripts/initiative-migration at the 1.36.1 release commit da3363b6 (its README gives the command).';
 
 const guidance = new Map<string, string>([
 	['id', 'give the record an id starting with a letter. Use letters, numbers, and hyphens.'],
