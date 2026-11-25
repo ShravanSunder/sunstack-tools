@@ -193,10 +193,12 @@ export function prepareRecordPage(options: {
 						`${file}: ${id} Details or option markup names unknown option ${authored.id}.`,
 					);
 				unmatchedOptions.delete(authored.id);
+				// Keep data-option, as the browser's hydration does: the checker requires it on a
+				// record-bound option, and the choice reads it to mark the chosen option.
 				edits.push({
 					start: authored.start,
 					end: authored.end,
-					text: `<ex-option id="${escapeHtml(authored.anchor ?? `${reference}--${option.id}`)}" title="${escapeHtml(option.title)}">`,
+					text: `<ex-option data-option="${escapeHtml(option.id)}" id="${escapeHtml(authored.anchor ?? `${reference}--${option.id}`)}" title="${escapeHtml(option.title)}">`,
 				});
 			}
 			if (unmatchedOptions.size)

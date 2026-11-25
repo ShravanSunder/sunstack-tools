@@ -1,6 +1,7 @@
 import { expect, test } from 'vitest';
 
 import { choiceRecord, decisionActorField, rulingRecord } from '../../core/decision-record.ts';
+import { checkHtml } from '../check.ts';
 import { readPageMarkup } from './design-page-markup.ts';
 import { readDesignItems } from './read-design.ts';
 import { prepareRecordPage, projectRecords } from './record-projection.ts';
@@ -145,6 +146,17 @@ test('one authored record item preserves Choice fragments and accepts a bare rul
 	expect(html).toContain(
 		'<ex-section-item record="D7" id="D7"><p>The table keeps a time floor.</p>',
 	);
+});
+
+test('a prepared record choice keeps data-option and passes the check it is held to', async (): Promise<void> => {
+	const html = checkRecordPage(`<ex-section-item record="D5">${nativeChoice}</ex-section-item>`);
+
+	const findings = await checkHtml(html);
+
+	expect(html).toContain(
+		'<ex-option data-option="resume" id="D5--resume" title="Resume overdue work">',
+	);
+	expect(findings.filter(({ rule }) => rule === 'choice')).toEqual([]);
 });
 
 test('Choice explanation and Details expose their links and stable fragments to typed checking', () => {
