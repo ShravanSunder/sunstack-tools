@@ -115,11 +115,22 @@ export function parseCutPlan(file: string, text: string): CutPlan {
 	const moved = new Set<string>();
 	for (const { from, to } of plan.moves) {
 		known(to, `the move of ${from}`);
+		const home = from.slice(0, from.indexOf('/'));
+		if (to === home)
+			throw new Error(
+				`${file}: the move of ${from} names its own project ${to}; leave it out of moves.`,
+			);
 		if (moved.has(from)) throw new Error(`${file}: ${from} is moved twice.`);
 		moved.add(from);
 	}
 	for (const address of plan.withdraw)
 		if (moved.has(address)) throw new Error(`${file}: ${address} is both moved and withdrawn.`);
+	const changed = new Set<string>();
+	for (const { deliverable } of plan.dependsOnChanges) {
+		if (changed.has(deliverable))
+			throw new Error(`${file}: ${deliverable} has two dependsOn changes; write them as one row.`);
+		changed.add(deliverable);
+	}
 	for (const { record, to } of plan.records) known(to, `the record placement of ${record}`);
 	for (const { project, title } of plan.add) known(project, `the added row "${title}"`);
 	for (const key of plan.remove)

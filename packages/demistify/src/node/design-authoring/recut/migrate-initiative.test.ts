@@ -5,6 +5,7 @@ import { expect, it } from 'vitest';
 
 import { checkInitiative } from '../check-initiative.ts';
 import { AnchorRelocations, rewriteReference } from './address-rewrite.ts';
+import { parseCutPlan } from './cut-plan.ts';
 import { migrateInitiative } from './migrate-initiative.ts';
 import { fixturePlan, writeLegacyRecutFixture, writeRecutFixture } from './recut-fixture.ts';
 import { nextFreeId } from './recut-resolution.ts';
@@ -259,3 +260,23 @@ it('converts a project.ts tree to initiative.ts in the same run', async (): Prom
 		writeLegacyRecutFixture,
 	);
 }, 60_000);
+
+it('refuses a move to the project the deliverable is already in', (): void => {
+	const selfMove = { ...fixturePlan, moves: [{ from: 'alpha/DEL-02', to: 'alpha' }] };
+	expect(() => parseCutPlan('plan.json', JSON.stringify(selfMove))).toThrow(
+		'plan.json: the move of alpha/DEL-02 names its own project alpha; leave it out of moves.',
+	);
+});
+
+it('refuses two dependsOn changes for one deliverable', (): void => {
+	const twice = {
+		...fixturePlan,
+		dependsOnChanges: [
+			{ deliverable: 'beta/DEL-01', from: ['alpha/DEL-02'], to: [] },
+			{ deliverable: 'beta/DEL-01', from: [], to: ['alpha/DEL-01'] },
+		],
+	};
+	expect(() => parseCutPlan('plan.json', JSON.stringify(twice))).toThrow(
+		'plan.json: beta/DEL-01 has two dependsOn changes; write them as one row.',
+	);
+});
