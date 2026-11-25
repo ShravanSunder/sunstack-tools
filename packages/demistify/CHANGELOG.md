@@ -1,5 +1,12 @@
 # @sunstack/demistify
 
+## 1.36.2
+
+### Patch Changes
+
+- bf0dfc4: The one-time initiative migration scripts are removed from main; the guide and the 1.32.1 record error now point to them at the 1.36.1 release commit `da3363b6`.
+- 9f0d40e: Show a sideways-scroll cue on diagrams that overflow their reading area, and let keyboard readers focus the scroll surface. The rendered check warns when a diagram's natural width exceeds its available space at 390 px.
+
 ## 1.36.1
 
 ### Patch Changes
