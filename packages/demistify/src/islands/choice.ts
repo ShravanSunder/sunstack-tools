@@ -41,6 +41,10 @@ export class ChoiceIsland extends HTMLElement {
 	private contextResize: ResizeObserver | undefined;
 	private contextEnd: HTMLElement | undefined;
 
+	get isReadyForReview(): boolean {
+		return this.initialized;
+	}
+
 	get response(): ChoiceResponse {
 		return choiceResponseSchema.parse({
 			questionId: this.questionId,
@@ -488,6 +492,7 @@ export function readChoiceResponses(root: HTMLElement): ChoiceResponse[] {
 		.filter(
 			(element): element is ChoiceIsland =>
 				element instanceof ChoiceIsland &&
+				element.isReadyForReview &&
 				!element.closest('[data-inspector-copy],[data-inspector-content]'),
 		)
 		.filter((element): boolean => {

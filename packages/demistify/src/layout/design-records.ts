@@ -222,8 +222,11 @@ async function fillBindings(elements: readonly HTMLElement[]): Promise<void> {
 		const message = document.createElement('p');
 		message.className = 'ex-design-records-status';
 		message.setAttribute('role', 'status');
-		message.textContent =
-			'Design records are unavailable. Run demistify initiative check --write (or demistify design check --write for a standalone project), then reload.';
+		for (const section of document.querySelectorAll<HTMLElement>('ex-section[holds]'))
+			section.hidden = true;
+		message.textContent = document.querySelector('ex-project-overview')
+			? 'Design records are unavailable. ex-project-overview was replaced by ex-initiative-overview in 1.34. Update the page, regenerate its design records, and reload.'
+			: 'Design records are unavailable. Run demistify initiative check --write (or demistify design check --write for a standalone project), then reload.';
 		const scope = document.querySelector('ex-document');
 		if (scope) scope.before(message);
 		else document.body.prepend(message);

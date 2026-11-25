@@ -9,6 +9,60 @@ afterEach(async (): Promise<void> => {
 	await page.viewport(1600, 1000);
 });
 
+test.each([1400, 390])(
+	'missing design records show a migration notice instead of empty decision sections at %ipx',
+	async (width): Promise<void> => {
+		await page.viewport(width, 1000);
+		const { document: fixture, frame } = await openFixture('ui', '', 'missing-design-records.html');
+		const notice = frame.getByText(/Design records are unavailable/);
+		await expect.element(notice).toBeVisible();
+		const bounds = requiredElement(fixture, '.ex-design-records-status').getBoundingClientRect();
+		const toolbar = requiredElement(fixture, '.ex-document-toolbar').getBoundingClientRect();
+		expect(bounds.top).toBeGreaterThanOrEqual(toolbar.bottom);
+		expect(bounds.bottom).toBeLessThanOrEqual(1000);
+		expect(
+			[...fixture.querySelectorAll('ex-section[holds]')].filter(
+				(section) => section.getClientRects().length > 0,
+			),
+		).toHaveLength(0);
+		await expect
+			.element(
+				frame.getByText(/ex-project-overview was replaced by ex-initiative-overview in 1\.34/),
+			)
+			.toBeVisible();
+		await expect
+			.element(frame.getByText('Authored background still belongs on the page.'))
+			.toBeVisible();
+		await frame.getByRole('button', { name: 'Comments (0)', exact: true }).click();
+		const closeComments = frame.getByRole('button', { name: 'Close comments', exact: true });
+		await expect.element(closeComments).toBeVisible();
+		expect(fixture.querySelector('ex-comments [role="alert"]')).toBeNull();
+		await closeComments.click();
+		const outline = requiredElement(fixture, '.ex-heading-outline');
+		expect(outline.textContent).toContain('Background');
+		expect(outline.textContent).not.toMatch(/For you to decide|You decided/);
+		await frame.getByRole('button', { name: 'Search documents', exact: true }).click();
+		const search = frame.getByRole('dialog', { name: 'Search documents', exact: true });
+		const query = search.getByRole('combobox');
+		await query.fill('For you to decide');
+		await expect.element(search.getByText('No matching destinations.')).toBeVisible();
+		await query.fill('You decided');
+		await expect.element(search.getByText('No matching destinations.')).toBeVisible();
+		await query.fill('Background');
+		await expect.element(search.getByRole('option', { name: /Background/ })).toBeVisible();
+		await userEvent.keyboard('{Escape}');
+
+		expect(fixture.documentElement.scrollWidth).toBeLessThanOrEqual(width);
+		await page.screenshot({ path: browserScreenshotPath(`missing-design-records-${width}.png`) });
+		await frame.getByRole('button', { name: 'Switch light or dark theme', exact: true }).click();
+		await expect.element(notice).toBeVisible();
+		expect(fixture.documentElement.scrollWidth).toBeLessThanOrEqual(width);
+		await page.screenshot({
+			path: browserScreenshotPath(`missing-design-records-dark-${width}.png`),
+		});
+	},
+);
+
 test('empty delivery progress shows only its status', async (): Promise<void> => {
 	const { document: fixture, frame } = await openFixture('ui');
 	const progress = fixture.createElement('ex-deliverables');
