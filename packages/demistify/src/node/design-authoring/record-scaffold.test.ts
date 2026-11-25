@@ -70,7 +70,20 @@ export default { decisions, assumptions, pages: ['decisions.html'] };`,
 		);
 		await expect(
 			add('assumption', '--namespace', 'initiative', '--author', 'lead'),
-		).rejects.toThrow('has no <ex-section holds="assumed">');
+		).rejects.toThrow('needs <ex-section holds="assumed">');
+		await writeFile(pageFile, page);
+		await writeFile(
+			pageFile,
+			page
+				.replace(
+					'<ex-section id="agent" title="Decided without you" holds="decided-by-agent"></ex-section>',
+					'',
+				)
+				.replace('<ex-section-item record="initiative/D2"><p>A floor.</p></ex-section-item>', ''),
+		);
+		await expect(add('choice', '--namespace', 'initiative')).rejects.toThrow(
+			'needs <ex-section holds="decided-by-agent">: a choice can reach needs-owner, settled, decided-by-agent.',
+		);
 		await writeFile(pageFile, page);
 
 		await add('choice', '--namespace', 'initiative', '--words', 'pick one <soon>', '--write');

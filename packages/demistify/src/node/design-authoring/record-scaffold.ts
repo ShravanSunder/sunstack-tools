@@ -3,7 +3,11 @@ import { dirname, join, relative, resolve } from 'node:path';
 
 import typescript from 'typescript';
 
-import { decisionActorField } from '../../core/decision-record.ts';
+import {
+	assumptionRecord,
+	decisionActorField,
+	decisionRecord,
+} from '../../core/decision-record.ts';
 import { escapeHtml } from '../../core/html-text.ts';
 import { buildInitiative } from './check-initiative.ts';
 import {
@@ -19,6 +23,7 @@ import {
 import { unwrapExpression } from './read-design.ts';
 import { readInitiativeManifest } from './read-initiative.ts';
 import { relativePage } from './record-projection.ts';
+import { requiredSectionHolds } from './section-layout.ts';
 
 export const scaffoldKinds = ['choice', 'ruling', 'assumption'] as const;
 type ScaffoldKind = (typeof scaffoldKinds)[number];
@@ -133,13 +138,6 @@ function appendRecord(
 	return edits;
 }
 
-/** The first section a new record lands in. */
-function firstSection(kind: ScaffoldKind, worded: boolean): string {
-	if (kind === 'choice') return 'needs-owner';
-	if (kind === 'assumption') return 'assumed';
-	return worded ? 'settled' : 'decided-by-agent';
-}
-
 function choiceOption(id: string): string {
 	return `<ex-option data-option="${id}"><template slot="summary">TODO: ${id} in one sentence.</template></ex-option>`;
 }
@@ -190,46 +188,16 @@ export async function addRecord(
 	const textOf = textCache();
 	const pageText = await textOf(pageFile);
 	const pageLabel = relative(root, pageFile);
-	const holds = firstSection(kind, worded);
-	const section = new RegExp(
-		`<ex-section\\b[^>]*\\bholds="${holds}"[^>]*>\\s*</ex-section>`,
-		'u',
-	).exec(pageText);
-	if (!section)
-		throw new Error(
-			`${pageLabel} has no <ex-section holds="${holds}">. Declare the sections ${kind === 'assumption' ? 'an' : 'a'} ${kind} can reach first.`,
-		);
-	const sectionLineStart = pageText.lastIndexOf('\n', section.index - 1) + 1;
-	const sectionIndent = /^[\t ]*/u.exec(pageText.slice(sectionLineStart))?.[0] ?? '';
-	const afterSection = section.index + section[0].length;
-	const pageEdits: TextEdit[] = [
-		{
-			start: afterSection,
-			end: afterSection,
-			text: `\n${sectionIndent}${sectionItem(kind, reference)}`,
-		},
-	];
-
 	const decidedOn = localDate();
 	const words = options.words?.trim();
-	let source: { href: string; excerpt: string; verbatim: true } | undefined;
-	if (words) {
-		const paragraphId = `${reference}-source`;
-		if (pageText.includes(`id="${escapeHtml(paragraphId)}"`))
-			throw new Error(`${pageLabel} already has #${paragraphId}.`);
-		pageEdits.push(
-			paragraphBeforeDocumentEnd(
-				pageText,
-				pageLabel,
-				`<p id="${escapeHtml(paragraphId)}">${escapeHtml(id)}. Your words, ${decidedOn}: "${escapeHtml(words)}"</p>`,
-			),
-		);
-		source = {
-			href: `${relativePage(base, pageFile)}#${encodeURIComponent(paragraphId)}`,
-			excerpt: words,
-			verbatim: true,
-		};
-	}
+	const paragraphId = `${reference}-source`;
+	const source = words
+		? {
+				href: `${relativePage(base, pageFile)}#${encodeURIComponent(paragraphId)}`,
+				excerpt: words,
+				verbatim: true as const,
+			}
+		: undefined;
 	const author = options.author ? { alias: options.author, role: 'lead' } : undefined;
 	const identity = { id: localId, title: `TODO: a short title for ${localId}` };
 	const sources = source ? { sources: [source] } : {};
@@ -274,6 +242,42 @@ export async function addRecord(
 						status: 'open',
 						settles: 'TODO: the observation that would settle it.',
 					};
+
+	// The page must declare every section the record can move to, not only where it lands.
+	const reachable = requiredSectionHolds(
+		kind === 'assumption' ? assumptionRecord.parse(record) : decisionRecord.parse(record),
+	);
+	const sectionTag = (holds: string): RegExpExecArray | null =>
+		new RegExp(`<ex-section\\b[^>]*\\bholds="${holds}"[^>]*>\\s*</ex-section>`, 'u').exec(pageText);
+	const missing = reachable.filter((holds) => !sectionTag(holds));
+	if (missing.length)
+		throw new Error(
+			`${pageLabel} needs ${missing.map((holds) => `<ex-section holds="${holds}">`).join(', ')}: ${kind === 'assumption' ? 'an' : 'a'} ${kind} can reach ${reachable.join(', ')}.`,
+		);
+	const [holds = ''] = reachable;
+	const section = sectionTag(holds);
+	if (!section) throw new Error(`${pageLabel}: no section holds="${holds}".`);
+	const sectionLineStart = pageText.lastIndexOf('\n', section.index - 1) + 1;
+	const sectionIndent = /^[\t ]*/u.exec(pageText.slice(sectionLineStart))?.[0] ?? '';
+	const afterSection = section.index + section[0].length;
+	const pageEdits: TextEdit[] = [
+		{
+			start: afterSection,
+			end: afterSection,
+			text: `\n${sectionIndent}${sectionItem(kind, reference)}`,
+		},
+	];
+	if (words) {
+		if (pageText.includes(`id="${escapeHtml(paragraphId)}"`))
+			throw new Error(`${pageLabel} already has #${paragraphId}.`);
+		pageEdits.push(
+			paragraphBeforeDocumentEnd(
+				pageText,
+				pageLabel,
+				`<p id="${escapeHtml(paragraphId)}">${escapeHtml(id)}. Your words, ${decidedOn}: "${escapeHtml(words)}"</p>`,
+			),
+		);
+	}
 
 	const recordText = await textOf(file);
 	const edits = new Map<string, TextEdit[]>([
