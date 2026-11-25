@@ -1,5 +1,6 @@
-import { readFileSync, readdirSync, statSync } from 'node:fs';
-import { cp, mkdir, readFile, realpath, rm, unlink, writeFile } from 'node:fs/promises';
+import { readdirSync, statSync } from 'node:fs';
+import { cp, mkdtemp, readFile, realpath, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import { basename, dirname, join, relative, resolve, sep } from 'node:path';
 
 import { containsPath } from '../../local-site.ts';
@@ -8,18 +9,15 @@ import { requiredSectionHolds } from '../section-layout.ts';
 import type { AddressMaps, AnchorTarget } from './address-rewrite.ts';
 import { parseCutPlan, type CutPlan } from './cut-plan.ts';
 import { initiativeSource, type InitiativeProjectEntry } from './initiative-source.ts';
+import { convertLegacyLayout, isLegacyLayout, type LegacyConversion } from './legacy-layout.ts';
+import { MemoryWorkspace } from './memory-workspace.ts';
 import { scaffoldProjectSources } from './project-scaffold.ts';
 import { projectShellPage, shellRuntime } from './project-shell.ts';
 import { planPages, type PageMoveRequest, type PageSource } from './recut-pages.ts';
-import { formatRecutReport, type FileChange } from './recut-report.ts';
+import { formatRecutReport } from './recut-report.ts';
 import { projectOf, resolveRecut, type InitiativeSnapshot } from './recut-resolution.ts';
 import { planSources } from './recut-sources.ts';
-import {
-	relativeHref,
-	type PageDeclaration,
-	type RecutProject,
-	type SourceWorkspace,
-} from './recut-workspace.ts';
+import { relativeHref, type PageDeclaration, type RecutProject } from './recut-workspace.ts';
 
 export interface MigrateInitiativeOptions {
 	readonly plan: string;
@@ -51,55 +49,6 @@ function navigationRecordTargets(design: LoadedInitiative['design']): string[] {
 			walkthrough.steps.flatMap((step) => ('record' in step.target ? [step.target.record] : [])),
 		),
 	];
-}
-
-/** Reads the tree once and keeps every change in memory until the run applies it. */
-class MemoryWorkspace implements SourceWorkspace {
-	readonly changes = new Map<string, string | null>();
-	readonly #originals = new Map<string, string | undefined>();
-
-	original(file: string): string | undefined {
-		if (this.#originals.has(file)) return this.#originals.get(file);
-		let text: string | undefined;
-		try {
-			text = readFileSync(file, 'utf8');
-		} catch (error) {
-			if (
-				!(
-					error instanceof Error &&
-					'code' in error &&
-					['ENOENT', 'ENOTDIR'].includes(String(error.code))
-				)
-			)
-				throw error;
-		}
-		this.#originals.set(file, text);
-		return text;
-	}
-
-	read(file: string): string | undefined {
-		if (this.changes.has(file)) return this.changes.get(file) ?? undefined;
-		return this.original(file);
-	}
-
-	write(file: string, text: string): void {
-		if (this.original(file) === text) this.changes.delete(file);
-		else this.changes.set(file, text);
-	}
-
-	remove(file: string): void {
-		if (this.original(file) === undefined) this.changes.delete(file);
-		else this.changes.set(file, null);
-	}
-
-	fileChanges(root: string): FileChange[] {
-		return [...this.changes]
-			.map(([file, text]): FileChange => ({
-				path: relative(root, file),
-				kind: text === null ? 'removed' : this.original(file) === undefined ? 'created' : 'changed',
-			}))
-			.toSorted((left, right) => left.path.localeCompare(right.path));
-	}
 }
 
 function htmlFiles(directory: string): string[] {
@@ -177,10 +126,10 @@ function initiativeEntries(
 ): InitiativeProjectEntry[] {
 	const planned = plan.projects.map((project): InitiativeProjectEntry => {
 		const existing = loaded.manifest.projects[project.key];
-		const recut = projects.get(project.key);
+		const created = projects.get(project.key);
 		return {
 			key: project.key,
-			design: existing?.design ?? recut?.designFile ?? '',
+			design: existing?.design ?? created?.designFile ?? '',
 			number: project.number,
 			achieves: project.achieves ?? existing?.achieves,
 			acceptance: project.acceptance ?? existing?.acceptance,
@@ -201,25 +150,11 @@ function initiativeEntries(
 	return [...planned, ...kept];
 }
 
-async function applyChanges(
-	root: string,
-	target: string,
-	workspace: MemoryWorkspace,
-): Promise<void> {
-	for (const [file, text] of workspace.changes) {
-		const destination = join(target, relative(root, file));
-		if (text === null) {
-			// oxlint-disable-next-line no-await-in-loop -- apply the change set in a stable order.
-			await unlink(destination).catch((error: unknown) => {
-				if (!(error instanceof Error && 'code' in error && error.code === 'ENOENT')) throw error;
-			});
-			continue;
-		}
-		// oxlint-disable-next-line no-await-in-loop -- apply the change set in a stable order.
-		await mkdir(dirname(destination), { recursive: true });
-		// oxlint-disable-next-line no-await-in-loop -- apply the change set in a stable order.
-		await writeFile(destination, text);
-	}
+function copyAuthoredTree(from: string, to: string): Promise<void> {
+	return cp(from, to, {
+		recursive: true,
+		filter: (source) => !basename(source).includes('.generated.') || source === from,
+	});
 }
 
 /** Stage the changes on a sibling copy and run the initiative check there. */
@@ -233,11 +168,8 @@ async function checkStaged(
 		text.replaceAll(stage, root).replaceAll(basename(stage), basename(root));
 	await rm(stage, { recursive: true, force: true });
 	try {
-		await cp(root, stage, {
-			recursive: true,
-			filter: (source) => !basename(source).includes('.generated.') || source === root,
-		});
-		await applyChanges(root, stage, workspace);
+		await copyAuthoredTree(root, stage);
+		await workspace.applyTo(stage);
 		const site = siteRoot && containsPath(siteRoot, stage) ? siteRoot : stage;
 		const build = await buildInitiative(stage, { siteRoot: site });
 		return { passed: true, result: unstaged(build.result) };
@@ -260,13 +192,42 @@ export async function migrateInitiative(
 		options.siteRoot === undefined ? undefined : await realpath(resolve(options.siteRoot));
 	const planFile = resolve(options.plan);
 	const plan = parseCutPlan(planFile, await readFile(planFile, 'utf8'));
-	if (!exists(join(root, 'initiative.ts')) && exists(join(root, 'project.ts')))
-		throw new Error(
-			`${root} still uses project.ts. Convert it to initiative.ts first: register each design under projects with a number, rename project-decisions.ts and project-assumptions.ts to initiative-decisions.ts and initiative-assumptions.ts, write project/ references as initiative/, and use <ex-initiative-overview src="./initiative.generated.json">. Then run initiative check, then this command.`,
-		);
+	if (!isLegacyLayout(root))
+		return recut({ root, workRoot: root, siteRoot, plan, dryRun: options.dryRun });
+	// A project.ts tree is converted on a private copy, so the reader sees initiative.ts.
+	const scratch = await realpath(await mkdtemp(join(tmpdir(), 'demistify-recut-')));
+	try {
+		const workRoot = join(scratch, basename(root));
+		await copyAuthoredTree(root, workRoot);
+		return await recut({ root, workRoot, siteRoot, plan, dryRun: options.dryRun, legacy: true });
+	} finally {
+		await rm(scratch, { recursive: true, force: true });
+	}
+}
+
+interface RecutRun {
+	/** The initiative as it is: originals are read here and the result is written here. */
+	readonly root: string;
+	/** Where the run reads the tree from: the initiative, or a converted copy. */
+	readonly workRoot: string;
+	readonly siteRoot: string | undefined;
+	readonly plan: CutPlan;
+	readonly dryRun: boolean;
+	readonly legacy?: true;
+}
+
+async function recut(run: RecutRun): Promise<MigrateInitiativeResult> {
+	const { plan, siteRoot } = run;
+	const root = run.workRoot;
+	const workspace = new MemoryWorkspace(run.root, run.workRoot);
+	let conversion: LegacyConversion | undefined;
+	if (run.legacy) {
+		conversion = convertLegacyLayout(root, plan, workspace);
+		await workspace.applyTo(root);
+	}
 	let loaded: LoadedInitiative;
 	try {
-		loaded = await loadInitiative(root, siteRoot);
+		loaded = await loadInitiative(root, run.legacy ? undefined : siteRoot);
 	} catch (error) {
 		throw new Error(
 			`The initiative must check before a re-cut. ${error instanceof Error ? error.message : String(error)}`,
@@ -279,7 +240,6 @@ export async function migrateInitiative(
 		deliverables: new Map([...resolution.deliverableMoves].map(([from, move]) => [from, move.to])),
 	};
 	const projects = recutProjects(loaded, plan);
-	const workspace = new MemoryWorkspace();
 
 	// New projects: typed files and a page that declares the record sections.
 	const runtime = shellRuntime(
@@ -495,19 +455,26 @@ export async function migrateInitiative(
 				: [];
 		});
 
-	const check = options.dryRun ? undefined : await checkStaged(root, siteRoot, workspace);
+	const check = run.dryRun ? undefined : await checkStaged(run.root, siteRoot, workspace);
 	const applied = check?.passed === true;
-	if (applied) await applyChanges(root, root, workspace);
+	if (applied) await workspace.applyTo(run.root);
 	const report = formatRecutReport({
-		root,
+		root: run.root,
+		conversion: conversion && {
+			...conversion,
+			renamed: conversion.renamed.map(({ from, to }) => ({
+				from: relative(root, from),
+				to: relative(root, to),
+			})),
+		},
 		plan,
 		resolution,
 		pagePlan,
 		projects,
 		declaredPages,
 		staleProse,
-		files: workspace.fileChanges(root),
-		dryRun: options.dryRun,
+		files: workspace.fileChanges(),
+		dryRun: run.dryRun,
 		check,
 		applied,
 		relativePath: (file) => relative(root, file).split(sep).join('/'),

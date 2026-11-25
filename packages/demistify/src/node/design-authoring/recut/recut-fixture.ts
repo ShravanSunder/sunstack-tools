@@ -235,16 +235,66 @@ export const fixturePlan = {
 	dependsOnChanges: [{ deliverable: 'beta/DEL-01', from: ['alpha/DEL-02'], to: ['alpha/DEL-01'] }],
 };
 
-/** Write the fixture into a fresh directory; returns the initiative root. */
-export async function writeRecutFixture(): Promise<string> {
+/**
+ * The same tree in the 1.33 layout: project.ts with designs, a shared decision in
+ * project-decisions.ts, named project/D9 by a rule and placed on alpha's page.
+ */
+const legacyFiles: Readonly<Record<string, string | undefined>> = {
+	'initiative.ts': undefined,
+	'project.ts': `import alpha from './projects/alpha/design.ts';
+import beta from './projects/beta/design.ts';
+import decisions from './project-decisions.ts';
+
+export default { designs: { alpha, beta }, decisions };
+`,
+	'project-decisions.ts': `import type { DesignDecision } from './projects/alpha/design-schema.d.ts';
+
+export default [
+  {
+    id: 'D9',
+    kind: 'ruling',
+    statement: 'Rows are hidden, never deleted.',
+    authority: {
+      state: 'agent-decided',
+      by: { alias: 'alpha-lead', role: 'lead' },
+      weight: 'design',
+      rationale: 'History stays readable.',
+      decidedOn: '2026-11-20',
+      sourceKind: 'author',
+    },
+  },
+] as const satisfies readonly DesignDecision[];
+`,
+	'projects/alpha/design.ts': files['projects/alpha/design.ts']?.replace(
+		"serves: 'N1' }),\n    defineRule({ id: 'R3'",
+		"serves: 'N1', governedBy: ['project/D9'] }),\n    defineRule({ id: 'R3'",
+	),
+	'projects/alpha/index.html': files['projects/alpha/index.html']?.replace(
+		'<ex-section-item record="A1">',
+		'<ex-section-item record="project/D9"><p>Kept for history.</p></ex-section-item>\n  <ex-section-item record="A1">',
+	),
+};
+
+async function writeTree(tree: Readonly<Record<string, string | undefined>>): Promise<string> {
 	const root = await mkdtemp(join(tmpdir(), 'demistify-recut-'));
 	const initiative = join(root, 'initiative');
 	await Promise.all(
-		Object.entries(files).map(async ([path, text]) => {
+		Object.entries(tree).map(async ([path, text]) => {
+			if (text === undefined) return;
 			const file = join(initiative, path);
 			await mkdir(dirname(file), { recursive: true });
 			await writeFile(file, text);
 		}),
 	);
 	return initiative;
+}
+
+/** Write the fixture into a fresh directory; returns the initiative root. */
+export function writeRecutFixture(): Promise<string> {
+	return writeTree(files);
+}
+
+/** The fixture in the project.ts layout. */
+export function writeLegacyRecutFixture(): Promise<string> {
+	return writeTree({ ...files, ...legacyFiles });
 }

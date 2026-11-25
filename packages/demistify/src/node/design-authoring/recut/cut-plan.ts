@@ -21,7 +21,7 @@ const plannedProjectSchema = z.strictObject({
 		.string()
 		.regex(/^[A-Za-z0-9][A-Za-z0-9._-]*$/, 'must be one folder name without slashes'),
 	/** The initiative's order: lower first; the same number means side by side. */
-	number: z.number().int().positive(),
+	number: z.number().int().nonnegative(),
 	/** Page title for a project the run creates. */
 	title: sentence,
 	achieves: sentence.optional(),

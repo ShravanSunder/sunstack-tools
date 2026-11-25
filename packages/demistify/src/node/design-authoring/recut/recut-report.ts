@@ -1,4 +1,5 @@
 import type { CutPlan } from './cut-plan.ts';
+import type { LegacyConversion } from './legacy-layout.ts';
 import type { PagePlan } from './recut-pages.ts';
 import type { RecutResolution } from './recut-resolution.ts';
 import type { PageDeclaration, RecutProject } from './recut-workspace.ts';
@@ -10,6 +11,7 @@ export interface FileChange {
 
 interface RecutReportInput {
 	readonly root: string;
+	readonly conversion: LegacyConversion | undefined;
 	readonly plan: CutPlan;
 	readonly resolution: RecutResolution;
 	readonly pagePlan: PagePlan;
@@ -144,8 +146,18 @@ export function formatRecutReport(input: RecutReportInput): string {
 				'  Move each "for you to place" passage by hand; references already name the new addresses.',
 			]
 		: [];
+	const conversionLines = input.conversion
+		? [
+				...input.conversion.renamed.map(({ from, to }) => `${from} -> ${to}`),
+				`project/ references written as initiative/: ${input.conversion.references} in ${input.conversion.files} file(s); ex-project-overview is now ex-initiative-overview`,
+				...input.conversion.unlisted.map(
+					({ key, number }) => `${key}: not in the plan; keeps its folder, given number ${number}`,
+				),
+			]
+		: [];
 	return [
 		header,
+		...section('Converted from project.ts', conversionLines),
 		...section('Projects', [...projectLines, ...emptyLines]),
 		...section('Moves', moveLines),
 		...section('Records placed by the plan', placedRecords),

@@ -6,7 +6,7 @@ import { expect, it } from 'vitest';
 import { checkInitiative } from '../check-initiative.ts';
 import { AnchorRelocations, rewriteReference } from './address-rewrite.ts';
 import { migrateInitiative } from './migrate-initiative.ts';
-import { fixturePlan, writeRecutFixture } from './recut-fixture.ts';
+import { fixturePlan, writeLegacyRecutFixture, writeRecutFixture } from './recut-fixture.ts';
 import { nextFreeId } from './recut-resolution.ts';
 
 async function treeContents(root: string): Promise<Map<string, string>> {
@@ -27,8 +27,9 @@ async function treeContents(root: string): Promise<Map<string, string>> {
 async function withFixture(
 	plan: unknown,
 	run: (root: string, planFile: string) => Promise<void>,
+	write: () => Promise<string> = writeRecutFixture,
 ): Promise<void> {
-	const root = await writeRecutFixture();
+	const root = await write();
 	const planFile = join(dirname(root), 'plan.json');
 	await writeFile(planFile, JSON.stringify(plan));
 	try {
@@ -216,3 +217,45 @@ it('refuses a plan that names a deliverable the initiative does not have', async
 		);
 	});
 }, 30_000);
+
+it('converts a project.ts tree to initiative.ts in the same run', async (): Promise<void> => {
+	const plan = {
+		...fixturePlan,
+		projects: [
+			{ key: 'gamma', folder: 'gamma', number: 0, title: 'Gamma', achieves: 'Rows expire.' },
+			{ key: 'alpha', folder: 'alpha', number: 1, title: 'Alpha' },
+		],
+		moves: [{ from: 'alpha/DEL-01', to: 'gamma' }],
+		dependsOnChanges: [],
+	};
+	await withFixture(
+		plan,
+		async (root, planFile) => {
+			const before = await treeContents(dirname(root));
+			const dry = await migrateInitiative(root, { plan: planFile, dryRun: true });
+			expect(await treeContents(dirname(root))).toEqual(before);
+			expect(dry.report).toContain('project.ts -> initiative.ts');
+			expect(dry.report).toContain('project-decisions.ts -> initiative-decisions.ts');
+			expect(dry.report).toContain('beta: not in the plan; keeps its folder, given number 1');
+
+			const { applied } = await migrateInitiative(root, { plan: planFile, dryRun: false });
+			expect(applied).toBe(true);
+			const read = (path: string): Promise<string> => readFile(join(root, path), 'utf8');
+			await expect(stat(join(root, 'project.ts'))).rejects.toHaveProperty('code', 'ENOENT');
+			await expect(stat(join(root, 'project-decisions.ts'))).rejects.toHaveProperty(
+				'code',
+				'ENOENT',
+			);
+			const manifest = await read('initiative.ts');
+			expect(manifest).toContain("import decisions from './initiative-decisions.ts';");
+			expect(manifest).toMatch(/gamma: \{\n\s+design: gamma,\n\s+number: 0,/u);
+			expect(manifest).toMatch(/beta: \{\n\s+design: beta,\n\s+number: 1,/u);
+			expect(await read('projects/alpha/design.ts')).toContain("governedBy: ['initiative/D9']");
+			expect(await read('projects/alpha/index.html')).toContain(
+				'<ex-section-item record="initiative/D9">',
+			);
+			expect(await checkInitiative(root)).toContain('Checked 3 project(s) by number: 0 gamma');
+		},
+		writeLegacyRecutFixture,
+	);
+}, 60_000);
