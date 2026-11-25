@@ -128,7 +128,7 @@ export function projectSectionItems(
 		for (const holds of destinations) {
 			if (!layout.sections.some((section) => section.holds === holds))
 				throw new Error(
-					`${file}:${line}: Record "${reference}" needs a section with holds="${holds}". Declare <ex-section id="…" title="…" holds="${holds}"></ex-section> on this page.`,
+					`${file}:${line}: Record "${reference}" needs a section with holds="${holds}". A record moves between sections as it is decided, so its page declares every section it can reach: ${destinations.join(', ')}. Declare <ex-section id="…" title="…" holds="${holds}"></ex-section> on this page.`,
 				);
 		}
 		const holds = destinations[0];

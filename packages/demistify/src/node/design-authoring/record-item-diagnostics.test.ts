@@ -126,6 +126,17 @@ function checkRecordPage(body: string): string {
 	return prepareRecordPage({ html, file: recordPagePath, markup, projection }).html;
 }
 
+test('a record placed without every section it can reach names the missing section and why', () => {
+	const html = `<ex-section id="settled" holds="settled"></ex-section>
+<ex-section-item record="D7"><p>The table keeps a time floor.</p></ex-section-item>`;
+	const markup = readPageMarkup(html, recordPagePath);
+	const records: DesignRecord[] = [rulingRecord.parse(ruling)];
+
+	expect(() => projectRecords(records, [{ file: recordPagePath, markup }])).toThrow(
+		'needs a section with holds="decided-by-agent". A record moves between sections as it is decided, so its page declares every section it can reach: decided-by-agent, settled.',
+	);
+});
+
 test('one authored record item preserves Choice fragments and accepts a bare ruling body', () => {
 	const html = checkRecordPage(`<ex-section-item record="D5">${nativeChoice}</ex-section-item>
 <ex-section-item record="D7"><p>The table keeps a time floor.</p></ex-section-item>`);
