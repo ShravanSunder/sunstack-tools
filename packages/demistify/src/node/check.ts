@@ -201,6 +201,15 @@ function parentElement(element: Element): Element | undefined {
 	return parent && isElement(parent) ? parent : undefined;
 }
 
+function isSectionRecordChoice(element: Element | undefined): boolean {
+	if (element?.tagName !== 'ex-choice') return false;
+	const sectionItem = parentElement(element);
+	return (
+		sectionItem?.tagName === 'ex-section-item' &&
+		Boolean(attributeMap(sectionItem).get('record')?.trim())
+	);
+}
+
 function isDedicatedGalleryDocument(gallery: Element, documentCount: number): boolean {
 	const parent = parentElement(gallery);
 	if (parent?.tagName !== 'ex-document' || documentCount !== 1) return false;
@@ -474,8 +483,13 @@ export async function checkHtml(source: string, options: CheckOptions = {}): Pro
 					'style',
 				);
 		const parent = parentElement(element);
+		const recordChoice = isSectionRecordChoice(element);
+		const recordOption = name === 'ex-option' && isSectionRecordChoice(parent);
 		for (const problem of checkAttributes(name, attributes, parent?.tagName)) {
 			if (
+				((recordChoice || recordOption) &&
+					(problem.attribute === 'id' || problem.attribute === 'title') &&
+					!attributes.has(problem.attribute)) ||
 				(name === 'ex-breakdown' && problem.attribute === 'scale') ||
 				(name === 'data' && parent?.tagName === 'ex-breakdown' && problem.attribute === 'series')
 			)
@@ -517,7 +531,7 @@ export async function checkHtml(source: string, options: CheckOptions = {}): Pro
 				.filter(isElement)
 				.filter(
 					(child) =>
-						!attributes.has('data-decision') ||
+						(!recordChoice && !attributes.has('data-decision')) ||
 						child.tagName !== 'template' ||
 						!attributeMap(child).has('data-record-body'),
 				);
@@ -527,6 +541,8 @@ export async function checkHtml(source: string, options: CheckOptions = {}): Pro
 		if (name === 'ex-option') {
 			if (parent?.tagName !== 'ex-choice')
 				report(element, 'error', 'choice', 'An ex-option must be a direct child of ex-choice.');
+			if (recordOption && !attributes.get('data-option')?.trim())
+				report(element, 'error', 'choice', 'A record-bound option needs a nonempty data-option.');
 			const summaries = element.childNodes
 				.filter(isElement)
 				.filter(
@@ -535,10 +551,12 @@ export async function checkHtml(source: string, options: CheckOptions = {}): Pro
 				);
 			if (summaries.length !== 1 || !summaries[0] || !textOf(summaries[0]).trim())
 				report(element, 'error', 'choice', 'An option needs one nonempty template slot="summary".');
-			try {
-				renderChoiceTitle(attributes.get('title') ?? '');
-			} catch (error) {
-				report(element, 'error', 'choice-title', String(error));
+			if (!recordOption || attributes.has('title')) {
+				try {
+					renderChoiceTitle(attributes.get('title') ?? '');
+				} catch (error) {
+					report(element, 'error', 'choice-title', String(error));
+				}
 			}
 		}
 		if (name === 'ex-document') {

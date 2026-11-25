@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Decisions without a record source</title>
+	<link rel="stylesheet" href="/experiments/islands/theme.css">
+	<script type="module" src="/experiments/islands/runtime.js"></script>
+</head>
+<body>
+	<ex-document id="missing-records">
+		<h1>Decisions without a record source</h1>
+		<ex-section id="open-decisions" title="For you to decide" holds="needs-owner"></ex-section>
+		<ex-section id="settled-decisions" title="You decided" holds="settled"></ex-section>
+		<ex-section-item record="project/D40">
+			<ex-choice>
+				<ex-option data-option="wait"><template slot="summary">Wait for the worker.</template></ex-option>
+			</ex-choice>
+		</ex-section-item>
+		<ex-section id="context" title="Background"></ex-section>
+		<ex-section-item section="context"><p>Authored background still belongs on the page.</p></ex-section-item>
+		<ex-project-overview src="./project.generated.json"></ex-project-overview>
+	</ex-document>
+</body>
+</html>
