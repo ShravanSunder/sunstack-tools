@@ -106,6 +106,24 @@ The first run is a preview that writes nothing. With `--write`, each answer with
 
 The item moves to its settled section on its own. The command then runs `initiative check --write`; if that check fails, every file it changed is restored. It refuses the whole review when a record is not an open choice, or when the review selects anything but one of its options. Answers without a Decision ID are skipped. Rewrite `decision` afterwards when the option title does not read as the answer.
 
+## Add a decision or assumption
+
+Scaffold a new record, its section item and the owner's words in one step:
+
+```sh
+demistify initiative add choice docs/initiatives/2026-11-router --namespace initiative --page docs/initiatives/2026-11-router/decisions.html --words "the owner's exact words" --write
+demistify initiative add ruling docs/initiatives/2026-11-router --namespace messages --page docs/initiatives/2026-11-router/projects/2026-11-messages/index.html --author mac-lead --write
+```
+
+Without `--write` it previews. The command:
+
+- **Takes the next free ID** in the namespace: `D` for choices and rulings, `A` for assumptions.
+- **Appends the record** to the namespace's `decisions` or `assumptions` file: the one registered in `initiative.ts`, or a project's `design-decisions.ts` / `design-assumptions.ts`.
+- **Places an `ex-section-item`** right after the page's section for the record's first state. A choice gets a native `ex-choice` with two options.
+- **With `--words`, cites the owner verbatim** from a `<p id="<ref>-source">` before `</ex-document>`. A worded ruling is `owner-decided`; an agent's ruling and every assumption need `--author`.
+
+Every placeholder reads `TODO:`. The scaffold passes the check as written, so fill each placeholder in place and run `initiative check` again. Like `answer`, it runs `initiative check --write` after writing and restores every file if that fails. It refuses a page without the record's first section. In a file written with record helpers, the new record is a helper call such as `defineRuling({ … })`, and the helper is added to the file's SDK import when missing.
+
 For an initiative-wide view, place this in the initiative's `index.html` and serve it with `open`:
 
 ```html
