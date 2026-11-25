@@ -299,7 +299,7 @@ function openProjectSummary(
 function renderProjects(
 	content: HTMLElement,
 	view: InitiativeView,
-	showProject: (name: string, trigger: HTMLButtonElement) => void,
+	toggleProjectSummary: (name: string, trigger: HTMLButtonElement) => void,
 ): void {
 	appendHeading(content, 'h2', 'Projects', levelGlossary.project);
 	const introduction = document.createElement('p');
@@ -320,7 +320,7 @@ function renderProjects(
 		trigger.className = 'ex-initiative-project-trigger';
 		trigger.textContent = project.title ?? name;
 		trigger.setAttribute('aria-expanded', 'false');
-		trigger.addEventListener('click', (): void => showProject(name, trigger));
+		trigger.addEventListener('click', (): void => toggleProjectSummary(name, trigger));
 		const heading = appendHeading(section, 'h4', '');
 		heading.setAttribute('aria-label', trigger.textContent);
 		heading.append(trigger);
@@ -419,6 +419,10 @@ export class InitiativeOverviewIsland extends HTMLElement {
 		const decisions = projectDecisions(view.records);
 		const questions = decisions.filter(({ status }) => status === 'Open');
 		renderProjects(content, view, (name, trigger): void => {
+			if (trigger.getAttribute('aria-expanded') === 'true') {
+				this.closeProjectSummary?.();
+				return;
+			}
 			this.closeProjectSummary = openProjectSummary(view, source, name, questions, trigger);
 		});
 		renderWorkNow(content, view, source);

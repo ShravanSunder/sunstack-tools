@@ -358,6 +358,29 @@ test.each([1400, 390])(
 	},
 );
 
+test('activating the open project title closes its desktop summary', async (): Promise<void> => {
+	await page.viewport(1400, 1000);
+	const { document: fixture, frame } = await openFixture('ui', '', 'decision-views.html');
+	const project = frame.getByRole('button', { name: 'Job cancellation', exact: true });
+	const summary = frame.getByRole('complementary', { name: 'Job cancellation', exact: true });
+	await expect.element(project).toHaveAttribute('aria-expanded', 'false');
+
+	await project.click();
+	await expect.element(project).toHaveAttribute('aria-expanded', 'true');
+	await expect.element(summary).toBeVisible();
+	const drawer = requiredElement(fixture, 'aside.ex-drawer:not([hidden])');
+
+	await project.click();
+	await expect.element(project).toHaveAttribute('aria-expanded', 'false');
+	expect(drawer.hasAttribute('hidden')).toBe(true);
+	expect(drawer.getClientRects()).toHaveLength(0);
+	await expect.element(project).toHaveFocus();
+
+	await project.click();
+	await expect.element(project).toHaveAttribute('aria-expanded', 'true');
+	await expect.element(summary).toBeVisible();
+});
+
 test('explicit destination IDs win over generated heading aliases', async (): Promise<void> => {
 	const { document: fixture, frame } = await openFixture('ui');
 	const link = requiredElement(fixture, '#exact-link');
