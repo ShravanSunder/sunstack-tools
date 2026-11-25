@@ -118,15 +118,15 @@ async function createExternalPageProject(
 	directory: string,
 	href = '../../Reviewed%20Guide.html',
 ): Promise<void> {
-	const milestone = join(directory, 'milestone');
-	await mkdir(milestone, { recursive: true });
+	const projectDirectory = join(directory, 'notes');
+	await mkdir(projectDirectory, { recursive: true });
 	await Promise.all([
 		writeFile(
 			join(directory, 'initiative.ts'),
-			"import notes from './milestone/design.ts'; export default { projects: { notes: { design: notes, number: 1 } } };",
+			"import notes from './notes/design.ts'; export default { projects: { notes: { design: notes, number: 1 } } };",
 		),
 		writeFile(
-			join(milestone, 'design.ts'),
+			join(projectDirectory, 'design.ts'),
 			`export default {
 			pages: [{ id: 'guide', title: 'Reviewed guide', href: ${JSON.stringify(href)}, icon: 'file' }],
 			mapGroups: [], records: [{ kind: 'need', id: 'N1', statement: 'Readers can find the approved scope.' }],

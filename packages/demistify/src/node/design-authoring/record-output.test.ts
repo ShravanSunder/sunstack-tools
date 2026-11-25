@@ -7,13 +7,13 @@ import { readPageMarkup } from './design-page-markup.ts';
 import { recordOutputFile } from './record-output.ts';
 
 const site = resolve('site');
-const milestone = join(site, 'project', 'milestone');
-const page = join(milestone, 'index.html');
-const navOutput = join(milestone, designRecordsFilename);
-const projectOutput = join(site, 'project', designRecordsFilename);
+const projectDirectory = join(site, 'initiative', 'notes');
+const page = join(projectDirectory, 'index.html');
+const navOutput = join(projectDirectory, designRecordsFilename);
+const initiativeOutput = join(site, 'initiative', designRecordsFilename);
 const outputs = new Map<string, DesignRecordView>([
 	[navOutput, { version: 1, pages: {} }],
-	[projectOutput, { version: 1, pages: {} }],
+	[initiativeOutput, { version: 1, pages: {} }],
 ]);
 const nav = '<ex-nav src="navigation.generated.json"></ex-nav>';
 const overview =
@@ -29,18 +29,18 @@ it.each([
 	{
 		name: 'overview with two markers and static navigation',
 		html: overview + marker + marker + '<ex-nav src="navigation.json"></ex-nav>',
-		expected: projectOutput,
+		expected: initiativeOutput,
 	},
 	{
 		name: 'encoded navigation before a project overview',
 		html: nav.replace('navigation.generated.json', './%6eavigation.generated.json') + overview,
 		expected: navOutput,
 	},
-	{ name: 'the marker as fallback', html: marker, expected: projectOutput },
+	{ name: 'the marker as fallback', html: marker, expected: initiativeOutput },
 	{
 		name: 'a marker with repeated separators',
 		html: marker.replace('../records.generated.js', '..//records.generated.js'),
-		expected: projectOutput,
+		expected: initiativeOutput,
 	},
 	{
 		name: 'navigation with an invalid lower-priority hint',
@@ -50,7 +50,7 @@ it.each([
 	{
 		name: 'an encoded marker as fallback',
 		html: marker.replace('records.generated.js', '%72ecords.generated.js'),
-		expected: projectOutput,
+		expected: initiativeOutput,
 	},
 ])('selects $name', ({ html, expected }): void => {
 	expect(recordOutputFile(readPageMarkup(html, page), page, site, outputs)).toBe(expected);

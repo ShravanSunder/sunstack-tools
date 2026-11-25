@@ -461,8 +461,8 @@ it('qualifies need coverage and deduplicates scoped rule notes across a checked 
 it('checks explicit project records, qualified prerequisites, and Lead aliases across two designs', async (): Promise<void> => {
 	const sandbox = await mkdtemp(join(tmpdir(), 'demistify-project-check-'));
 	const root = join(sandbox, 'docs/projects/2026-11-messaging');
-	const messages = join(root, 'milestones/2026-11-messages');
-	const sessions = join(root, 'milestones/2026-11-sessions#archive');
+	const messages = join(root, 'projects/2026-11-messages');
+	const sessions = join(root, 'projects/2026-11-sessions#archive');
 	const outputPath = join(root, 'initiative.generated.json');
 	const check = (write = true): ReturnType<typeof run> =>
 		run(process.execPath, [cli, 'initiative', 'check', root, ...(write ? ['--write'] : [])]);
@@ -500,8 +500,8 @@ sources: [{ href: 'evidence.txt', excerpt: 'Use the current result.' }] }`;
 		await Promise.all([
 			writeFile(
 				join(root, 'initiative.ts'),
-				`import messagesDesign from './milestones/2026-11-messages/design.ts';
-import sessionsDesign from './milestones/2026-11-sessions#archive/design-delivery.ts';
+				`import messagesDesign from './projects/2026-11-messages/design.ts';
+import sessionsDesign from './projects/2026-11-sessions#archive/design-delivery.ts';
 import decisions from './shared/initiative-decisions.ts';
 import assumptions from './shared/initiative-assumptions.ts';
 import agents from './agents-identity.ts';
@@ -509,14 +509,14 @@ export default { projects: { messages: { design: messagesDesign, number: 2 }, se
 			),
 			writeFile(
 				join(root, 'agents-identity.ts'),
-				`import { agentId } from './milestones/2026-11-messages/design-sdk.generated.ts';
+				`import { agentId } from './projects/2026-11-messages/design-sdk.generated.ts';
 const lead = agentId('private-fixture-session');
 const builder = agentId('private-builder-session');
 export default { owner: 'owner', agents: { 'messages-lead': lead, 'messages-builder': builder } };`,
 			),
 			writeFile(
 				join(shared, 'initiative-decisions.ts'),
-				`import type { DesignDecision } from '../milestones/2026-11-messages/design-schema.d.ts';
+				`import type { DesignDecision } from '../projects/2026-11-messages/design-schema.d.ts';
 export default [${decision}, {
 id: 'D2', kind: 'choice', title: 'Unassigned question',
 question: 'Which end state should the reader show?', recommended: 'none', options: [{ id: 'end-state', title: 'Show the final result' }, { id: 'timeline', title: 'Show the timeline' }], authority: { state: 'owner-open' },
@@ -559,8 +559,8 @@ resolution: { href: 'evidence.txt', excerpt: 'Available.' }
 		const readOnly = await check(false);
 		expect(readOnly.stdout).toMatch(/Waiting on owner[\s\S]*initiative\/D2[\s\S]*messages\/DEL-01/);
 		await expect(stat(outputPath)).rejects.toMatchObject({ code: 'ENOENT' });
-		const milestonePath = join(messages, 'deliverables.generated.json');
-		await expect(stat(milestonePath)).rejects.toMatchObject({ code: 'ENOENT' });
+		const deliverablesPath = join(messages, 'deliverables.generated.json');
+		await expect(stat(deliverablesPath)).rejects.toMatchObject({ code: 'ENOENT' });
 		await check();
 		await run(process.execPath, [cli, 'design', 'types', messages]);
 		const generatedTypes = await readFile(join(messages, 'design-schema.d.ts'), 'utf8');
@@ -654,7 +654,7 @@ resolution: { href: 'evidence.txt', excerpt: 'Available.' }
 			state: 'dependency-blocked',
 		});
 		expect(coreView(before, 'sessions/DEL-01').links.plan.page).toBe(
-			'milestones/2026-11-sessions%23archive/index.html',
+			'projects/2026-11-sessions%23archive/index.html',
 		);
 		expect(coreView(before, 'messages/DEL-01').links.governingItems.map(({ id }) => id)).toEqual([
 			'initiative/D1',
@@ -665,7 +665,7 @@ resolution: { href: 'evidence.txt', excerpt: 'Available.' }
 		expect(published).toContain('messages-builder');
 		expect(published).not.toContain('private-fixture-session');
 		expect(published).not.toContain('private-builder-session');
-		expect(await readFile(milestonePath, 'utf8')).toContain('messages-builder');
+		expect(await readFile(deliverablesPath, 'utf8')).toContain('messages-builder');
 		const written = await stat(outputPath);
 		await check();
 		expect((await stat(outputPath)).mtimeMs).toBe(written.mtimeMs);
@@ -686,12 +686,12 @@ resolution: { href: 'evidence.txt', excerpt: 'Available.' }
 		await stamp(messages, 'messages', 'messages-1');
 		const accepted = await readView();
 		expect(accepted.deliverables['messages/DEL-01']?.state).toBe('accepted');
-		const beforeAssignment = await readFile(milestonePath, 'utf8');
+		const beforeAssignment = await readFile(deliverablesPath, 'utf8');
 		const messagesFile = join(messages, 'deliverables/unit.ts');
 		const withBuilder = await readFile(messagesFile, 'utf8');
 		await writeFile(messagesFile, withBuilder.replace('messages-builder', 'messages-lead'));
 		await check(false);
-		expect(await readFile(milestonePath, 'utf8')).toBe(beforeAssignment);
+		expect(await readFile(deliverablesPath, 'utf8')).toBe(beforeAssignment);
 		await check();
 		expect((await readView()).deliverables['messages/DEL-01']).toMatchObject({
 			builder: 'messages-lead',
@@ -749,7 +749,7 @@ resolution: { href: 'evidence.txt', excerpt: 'Available.' }
 	}
 }, 90_000);
 
-it('uses one declared external page in two milestone scopes and confines authoring inputs', async (): Promise<void> => {
+it('uses one declared external page in two project scopes and confines authoring inputs', async (): Promise<void> => {
 	const sandbox = await mkdtemp(join(tmpdir(), 'demistify-canonical-project-'));
 	const site = join(sandbox, 'site');
 	const project = join(site, 'project');
@@ -779,14 +779,14 @@ it('uses one declared external page in two milestone scopes and confines authori
 	try {
 		await Promise.all(
 			names.map(async (name) => {
-				const milestone = join(project, name);
-				await run(process.execPath, [cli, 'design', 'init', milestone]);
-				await mkdir(join(milestone, 'deliverables'));
+				const projectDirectory = join(project, name);
+				await run(process.execPath, [cli, 'design', 'init', projectDirectory]);
+				await mkdir(join(projectDirectory, 'deliverables'));
 				await Promise.all([
-					writeFile(join(milestone, 'design.ts'), authoredDesign()),
-					writeFile(join(milestone, 'design-delivery.ts'), deliverySource()),
-					writeFile(join(milestone, 'deliverables/unit.ts'), authoredDelivery()),
-					writeFile(join(milestone, 'evidence.txt'), 'Observed the shared passage.'),
+					writeFile(join(projectDirectory, 'design.ts'), authoredDesign()),
+					writeFile(join(projectDirectory, 'design-delivery.ts'), deliverySource()),
+					writeFile(join(projectDirectory, 'deliverables/unit.ts'), authoredDelivery()),
+					writeFile(join(projectDirectory, 'evidence.txt'), 'Observed the shared passage.'),
 				]);
 			}),
 		);

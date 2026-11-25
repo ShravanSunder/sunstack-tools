@@ -98,7 +98,6 @@ export const assumptionRecord = z.discriminatedUnion('status', [
 ]);
 
 export type DecisionRecord = z.infer<typeof decisionRecord>;
-export type AssumptionRecord = z.infer<typeof assumptionRecord>;
 
 export function isDecision(
 	record: { readonly kind: string } | undefined,
