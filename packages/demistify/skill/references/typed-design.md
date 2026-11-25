@@ -184,7 +184,7 @@ Place needs, rules, realizations and planned checks with empty `data-design-reco
 - `<ex-tree data-design-need="U1"></ex-tree>` draws the need and the rules that serve it, linked to their placements.
 - Each page in the project keeps one `ex-nav` whose `src` resolves to its `navigation.generated.json`.
 
-Give each choice, ruling and assumption one `ex-section-item record="ID"`. Declare each needed section once with `holds`. Keep every `ex-section` empty and write the items beside it. Declare all reachable destinations so an answer can move a record to its new section without moving its authored body.
+Give each choice, ruling and assumption one `ex-section-item record="ID"`. Declare each needed section once with `holds`. Keep every `ex-section` empty and write the items beside it. Declare all reachable destinations so an answer can move a record to its new section without moving its authored body. An open choice can reach `decided-by-agent` because an agent may decide it within its own authority.
 
 | Record on this page | Declare one section for each of |
 | --- | --- |
@@ -193,7 +193,7 @@ Give each choice, ruling and assumption one `ex-section-item record="ID"`. Decla
 | Owner-decided choice or ruling | `settled` |
 | Any assumption | `assumed` |
 
-Place one native `ex-choice` inside the item for a choice. The record supplies the question, anchor and option titles. Put each option's Markdown in a `template slot="summary"`. Add a `template slot="details"` with HTML only when it adds something to the summary. An `ex-markdown` inside Details can render richer Markdown. Put shared explanation or a diagram in `template data-record-body`. Use direct authored prose or rich content inside a ruling or assumption item.
+Place one native `ex-choice` inside the item for a choice. The record supplies the question, anchor and option titles. Put each option's Markdown in a `template slot="summary"`. Add a `template slot="details"` with HTML only when it adds something to the summary. An `ex-markdown` inside Details can render richer Markdown. Put shared explanation or a diagram in one `template data-record-body` placed directly inside the `ex-choice`, beside its options; the choice reads it only there. Use direct authored prose or rich content inside a ruling or assumption item.
 
 ```html
 <ex-section id="open" title="For you to decide" holds="needs-owner"></ex-section>
