@@ -66,4 +66,13 @@ it('derives a project state from its own deliverables only', (): void => {
 		reason: 'Every open core deliverable waits on another: link/DEL-01.',
 	});
 	expect(mixedState.state).toBe('in-progress');
+	expect(
+		projectProgress([
+			core('sessions/DEL-01', 'dependency-blocked', ['link/DEL-01']),
+			core('sessions/DEL-02', 'design-blocked'),
+		]),
+	).toEqual({
+		state: 'design-blocked',
+		reason: 'sessions/DEL-02 wait on an open owner decision; the rest wait on link/DEL-01.',
+	});
 });

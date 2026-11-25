@@ -13,19 +13,26 @@ export function projectProgress(deliverables: readonly DeliverableView[]): Proje
 	if (core.every((deliverable) => deliverable.state === 'accepted'))
 		return { state: 'accepted', reason: 'Every core deliverable is accepted.' };
 	const open = core.filter((deliverable) => deliverable.state !== 'accepted');
-	if (open.every((deliverable) => deliverable.state === 'dependency-blocked')) {
-		const waitingOn = [...new Set(open.flatMap((deliverable) => deliverable.dependsOn))];
-		return {
-			state: 'dependency-blocked',
-			reason: `Every open core deliverable waits on another: ${waitingOn.join(', ')}.`,
-		};
-	}
 	const designBlocked = open.filter((deliverable) => deliverable.state === 'design-blocked');
-	if (designBlocked.length === open.length)
+	const dependencyBlocked = open.filter(
+		(deliverable) => deliverable.state === 'dependency-blocked',
+	);
+	if (designBlocked.length + dependencyBlocked.length === open.length) {
+		const waitingOn = [
+			...new Set(dependencyBlocked.flatMap((deliverable) => deliverable.dependsOn)),
+		];
+		if (!designBlocked.length)
+			return {
+				state: 'dependency-blocked',
+				reason: `Every open core deliverable waits on another: ${waitingOn.join(', ')}.`,
+			};
 		return {
 			state: 'design-blocked',
-			reason: `${designBlocked.map(({ id }) => id).join(', ')} wait on an open owner decision.`,
+			reason: `${designBlocked.map(({ id }) => id).join(', ')} wait on an open owner decision${
+				dependencyBlocked.length ? `; the rest wait on ${waitingOn.join(', ')}` : ''
+			}.`,
 		};
+	}
 	const started = core.filter(
 		(deliverable) =>
 			deliverable.state !== 'planned' &&
