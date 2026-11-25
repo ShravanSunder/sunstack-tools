@@ -29,6 +29,8 @@ test.each([1600, 390])(
 		await expect
 			.poll((): number => fixture.querySelectorAll('.ex-comments-trigger').length)
 			.toBe(1);
+		// The lazy diagram above the paragraph changes the pointer coordinates when it renders.
+		await expect.poll(() => fixture.querySelectorAll('#process > svg').length).toBe(1);
 		const paragraph = requiredElement(fixture, '#after-views');
 		const firstCell = requiredElement(fixture, '#table-notes tbody tr td');
 		const otherCell = requiredElement(fixture, '#table-notes tbody tr + tr td');

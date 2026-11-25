@@ -46,6 +46,7 @@ interface Page {
 
 interface PageInspection {
 	readonly messages: string[];
+	readonly warnings: string[];
 	readonly links: string[];
 	readonly fragments: string[];
 }
@@ -76,6 +77,7 @@ async function inspectPage(page: Page, address: URL): Promise<PageInspection> {
 		throw new Error(`HTTP ${response?.status() ?? 'unavailable'} loading ${address.pathname}.`);
 
 	const messages = new Set<string>();
+	const warnings = new Set<string>();
 	const links = new Set<string>();
 	const fragments = new Set<string>();
 
@@ -83,6 +85,7 @@ async function inspectPage(page: Page, address: URL): Promise<PageInspection> {
 		await settleVisibleState(page);
 		const visible = await inspectVisibleState(page);
 		for (const message of visible.messages) messages.add(message);
+		for (const warning of visible.warnings) warnings.add(warning);
 		for (const link of visible.links) links.add(link);
 		for (const fragment of visible.fragments) fragments.add(fragment);
 	}
@@ -105,7 +108,12 @@ async function inspectPage(page: Page, address: URL): Promise<PageInspection> {
 		if (activated) await collectVisibleState();
 	}
 
-	return { messages: [...messages], links: [...links], fragments: [...fragments] };
+	return {
+		messages: [...messages],
+		warnings: [...warnings],
+		links: [...links],
+		fragments: [...fragments],
+	};
 }
 
 async function settleVisibleState(page: Page): Promise<void> {
@@ -145,6 +153,7 @@ async function inspectVisibleState(page: Page): Promise<PageInspection> {
 	return page.evaluate((): PageInspection => {
 		const ignore = 'code, pre, kbd, samp, [data-inspector-copy], [data-inspector-content]';
 		const messages: string[] = [];
+		const warnings: string[] = [];
 		if (document.documentElement.scrollWidth > window.innerWidth + 1)
 			messages.push(
 				`Page overflows horizontally (${document.documentElement.scrollWidth}px at ${window.innerWidth}px).`,
@@ -162,6 +171,17 @@ async function inspectVisibleState(page: Page): Promise<PageInspection> {
 			if (!customElements.get(name)) messages.push(`Visible ${label} is unregistered.`);
 			else if (element.getAttribute('aria-busy') === 'true')
 				messages.push(`Visible ${label} did not finish rendering.`);
+			if (name === 'ex-mermaid' && window.innerWidth <= 390) {
+				const svg = element.querySelector(':scope > svg');
+				const naturalWidth = Number.parseFloat(svg?.getAttribute('width') ?? '');
+				if (naturalWidth > element.clientWidth + 1) {
+					const title = element.getAttribute('label')?.trim();
+					const identity = title ? `${label} "${title}"` : label;
+					warnings.push(
+						`${identity} has a natural width of ${Math.round(naturalWidth)}px for ${element.clientWidth}px of available space.`,
+					);
+				}
+			}
 		}
 		for (const cell of document.querySelectorAll('th, td')) {
 			if (!cell.getClientRects().length || cell.closest(ignore)) continue;
@@ -180,6 +200,7 @@ async function inspectVisibleState(page: Page): Promise<PageInspection> {
 		}
 		return {
 			messages,
+			warnings,
 			links: [...document.querySelectorAll<HTMLAnchorElement>('a[href]')]
 				.filter((anchor): boolean => !anchor.closest(ignore))
 				.map((anchor): string => anchor.href),
@@ -196,6 +217,7 @@ async function inspectVisibleState(page: Page): Promise<PageInspection> {
 interface RenderFinding {
 	readonly file: string;
 	readonly width: number;
+	readonly severity: 'error' | 'warning';
 	readonly message: string;
 }
 
@@ -279,6 +301,8 @@ async function inspectFile(
 		try {
 			const inspection = await inspectPage(page, address);
 			for (const message of inspection.messages) messages.add(message);
+			for (const message of inspection.warnings)
+				findings.push({ file, width, severity: 'warning', message });
 			// Linked pages are loaded to resolve rendered fragments. Only requested pages own diagnostics.
 			page.off('console', recordConsole);
 			page.off('pageerror', recordPageError);
@@ -289,7 +313,7 @@ async function inspectFile(
 		} finally {
 			await page.close();
 		}
-		for (const message of messages) findings.push({ file, width, message });
+		for (const message of messages) findings.push({ file, width, severity: 'error', message });
 	}
 	return findings;
 }

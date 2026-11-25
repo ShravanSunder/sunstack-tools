@@ -1,5 +1,5 @@
 import { afterEach, expect, test } from 'vitest';
-import { page } from 'vitest/browser';
+import { page, userEvent } from 'vitest/browser';
 
 import { browserScreenshotPath } from './browser-evidence.ts';
 import {
@@ -170,6 +170,58 @@ test('wide diagrams scroll locally to both endpoints with reachable controls and
 	await verifyDiagramWidth(1600);
 	await verifyDiagramWidth(390);
 });
+
+test.each(['light', 'dark'])(
+	'wide flowcharts show how to reveal clipped content in the $theme theme',
+	async (theme): Promise<void> => {
+		await page.viewport(1400, 1000);
+		const { document: fixture, frame } = await openFixture('layout', '', 'phone-diagram.html');
+		fixture.documentElement.dataset['theme'] = theme;
+		const diagram = requiredElement(fixture, '#request-paths');
+		await expect.poll(() => diagram.querySelectorAll('svg .subgraph').length).toBe(2);
+		const flowchart = fixtureLocator(frame, diagram);
+		const hint = flowchart.getByText('Scroll sideways to see the full diagram', { exact: true });
+		expect(diagram.scrollWidth).toBeLessThanOrEqual(diagram.clientWidth + 1);
+		await expect.element(hint).not.toBeInTheDocument();
+		await page.screenshot({ path: browserScreenshotPath(`phone-diagram-1400-${theme}.png`) });
+
+		await page.viewport(390, 1000);
+		diagram.scrollIntoView({ block: 'center' });
+		expect(diagram.scrollWidth).toBeGreaterThan(diagram.clientWidth);
+		await expect.element(hint).toBeVisible();
+		const hintElement = requiredElement(diagram, '.ex-diagram-scroll-hint');
+		const last = requiredElement(diagram, 'g.node[data-id="receipt"]');
+		expect(last.getBoundingClientRect().right).toBeGreaterThan(
+			diagram.getBoundingClientRect().right,
+		);
+		expect(insideViewport(hintElement)).toBe(true);
+		await page.screenshot({ path: browserScreenshotPath(`phone-diagram-390-${theme}.png`) });
+
+		fixture.querySelector<HTMLElement>('#request-paths')?.focus({ preventScroll: true });
+		await expect.element(flowchart).toHaveFocus();
+		await userEvent.keyboard('{ArrowRight}');
+		await expect.poll(() => diagram.scrollLeft).toBeGreaterThan(0);
+		diagram.scrollLeft = diagram.scrollWidth;
+		expect(last.getBoundingClientRect().right).toBeLessThanOrEqual(
+			diagram.getBoundingClientRect().right + 1,
+		);
+		await expect.poll(() => insideViewport(hintElement)).toBe(true);
+		expect(fixture.documentElement.scrollWidth).toBeLessThanOrEqual(391);
+
+		const branches = requiredElement(fixture, 'ex-mermaid[label="Three delivery branches"]');
+		branches.scrollIntoView({ block: 'center' });
+		await expect
+			.element(fixtureLocator(frame, branches).getByText('Scroll sideways to see the full diagram'))
+			.toBeVisible();
+		await page.screenshot({
+			path: browserScreenshotPath(`phone-diagram-branches-390-${theme}.png`),
+		});
+		const short = requiredElement(fixture, '#short-path');
+		short.scrollIntoView({ block: 'center' });
+		await expect.poll(() => short.querySelectorAll('svg .node').length).toBe(1);
+		expect(short.querySelector('.ex-diagram-scroll-hint')).toBeNull();
+	},
+);
 
 test.each([1600, 390].flatMap((width) => ['dark', 'light'].map((theme) => ({ width, theme }))))(
 	'a wide schema fits and can zoom to its labels in one action at $width $theme',

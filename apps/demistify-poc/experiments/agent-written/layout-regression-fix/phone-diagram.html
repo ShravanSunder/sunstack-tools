@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Request routing</title>
+		<link rel="stylesheet" href="../../../../../packages/demistify/dist/theme.css" />
+		<script type="module" src="../../../../../packages/demistify/dist/runtime.js"></script>
+	</head>
+	<body>
+		<ex-document id="request-routing">
+			<h1>Request routing</h1>
+			<ex-mermaid id="request-paths" label="Two request paths">
+				<script type="text/plain">
+					flowchart TB
+						subgraph intake["Intake"]
+							start["Receive the request"] --> validate["Validate the request fields"]
+						end
+						subgraph delivery["Delivery"]
+							queue["Queue the approved request"] --> receipt["Send the delivery receipt"]
+						end
+				</script>
+			</ex-mermaid>
+			<ex-mermaid label="Three delivery branches">
+				<script type="text/plain">
+					flowchart TB
+						request["Read the request outcome"]
+						request --> send["Send the accepted request to the worker"]
+						request --> hold["Hold the request for an owner decision"]
+						request --> reject["Return the rejected request to its caller"]
+				</script>
+			</ex-mermaid>
+			<ex-mermaid id="short-path" label="Single step">
+				<script type="text/plain">
+					flowchart TB
+						done["Done"]
+				</script>
+			</ex-mermaid>
+		</ex-document>
+	</body>
+</html>

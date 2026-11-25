@@ -20,6 +20,25 @@ ex-mermaid > svg {
 	height: auto;
 	margin-inline: auto;
 }
+ex-mermaid:not([data-inspector-content], [data-inspector-copy]):has(> .ex-diagram-scroll-hint)
+	> :is(svg, .ex-inspect-controls) {
+	grid-area: 2 / 1;
+}
+.ex-diagram-scroll-hint {
+	grid-area: 1 / 1;
+	justify-self: start;
+	inline-size: fit-content;
+	max-inline-size: 100%;
+	margin: 0 0 var(--space-2);
+	padding: var(--space-1) var(--space-2);
+	border-radius: var(--radius-sm);
+	background: var(--surface-content);
+	color: var(--ink-soft);
+	font-size: var(--text-sm);
+}
+:is([data-inspector-content], [data-inspector-copy]) .ex-diagram-scroll-hint {
+	display: none;
+}
 /* Schema diagrams give an overview of all tables inline. Fullscreen can zoom to the labels. */
 ex-mermaid > svg:where(:has(> .entity[data-id])) {
 	width: auto;
