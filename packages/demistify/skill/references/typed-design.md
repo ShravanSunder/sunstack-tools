@@ -1,14 +1,14 @@
 # Typed design records
 
-Use typed records when agents refer to a milestone's needs, rules, decisions and checks by ID. A record is the only home of its text. Pages hold explanation and diagrams, and place records by ID where the reader needs them.
+Use typed records when agents refer to a project's needs, rules, decisions and checks by ID. A record is the only home of its text. Pages hold explanation and diagrams, and place records by ID where the reader needs them.
 
 ## Commands
 
 ```sh
-demistify design init <milestone>
-demistify design types [milestone]
-demistify design check [milestone] [--site-root <directory>] [--write]
-demistify brief <deliverable> [milestone] [--site-root <directory>]
+demistify design init <project>
+demistify design types [project]
+demistify design check [project] [--site-root <directory>] [--write]
+demistify brief <deliverable> [project] [--site-root <directory>]
 demistify open <page.html> [--site-root <directory>]
 ```
 
@@ -16,16 +16,16 @@ Run the CLI from the selected Demistify binding: prefix `npm exec --` for a loca
 
 - `init` writes `design.ts`, `design-decisions.ts`, `design-assumptions.ts`, `design-delivery.ts` and the generated SDK, seeding Pages, Map and Walkthroughs from an existing `navigation.json`. You write the HTML pages.
 - `types` regenerates `design-sdk.generated.ts` and `design-schema.d.ts`. Git ignores both, so run it after a fresh checkout and after adding or renaming an ID, for the editor. `check`, `brief` and `open` build what they need without it.
-- `design check` and `project check` validate typed inputs and prepared pages in memory, then print deliverable states and design notes. These commands supply the questions, option titles and anchors that the typed HTML refers to. Use `check <page.html>` for ordinary standalone HTML.
-- After a checkout or record edit, run `demistify project check --write` (or `demistify design check --write` for a standalone milestone). Serve the authored pages with any static HTTP server and the matching runtime. Opened from disk in Chrome, pages show records from `records.generated.js`. Shared navigation and delivery tables still need HTTP. `open` runs the write step for you. One `.gitignore` covers generated files in the enclosing `projects/` folder when the project is directly under it, otherwise in the project root or standalone milestone folder. Existing ancestor rules that cover all generated files need no update. A browser may show old text until you rerun the write command. Read-only checks tell you when the generated views need refreshing.
+- `design check` and `initiative check` validate typed inputs and prepared pages in memory, then print deliverable states and design notes. These commands supply the questions, option titles and anchors that the typed HTML refers to. Use `check <page.html>` for ordinary standalone HTML.
+- After a checkout or record edit, run `demistify initiative check --write` (or `demistify design check --write` for a standalone project). Serve the authored pages with any static HTTP server and the matching runtime. Opened from disk in Chrome, pages show records from `records.generated.js`. Shared navigation and delivery tables still need HTTP. `open` runs the write step for you. One `.gitignore` covers generated files in the enclosing `projects/` folder when the project is directly under it, otherwise in the project root or standalone project folder. Existing ancestor rules that cover all generated files need no update. A browser may show old text until you rerun the write command. Read-only checks tell you when the generated views need refreshing.
 
-Pass `--site-root` with the enclosing docs directory when pages or evidence link outside the milestone folder.
+Pass `--site-root` with the enclosing docs directory when pages or evidence link outside the project folder.
 
-IF the milestone belongs to a project with several milestones or shared decisions, load `typed-design-projects.md` and return the project root, its registered milestones and the `project check` result.
+IF the project belongs to an initiative (several projects, their order numbers or shared decisions), load `typed-design-initiative.md` and return the initiative root, its projects with their numbers and the `initiative check` result.
 
 ## Write records
 
-Import the helpers from the milestone's generated SDK. Each helper supplies the record's `kind`. The CLI reads these files as literal data and never executes them.
+Import the helpers from the project's generated SDK. Each helper supplies the record's `kind`. The CLI reads these files as literal data and never executes them.
 
 ```ts
 // design.ts
@@ -74,7 +74,7 @@ export default defineDesign({
 
 Write a rule as one sentence and put its detail in `cases`. `title` is an optional short label for the Tree, Map and outline, which otherwise show the statement. On a need, rule, realization or check, `governedBy` names decisions and `reliesOn` names assumptions. Add a link where the record depends on that item. The check rejects links to the wrong record kind. Agent decisions named by a need or rule’s `governedBy` must have `weight: 'design'`. Assumptions named by a need or rule’s `reliesOn` must also have design weight.
 
-When a milestone covers more than one subject, put each subject’s needs, rules, realizations and checks in `records/<subject>.ts`. Export an array of helper calls that import from `../design-sdk.generated.ts`. In `design.ts`, import each array and spread it directly inside `records`. Keep these records in `design.ts` for a single-subject milestone. A realization or check that spans subjects goes in the file for the first rule it names. IDs and links still span the milestone.
+When a project covers more than one subject, put each subject’s needs, rules, realizations and checks in `records/<subject>.ts`. Export an array of helper calls that import from `../design-sdk.generated.ts`. In `design.ts`, import each array and spread it directly inside `records`. Keep these records in `design.ts` for a single-subject project. A realization or check that spans subjects goes in the file for the first rule it names. IDs and links still span the project.
 
 ### Decisions and assumptions
 
@@ -162,7 +162,7 @@ When the owner explicitly approves an agent's decision, keep the record ID and a
 
 ## Place records on pages
 
-Place needs, rules, realizations and planned checks with empty `data-design-record` elements beside their explanation. The placement supplies the anchor. After generating the views, the runtime adds `id="R1"` and the statement when the page loads, so any page can link to `#R1`. It finds the record data beside the page’s generated navigation source, or beside the project overview source if the page has no generated navigation. A declared external page with neither binding can use `<meta name="demistify-records" content="../milestone/records.generated.js">`.
+Place needs, rules, realizations and planned checks with empty `data-design-record` elements beside their explanation. The placement supplies the anchor. After generating the views, the runtime adds `id="R1"` and the statement when the page loads, so any page can link to `#R1`. It finds the record data beside the page’s generated navigation source, or beside the initiative overview source if the page has no generated navigation. A declared external page with neither binding can use `<meta name="demistify-records" content="../project/records.generated.js">`.
 
 ```html
 <head>
@@ -182,7 +182,7 @@ Place needs, rules, realizations and planned checks with empty `data-design-reco
 - Write no text, `id` or `title` on the placement. The check fails on copied text, a hand-written anchor, an unknown ID or a second placement of one record.
 - A record need not be placed. Briefs and deliverables still list it, without a link.
 - `<ex-tree data-design-need="U1"></ex-tree>` draws the need and the rules that serve it, linked to their placements.
-- Each page in the milestone keeps one `ex-nav` whose `src` resolves to its `navigation.generated.json`.
+- Each page in the project keeps one `ex-nav` whose `src` resolves to its `navigation.generated.json`.
 
 Give each choice, ruling and assumption one `ex-section-item record="ID"`. Declare each needed section once with `holds`. Keep every `ex-section` empty and write the items beside it. Declare all reachable destinations so an answer can move a record to its new section without moving its authored body.
 
@@ -272,11 +272,11 @@ Record acceptance in `design.ts` as `acceptances: [{ deliverableId: 'DEL-01', bu
 
 Known loss: the check does not flag a rule that changed after acceptance. Treat such an edit as new scope and verify it again.
 
-Design notes include each authored need that no rule in the checked design or project serves, even if the need is outside delivery scope. The check also notes scoped rules without a realization. These notes are informational and stay visible after acceptance.
+Design notes include each authored need that no rule in the checked design or initiative serves, even if the need is outside delivery scope. The check also notes scoped rules without a realization. These notes are informational and stay visible after acceptance.
 The check adds one informational note per need, rule, realization or planned check whose statement has more than one sentence or more than 40 whitespace-delimited words.
 
 Show progress with `<ex-deliverables src="./deliverables.generated.json" label="Delivery progress"></ex-deliverables>`: each deliverable's state, open checks and evidence, linked to the governing records.
 
 ## Brief a deliverable
 
-`demistify brief DEL-01 <milestone>` prints a Markdown brief with the title, prerequisites, scoped needs, rules, realizations and checks, tasks, open owner questions and assumptions, and coverage gaps and notes. It validates the typed inputs without preparing HTML or writing files. Give the helper this brief and run the typed check to validate the pages.
+`demistify brief DEL-01 <project>` prints a Markdown brief with the title, prerequisites, scoped needs, rules, realizations and checks, tasks, open owner questions and assumptions, and coverage gaps and notes. It validates the typed inputs without preparing HTML or writing files. Give the helper this brief and run the typed check to validate the pages.

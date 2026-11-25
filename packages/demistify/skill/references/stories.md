@@ -99,4 +99,4 @@ Run the typed design checker after editing the page or the record.
 
 ## When to stop
 
-Run the matching page or project check. Confirm that supplied IDs, links, order and native disclosure states survived. Each section has one declaration and, when the page has a Map, one top-level fragment link. Confirm that each story has its required slots and that each record item has the reachable section declarations.
+Run the matching page or initiative check. Confirm that supplied IDs, links, order and native disclosure states survived. Each section has one declaration and, when the page has a Map, one top-level fragment link. Confirm that each story has its required slots and that each record item has the reachable section declarations.

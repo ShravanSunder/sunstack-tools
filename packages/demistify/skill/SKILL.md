@@ -57,7 +57,7 @@ For each matching condition below, load the named reference and return its autho
 | A card, consequential callout or reported number | `references/cards-and-callouts.md` | Meaningful units, tones/icons and truthful recommendation/chosen states |
 | The reader must select answers, attach feedback or override review identity | `references/choices-and-comments.md` | Requested response/feedback arrangement, default or overridden identities and binding, optional supporting details and intended interactions |
 | A compact status or identity, exact progress count or named phase comparison | `references/small-parts.md` | Supported parts, the complete combined-row recipe when requested, truthful boundaries, stable phase slots and exact supplied values |
-| Typed design records, their placements, deliverables or a deliverable brief | `references/typed-design.md` | The record IDs and where each is placed, the authored TypeScript and HTML files, the `design check` or `project check` result, and any `brief` a helper receives |
+| Typed design records, their placements, deliverables or a deliverable brief | `references/typed-design.md` | The record IDs and where each is placed, the authored TypeScript and HTML files, the `design check` or `initiative check` result, and any `brief` a helper receives |
 | Pages, heading links, breadcrumbs or collection search | `references/navigation.md` | Native page links, stable targets and current collection index when needed |
 | Sidebar/fullscreen inspection, including a visual's default controls | `references/inspection.md` | Inspection choice and return/state behavior |
 | A large bottom workspace beside Comments, such as related documents | `references/inspection.md` | Drawer markup, its initial state and lifecycle, and who reopens it after a close |
@@ -95,7 +95,7 @@ Completion: facts occur once, navigation resolves to the intended content, and p
 
 Run the CLI shipped at the page's library binding (Node 26+). Copy the exact CLI URL printed in this binding's current published guide; do not construct the archive filename from the binding root.
 
-For **typed design sources**, keep the same CLI package prefix shown below and use `design check <milestone>` or `project check <project>` in place of `check /path/page.html`. The typed check validates prepared pages in memory and is the final lint command for those pages.
+For **typed design sources**, keep the same CLI package prefix shown below and use `design check <project>` or `initiative check <initiative>` in place of `check /path/page.html`. The typed check validates prepared pages in memory and is the final lint command for those pages.
 
 For **ordinary standalone HTML**, use these raw HTML check examples:
 
