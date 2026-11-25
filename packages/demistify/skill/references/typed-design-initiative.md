@@ -92,7 +92,7 @@ For an initiative-wide view, place this in the initiative's `index.html` and ser
 <ex-initiative-overview src="./initiative.generated.json"></ex-initiative-overview>
 ```
 
-It opens with the projects grouped by number, each with what it achieves and what the owner checks, linked to its page; then owner questions, the work lists, deliverables and records. Every state and id prefix carries a plain explanation. Use `ex-deliverables` for one project's detail.
+The overview opens with projects grouped by number. Select a project to open its summary beside the overview, or in a sheet on a phone. The summary shows what the project achieves, what the owner checks, its state, open owner decisions, and deliverables. Select **Open design page** to visit the project’s page. The project groups are followed by **Work now**, initiative-wide owner questions, and other records. States and ID prefixes carry plain explanations. Use `ex-deliverables` on a project page to show its delivery evidence.
 
 ## Trees on an older layout
 
