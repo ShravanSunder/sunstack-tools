@@ -72,7 +72,7 @@ async function main(): Promise<number> {
 	if (command === 'initiative') {
 		const [action, ...args] = rest;
 		const usage =
-			'Usage: demistify initiative check [directory] [--site-root <directory>] [--write]\n       demistify initiative migrate <directory> --plan <cut.json> [--dry-run] [--site-root <directory>]';
+			'Usage: demistify initiative check [directory] [--site-root <directory>] [--write]\n       demistify initiative status [directory] [--site-root <directory>] [--json]\n       demistify initiative migrate <directory> --plan <cut.json> [--dry-run] [--site-root <directory>]';
 		const migrateHelp = `Usage: demistify initiative migrate <directory> --plan <cut.json> [--dry-run] [--site-root <directory>]
 
 Re-cut an initiative: move whole deliverables, and the records they scope, between
@@ -103,6 +103,7 @@ The real run checks a staged copy first and writes nothing when that check fails
 				write: { type: 'boolean' },
 				plan: { type: 'string' },
 				'dry-run': { type: 'boolean' },
+				json: { type: 'boolean' },
 				help: { type: 'boolean', short: 'h' },
 			},
 		});
@@ -130,14 +131,28 @@ The real run checks a staged copy first and writes nothing when that check fails
 			write(usage);
 			return 0;
 		}
-		if (action !== 'check' || positionals.length > 1 || values.plan || values['dry-run']) {
+		if (values.plan !== undefined || values['dry-run']) {
 			write(usage);
 			return 1;
 		}
 		const [directory = '.'] = positionals;
-		const { checkInitiative } = await import('../src/node/design-authoring/check-initiative.ts');
-		write(await checkInitiative(directory, { siteRoot: values['site-root'], write: values.write }));
-		return 0;
+		if (action === 'check' && positionals.length <= 1 && !values.json) {
+			const { checkInitiative } = await import('../src/node/design-authoring/check-initiative.ts');
+			write(
+				await checkInitiative(directory, { siteRoot: values['site-root'], write: values.write }),
+			);
+			return 0;
+		}
+		if (action === 'status' && positionals.length <= 1 && !values.write) {
+			const { initiativeStatus } =
+				await import('../src/node/design-authoring/initiative-status.ts');
+			write(
+				await initiativeStatus(directory, { siteRoot: values['site-root'], json: values.json }),
+			);
+			return 0;
+		}
+		write(usage);
+		return 1;
 	}
 	if (command === 'brief') {
 		const usage = 'Usage: demistify brief <deliverable> [directory] [--site-root <directory>]';
@@ -273,7 +288,7 @@ The real run checks a staged copy first and writes nothing when that check fails
 	}
 	if (command !== 'check') {
 		write(
-			'Usage: demistify check [--fix] [--render] [--no-diagrams] <page.html …>\n       demistify check --hook\n       demistify open <page.html> [--site-root <directory>] [--no-browser]\n       demistify design --help\n       demistify brief <deliverable> [directory] [--site-root <directory>]\n       demistify initiative check [directory] [--site-root <directory>] [--write]\n       demistify initiative migrate <directory> --plan <cut.json> [--dry-run]',
+			'Usage: demistify check [--fix] [--render] [--no-diagrams] <page.html …>\n       demistify check --hook\n       demistify open <page.html> [--site-root <directory>] [--no-browser]\n       demistify design --help\n       demistify brief <deliverable> [directory] [--site-root <directory>]\n       demistify initiative check [directory] [--site-root <directory>] [--write]\n       demistify initiative status [directory] [--site-root <directory>] [--json]\n       demistify initiative migrate <directory> --plan <cut.json> [--dry-run]',
 		);
 		return !command || ['--help', '-h', 'help'].includes(command) ? 0 : 1;
 	}

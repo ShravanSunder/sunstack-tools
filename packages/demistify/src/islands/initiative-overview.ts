@@ -2,6 +2,7 @@ import type { DeliverableView } from '../core/deliverables-view.ts';
 import {
 	assumptionStateGlossary,
 	decisionStatusGlossary,
+	levelGlossary,
 	projectStateGlossary,
 } from '../core/glossary.ts';
 import {
@@ -16,9 +17,18 @@ import { registerReviewSource, type ReviewSourceResult } from '../core/review-do
 import { deliveryDetails, deliveryState, linkTo } from './deliverables.ts';
 import { explainRecord, glossaryTerm } from './glossary.ts';
 
-function appendHeading(parent: HTMLElement, level: 'h2' | 'h3', title: string): HTMLElement {
+function appendHeading(
+	parent: HTMLElement,
+	level: 'h2' | 'h3' | 'h4',
+	title: string,
+	explanation?: string,
+): HTMLElement {
 	const heading = document.createElement(level);
 	heading.textContent = title;
+	if (explanation) {
+		heading.setAttribute('aria-label', title);
+		heading.append(glossaryTerm(title, explanation, true));
+	}
 	parent.append(heading);
 	return heading;
 }
@@ -89,25 +99,30 @@ const assumptionStatuses = new Map<string, readonly [string, string]>([
 	['refuted', ['Refuted', assumptionStateGlossary.refuted]],
 ]);
 
+function appendDeliverableLink(
+	parent: HTMLElement,
+	source: URL,
+	id: string,
+	delivery: DeliverableView | undefined,
+): void {
+	const label = delivery ? `${id} · ${delivery.title}` : id;
+	parent.append(
+		delivery?.kind === 'core'
+			? linkTo(source, delivery.links.plan.page, label, delivery.links.plan.fragment)
+			: label,
+		explainRecord(id, 'deliverable'),
+	);
+}
+
 function renderDelivery(
 	parent: HTMLLIElement,
 	delivery: DeliverableView,
 	view: InitiativeView,
 	source: URL,
 ): void {
-	const state = deliveryState(delivery.state);
-	const label = `${delivery.id} · ${delivery.title}`;
-	const explanation = explainRecord(delivery.id, 'deliverable');
-	if (delivery.kind === 'later') {
-		parent.append(label, explanation, ' · ', state);
-		return;
-	}
-	parent.append(
-		linkTo(source, delivery.links.plan.page, label, delivery.links.plan.fragment),
-		explanation,
-		' · ',
-		state,
-	);
+	appendDeliverableLink(parent, source, delivery.id, delivery);
+	parent.append(' · ', deliveryState(delivery.state));
+	if (delivery.kind === 'later') return;
 	if (delivery.builder) parent.append(` · Builder ${delivery.builder}`);
 	for (const reason of delivery.state === 'accepted' ? [] : delivery.reasons) {
 		const paragraph = document.createElement('p');
@@ -119,7 +134,7 @@ function renderDelivery(
 		for (const id of delivery.dependsOn) {
 			const required = view.deliverables[id];
 			const item = appendItem(list);
-			item.append('Prerequisite ');
+			item.append(glossaryTerm('Prerequisite', levelGlossary.dependsOn), ' ');
 			item.append(
 				required?.kind === 'core'
 					? linkTo(source, required.links.plan.page, id, required.links.plan.fragment)
@@ -149,8 +164,50 @@ function projectLink(
 	return project.firstPage ? linkTo(source, project.firstPage, title) : title;
 }
 
+function renderProject(
+	name: string,
+	project: InitiativeView['projects'][string],
+	deliverables: readonly DeliverableView[],
+	view: InitiativeView,
+	source: URL,
+): HTMLElement {
+	const section = document.createElement('section');
+	section.className = 'ex-initiative-project';
+	appendHeading(section, 'h4', '').append(projectLink(source, name, project));
+	const status = document.createElement('p');
+	status.className = 'ex-initiative-project-state';
+	if (project.lead) status.append(`Lead ${project.lead} · `);
+	status.append(
+		glossaryTerm(projectStateLabels[project.state], projectStateGlossary[project.state]),
+	);
+	section.append(status);
+	if (project.achieves) {
+		const achieves = document.createElement('p');
+		achieves.textContent = project.achieves;
+		section.append(achieves);
+	}
+	if (project.acceptance) {
+		const acceptance = document.createElement('p');
+		const label = document.createElement('strong');
+		label.textContent = 'What the owner checks';
+		acceptance.append(label, ' ', project.acceptance);
+		section.append(acceptance);
+	}
+	const reason = document.createElement('p');
+	reason.textContent = project.reason;
+	section.append(reason);
+	if (deliverables.length) {
+		const list = appendList(section);
+		for (const delivery of deliverables) renderDelivery(appendItem(list), delivery, view, source);
+	}
+	return section;
+}
+
 function renderProjects(content: HTMLElement, view: InitiativeView, source: URL): void {
-	appendHeading(content, 'h2', 'Projects');
+	appendHeading(content, 'h2', 'Projects', levelGlossary.project);
+	const introduction = document.createElement('p');
+	introduction.textContent = levelGlossary.initiative;
+	content.append(introduction);
 	if (!view.order.length) {
 		content.append('No projects registered.');
 		return;
@@ -162,29 +219,54 @@ function renderProjects(content: HTMLElement, view: InitiativeView, source: URL)
 		projectDeliveries.push(item);
 		deliveries.set(name, projectDeliveries);
 	}
+	const projectGroups = new Map<number, HTMLElement[]>();
 	for (const name of view.order) {
 		const project = view.projects[name];
 		if (!project) throw new Error(`Generated initiative order names unknown project ${name}.`);
-		const section = document.createElement('section');
-		section.className = 'ex-initiative-project';
-		appendHeading(section, 'h3', '').append(projectLink(source, name, project));
-		const status = document.createElement('p');
-		status.className = 'ex-initiative-project-state';
-		if (project.lead) status.append(`Lead ${project.lead} · `);
-		status.append(
-			glossaryTerm(projectStateLabels[project.state], projectStateGlossary[project.state]),
-		);
-		section.append(status);
-		const reason = document.createElement('p');
-		reason.textContent = project.reason;
-		section.append(reason);
-		const planned = deliveries.get(name);
-		if (planned?.length) {
-			const list = appendList(section);
-			for (const delivery of planned) renderDelivery(appendItem(list), delivery, view, source);
-		}
-		content.append(section);
+		const projects = projectGroups.get(project.number) ?? [];
+		projects.push(renderProject(name, project, deliveries.get(name) ?? [], view, source));
+		projectGroups.set(project.number, projects);
 	}
+	for (const [number, projects] of projectGroups) {
+		const group = document.createElement('section');
+		const heading = projects.length > 1 ? `${number} · side by side` : String(number);
+		appendHeading(group, 'h3', heading, levelGlossary.number);
+		const layout = document.createElement('div');
+		layout.className = 'ex-initiative-project-group';
+		layout.append(...projects);
+		group.append(layout);
+		content.append(group);
+	}
+}
+
+function renderWorkNow(content: HTMLElement, view: InitiativeView, source: URL): void {
+	const { readyNow, blocksMost, builtNotAccepted } = view.work;
+	const groups = [
+		{ title: 'Ready now', entries: readyNow.map((id) => ({ id, detail: '' })) },
+		{
+			title: 'Blocks the most',
+			entries: blocksMost.map(({ id, waiting }) => ({
+				id,
+				detail: ` · ${waiting} ${waiting === 1 ? 'deliverable' : 'deliverables'} waiting`,
+			})),
+		},
+		{ title: 'Built, not accepted', entries: builtNotAccepted.map((id) => ({ id, detail: '' })) },
+	].filter(({ entries }) => entries.length > 0);
+	if (!groups.length) return;
+	const section = document.createElement('section');
+	appendHeading(section, 'h2', 'Work now');
+	for (const { title, entries } of groups) {
+		const group = document.createElement('section');
+		appendHeading(group, 'h3', title);
+		const list = appendList(group);
+		for (const { id, detail } of entries) {
+			const item = appendItem(list);
+			appendDeliverableLink(item, source, id, view.deliverables[id]);
+			if (detail) item.append(detail);
+		}
+		section.append(group);
+	}
+	content.append(section);
 }
 
 /** Initiative data links to authored projects and shares their delivery evidence. */
@@ -223,6 +305,7 @@ export class InitiativeOverviewIsland extends HTMLElement {
 	private renderOverview(view: InitiativeView, source: URL): void {
 		const content = document.createElement('div');
 		renderProjects(content, view, source);
+		renderWorkNow(content, view, source);
 		const decisions = projectDecisions(view.records);
 		const questions = decisions.filter(({ status }) => status === 'Open');
 		if (questions.length) {

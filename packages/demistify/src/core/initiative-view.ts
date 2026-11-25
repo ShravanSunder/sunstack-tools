@@ -47,7 +47,7 @@ export const initiativeViewSchema = z.strictObject({
 			firstPage: localDeliveryHref.optional(),
 			title: z.string().min(1).optional(),
 			/** The initiative's order: lower first; the same number means side by side. */
-			number: z.number().int().positive(),
+			number: z.number().int().nonnegative(),
 			achieves: z.string().min(1).optional(),
 			acceptance: z.string().min(1).optional(),
 			state: z.enum(projectStates),
