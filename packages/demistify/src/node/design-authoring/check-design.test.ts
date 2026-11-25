@@ -317,17 +317,17 @@ export default [{ id: 'N1', kind: 'need', statement: 'Readers can find the scope
 
 it('checks explicitly imported record arrays and rejects invalid split inputs without replacing snapshots', async (): Promise<void> => {
 	const directory = await mkdtemp(join(tmpdir(), 'demistify-design-records-'));
-	const milestone = join(directory, 'milestone');
-	const check = [cli, 'design', 'check', milestone, '--site-root', directory, '--write'];
+	const notes = join(directory, 'notes');
+	const check = [cli, 'design', 'check', notes, '--site-root', directory, '--write'];
 	try {
-		await run(process.execPath, [cli, 'design', 'init', milestone]);
-		await mkdir(join(milestone, 'records'));
+		await run(process.execPath, [cli, 'design', 'init', notes]);
+		await mkdir(join(notes, 'records'));
 		await writeFile(
-			join(milestone, 'index.html'),
+			join(notes, 'index.html'),
 			page.replace(/<p><a href[\s\S]*?<\/p>/, '<h2 data-design-record="RuleOverview"></h2>'),
 		);
-		const designPath = join(milestone, 'design.ts');
-		const recordPath = join(milestone, 'records', 'overview.ts');
+		const designPath = join(notes, 'design.ts');
+		const recordPath = join(notes, 'records', 'overview.ts');
 		const initial = await readFile(designPath, 'utf8');
 		const authored = `import overview from './records/overview.ts';\n${initial.replace(
 			'"records": []',
@@ -342,7 +342,7 @@ export default [{
 }] as const satisfies readonly DesignRecord[];`;
 		await Promise.all([writeFile(designPath, authored), writeFile(recordPath, records)]);
 		await run(process.execPath, check);
-		const snapshot = join(milestone, 'design.generated.json');
+		const snapshot = join(notes, 'design.generated.json');
 		const checked = await readFile(snapshot, 'utf8');
 		expect(JSON.parse(checked)).toMatchObject({
 			recordDestinations: {
@@ -366,17 +366,17 @@ export default [{
 
 		await writeFile(
 			join(directory, 'initiative.ts'),
-			`import milestone from './milestone/design.ts';
-export default { projects: { milestone: { design: milestone, number: 1 } } };`,
+			`import notes from './notes/design.ts';
+export default { projects: { notes: { design: notes, number: 1 } } };`,
 		);
 		await run(process.execPath, [cli, 'initiative', 'check', directory, '--write']);
 		const project = await readFile(join(directory, 'initiative.generated.json'), 'utf8');
 		expect(JSON.parse(project)).toMatchObject({
 			records: [
-				{ id: 'milestone/NeedOverview' },
+				{ id: 'notes/NeedOverview' },
 				{
-					id: 'milestone/RuleOverview',
-					relationships: [{ relation: 'serves', targetId: 'milestone/NeedOverview' }],
+					id: 'notes/RuleOverview',
+					relationships: [{ relation: 'serves', targetId: 'notes/NeedOverview' }],
 				},
 			],
 		});
@@ -412,7 +412,7 @@ export default (() => { writeFileSync(${JSON.stringify(sentinel)}, 'ran'); retur
 		await writeFile(outside, 'export default [];');
 		await writeFile(designPath, authored.replace('./records/overview.ts', '../outside.ts'));
 		await expect(run(process.execPath, check)).rejects.toThrow(/escapes the design set/);
-		await symlink(outside, join(milestone, 'records', 'external.ts'));
+		await symlink(outside, join(notes, 'records', 'external.ts'));
 		await writeFile(designPath, authored.replace('./records/overview.ts', './records/external.ts'));
 		await expect(run(process.execPath, check)).rejects.toThrow(
 			/must remain inside this design set/,

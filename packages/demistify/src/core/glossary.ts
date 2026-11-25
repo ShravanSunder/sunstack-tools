@@ -17,8 +17,6 @@ export const deliverableStateGlossary = {
 	later: 'Named for later; not designed or checked now.',
 } as const;
 
-export type GlossaryDeliverableState = keyof typeof deliverableStateGlossary;
-
 /** What each level of a typed plan is, and what a project's number means. */
 export const levelGlossary = {
 	initiative:

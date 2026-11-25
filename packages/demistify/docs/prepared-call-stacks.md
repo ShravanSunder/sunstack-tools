@@ -1,6 +1,6 @@
 # Prepared call stacks
 
-This maintenance reference documents existing HTML collections prepared with `demistify prepare`. New source-derived call explanations use [Trace](../skill/references/call-paths.md). TypeScript milestones use [Typed design records](../skill/references/typed-design.md).
+This maintenance reference documents existing HTML collections prepared with `demistify prepare`. New source-derived call explanations use [Trace](../skill/references/call-paths.md). Typed design projects use [Typed design records](../skill/references/typed-design.md).
 
 Use `ex-call-stack` to read a supplied source-derived call path beside its explanation. Keep the need text and other design facts in visible owner HTML; inline metadata connects the supplied need, frames and stack. Ordinary explanation, page layout and navigation remain HTML.
 

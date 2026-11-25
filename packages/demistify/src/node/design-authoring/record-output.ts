@@ -39,7 +39,7 @@ export function recordOutputFile(
 	const [marker] = markup.recordSourceMarkers;
 	if (!marker?.trim())
 		throw new Error(
-			`${file}: record bindings need a generated navigation or overview source, or <meta name="demistify-records" content="../milestone/${designRecordsFilename}">.`,
+			`${file}: record bindings need a generated navigation or overview source, or <meta name="demistify-records" content="../<project>/${designRecordsFilename}">.`,
 		);
 	const source = /[?#]/u.test(marker) ? undefined : recordSourceHref(marker, designRecordsFilename);
 	const target = source && resolveDesignLink(source, file, siteRoot);

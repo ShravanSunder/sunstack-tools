@@ -19,7 +19,7 @@ export interface SectionLayout {
 	}[];
 }
 
-export const emptySectionMessage =
+const emptySectionMessage =
 	'An ex-section must be empty. Put its content in an ex-section-item outside the section.';
 
 function attribute(element: Element, name: string): string | undefined {

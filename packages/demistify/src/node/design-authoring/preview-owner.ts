@@ -148,21 +148,21 @@ export async function findDesignPreviewOwner(
 		projects.delete(canonical);
 		standalone.delete(canonical);
 		const root = siteRoot ?? canonical;
-		const project = await projectDesignFiles(join(canonical, 'initiative.ts'), required);
-		if (project) {
+		const designFiles = await projectDesignFiles(join(canonical, 'initiative.ts'), required);
+		if (designFiles) {
 			const index = join(canonical, 'index.html');
 			const pages = new Set<string>();
 			if ((await discoveryRead(index, false, () => realpath(index))) === physicalPage)
 				pages.add(index);
-			for (const file of project) {
-				const milestoneDirectory = dirname(file);
+			for (const file of designFiles) {
+				const projectDirectory = dirname(file);
 				// oxlint-disable-next-line no-await-in-loop -- project candidates share the same sequential discovery.
-				const milestone = await discoveryRead(milestoneDirectory, required, () =>
-					realpath(milestoneDirectory),
+				const projectFolder = await discoveryRead(projectDirectory, required, () =>
+					realpath(projectDirectory),
 				);
-				if (!milestone || !containsPath(canonical, milestone)) continue;
-				const declaration = join(milestone, 'design.ts');
-				registered.add(milestone);
+				if (!projectFolder || !containsPath(canonical, projectFolder)) continue;
+				const declaration = join(projectFolder, 'design.ts');
+				registered.add(projectFolder);
 				// oxlint-disable-next-line no-await-in-loop -- read each registered declaration in turn.
 				for (const page of await matchingPages(declaration, root, required)) pages.add(page);
 			}
