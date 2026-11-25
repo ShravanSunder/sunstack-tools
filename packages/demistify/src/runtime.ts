@@ -12,11 +12,11 @@ import { EvidenceTraceIsland } from './islands/evidence-trace.ts';
 import { ExplorerIsland } from './islands/explorer.ts';
 import { FileTreeIsland } from './islands/file-tree.ts';
 import { GalleryIsland } from './islands/gallery.ts';
+import { InitiativeOverviewIsland } from './islands/initiative-overview.ts';
 import { MapIsland } from './islands/map.ts';
 import { MarkdownIsland } from './islands/markdown.ts';
 import { MermaidIsland } from './islands/mermaid.ts';
 import { PreformattedIsland } from './islands/preformatted.ts';
-import { ProjectOverviewIsland } from './islands/project-overview.ts';
 import { BadgeIsland, BreakdownIsland, ProgressIsland } from './islands/small-parts.ts';
 import { StatIsland } from './islands/stat.ts';
 import { FoldToggleIsland, SectionIsland } from './islands/story-section.ts';
@@ -63,7 +63,7 @@ const islands = [
 	['ex-pre', PreformattedIsland],
 	['ex-explorer', ExplorerIsland],
 	['ex-deliverables', DeliverablesIsland],
-	['ex-project-overview', ProjectOverviewIsland],
+	['ex-initiative-overview', InitiativeOverviewIsland],
 	['ex-tree', TreeIsland],
 	['ex-map', MapIsland],
 	['ex-card', CardIsland],

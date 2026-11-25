@@ -1,0 +1,142 @@
+{
+	"version": 2,
+	"records": [
+		{
+			"id": "jobs/D1",
+			"kind": "choice",
+			"title": "Stop queued work only",
+			"destination": {
+				"page": "decision-views.html",
+				"fragment": "D1"
+			},
+			"authority": {
+				"state": "lead-decided",
+				"lead": "jobs-lead",
+				"decidedOn": "2026-11-19"
+			}
+		},
+		{
+			"id": "jobs/D2",
+			"kind": "choice",
+			"title": "Send a stop request to the worker",
+			"destination": {
+				"page": "decision-views.html",
+				"fragment": "D2"
+			},
+			"authority": {
+				"state": "owner-decided",
+				"decidedOn": "2026-11-20"
+			},
+			"supersedes": "jobs/D1"
+		},
+		{
+			"id": "jobs/D3",
+			"kind": "choice",
+			"title": "Cancellation display",
+			"destination": {
+				"page": "decision-views.html",
+				"fragment": "D3"
+			},
+			"authority": {
+				"state": "owner-open",
+				"question": "What should the caller see while the worker stops?"
+			}
+		},
+		{
+			"id": "jobs/A1",
+			"kind": "assumption",
+			"title": "Workers can acknowledge a stop request",
+			"destination": {
+				"page": "decision-views.html",
+				"fragment": "A1"
+			},
+			"status": "open"
+		},
+		{
+			"id": "jobs/R1",
+			"kind": "rule",
+			"title": "Send the stop request once",
+			"destination": {
+				"page": "decision-views.html",
+				"fragment": "R1"
+			},
+			"relationships": [
+				{
+					"relation": "governed-by",
+					"targetId": "jobs/D2"
+				}
+			]
+		}
+	],
+	"deliverables": {
+		"jobs/DEL-01": {
+			"kind": "core",
+			"id": "jobs/DEL-01",
+			"title": "Prove cancellation",
+			"dependsOn": [],
+			"state": "awaiting-verification",
+			"reasons": [
+				"The candidate needs a check."
+			],
+			"progress": {
+				"state": "awaiting-verification",
+				"reason": "The candidate needs a check."
+			},
+			"implementation": {
+				"candidate": "build-2",
+				"tasks": [
+					{
+						"id": "capture-proof",
+						"state": "completed"
+					}
+				],
+				"evidence": []
+			},
+			"verification": {
+				"build": "build-2",
+				"checks": [
+					{
+						"id": "jobs/V1",
+						"state": "missing",
+						"reason": "No receipt for build-2."
+					}
+				]
+			},
+			"links": {
+				"plan": {
+					"page": "decision-views.html",
+					"fragment": "R1"
+				},
+				"rules": [],
+				"designItems": [],
+				"governingItems": [],
+				"verificationChecks": []
+			}
+		}
+	},
+	"projects": {
+		"jobs": {
+			"path": "design.ts",
+			"firstPage": "decision-views.html",
+			"title": "Job cancellation",
+			"lead": "jobs-lead",
+			"dependsOn": [
+				"queue"
+			],
+			"state": "dependency-blocked",
+			"reason": "Waiting for the queue prerequisite."
+		},
+		"queue": {
+			"path": "queue/design.ts",
+			"firstPage": "decision-views.html",
+			"title": "Queue foundations",
+			"dependsOn": [],
+			"state": "in-progress",
+			"reason": "The queue work is underway."
+		}
+	},
+	"order": [
+		"queue",
+		"jobs"
+	]
+}

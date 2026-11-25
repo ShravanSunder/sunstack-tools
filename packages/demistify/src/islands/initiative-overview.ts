@@ -1,14 +1,20 @@
 import type { DeliverableView } from '../core/deliverables-view.ts';
-import { reportIssue } from '../core/issues.ts';
 import {
-	parseProjectView,
+	assumptionStateGlossary,
+	decisionStatusGlossary,
+	projectStateGlossary,
+} from '../core/glossary.ts';
+import {
+	parseInitiativeView,
 	projectDecisions,
 	type ProjectDecision,
 	type ProjectRecord,
-	type ProjectView,
-} from '../core/project-view.ts';
+	type InitiativeView,
+} from '../core/initiative-view.ts';
+import { reportIssue } from '../core/issues.ts';
 import { registerReviewSource, type ReviewSourceResult } from '../core/review-document.ts';
-import { deliveryDetails, deliveryStateLabels, linkTo } from './deliverables.ts';
+import { deliveryDetails, deliveryState, linkTo } from './deliverables.ts';
+import { explainRecord, glossaryTerm } from './glossary.ts';
 
 function appendHeading(parent: HTMLElement, level: 'h2' | 'h3', title: string): HTMLElement {
 	const heading = document.createElement(level);
@@ -29,14 +35,15 @@ function appendItem(list: HTMLUListElement): HTMLLIElement {
 	return item;
 }
 
-function recordLink(
-	source: URL,
-	record: ProjectRecord,
-	title = record.title,
-): HTMLAnchorElement | string {
+function recordLink(source: URL, record: ProjectRecord, title = record.title): HTMLElement {
 	const label = `${record.id} · ${title}`;
 	const destination = record.destination;
-	return destination ? linkTo(source, destination.page, label, destination.fragment) : label;
+	const value = document.createElement('span');
+	value.append(
+		destination ? linkTo(source, destination.page, label, destination.fragment) : label,
+		explainRecord(record.id, record.kind),
+	);
+	return value;
 }
 
 function renderDecision(list: HTMLUListElement, source: URL, decision: ProjectDecision): void {
@@ -48,7 +55,8 @@ function renderDecision(list: HTMLUListElement, source: URL, decision: ProjectDe
 			record,
 			status === 'Open' ? (record.question ?? record.authority?.question) : undefined,
 		),
-		` · Authority: ${authority} · Status: ${status}`,
+		` · Authority: ${authority} · Status: `,
+		glossaryTerm(status, decisionStatusGlossary[status]),
 	);
 	if (record.authority?.decidedOn) item.append(` · ${record.authority.decidedOn}`);
 	const answer =
@@ -75,26 +83,28 @@ function renderDecision(list: HTMLUListElement, source: URL, decision: ProjectDe
 	}
 }
 
-const assumptionStatuses: ReadonlyMap<string, string> = new Map([
-	['open', 'Unverified'],
-	['confirmed', 'Confirmed'],
-	['refuted', 'Refuted'],
+const assumptionStatuses = new Map<string, readonly [string, string]>([
+	['open', ['Unverified', assumptionStateGlossary.open]],
+	['confirmed', ['Confirmed', assumptionStateGlossary.confirmed]],
+	['refuted', ['Refuted', assumptionStateGlossary.refuted]],
 ]);
 
 function renderDelivery(
 	parent: HTMLLIElement,
 	delivery: DeliverableView,
-	view: ProjectView,
+	view: InitiativeView,
 	source: URL,
 ): void {
-	const state = document.createElement('strong');
-	state.textContent = deliveryStateLabels[delivery.state];
+	const state = deliveryState(delivery.state);
+	const label = `${delivery.id} · ${delivery.title}`;
+	const explanation = explainRecord(delivery.id, 'deliverable');
 	if (delivery.kind === 'later') {
-		parent.append(`${delivery.id} · ${delivery.title} · `, state);
+		parent.append(label, explanation, ' · ', state);
 		return;
 	}
 	parent.append(
-		linkTo(source, delivery.links.plan.page, delivery.title, delivery.links.plan.fragment),
+		linkTo(source, delivery.links.plan.page, label, delivery.links.plan.fragment),
+		explanation,
 		' · ',
 		state,
 	);
@@ -114,67 +124,121 @@ function renderDelivery(
 				required?.kind === 'core'
 					? linkTo(source, required.links.plan.page, id, required.links.plan.fragment)
 					: id,
+				explainRecord(id, 'deliverable'),
 			);
 		}
 	}
 	parent.append(deliveryDetails(delivery, source, false));
 }
 
-/** Project data links to authored pages and shares the delivery evidence view. */
-export class ProjectOverviewIsland extends HTMLElement {
+const projectStateLabels = {
+	accepted: 'Accepted',
+	'dependency-blocked': 'Blocked on prerequisite',
+	'design-blocked': 'Blocked by design',
+	'in-progress': 'In progress',
+	planned: 'Planned',
+	later: 'Later',
+} satisfies Record<InitiativeView['projects'][string]['state'], string>;
+
+function projectLink(
+	source: URL,
+	name: string,
+	project: InitiativeView['projects'][string],
+): HTMLAnchorElement | string {
+	const title = project.title ?? name;
+	return project.firstPage ? linkTo(source, project.firstPage, title) : title;
+}
+
+function renderProjects(content: HTMLElement, view: InitiativeView, source: URL): void {
+	appendHeading(content, 'h2', 'Projects');
+	if (!view.order.length) {
+		content.append('No projects registered.');
+		return;
+	}
+	const deliveries = new Map<string, DeliverableView[]>();
+	for (const item of Object.values(view.deliverables)) {
+		const name = item.id.split('/', 1)[0] ?? '';
+		const projectDeliveries = deliveries.get(name) ?? [];
+		projectDeliveries.push(item);
+		deliveries.set(name, projectDeliveries);
+	}
+	for (const name of view.order) {
+		const project = view.projects[name];
+		if (!project) throw new Error(`Generated initiative order names unknown project ${name}.`);
+		const section = document.createElement('section');
+		section.className = 'ex-initiative-project';
+		appendHeading(section, 'h3', '').append(projectLink(source, name, project));
+		const status = document.createElement('p');
+		status.className = 'ex-initiative-project-state';
+		if (project.lead) status.append(`Lead ${project.lead} · `);
+		status.append(
+			glossaryTerm(projectStateLabels[project.state], projectStateGlossary[project.state]),
+		);
+		section.append(status);
+		const reason = document.createElement('p');
+		reason.textContent = project.reason;
+		section.append(reason);
+		if (project.dependsOn.length) {
+			const dependencies = document.createElement('p');
+			dependencies.append('Depends on ');
+			for (const [index, id] of project.dependsOn.entries()) {
+				const prerequisite = view.projects[id];
+				if (index) dependencies.append(', ');
+				dependencies.append(prerequisite ? projectLink(source, id, prerequisite) : id);
+			}
+			section.append(dependencies);
+		}
+		const planned = deliveries.get(name);
+		if (planned?.length) {
+			const list = appendList(section);
+			for (const delivery of planned) renderDelivery(appendItem(list), delivery, view, source);
+		}
+		content.append(section);
+	}
+}
+
+/** Initiative data links to authored projects and shares their delivery evidence. */
+export class InitiativeOverviewIsland extends HTMLElement {
 	private rendered: Promise<ReviewSourceResult> | undefined;
 
 	connectedCallback(): void {
 		if (this.closest('[data-inspector-copy], [data-inspector-content]')) return;
-		this.rendered ??= this.renderProject();
+		this.rendered ??= this.renderInitiative();
 		registerReviewSource(this, this.rendered);
 	}
 
-	private async renderProject(): Promise<ReviewSourceResult> {
+	private async renderInitiative(): Promise<ReviewSourceResult> {
 		this.setAttribute('aria-busy', 'true');
 		try {
 			const reference = this.getAttribute('src')?.trim();
-			if (!reference) throw new Error('Project overview src must name generated project data.');
+			if (!reference)
+				throw new Error('Initiative overview src must name generated initiative data.');
 			const source = new URL(reference, this.baseURI);
 			const response = await fetch(source);
 			if (!response.ok) throw new Error(`HTTP ${response.status} loading ${reference}.`);
 			const text = await response.text();
-			this.renderOverview(parseProjectView(text), source);
+			this.renderOverview(parseInitiativeView(text), source);
 			this.dispatchEvent(new CustomEvent('island-ready', { bubbles: true }));
 			return { kind: 'loaded', source: text };
 		} catch (error) {
-			this.textContent = 'Project progress unavailable.';
+			this.textContent = 'Initiative progress unavailable.';
 			this.setAttribute('role', 'status');
-			reportIssue(this, error instanceof Error ? error.message : 'Invalid project data.');
+			reportIssue(this, error instanceof Error ? error.message : 'Invalid initiative data.');
 			return { kind: 'failed' };
 		} finally {
 			this.removeAttribute('aria-busy');
 		}
 	}
 
-	private renderOverview(view: ProjectView, source: URL): void {
+	private renderOverview(view: InitiativeView, source: URL): void {
 		const content = document.createElement('div');
+		renderProjects(content, view, source);
 		const decisions = projectDecisions(view.records);
 		const questions = decisions.filter(({ status }) => status === 'Open');
 		if (questions.length) {
 			appendHeading(content, 'h2', 'Waiting on owner');
 			const list = appendList(content);
 			for (const decision of questions) renderDecision(list, source, decision);
-		}
-
-		appendHeading(content, 'h2', 'Milestones');
-		const deliveries = Object.values(view.deliverables);
-		const designs = Object.entries(view.designs);
-		if (!designs.length) content.append('No milestones registered.');
-		for (const [name, milestone] of designs) {
-			const heading = appendHeading(content, 'h3', '');
-			const title = milestone.title ?? name;
-			heading.append(milestone.firstPage ? linkTo(source, milestone.firstPage, title) : title);
-			if (milestone.lead) heading.append(` · Lead ${milestone.lead}`);
-			const planned = deliveries.filter(({ id }): boolean => id.startsWith(`${name}/`));
-			if (!planned.length) continue;
-			const list = appendList(content);
-			for (const delivery of planned) renderDelivery(appendItem(list), delivery, view, source);
 		}
 
 		const decided = decisions.filter(({ status }) => status !== 'Open');
@@ -192,12 +256,12 @@ export class ProjectOverviewIsland extends HTMLElement {
 				const item = appendItem(list);
 				item.append(recordLink(source, assumption));
 				const status = assumptionStatuses.get(assumption.status ?? '');
-				if (status) item.append(` · ${status}`);
+				if (status) item.append(' · ', glossaryTerm(...status));
 			}
 		}
 
 		const otherRecords = view.records.filter(
-			({ kind }) => kind !== 'choice' && kind !== 'assumption',
+			({ kind }) => kind !== 'choice' && kind !== 'ruling' && kind !== 'assumption',
 		);
 		if (otherRecords.length) {
 			appendHeading(content, 'h2', 'Design records');

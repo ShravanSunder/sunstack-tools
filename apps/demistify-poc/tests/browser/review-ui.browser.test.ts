@@ -32,46 +32,114 @@ test.each([1400, 390])(
 		const title = 'Expand queue coverage';
 		const deliverables = { [id]: { kind: 'later', id, title, state: 'later' } };
 		const progress = fixture.createElement('ex-deliverables');
-		const project = fixture.createElement('ex-project-overview');
+		const initiative = fixture.createElement('ex-initiative-overview');
 		progress.setAttribute(
 			'src',
 			`data:application/json,${encodeURIComponent(JSON.stringify({ version: 1, deliverables }))}`,
 		);
-		project.setAttribute(
+		initiative.setAttribute(
 			'src',
 			`data:application/json,${encodeURIComponent(
 				JSON.stringify({
-					version: 1,
-					designs: { jobs: { path: 'design.ts', title: 'Jobs' } },
+					version: 2,
+					projects: {
+						jobs: {
+							path: 'design.ts',
+							title: 'Jobs',
+							dependsOn: [],
+							state: 'later',
+							reason: 'Named for later.',
+						},
+					},
+					order: ['jobs'],
 					records: [],
 					deliverables,
 				}),
 			)}`,
 		);
-		content.append(progress, project);
+		content.append(progress, initiative);
 
 		const label = `${id} · ${title}`;
-		const row = fixtureLocator(frame, progress).getByRole('row', { name: `${label} Later` });
-		await expect.element(row.getByRole('rowheader', { name: label, exact: true })).toBeVisible();
-		await expect.element(row.getByRole('cell', { name: 'Later', exact: true })).toBeVisible();
+		const table = fixtureLocator(frame, progress);
+		await expect.element(table.getByText(label, { exact: true })).toBeVisible();
+		const state = table.getByRole('button', { name: 'Later', exact: true });
+		await expect.element(state).toBeVisible();
+		await state.click();
+		await expect
+			.element(frame.getByRole('tooltip'))
+			.toHaveTextContent('Named for later; not designed or checked now.');
+		await userEvent.keyboard('{Escape}');
 		expect(
 			[...requiredElement(progress, 'tbody tr').children].map((cell) => cell.textContent),
 		).toEqual([label, 'Later', '']);
 		expect(progress.querySelector('tbody :is(a, details)')).toBeNull();
 
-		const overview = fixtureLocator(frame, project);
+		const overview = fixtureLocator(frame, initiative);
 		await expect.element(overview.getByText(`${label} · Later`, { exact: true })).toBeVisible();
-		expect(project.querySelector('li :is(a, details)')).toBeNull();
+		expect(initiative.querySelector('li :is(a, details)')).toBeNull();
 		expect(fixture.documentElement.scrollWidth).toBeLessThanOrEqual(width);
 	},
 );
 
 test.each([1400, 390])(
-	'project decision history and owner actions remain readable at %ipx',
+	'initiative starts with projects in generated order and retains owner actions at %ipx',
 	async (width): Promise<void> => {
 		await page.viewport(width, 1000);
 		const { document: fixture, frame } = await openFixture('ui', '', 'decision-views.html');
-		const overview = fixtureLocator(frame, requiredElement(fixture, 'ex-project-overview'));
+		const owner = requiredElement(fixture, 'ex-initiative-overview');
+		const overview = fixtureLocator(frame, owner);
+		await expect
+			.element(overview.getByRole('heading', { name: 'Projects', exact: true }))
+			.toBeVisible();
+		expect(
+			[...owner.querySelectorAll('h2, .ex-initiative-project h3')].map((item) => item.textContent),
+		).toEqual([
+			'Projects',
+			'Queue foundations',
+			'Job cancellation',
+			'Waiting on owner',
+			'Decisions',
+			'Assumptions',
+			'Design records',
+		]);
+		const jobs = requiredElement(owner, '.ex-initiative-project + .ex-initiative-project');
+		expect(jobs.textContent).toContain('Lead jobs-lead');
+		expect(jobs.textContent).toContain('Waiting for the queue prerequisite.');
+		expect(jobs.textContent).toContain('Depends on Queue foundations');
+		const prerequisite = fixtureLocator(frame, jobs).getByRole('link', {
+			name: 'Queue foundations',
+		});
+		await expect
+			.element(prerequisite)
+			.toHaveAttribute('href', expect.stringMatching(/decision-views\.html$/));
+		const state = overview.getByRole('button', { name: 'Blocked on prerequisite', exact: true });
+		await state.hover();
+		await expect
+			.element(frame.getByRole('tooltip'))
+			.toHaveTextContent('Waiting for a project it depends on to finish.');
+		await state.click();
+		await userEvent.keyboard('{Escape}');
+		const recordHelp = overview
+			.getByRole('button', { name: 'Explain jobs/R1', exact: true })
+			.last();
+		await recordHelp.click();
+		await expect
+			.element(frame.getByRole('tooltip'))
+			.toHaveTextContent('Rule: one sentence the system must keep, with cases that test it.');
+		await userEvent.keyboard('{Escape}');
+		const evidence = overview.getByText('Checks and evidence', { exact: true });
+		await evidence.click();
+		await overview.getByRole('button', { name: 'Completed', exact: true }).click();
+		await expect
+			.element(frame.getByRole('tooltip'))
+			.toHaveTextContent('Recorded as done in the current candidate.');
+		await userEvent.keyboard('{Escape}');
+		await overview.getByRole('button', { name: 'No result', exact: true }).click();
+		await expect
+			.element(frame.getByRole('tooltip'))
+			.toHaveTextContent('No result is recorded for this check yet.');
+		await userEvent.keyboard('{Escape}');
+		await evidence.click();
 		await expect.element(overview.getByText(/Authority: Lead · Status: Superseded/)).toBeVisible();
 		await expect.element(overview.getByText(/Authority: Owner · Status: Decided/)).toBeVisible();
 		await expect.element(overview.getByText(/Authority: Owner · Status: Open/)).toBeVisible();

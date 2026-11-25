@@ -1,4 +1,6 @@
 import { decisionDetailsId, type RecordFace } from '../core/design-record-view.ts';
+import { assumptionStateGlossary, decisionStatusGlossary } from '../core/glossary.ts';
+import { explainRecord, glossaryTerm } from './glossary.ts';
 
 export const choiceRecordFaces = new WeakMap<HTMLElement, RecordFace>();
 
@@ -77,33 +79,40 @@ export function recordStateLine(
 		const { label, icon } = recordKindBadges[ruledBy];
 		const badge = recordCategoryBadge(label);
 		badge.setAttribute('icon', icon);
-		chips.append(badge);
+		const kind = document.createElement('span');
+		kind.append(badge, explainRecord(label, ruledBy));
+		chips.append(kind);
 	}
 	const presentation = recordPresentation(record);
 
-	const facts = [record.id];
+	const facts: (string | Node)[] = [record.id, explainRecord(record.id, record.kind)];
 	let date: string | undefined;
 	if (record.kind === 'assumption') {
 		chips.append(recordCategoryBadge(record.weight));
-		chips.append(
-			recordCategoryBadge(presentation.metadataLabel ?? presentation.label, presentation.tone),
+		const label = presentation.metadataLabel ?? presentation.label;
+		const status = document.createElement('span');
+		status.append(
+			recordCategoryBadge(label, presentation.tone),
+			glossaryTerm(label, assumptionStateGlossary[record.status], true),
 		);
+		chips.append(status);
 	} else {
 		const { authority } = record;
 		if (authority.state === 'owner-open') {
-			if (held) facts.push(held === 1 ? '1 deliverable waits' : `${held} deliverables wait`);
+			if (held) facts.push(' · ', held === 1 ? '1 deliverable waits' : `${held} deliverables wait`);
 		} else {
 			date = authority.decidedOn;
 			if (authority.state === 'agent-decided') {
 				chips.append(recordCategoryBadge(authority.weight));
 				if (presentation.reviewPending)
 					chips.append(recordCategoryBadge('Not reviewed by you', 'risk'));
-				facts.push(authority.by.alias);
-				if (authority.sourceKind === 'contract') facts.push('from contract');
+				facts.push(' · ', authority.by.alias);
+				if (authority.sourceKind === 'contract') facts.push(' · from contract');
 			}
 		}
 	}
-	const plain = textNode('span', facts.join(' · '));
+	const plain = document.createElement('span');
+	plain.append(...facts);
 	if (date) {
 		const time = document.createElement('time');
 		time.dateTime = date;
@@ -114,7 +123,7 @@ export function recordStateLine(
 		}).format(new Date(date));
 		plain.append(' · ', time);
 	}
-	if (replacement) plain.append(` · Replaced by ${replacement}`);
+	if (replacement) plain.append(` · Replaced by ${replacement}`, explainRecord(replacement));
 	metadata.append(plain);
 	if (factsFirst && chips.childElementCount) metadata.append(chips);
 	return metadata;
@@ -205,5 +214,9 @@ export function inlineRecordStatus(
 	link.href = href;
 	const badge = recordCategoryBadge(label, tone);
 	link.append(badge);
-	element.replaceChildren(link);
+	const explanation =
+		record.kind === 'assumption'
+			? assumptionStateGlossary[record.status]
+			: decisionStatusGlossary[record.authority.state === 'owner-open' ? 'Open' : 'Decided'];
+	element.replaceChildren(link, glossaryTerm(label, explanation, true));
 }
