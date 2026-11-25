@@ -72,7 +72,25 @@ async function main(): Promise<number> {
 	if (command === 'initiative') {
 		const [action, ...args] = rest;
 		const usage =
-			'Usage: demistify initiative check [directory] [--site-root <directory>] [--write]';
+			'Usage: demistify initiative check [directory] [--site-root <directory>] [--write]\n       demistify initiative migrate <directory> --plan <cut.json> [--dry-run] [--site-root <directory>]';
+		const migrateHelp = `Usage: demistify initiative migrate <directory> --plan <cut.json> [--dry-run] [--site-root <directory>]
+
+Re-cut an initiative: move whole deliverables, and the records they scope, between
+project folders, as the plan says. Ids change only when they collide in the target
+project; every reference, Map and Walkthrough target, page binding and #ID link is
+rewritten. A record that a staying deliverable also scopes stays and is named
+qualified. A passage moves with its record only when its heading section holds
+nothing else; every other passage is listed under "For you to place".
+
+--dry-run   print every change and collision; write nothing
+--plan      JSON: projects [{key, folder, number, title, achieves?, acceptance?, lead?}],
+            moves [{from: "mac-side/DEL-07", to: "harness-contract"}],
+            records [{record: "mac-side/R14", to: "<project>"}] (overrides),
+            add [{project, title, dependsOn?, why?}], withdraw ["<project>/DEL-nn"],
+            dependsOnChanges [{deliverable, from, to, why?}], remove ["<project>"],
+            open [...] (printed, never applied)
+
+The real run checks a staged copy first and writes nothing when that check fails.`;
 		if (!action || action === '--help') {
 			write(usage);
 			return 0;
@@ -83,14 +101,36 @@ async function main(): Promise<number> {
 			options: {
 				'site-root': { type: 'string' },
 				write: { type: 'boolean' },
-				help: { type: 'boolean' },
+				plan: { type: 'string' },
+				'dry-run': { type: 'boolean' },
+				help: { type: 'boolean', short: 'h' },
 			},
 		});
+		if (action === 'migrate') {
+			const [directory] = positionals;
+			if (values.help) {
+				write(migrateHelp);
+				return 0;
+			}
+			if (!directory || positionals.length !== 1 || !values.plan || values.write) {
+				write(migrateHelp);
+				return 1;
+			}
+			const { migrateInitiative } =
+				await import('../src/node/design-authoring/recut/migrate-initiative.ts');
+			const migrated = await migrateInitiative(directory, {
+				plan: values.plan,
+				dryRun: values['dry-run'] ?? false,
+				siteRoot: values['site-root'],
+			});
+			write(migrated.report);
+			return values['dry-run'] || migrated.applied ? 0 : 1;
+		}
 		if (values.help) {
 			write(usage);
 			return 0;
 		}
-		if (action !== 'check' || positionals.length > 1) {
+		if (action !== 'check' || positionals.length > 1 || values.plan || values['dry-run']) {
 			write(usage);
 			return 1;
 		}
@@ -233,7 +273,7 @@ async function main(): Promise<number> {
 	}
 	if (command !== 'check') {
 		write(
-			'Usage: demistify check [--fix] [--render] [--no-diagrams] <page.html …>\n       demistify check --hook\n       demistify open <page.html> [--site-root <directory>] [--no-browser]\n       demistify design --help\n       demistify brief <deliverable> [directory] [--site-root <directory>]\n       demistify initiative check [directory] [--site-root <directory>] [--write]',
+			'Usage: demistify check [--fix] [--render] [--no-diagrams] <page.html …>\n       demistify check --hook\n       demistify open <page.html> [--site-root <directory>] [--no-browser]\n       demistify design --help\n       demistify brief <deliverable> [directory] [--site-root <directory>]\n       demistify initiative check [directory] [--site-root <directory>] [--write]\n       demistify initiative migrate <directory> --plan <cut.json> [--dry-run]',
 		);
 		return !command || ['--help', '-h', 'help'].includes(command) ? 0 : 1;
 	}
