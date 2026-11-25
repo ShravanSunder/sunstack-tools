@@ -61,34 +61,76 @@ async function targetRecordFile(
 	return { file, base: directory, projectDirectory: directory };
 }
 
-/** Append `record` to the file's default-exported array, in the file's own style. */
-function appendRecord(file: string, text: string, record: Record<string, unknown>): TextEdit {
+const recordHelpers: Readonly<Record<ScaffoldKind, string>> = {
+	choice: 'defineChoice',
+	ruling: 'defineRuling',
+	assumption: 'defineAssumption',
+};
+
+/**
+ * Append `record` to the file's default-exported array, in the file's own style: a plain
+ * literal, or a record helper call (without `kind`) whose import is added when missing.
+ */
+function appendRecord(
+	file: string,
+	text: string,
+	kind: ScaffoldKind,
+	record: Record<string, unknown>,
+): TextEdit[] {
 	const source = typescript.createSourceFile(file, text, typescript.ScriptTarget.Latest, true);
 	const exported = source.statements.find(typescript.isExportAssignment);
 	const array = exported && unwrapExpression(exported.expression);
 	if (!array || !typescript.isArrayLiteralExpression(array))
 		throw new Error(`${file}: expected \`export default [ … ]\`.`);
-	if (array.elements.some((element) => typescript.isCallExpression(unwrapExpression(element))))
-		throw new Error(`${file} uses record helpers; add the record by hand.`);
 	const last = array.elements.at(-1);
 	if (!last) {
 		const literal = formatLiteral(record, '  ', false);
 		const start = array.getStart(source) + 1;
-		return { start, end: start, text: `\n  ${literal}\n` };
+		return [{ start, end: start, text: `\n  ${literal}\n` }];
 	}
 	const { line } = source.getLineAndCharacterOfPosition(last.getStart(source));
 	const lineStart = source.getPositionOfLineAndCharacter(line, 0);
 	const indent = /^[\t ]*/u.exec(text.slice(lineStart))?.[0] ?? '';
-	const lastLiteral = unwrapExpression(last);
+	const lastExpression = unwrapExpression(last);
+	const helperCall = typescript.isCallExpression(lastExpression) ? lastExpression : undefined;
+	const [helperArgument] = helperCall?.arguments ?? [];
+	const lastLiteral = helperArgument ? unwrapExpression(helperArgument) : lastExpression;
 	const firstName =
 		typescript.isObjectLiteralExpression(lastLiteral) &&
 		lastLiteral.properties.find(typescript.isPropertyAssignment)?.name;
 	const quotedKeys = Boolean(firstName && typescript.isStringLiteral(firstName));
-	return {
-		start: last.getEnd(),
-		end: last.getEnd(),
-		text: `,\n${indent}${formatLiteral(record, indent, quotedKeys)}`,
-	};
+	if (!helperCall)
+		return [
+			{
+				start: last.getEnd(),
+				end: last.getEnd(),
+				text: `,\n${indent}${formatLiteral(record, indent, quotedKeys)}`,
+			},
+		];
+
+	const helper = recordHelpers[kind];
+	const fields = Object.fromEntries(Object.entries(record).filter(([key]) => key !== 'kind'));
+	const edits: TextEdit[] = [
+		{
+			start: last.getEnd(),
+			end: last.getEnd(),
+			text: `,\n${indent}${helper}(${formatLiteral(fields, indent, quotedKeys)})`,
+		},
+	];
+	const sdkImport = source.statements
+		.filter(typescript.isImportDeclaration)
+		.find(
+			({ moduleSpecifier }) =>
+				typescript.isStringLiteral(moduleSpecifier) &&
+				moduleSpecifier.text.endsWith('design-sdk.generated.ts'),
+		);
+	const named = sdkImport?.importClause?.namedBindings;
+	if (!named || !typescript.isNamedImports(named))
+		throw new Error(`${file}: expected \`import { … } from './design-sdk.generated.ts'\`.`);
+	const lastSpecifier = named.elements.at(-1);
+	if (lastSpecifier && !named.elements.some(({ name }) => name.text === helper))
+		edits.push({ start: lastSpecifier.getEnd(), end: lastSpecifier.getEnd(), text: `, ${helper}` });
+	return edits;
 }
 
 /** The first section a new record lands in. */
@@ -155,7 +197,7 @@ export async function addRecord(
 	).exec(pageText);
 	if (!section)
 		throw new Error(
-			`${pageLabel} has no <ex-section holds="${holds}">. Declare the sections a ${kind} can reach first.`,
+			`${pageLabel} has no <ex-section holds="${holds}">. Declare the sections ${kind === 'assumption' ? 'an' : 'a'} ${kind} can reach first.`,
 		);
 	const sectionLineStart = pageText.lastIndexOf('\n', section.index - 1) + 1;
 	const sectionIndent = /^[\t ]*/u.exec(pageText.slice(sectionLineStart))?.[0] ?? '';
@@ -235,7 +277,7 @@ export async function addRecord(
 
 	const recordText = await textOf(file);
 	const edits = new Map<string, TextEdit[]>([
-		[file, [appendRecord(file, recordText, record)]],
+		[file, appendRecord(file, recordText, kind, record)],
 		[pageFile, pageEdits],
 	]);
 	const report = [

@@ -122,10 +122,7 @@ Without `--write` it previews. The command:
 - **Places an `ex-section-item`** right after the page's section for the record's first state. A choice gets a native `ex-choice` with two options.
 - **With `--words`, cites the owner verbatim** from a `<p id="<ref>-source">` before `</ex-document>`. A worded ruling is `owner-decided`; an agent's ruling and every assumption need `--author`.
 
-Every placeholder reads `TODO:`. The scaffold passes the check as written, so fill each placeholder in place and run `initiative check` again. Like `answer`, it runs `initiative check --write` after writing and restores every file if that fails. It refuses:
-
-- a page without the record's first section
-- a record file written with record helpers
+Every placeholder reads `TODO:`. The scaffold passes the check as written, so fill each placeholder in place and run `initiative check` again. Like `answer`, it runs `initiative check --write` after writing and restores every file if that fails. It refuses a page without the record's first section. In a file written with record helpers, the new record is a helper call such as `defineRuling({ … })`, and the helper is added to the file's SDK import when missing.
 
 For an initiative-wide view, place this in the initiative's `index.html` and serve it with `open`:
 
