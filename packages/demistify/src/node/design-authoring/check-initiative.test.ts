@@ -865,3 +865,65 @@ export default { projects: { north: { design: north, number: 1 }, south: { desig
 		await rm(sandbox, { recursive: true, force: true });
 	}
 }, 50_000);
+
+function initiativeWithPages(pages: string): string {
+	return `import notesDesign from './projects/2026-11-notes/design.ts';
+import decisions from './initiative-decisions.ts';
+export default { projects: { notes: { design: notesDesign, number: 1 } }, decisions, pages: ${pages} };`;
+}
+
+function initiativeRecordPage(title: string): string {
+	return `<!doctype html><title>${title}</title><meta name="demistify-records" content="records.generated.js"><p data-design-record="initiative/D1"></p>`;
+}
+
+it('places initiative records on initiative pages and warns about pages nothing registers', async (): Promise<void> => {
+	const root = await mkdtemp(join(tmpdir(), 'demistify-initiative-pages-'));
+	const project = join(root, 'projects/2026-11-notes');
+	const check = (): ReturnType<typeof run> =>
+		run(process.execPath, [cli, 'initiative', 'check', root, '--write']);
+	try {
+		await run(process.execPath, [cli, 'design', 'init', project]);
+		await mkdir(join(project, 'deliverables'));
+		await Promise.all([
+			writeFile(join(project, 'index.html'), fixturePage),
+			writeFile(join(project, 'design.ts'), designSource(false)),
+			writeFile(join(project, 'design-delivery.ts'), deliverySource()),
+			writeFile(join(project, 'deliverables/unit.ts'), deliverableSource()),
+			writeFile(join(root, 'evidence.txt'), 'Use the current result.'),
+			writeFile(
+				join(root, 'initiative-decisions.ts'),
+				`export default [{ id: 'D1', kind: 'ruling', statement: 'Use the current result.', title: 'Result',
+authority: { state: 'owner-decided', sourceKind: 'owner-words', decidedOn: '2026-11-21', source: { href: 'evidence.txt', excerpt: 'Use the current result.' } },
+sources: [{ href: 'evidence.txt', excerpt: 'Use the current result.' }] }];`,
+			),
+			writeFile(join(root, 'initiative.ts'), initiativeWithPages("['decisions.html']")),
+			writeFile(join(root, 'decisions.html'), initiativeRecordPage('Shared decisions')),
+		]);
+
+		const registered = await check();
+		expect(registered.stdout).not.toContain('Warning:');
+		const view = z
+			.object({
+				records: z.array(
+					z.object({ id: z.string(), destination: z.object({ page: z.string() }).optional() }),
+				),
+			})
+			.parse(JSON.parse(await readFile(join(root, 'initiative.generated.json'), 'utf8')));
+		expect(view.records.find(({ id }) => id === 'initiative/D1')?.destination?.page).toBe(
+			'decisions.html',
+		);
+
+		await writeFile(join(root, 'initiative.ts'), initiativeWithPages('[]'));
+		const unregistered = await check();
+		expect(unregistered.stdout).toContain(
+			'Warning: decisions.html binds design records, but no design.ts or initiative.ts registers it',
+		);
+
+		await writeFile(join(root, 'initiative.ts'), initiativeWithPages("['missing.html']"));
+		await expect(check()).rejects.toThrow(/missing\.html/);
+		await writeFile(join(root, 'initiative.ts'), initiativeWithPages("['../outside.html']"));
+		await expect(check()).rejects.toThrow(/must be an HTML file inside the initiative/);
+	} finally {
+		await rm(root, { recursive: true, force: true });
+	}
+}, 30_000);

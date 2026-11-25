@@ -34,6 +34,7 @@ import {
 	qualifyRecord,
 } from './record-projection.ts';
 import { recordLabel, recordRelationships, type DesignCore, type DesignRecord } from './schema.ts';
+import { unregisteredRecordPages } from './unregistered-pages.ts';
 
 type EvidenceReceipt = NonNullable<CoreDeliverable['verification']>;
 type EvidenceOutcome = EvidenceReceipt['outcomes'][string];
@@ -413,6 +414,10 @@ export async function buildInitiative(
 	);
 	if (hasProjectIndex && !pageNamespaces.has(projectIndex))
 		pageNamespaces.set(projectIndex, undefined);
+	await Promise.all(manifest.pages.map((page) => check.read(page, root)));
+	for (const page of manifest.pages)
+		if (!pageNamespaces.has(page)) pageNamespaces.set(page, undefined);
+	const unregisteredPages = await unregisteredRecordPages(root, new Set(pageNamespaces.keys()));
 	const outputDirectories = [root, ...sets.map((set) => set.directory)];
 	const { projection, preparedPages, recordOutputs } = await check.projectPages(
 		design.records,
@@ -501,6 +506,10 @@ export async function buildInitiative(
 	const result = [
 		`Checked ${sets.length} project(s) by number: ${order.map((name) => `${manifest.projects[name]?.number ?? '?'} ${name}`).join(', ')}.`,
 		...orderWarnings(entries, manifest.projects).map((warning) => `Warning: ${warning}`),
+		...unregisteredPages.map(
+			(page) =>
+				`Warning: ${page} binds design records, but no design.ts or initiative.ts registers it; its records stay empty. Add it to initiative.ts pages or its project's design.ts.`,
+		),
 		options.write ? 'Generated views refreshed.' : 'Read-only check.',
 		...(options.write ? [] : await generatedViewNotes('initiative', generated, recordOutputs)),
 		...(questions.length

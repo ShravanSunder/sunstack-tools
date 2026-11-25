@@ -70,13 +70,20 @@ async function readDeclaration(file: string, required: boolean): Promise<string 
 	});
 }
 
-async function projectDesignFiles(file: string, required: boolean): Promise<string[] | undefined> {
+async function initiativeRegistrations(
+	file: string,
+	required: boolean,
+): Promise<{ designFiles: string[]; pages: string[] } | undefined> {
 	const text = await readDeclaration(file, required);
 	if (text === undefined) return undefined;
 	try {
-		return Object.values(readInitiativeManifest(file, text).projects).map(({ design }): string =>
-			join(dirname(design), 'design.ts'),
-		);
+		const manifest = readInitiativeManifest(file, text);
+		return {
+			designFiles: Object.values(manifest.projects).map(({ design }): string =>
+				join(dirname(design), 'design.ts'),
+			),
+			pages: manifest.pages,
+		};
 	} catch {
 		// An initiative.ts may be unrelated application code.
 		return undefined;
@@ -148,13 +155,14 @@ export async function findDesignPreviewOwner(
 		projects.delete(canonical);
 		standalone.delete(canonical);
 		const root = siteRoot ?? canonical;
-		const designFiles = await projectDesignFiles(join(canonical, 'initiative.ts'), required);
-		if (designFiles) {
-			const index = join(canonical, 'index.html');
+		const registrations = await initiativeRegistrations(join(canonical, 'initiative.ts'), required);
+		if (registrations) {
 			const pages = new Set<string>();
-			if ((await discoveryRead(index, false, () => realpath(index))) === physicalPage)
-				pages.add(index);
-			for (const file of designFiles) {
+			for (const page of [join(canonical, 'index.html'), ...registrations.pages])
+				// oxlint-disable-next-line no-await-in-loop -- initiative pages share the same sequential discovery.
+				if ((await discoveryRead(page, false, () => realpath(page))) === physicalPage)
+					pages.add(page);
+			for (const file of registrations.designFiles) {
 				const projectDirectory = dirname(file);
 				// oxlint-disable-next-line no-await-in-loop -- project candidates share the same sequential discovery.
 				const projectFolder = await discoveryRead(projectDirectory, required, () =>
