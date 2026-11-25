@@ -40,11 +40,40 @@ export const recordKindGlossary = {
 
 /** The id prefixes authors use, by convention, for each record kind. */
 export const idPrefixGlossary = {
-	U: recordKindGlossary.need,
-	R: recordKindGlossary.rule,
-	M: recordKindGlossary.realization,
-	V: recordKindGlossary['planned-check'],
-	D: 'Decision: a choice or a ruling.',
-	A: recordKindGlossary.assumption,
-	DEL: recordKindGlossary.deliverable,
+	'U': recordKindGlossary.need,
+	'R': recordKindGlossary.rule,
+	'M': recordKindGlossary.realization,
+	'V': recordKindGlossary['planned-check'],
+	'D': 'Decision: a choice or a ruling.',
+	'A': recordKindGlossary.assumption,
+	'DEL': recordKindGlossary.deliverable,
+} as const;
+
+/** What each planned check's result means. */
+export const checkStateGlossary = {
+	missing: 'No result is recorded for this check yet.',
+	stale: 'A result is recorded, but for an older build than the current candidate.',
+	passed: 'The check ran on the current build and passed.',
+	failed: 'The check ran on the current build and failed.',
+	blocked: 'The check could not run; the reason is recorded.',
+} as const;
+
+/** What each implementation task's state means. */
+export const taskStateGlossary = {
+	completed: 'Recorded as done in the current candidate.',
+	open: 'Not done yet.',
+} as const;
+
+/** What a decision's status means. */
+export const decisionStatusGlossary = {
+	Open: 'Waiting for the owner to decide.',
+	Decided: 'Decided, by the owner or an agent as the record names.',
+	Superseded: 'Replaced by a later decision, which the record links.',
+} as const;
+
+/** What an assumption's state means. */
+export const assumptionStateGlossary = {
+	open: 'Taken as true but not yet checked; the record names what would settle it.',
+	confirmed: 'Checked and found true; the record names who settled it and how.',
+	refuted: 'Checked and found false; work relying on it must change.',
 } as const;

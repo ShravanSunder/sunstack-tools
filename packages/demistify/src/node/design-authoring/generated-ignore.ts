@@ -12,7 +12,7 @@ import {
 	readOutputFile,
 	type GeneratedFile,
 } from './design-output.ts';
-import { findRegisteredProject } from './read-project.ts';
+import { findRegisteredInitiative } from './read-initiative.ts';
 
 const patterns = [
 	'*.generated.json',
@@ -34,7 +34,7 @@ export function projectIgnoreDirectory(project: string): string {
 }
 
 export async function designIgnoreDirectory(directory: string): Promise<string> {
-	const project = await findRegisteredProject(directory);
+	const project = await findRegisteredInitiative(directory);
 	return project ? projectIgnoreDirectory(project.directory) : directory;
 }
 

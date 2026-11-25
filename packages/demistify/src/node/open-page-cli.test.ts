@@ -82,9 +82,9 @@ it('opens authored pages and their local includes within the selected site root'
 		writeFile(join(pages, 'index.html'), '<ex-markdown src="notes.md"></ex-markdown>'),
 		writeFile(join(pages, 'notes.md'), 'Nested include'),
 		writeFile(join(root, 'notes.md'), '## Reviewed passage'),
-		writeFile(join(root, 'project.generated.json'), '{"version":1}'),
+		writeFile(join(root, 'initiative.generated.json'), '{"version":1}'),
 		writeFile(join(root, '.hidden.json'), '{}'),
-		writeFile(join(pages, 'project.ts'), 'throw new Error("Not a Demistify project.");'),
+		writeFile(join(pages, 'initiative.ts'), 'throw new Error("Not a Demistify project.");'),
 		writeFile(join(scratch, 'outside.md'), 'Outside'),
 	]);
 	await symlink(join(scratch, 'outside.md'), join(root, 'outside.md'), 'file');
@@ -94,7 +94,7 @@ it('opens authored pages and their local includes within the selected site root'
 			const [document, markdown, data, outside, hidden] = await Promise.all([
 				fetch(url),
 				fetch(new URL('../notes.md', url)),
-				fetch(new URL('../project.generated.json', url)),
+				fetch(new URL('../initiative.generated.json', url)),
 				fetch(new URL('../outside.md', url)),
 				fetch(new URL('../.hidden.json', url)),
 			]);
@@ -122,8 +122,8 @@ async function createExternalPageProject(
 	await mkdir(milestone, { recursive: true });
 	await Promise.all([
 		writeFile(
-			join(directory, 'project.ts'),
-			"import notes from './milestone/design.ts'; export default { designs: { notes } };",
+			join(directory, 'initiative.ts'),
+			"import notes from './milestone/design.ts'; export default { projects: { notes: { design: notes } } };",
 		),
 		writeFile(
 			join(milestone, 'design.ts'),
@@ -145,7 +145,7 @@ it('opens exact authored bytes and writes external-page data without accepting c
 		await createExternalPageProject(project);
 		await writeFile(page, html);
 		await expect(
-			run(process.execPath, [cli, 'project', 'check', project, '--site-root', site, '--write']),
+			run(process.execPath, [cli, 'initiative', 'check', project, '--site-root', site, '--write']),
 		).rejects.toThrow(/record bindings need.*<meta name="demistify-records"/);
 		await expect(stat(join(project, 'records.generated.js'))).rejects.toHaveProperty(
 			'code',
@@ -153,7 +153,7 @@ it('opens exact authored bytes and writes external-page data without accepting c
 		);
 		for (const source of [
 			'<meta name="demistify-records" content="project/records.generated.js">',
-			'<ex-project-overview src="project/project.generated.json"></ex-project-overview>',
+			'<ex-initiative-overview src="project/initiative.generated.json"></ex-initiative-overview>',
 		]) {
 			// oxlint-disable-next-line no-await-in-loop -- exercise the same declared page with and without its project data binding.
 			await writeFile(page, `${html}${source}`);
@@ -171,11 +171,11 @@ it('opens exact authored bytes and writes external-page data without accepting c
 					],
 					trees: [],
 				});
-				const view = await fetch(new URL('./project/project.generated.json', url));
+				const view = await fetch(new URL('./project/initiative.generated.json', url));
 				expect(view.status).toBe(200);
 			});
 		}
-		expect(await readFile(join(project, 'project.generated.json'), 'utf8')).toContain('notes/N1');
+		expect(await readFile(join(project, 'initiative.generated.json'), 'utf8')).toContain('notes/N1');
 		await writeFile(page, html);
 		await createExternalPageProject(join(site, 'other-project'));
 		await expect(
@@ -210,7 +210,7 @@ it('serves a declared HTML alias at its authored URL and refuses aliases claimed
 			writeFile(join(physicalDirectory, 'notes.md'), 'The notes beside the symlink target'),
 			symlink('../source/guide.html', alias, 'file'),
 		]);
-		await run(process.execPath, [cli, 'project', 'check', project, '--site-root', site]);
+		await run(process.execPath, [cli, 'initiative', 'check', project, '--site-root', site]);
 		await withPreview(alias, site, async (url) => {
 			expect(url.pathname).toBe('/published/Reviewed%20Guide.html');
 			expect(await (await fetch(url)).text()).toBe(html);
@@ -262,7 +262,7 @@ it.skipIf(process.platform === 'win32' || process.getuid?.() === 0)(
 		const unreadableHint = join(source, 'data');
 		const physical = join(source, 'guide.html');
 		const html =
-			'<h2 data-design-record="notes/N1"></h2><ex-project-overview src="./data/project.generated.json"></ex-project-overview><a href="./notes.md">Read notes</a>';
+			'<h2 data-design-record="notes/N1"></h2><ex-initiative-overview src="./data/initiative.generated.json"></ex-initiative-overview><a href="./notes.md">Read notes</a>';
 		try {
 			await Promise.all([
 				createExternalPageProject(project, '../../Review.html'),
@@ -282,7 +282,7 @@ it.skipIf(process.platform === 'win32' || process.getuid?.() === 0)(
 				expect(await (await fetch(new URL('./notes.md', url))).text()).toBe(
 					'Notes at the published URL.',
 				);
-				const view = await fetch(new URL('./data/project.generated.json', url));
+				const view = await fetch(new URL('./data/initiative.generated.json', url));
 				expect(view.status).toBe(200);
 				expect(await view.json()).toMatchObject({
 					records: [
@@ -290,7 +290,7 @@ it.skipIf(process.platform === 'win32' || process.getuid?.() === 0)(
 					],
 				});
 			});
-			expect(await readFile(join(project, 'project.generated.json'), 'utf8')).toContain('notes/N1');
+			expect(await readFile(join(project, 'initiative.generated.json'), 'utf8')).toContain('notes/N1');
 		} finally {
 			await chmod(unreadableHint, 0o700);
 			await rm(site, { recursive: true, force: true });
@@ -307,7 +307,7 @@ it.skipIf(process.platform === 'win32' || process.getuid?.() === 0)(
 		const project = join(site, 'project');
 		const unrelated = join(site, 'archives');
 		const html =
-			'<h2 data-design-record="notes/N1"></h2><ex-project-overview src="project/project.generated.json"></ex-project-overview>';
+			'<h2 data-design-record="notes/N1"></h2><ex-initiative-overview src="project/initiative.generated.json"></ex-initiative-overview>';
 		try {
 			await Promise.all([
 				createExternalPageProject(project),

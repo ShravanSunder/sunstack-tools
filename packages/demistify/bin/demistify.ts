@@ -69,9 +69,9 @@ async function main(): Promise<number> {
 			return 1;
 		}
 	}
-	if (command === 'project') {
+	if (command === 'initiative') {
 		const [action, ...args] = rest;
-		const usage = 'Usage: demistify project check [directory] [--site-root <directory>] [--write]';
+		const usage = 'Usage: demistify initiative check [directory] [--site-root <directory>] [--write]';
 		if (!action || action === '--help') {
 			write(usage);
 			return 0;
@@ -94,8 +94,8 @@ async function main(): Promise<number> {
 			return 1;
 		}
 		const [directory = '.'] = positionals;
-		const { checkProject } = await import('../src/node/design-authoring/check-project.ts');
-		write(await checkProject(directory, { siteRoot: values['site-root'], write: values.write }));
+		const { checkInitiative } = await import('../src/node/design-authoring/check-initiative.ts');
+		write(await checkInitiative(directory, { siteRoot: values['site-root'], write: values.write }));
 		return 0;
 	}
 	if (command === 'brief') {
@@ -232,7 +232,7 @@ async function main(): Promise<number> {
 	}
 	if (command !== 'check') {
 		write(
-			'Usage: demistify check [--fix] [--render] [--no-diagrams] <page.html …>\n       demistify check --hook\n       demistify open <page.html> [--site-root <directory>] [--no-browser]\n       demistify design --help\n       demistify brief <deliverable> [directory] [--site-root <directory>]\n       demistify project check [directory] [--site-root <directory>] [--write]',
+			'Usage: demistify check [--fix] [--render] [--no-diagrams] <page.html …>\n       demistify check --hook\n       demistify open <page.html> [--site-root <directory>] [--no-browser]\n       demistify design --help\n       demistify brief <deliverable> [directory] [--site-root <directory>]\n       demistify initiative check [directory] [--site-root <directory>] [--write]',
 		);
 		return !command || ['--help', '-h', 'help'].includes(command) ? 0 : 1;
 	}

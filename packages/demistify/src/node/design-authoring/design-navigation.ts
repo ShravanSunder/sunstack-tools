@@ -26,7 +26,7 @@ export function compileDesignNavigation(
 ): SharedNavigation {
 	function resolveRecord(reference: string): DesignRecord {
 		if (!namespace && reference.includes('/'))
-			throw new Error(`Qualified reference ${reference} requires demistify project check.`);
+			throw new Error(`Qualified reference ${reference} requires demistify initiative check.`);
 		const record = records.get(qualifyRecord(namespace, reference));
 		if (!record) throw new Error(`${source}: unknown design record ${reference}.`);
 		return record;

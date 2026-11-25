@@ -4,7 +4,7 @@ import { dirname, join } from 'node:path';
 import { containsPath } from '../local-site.ts';
 import { declaredDesignPagePath, resolveDesignLink } from './design-location.ts';
 import { readDesignPages } from './read-design.ts';
-import { readProjectManifest } from './read-project.ts';
+import { readInitiativeManifest } from './read-initiative.ts';
 
 interface PreviewRequest {
 	readonly requestedPage: string;
@@ -14,7 +14,7 @@ interface PreviewRequest {
 }
 
 interface PreviewClaim {
-	readonly kind: 'project' | 'design';
+	readonly kind: 'initiative' | 'design';
 	readonly directory: string;
 	readonly pages: ReadonlySet<string>;
 }
@@ -53,7 +53,7 @@ function candidateDirectories(page: string, root?: string): string[] {
 async function* fallbackDirectories(root: string, required = true): AsyncGenerator<string> {
 	const entries = await discoveryRead(root, required, () => readdir(root, { withFileTypes: true }));
 	if (!entries) return;
-	if (entries.some(({ name }) => name === 'project.ts' || name === 'design.ts')) yield root;
+	if (entries.some(({ name }) => name === 'initiative.ts' || name === 'design.ts')) yield root;
 	for (const entry of entries) {
 		if (!entry.isDirectory() || entry.name.startsWith('.') || entry.name === 'node_modules')
 			continue;
@@ -74,11 +74,11 @@ async function projectDesignFiles(file: string, required: boolean): Promise<stri
 	const text = await readDeclaration(file, required);
 	if (text === undefined) return undefined;
 	try {
-		return Object.values(readProjectManifest(file, text).designs).map((design): string =>
+		return Object.values(readInitiativeManifest(file, text).projects).map(({ design }): string =>
 			join(dirname(design), 'design.ts'),
 		);
 	} catch {
-		// A project.ts may be unrelated application code.
+		// An initiative.ts may be unrelated application code.
 		return undefined;
 	}
 }
@@ -148,7 +148,7 @@ export async function findDesignPreviewOwner(
 		projects.delete(canonical);
 		standalone.delete(canonical);
 		const root = siteRoot ?? canonical;
-		const project = await projectDesignFiles(join(canonical, 'project.ts'), required);
+		const project = await projectDesignFiles(join(canonical, 'initiative.ts'), required);
 		if (project) {
 			const index = join(canonical, 'index.html');
 			const pages = new Set<string>();
@@ -166,7 +166,7 @@ export async function findDesignPreviewOwner(
 				// oxlint-disable-next-line no-await-in-loop -- read each registered declaration in turn.
 				for (const page of await matchingPages(declaration, root, required)) pages.add(page);
 			}
-			if (pages.size) projects.set(canonical, { kind: 'project', directory: canonical, pages });
+			if (pages.size) projects.set(canonical, { kind: 'initiative', directory: canonical, pages });
 			if (projects.size > 1) throw competingOwners(physicalPage, [...projects.values()]);
 		}
 		if (registered.has(canonical)) return;

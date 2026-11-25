@@ -30,7 +30,7 @@ const overview = `<!doctype html><html lang="en">
 <head><title>Overview</title><script type="module" src="https://demistify.getagentstudio.dev/v1/runtime.js"></script></head>
 <body><ex-nav for="overview-details"></ex-nav>
 <ex-document id="overview"><h1>Overview</h1><h2 id="scope">Site scope</h2>
-<ex-choice id="shared-decision" data-decision="project/D1" title="Keep the overview?">
+<ex-choice id="shared-decision" data-decision="initiative/D1" title="Keep the overview?">
 <ex-option id="keep-overview" title="Keep it"><template slot="summary">Keep the shared page.</template></ex-option>
 </ex-choice></ex-document>
 <main id="overview-details"><h2>Example</h2><h2>Example</h2>
@@ -110,8 +110,8 @@ it('checks a real adjacent page and source inside an explicitly selected site ro
 		await expect(stat(recordScript)).rejects.toMatchObject({ code: 'ENOENT' });
 		await run(process.execPath, check);
 		await expect(
-			run(process.execPath, [cli, 'project', 'check', deliverable, '--site-root', site]),
-		).rejects.toThrow(/project\.ts/);
+			run(process.execPath, [cli, 'initiative', 'check', deliverable, '--site-root', site]),
+		).rejects.toThrow(/initiative\.ts/);
 		const legacyEntry = join(deliverable, 'delivery.ts');
 		await writeFile(legacyEntry, 'export default [];');
 		await expect(run(process.execPath, check)).rejects.toThrow(
@@ -365,12 +365,12 @@ export default [{
 		await writeFile(designPath, authored);
 
 		await writeFile(
-			join(directory, 'project.ts'),
+			join(directory, 'initiative.ts'),
 			`import milestone from './milestone/design.ts';
-export default { designs: { milestone } };`,
+export default { projects: { milestone: { design: milestone } } };`,
 		);
-		await run(process.execPath, [cli, 'project', 'check', directory, '--write']);
-		const project = await readFile(join(directory, 'project.generated.json'), 'utf8');
+		await run(process.execPath, [cli, 'initiative', 'check', directory, '--write']);
+		const project = await readFile(join(directory, 'initiative.generated.json'), 'utf8');
 		expect(JSON.parse(project)).toMatchObject({
 			records: [
 				{ id: 'milestone/NeedOverview' },

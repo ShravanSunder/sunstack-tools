@@ -2,7 +2,7 @@ import { realpath, stat } from 'node:fs/promises';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 
 import type { DeliverableView } from '../../core/deliverables-view.ts';
-import { projectDecisions, projectViewSchema } from '../../core/project-view.ts';
+import { projectDecisions, initiativeViewSchema } from '../../core/initiative-view.ts';
 import {
 	checkRecordRelationships,
 	generatedViewNotes,
@@ -21,12 +21,17 @@ import {
 import { compileDesignNavigation } from './design-navigation.ts';
 import { designTypeSource } from './design-type-source.ts';
 import { projectIgnoreDirectory } from './generated-ignore.ts';
+import {
+	orderInitiativeProjects,
+	projectProgress,
+	transitiveDependencies,
+} from './initiative-order.ts';
 import { checkAuthoringTypes, readDesignItems } from './read-design.ts';
 import {
 	projectRecordTypeImports,
-	readProjectIdentities,
-	readProjectManifest,
-} from './read-project.ts';
+	readInitiativeIdentities,
+	readInitiativeManifest,
+} from './read-initiative.ts';
 import {
 	attachDecisionDeliverables,
 	projectedDestinations,
@@ -220,13 +225,13 @@ function scopedDeliverables(
 	return { deliverables: output, destinations, evidence: [] };
 }
 
-interface ProjectCheckOptions {
+interface InitiativeCheckOptions {
 	readonly siteRoot?: string | undefined;
 	readonly write?: boolean | undefined;
 }
 
-export interface CheckedProjectBuild {
-	readonly milestones: ReadonlyMap<string, string>;
+export interface CheckedInitiativeBuild {
+	readonly projects: ReadonlyMap<string, string>;
 	readonly result: string;
 	readonly generated: ReadonlyMap<string, unknown>;
 	readonly preparedPages: ReadonlyMap<string, string>;
@@ -240,29 +245,32 @@ interface SharedRecordSource {
 	readonly records: readonly DesignRecord[];
 }
 
-interface LoadedProject {
+interface LoadedInitiative {
 	readonly root: string;
-	readonly projectFile: string;
+	readonly initiativeFile: string;
 	readonly check: Awaited<ReturnType<typeof openDesignCheck>>;
 	readonly owner: string | undefined;
 	readonly sets: readonly (LoadedDesign & { readonly name: string })[];
 	readonly shared: readonly SharedRecordSource[];
 	readonly design: DesignCore;
 	readonly entries: readonly DeliveryEntry[];
-	readonly milestones: ReadonlyMap<string, string>;
+	/** Project directory to project name. */
+	readonly projects: ReadonlyMap<string, string>;
+	/** Project name to the projects it names as dependencies. */
+	readonly dependencies: ReadonlyMap<string, readonly string[]>;
 }
 
-export async function loadProject(directory: string, siteRoot?: string): Promise<LoadedProject> {
+export async function loadInitiative(directory: string, siteRoot?: string): Promise<LoadedInitiative> {
 	const root = await realpath(resolve(directory));
-	const projectFile = join(root, 'project.ts');
+	const initiativeFile = join(root, 'initiative.ts');
 	const check = await openDesignCheck(siteRoot ?? root);
 	const readAuthoringInput = (file: string): Promise<string> => check.read(file, root);
-	const manifest = readProjectManifest(projectFile, await readAuthoringInput(projectFile));
+	const manifest = readInitiativeManifest(initiativeFile, await readAuthoringInput(initiativeFile));
 	const identities =
 		manifest.identities &&
-		(await readProjectIdentities(manifest.identities, root, readAuthoringInput));
+		(await readInitiativeIdentities(manifest.identities, root, readAuthoringInput));
 	const sets = await Promise.all(
-		Object.entries(manifest.designs).map(async ([name, file]) => {
+		Object.entries(manifest.projects).map(async ([name, { design: file }]) => {
 			await readAuthoringInput(file);
 			const set = await check.load(dirname(file), root);
 			if (set.lead !== undefined && (!identities || !Object.hasOwn(identities.agents, set.lead)))
@@ -306,7 +314,7 @@ export async function loadProject(directory: string, siteRoot?: string): Promise
 		])
 	).flat();
 	for (const { records } of shared)
-		design.records.push(...records.map((record) => projectRecord(record, 'project')));
+		design.records.push(...records.map((record) => projectRecord(record, 'initiative')));
 	const entries: DeliveryEntry[] = [];
 	for (const set of sets) {
 		const href = (path: string): string => rebase(path, set.directory, root);
@@ -327,24 +335,47 @@ export async function loadProject(directory: string, siteRoot?: string): Promise
 	}
 	return {
 		root,
-		projectFile,
+		initiativeFile,
 		check,
 		owner: identities ? identities.owner : undefined,
 		sets,
 		shared,
 		design,
 		entries,
-		milestones: new Map(sets.map((set) => [set.directory, set.name])),
+		projects: new Map(sets.map((set) => [set.directory, set.name])),
+		dependencies: new Map(
+			Object.entries(manifest.projects).map(([name, { dependsOn }]) => [name, dependsOn]),
+		),
 	};
 }
 
-export async function buildProject(
+/** A deliverable may depend across projects only on a project its own project depends on. */
+function checkDeliverableDependencies(
+	entries: readonly DeliveryEntry[],
+	dependencies: ReadonlyMap<string, readonly string[]>,
+): void {
+	const namespace = (id: string): string => id.slice(0, id.indexOf('/'));
+	for (const { deliverable, dependsOn } of entries) {
+		const own = namespace(deliverable.id);
+		const allowed = transitiveDependencies(dependencies, own);
+		for (const prerequisite of dependsOn) {
+			const other = namespace(prerequisite);
+			if (other !== own && !allowed.has(other))
+				throw new Error(
+					`${deliverable.id} depends on ${prerequisite}, but project ${own} does not depend on project ${other}. Add ${other} to ${own}'s dependsOn in initiative.ts.`,
+				);
+		}
+	}
+}
+
+export async function buildInitiative(
 	directory: string,
-	options: ProjectCheckOptions = {},
-): Promise<CheckedProjectBuild> {
-	const { root, projectFile, check, owner, sets, shared, design, entries, milestones } =
-		await loadProject(directory, options.siteRoot);
-	const projectOutput = join(root, 'project.generated.json');
+	options: InitiativeCheckOptions = {},
+): Promise<CheckedInitiativeBuild> {
+	const { root, initiativeFile, check, owner, sets, shared, design, entries, projects, dependencies } =
+		await loadInitiative(directory, options.siteRoot);
+	checkDeliverableDependencies(entries, dependencies);
+	const projectOutput = join(root, 'initiative.generated.json');
 	const [preparedSets] = await Promise.all([
 		Promise.all(sets.map(async (set) => Object.assign({}, set, await check.prepare(set)))),
 		Promise.all(shared.map(({ file, records }) => check.checkRecordSources(records, file))),
@@ -378,21 +409,45 @@ export async function buildProject(
 	const destinations = projectedDestinations(projection, root);
 	const delivery = projectDelivery(design, entries, destinations);
 	attachDecisionDeliverables(recordOutputs, delivery, root, projection);
-	await Promise.all(delivery.evidence.map((href) => check.checkEvidence(href, projectFile)));
+	await Promise.all(delivery.evidence.map((href) => check.checkEvidence(href, initiativeFile)));
+	const { order, loops } = orderInitiativeProjects(dependencies);
+	const accepted = new Set<string>();
+	const progressByProject = new Map<string, ReturnType<typeof projectProgress>>();
+	for (const name of order) {
+		const own = Object.values(delivery.deliverables).filter(({ id }) =>
+			id.startsWith(`${name}/`),
+		);
+		const progress = projectProgress(
+			name,
+			dependencies.get(name) ?? [],
+			own,
+			accepted,
+			loops.find((loop) => loop.includes(name)),
+		);
+		if (progress.state === 'accepted') accepted.add(name);
+		progressByProject.set(name, progress);
+	}
 	const output = {
-		version: 1,
+		version: 2,
 		...(owner === undefined ? {} : { owner }),
-		designs: Object.fromEntries(
-			preparedSets.map((set) => [
-				set.name,
-				{
-					path: rebase('design.ts', set.directory, root),
-					firstPage: rebase(set.firstPage.href, set.directory, root),
-					title: set.firstPage.title,
-					...(set.lead ? { lead: set.lead } : {}),
-				},
-			]),
+		projects: Object.fromEntries(
+			preparedSets.map((set) => {
+				const progress = progressByProject.get(set.name) as ReturnType<typeof projectProgress>;
+				return [
+					set.name,
+					{
+						path: rebase('design.ts', set.directory, root),
+						firstPage: rebase(set.firstPage.href, set.directory, root),
+						title: set.firstPage.title,
+						...(set.lead ? { lead: set.lead } : {}),
+						dependsOn: [...(dependencies.get(set.name) ?? [])],
+						state: progress.state,
+						reason: progress.reason,
+					},
+				];
+			}),
 		),
+		order: [...order],
 		records: design.records.map((record) => ({
 			...record,
 			title: recordLabel(record),
@@ -401,7 +456,7 @@ export async function buildProject(
 		})),
 		deliverables: delivery.deliverables,
 	};
-	const view = projectViewSchema.parse(output);
+	const view = initiativeViewSchema.parse(output);
 	const projectSource = { file: projectOutput, text: JSON.stringify(view) };
 	const plans = await Promise.all(
 		preparedSets.map((set) =>
@@ -428,9 +483,13 @@ export async function buildProject(
 	else await check.verify();
 	const questions = projectDecisions(view.records).filter(({ status }) => status === 'Open');
 	const result = [
-		`Checked ${sets.length} project design(s).`,
+		`Checked ${sets.length} project(s) in order: ${order.join(', ')}.`,
+		...loops.map(
+			(loop): string =>
+				`Projects ${loop.join(', ')} depend on each other; no order exists among them until the loop is broken.`,
+		),
 		options.write ? 'Generated views refreshed.' : 'Read-only check.',
-		...(options.write ? [] : await generatedViewNotes('project', generated, recordOutputs)),
+		...(options.write ? [] : await generatedViewNotes('initiative', generated, recordOutputs)),
 		...(questions.length
 			? [
 					'Waiting on owner',
@@ -450,13 +509,13 @@ export async function buildProject(
 		design,
 		entries,
 		delivery,
-		milestones,
+		projects,
 	};
 }
 
-export async function checkProject(
+export async function checkInitiative(
 	directory: string,
-	options: ProjectCheckOptions = {},
+	options: InitiativeCheckOptions = {},
 ): Promise<string> {
-	return (await buildProject(directory, options)).result;
+	return (await buildInitiative(directory, options)).result;
 }

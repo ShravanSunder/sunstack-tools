@@ -3,7 +3,7 @@ import { resolve } from 'node:path';
 
 import { containsPath } from '../local-site.ts';
 import { loadDesignSet } from './check-design.ts';
-import { loadProject } from './check-project.ts';
+import { loadInitiative } from './check-initiative.ts';
 import { governingRecords, projectDelivery, realizationNotes } from './delivery-model.ts';
 import { findDesignInput } from './design-location.ts';
 import { recordStatement, type DesignRecord } from './schema.ts';
@@ -34,13 +34,13 @@ export async function deliveryBrief(
 	const limit = siteRoot === undefined ? undefined : await realpath(resolve(siteRoot));
 	if (limit && !containsPath(limit, start))
 		throw new Error('The deliverable directory is outside the site root.');
-	const [project, milestone] = await Promise.all([
-		findDesignInput(start, 'project.ts', limit),
+	const [initiative, project] = await Promise.all([
+		findDesignInput(start, 'initiative.ts', limit),
 		findDesignInput(start, 'design.ts', limit),
 	]);
-	const projectModel = project ? await loadProject(project, siteRoot) : undefined;
-	const namespace = milestone && projectModel?.milestones.get(milestone);
-	const model = projectModel ?? (await loadDesignSet(milestone ?? start, siteRoot));
+	const initiativeModel = initiative ? await loadInitiative(initiative, siteRoot) : undefined;
+	const namespace = project && initiativeModel?.projects.get(project);
+	const model = initiativeModel ?? (await loadDesignSet(project ?? start, siteRoot));
 	const delivery = projectDelivery(model.design, model.entries);
 	await model.check.verify();
 	const scopedId = namespace && !reference.includes('/') ? `${namespace}/${reference}` : reference;

@@ -60,10 +60,10 @@ export async function openPage(
 
 	if (owner) {
 		const build =
-			owner.kind === 'project'
+			owner.kind === 'initiative'
 				? await (
-						await import('./design-authoring/check-project.ts')
-					).buildProject(owner.directory, { siteRoot: root, write: true })
+						await import('./design-authoring/check-initiative.ts')
+					).buildInitiative(owner.directory, { siteRoot: root, write: true })
 				: await (
 						await import('./design-authoring/check-design.ts')
 					).buildDesignSet(owner.directory, { siteRoot: root, write: true });
