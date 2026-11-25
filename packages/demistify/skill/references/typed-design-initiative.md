@@ -134,4 +134,4 @@ The overview opens with projects grouped by number. Select a project to open its
 
 ## Trees on an older layout
 
-A tree still on 1.32.1 records, or on `project.ts`, is converted from a sunstack-tools source checkout, not with this CLI: first the 1.32.1 record migration from the 1.33.0 release commit (`git checkout a9e9a34c`, then `node packages/demistify/scripts/migrate-lean-design-records.ts --released-lean …` as that commit's guide describes), then `packages/demistify/scripts/initiative-migration/` on main, whose README gives the command. Run each with its dry run first.
+A tree still on 1.32.1 records, or on `project.ts`, is converted from a sunstack-tools source checkout, not with this CLI: first the 1.32.1 record migration from the 1.33.0 release commit (`git checkout a9e9a34c`, then `node packages/demistify/scripts/migrate-lean-design-records.ts --released-lean …` as that commit's guide describes), then `packages/demistify/scripts/initiative-migration/` at the 1.36.1 release commit (`git checkout da3363b6`), whose README gives the command. Run each with its dry run first.
