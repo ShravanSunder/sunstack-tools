@@ -73,7 +73,7 @@ async function main(): Promise<number> {
 	if (command === 'initiative') {
 		const [action, ...args] = rest;
 		const usage =
-			'Usage: demistify initiative check [directory] [--site-root <directory>] [--write]\n       demistify initiative status [directory] [--site-root <directory>] [--json]\n       demistify initiative answer <review.md|-> [directory] [--site-root <directory>] [--decided-on <yyyy-mm-dd>] [--write]';
+			'Usage: demistify initiative check [directory] [--site-root <directory>] [--write]\n       demistify initiative status [directory] [--site-root <directory>] [--json]\n       demistify initiative answer <review.md|-> [directory] [--site-root <directory>] [--decided-on <yyyy-mm-dd>] [--write]\n       demistify initiative add <choice|ruling|assumption> [directory] --namespace <initiative|project> --page <page.html> [--words <owner words>] [--author <alias>] [--site-root <directory>] [--write]';
 		if (!action || action === '--help') {
 			write(usage);
 			return 0;
@@ -86,6 +86,10 @@ async function main(): Promise<number> {
 				write: { type: 'boolean' },
 				json: { type: 'boolean' },
 				'decided-on': { type: 'string' },
+				namespace: { type: 'string' },
+				page: { type: 'string' },
+				words: { type: 'string' },
+				author: { type: 'string' },
 				help: { type: 'boolean', short: 'h' },
 			},
 		});
@@ -104,6 +108,27 @@ async function main(): Promise<number> {
 				await applyReviewAnswers(reviewText, answerDirectory, {
 					siteRoot: values['site-root'],
 					decidedOn: values['decided-on'],
+					write: values.write,
+				}),
+			);
+			return 0;
+		}
+		if (action === 'add' && positionals.length >= 1 && positionals.length <= 2) {
+			const [kind, addDirectory = '.'] = positionals;
+			const { addRecord, scaffoldKinds } =
+				await import('../src/node/design-authoring/record-scaffold.ts');
+			const scaffoldKind = scaffoldKinds.find((candidate) => candidate === kind);
+			if (!scaffoldKind || !values.namespace || !values.page) {
+				write(usage);
+				return 1;
+			}
+			write(
+				await addRecord(scaffoldKind, addDirectory, {
+					namespace: values.namespace,
+					page: values.page,
+					words: values.words,
+					author: values.author,
+					siteRoot: values['site-root'],
 					write: values.write,
 				}),
 			);
@@ -262,7 +287,7 @@ async function main(): Promise<number> {
 	}
 	if (command !== 'check') {
 		write(
-			'Usage: demistify check [--fix] [--render] [--no-diagrams] <page.html …>\n       demistify check --hook\n       demistify open <page.html> [--site-root <directory>] [--no-browser]\n       demistify design --help\n       demistify brief <deliverable> [directory] [--site-root <directory>]\n       demistify initiative check [directory] [--site-root <directory>] [--write]\n       demistify initiative status [directory] [--site-root <directory>] [--json]\n       demistify initiative answer <review.md|-> [directory] [--site-root <directory>] [--decided-on <yyyy-mm-dd>] [--write]',
+			'Usage: demistify check [--fix] [--render] [--no-diagrams] <page.html …>\n       demistify check --hook\n       demistify open <page.html> [--site-root <directory>] [--no-browser]\n       demistify design --help\n       demistify brief <deliverable> [directory] [--site-root <directory>]\n       demistify initiative check [directory] [--site-root <directory>] [--write]\n       demistify initiative status [directory] [--site-root <directory>] [--json]\n       demistify initiative answer <review.md|-> [directory] [--site-root <directory>] [--decided-on <yyyy-mm-dd>] [--write]\n       demistify initiative add <choice|ruling|assumption> [directory] --namespace <initiative|project> --page <page.html> [--words <owner words>] [--author <alias>] [--site-root <directory>] [--write]',
 		);
 		return !command || ['--help', '-h', 'help'].includes(command) ? 0 : 1;
 	}

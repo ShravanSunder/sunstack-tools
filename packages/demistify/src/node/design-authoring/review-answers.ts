@@ -1,4 +1,4 @@
-import { readFile, realpath, writeFile } from 'node:fs/promises';
+import { realpath } from 'node:fs/promises';
 import { dirname, join, relative, resolve } from 'node:path';
 
 import typescript from 'typescript';
@@ -7,6 +7,17 @@ import type { DecisionRecord } from '../../core/decision-record.ts';
 import { escapeHtml } from '../../core/html-text.ts';
 import { parseReviewAnswers, type ReviewedAnswer } from '../../core/review-model.ts';
 import { buildInitiative } from './check-initiative.ts';
+import {
+	applyEditsThenCheck,
+	formatLiteral,
+	isoDate,
+	localDate,
+	paragraphBeforeDocumentEnd,
+	readOptionalText,
+	readText,
+	type TextEdit,
+	textCache,
+} from './initiative-edits.ts';
 import { readDesignSources } from './read-design.ts';
 import { readInitiativeManifest } from './read-initiative.ts';
 import { relativePage } from './record-projection.ts';
@@ -30,21 +41,6 @@ interface AnsweredRecord {
 	readonly line: number;
 	readonly pageFile: string;
 	readonly answerParagraph?: string;
-}
-
-interface TextEdit {
-	readonly start: number;
-	readonly end: number;
-	readonly text: string;
-}
-
-const isoDate = /^\d{4}-\d{2}-\d{2}$/u;
-
-const pad = (value: number): string => String(value).padStart(2, '0');
-
-function today(): string {
-	const now = new Date();
-	return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 }
 
 function propertyName(property: typescript.PropertyAssignment): string | undefined {
@@ -93,24 +89,6 @@ function findAuthority(file: string, text: string, localId: string): AuthoritySp
 	return spans;
 }
 
-/** Write a data literal in the record file's own style: JSON keys, or bare keys and single quotes. */
-function formatLiteral(value: unknown, indent: string, quotedKeys: boolean): string {
-	const unit = indent.includes('\t') ? '\t' : '  ';
-	if (typeof value === 'string')
-		return quotedKeys
-			? JSON.stringify(value)
-			: `'${JSON.stringify(value).slice(1, -1).replaceAll('\\"', '"').replaceAll("'", "\\'")}'`;
-	if (typeof value === 'boolean') return String(value);
-	if (typeof value !== 'object' || value === null || Array.isArray(value))
-		throw new Error('An authority holds only strings, booleans and objects.');
-	const inner = indent + unit;
-	const entries = Object.entries(value).map(([key, entry]) => {
-		const name = quotedKeys ? JSON.stringify(key) : key;
-		return `${inner}${name}: ${formatLiteral(entry, inner, quotedKeys)}`;
-	});
-	return `{\n${entries.join(',\n')}\n${indent}}`;
-}
-
 function chosenOption(
 	answer: ReviewedAnswer,
 	record: ChoiceRecord,
@@ -133,13 +111,6 @@ function chosenOption(
 	return option;
 }
 
-const readText = (file: string): Promise<string> => readFile(file, 'utf8');
-const readOptionalText = (file: string): Promise<string | undefined> =>
-	readFile(file, 'utf8').catch((error: unknown) => {
-		if (error instanceof Error && 'code' in error && error.code === 'ENOENT') return undefined;
-		throw error;
-	});
-
 async function recordFiles(
 	root: string,
 	namespace: string,
@@ -147,7 +118,7 @@ async function recordFiles(
 ): Promise<{ base: string; files: string[] }> {
 	if (namespace === 'initiative') {
 		const initiativeFile = join(root, 'initiative.ts');
-		const manifest = readInitiativeManifest(initiativeFile, await readFile(initiativeFile, 'utf8'));
+		const manifest = readInitiativeManifest(initiativeFile, await readText(initiativeFile));
 		// Shared records resolve their links from the decisions file, as the check does.
 		if (!manifest.decisions) return { base: root, files: [] };
 		return { base: dirname(manifest.decisions), files: [manifest.decisions] };
@@ -168,7 +139,7 @@ export async function applyReviewAnswers(
 	directory: string,
 	options: ReviewAnswerOptions = {},
 ): Promise<string> {
-	const decidedOn = options.decidedOn ?? today();
+	const decidedOn = options.decidedOn ?? localDate();
 	if (!isoDate.test(decidedOn))
 		throw new Error(`--decided-on takes a date as yyyy-mm-dd, not ${decidedOn}.`);
 	const review = parseReviewAnswers(reviewText);
@@ -176,12 +147,7 @@ export async function applyReviewAnswers(
 	const build = await buildInitiative(root, { siteRoot: options.siteRoot });
 	const records = new Map(build.design.records.map((record) => [record.id, record]));
 
-	const texts = new Map<string, Promise<string>>();
-	const textOf = (file: string): Promise<string> => {
-		const known = texts.get(file) ?? readText(file);
-		texts.set(file, known);
-		return known;
-	};
+	const textOf = textCache();
 
 	type PlannedAnswer =
 		| { readonly note: string }
@@ -233,25 +199,14 @@ export async function applyReviewAnswers(
 			const pageText = await textOf(placement.file);
 			if (pageText.includes(`id="${escapeHtml(paragraphId)}"`))
 				throw new Error(`${id}: ${relative(root, placement.file)} already has #${paragraphId}.`);
-			const close = pageText.lastIndexOf('</ex-document>');
-			const insertAt = close === -1 ? pageText.lastIndexOf('</body>') : close;
-			if (insertAt === -1)
-				throw new Error(
-					`${id}: ${relative(root, placement.file)} has no </ex-document> or </body> to write the answer before.`,
-				);
 			answerParagraph = `<p id="${escapeHtml(paragraphId)}">Decision ${escapeHtml(id)}. Your words, ${decidedOn}, in review ${escapeHtml(review.reviewId)}: "${escapeHtml(words)}"</p>`;
-			// On its own line, at the closing tag's indentation; otherwise just before the tag.
-			const lineStart = pageText.lastIndexOf('\n', insertAt - 1) + 1;
-			const indent = pageText.slice(lineStart, insertAt);
-			const ownLine = indent.trim() === '';
-			const paragraphAt = ownLine ? lineStart : insertAt;
 			edits.push([
 				placement.file,
-				{
-					start: paragraphAt,
-					end: paragraphAt,
-					text: `${ownLine ? indent : ''}${answerParagraph}\n`,
-				},
+				paragraphBeforeDocumentEnd(
+					pageText,
+					`${id}: ${relative(root, placement.file)}`,
+					answerParagraph,
+				),
 			]);
 			source = {
 				href: `${page}#${encodeURIComponent(paragraphId)}`,
@@ -317,25 +272,6 @@ export async function applyReviewAnswers(
 			'\n',
 		);
 
-	const originals = new Map(
-		await Promise.all([...edits.keys()].map(async (file) => [file, await textOf(file)] as const)),
-	);
-	await Promise.all(
-		[...edits].map(([file, fileEdits]) => {
-			let text = originals.get(file) ?? '';
-			for (const edit of fileEdits.toSorted((left, right) => right.start - left.start))
-				text = text.slice(0, edit.start) + edit.text + text.slice(edit.end);
-			return writeFile(file, text);
-		}),
-	);
-	try {
-		const checked = await buildInitiative(root, { siteRoot: options.siteRoot, write: true });
-		return [...report, 'Applied.', checked.result].join('\n');
-	} catch (error) {
-		await Promise.all([...originals].map(([file, text]) => writeFile(file, text)));
-		throw new Error(
-			`The check failed after applying, so every changed file was restored.\n${error instanceof Error ? error.message : String(error)}`,
-			{ cause: error },
-		);
-	}
+	const checked = await applyEditsThenCheck(root, edits, textOf, options.siteRoot);
+	return [...report, 'Applied.', checked].join('\n');
 }
