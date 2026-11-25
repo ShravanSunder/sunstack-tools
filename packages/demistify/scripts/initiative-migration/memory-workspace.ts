@@ -2,8 +2,8 @@ import { readFileSync } from 'node:fs';
 import { mkdir, unlink, writeFile } from 'node:fs/promises';
 import { dirname, join, relative } from 'node:path';
 
-import type { FileChange } from './recut-report.ts';
-import type { SourceWorkspace } from './recut-workspace.ts';
+import type { FileChange } from './migration-report.ts';
+import type { SourceWorkspace } from './migration-workspace.ts';
 
 function missing(error: unknown): boolean {
 	return (

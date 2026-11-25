@@ -1,8 +1,8 @@
 # Initiative migration (temporary)
 
-One-time tooling to convert a `project.ts` tree to `initiative.ts` and re-cut
-its deliverables into projects. It is not part of the published CLI or the
-guide. Delete this folder, and its line in
+One-time tooling to convert a `project.ts` tree to `initiative.ts` and move
+its deliverables into projects. It is not part of the published CLI; the guide mentions it once,
+for older trees. Delete this folder, and its line in
 `apps/demistify-poc/vitest.config.ts`, once the trees that need it are
 converted.
 
@@ -16,7 +16,7 @@ node packages/demistify/scripts/initiative-migration/run.ts <initiative-dir> --p
 ```
 
 ```text
-Re-cut an initiative: move whole deliverables, and the records they scope, between
+Move deliverables an initiative: move whole deliverables, and the records they scope, between
 project folders, as the plan says. Ids change only when they collide in the target
 project; every reference, Map and Walkthrough target, page binding and #ID link is
 rewritten. A record that a staying deliverable also scopes stays and is named

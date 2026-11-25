@@ -1,7 +1,7 @@
 import { relative, sep } from 'node:path';
 
 /** One project of the initiative, as it is before the run or as the run creates it. */
-export interface RecutProject {
+export interface MigrationProject {
 	readonly name: string;
 	readonly directory: string;
 	readonly designFile: string;

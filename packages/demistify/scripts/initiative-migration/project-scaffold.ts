@@ -1,10 +1,10 @@
 import { join } from 'node:path';
 
-import type { AddedRow } from './recut-resolution.ts';
-import { sdkFilename, type RecutProject, type SourceWorkspace } from './recut-workspace.ts';
+import { sdkFilename, type MigrationProject, type SourceWorkspace } from './migration-workspace.ts';
+import type { AddedRow } from './move-resolution.ts';
 import { isIdentifierName } from './source-edits.ts';
 
-/** Files the re-cut writes for a project it creates, and for an added later row. */
+/** Files the move writes for a project it creates, and for an added later row. */
 export const designTemplate = (
 	title: string,
 ): string => `import { defineDesign } from './${sdkFilename}';
@@ -25,7 +25,7 @@ export default defineDelivery(design, []${lead ? `, { lead: ${JSON.stringify(lea
 `;
 
 export function scaffoldProjectSources(
-	project: RecutProject,
+	project: MigrationProject,
 	title: string,
 	lead: string | undefined,
 	workspace: SourceWorkspace,

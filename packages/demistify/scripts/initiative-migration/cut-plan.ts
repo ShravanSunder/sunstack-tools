@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 /**
- * The Lead's re-cut plan: which projects the initiative has afterwards, and which
+ * The Lead's move plan: which projects the initiative has afterwards, and which
  * whole deliverables move between them. Addresses name the tree as it is before
  * the run (`queue/DEL-07`); the command translates them.
  */

@@ -7,7 +7,7 @@ import typescript from 'typescript';
 import { escapeHtml } from '../../src/core/html-text.ts';
 import type { CutPlan } from './cut-plan.ts';
 import { initiativeSource, type InitiativeProjectEntry } from './initiative-source.ts';
-import type { SourceWorkspace } from './recut-workspace.ts';
+import type { SourceWorkspace } from './migration-workspace.ts';
 import {
 	applyTextEdits,
 	defaultExport,
@@ -18,7 +18,7 @@ import {
 
 /**
  * The 1.33 layout: project.ts with `designs`, project-decisions.ts, and shared
- * records named `project/D1`. The re-cut converts it to the initiative layout in
+ * records named `project/D1`. The move converts it to the initiative layout in
  * the same run; the library's own reader knows only initiative.ts.
  */
 export interface LegacyConversion {

@@ -1,7 +1,7 @@
 import { parse, type DefaultTreeAdapterMap } from 'parse5';
 
 /**
- * What the re-cut reads from an HTML page: record bindings, links, ids, and the units
+ * What the move reads from an HTML page: record bindings, links, ids, and the units
  * a passage can move as: a heading section, or one ex-section-item.
  */
 export type PageElement = DefaultTreeAdapterMap['element'];

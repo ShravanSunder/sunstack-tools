@@ -1,21 +1,21 @@
 import type { CutPlan } from './cut-plan.ts';
 import type { LegacyConversion } from './legacy-layout.ts';
-import type { PagePlan } from './recut-pages.ts';
-import type { RecutResolution } from './recut-resolution.ts';
-import type { PageDeclaration, RecutProject } from './recut-workspace.ts';
+import type { PageDeclaration, MigrationProject } from './migration-workspace.ts';
+import type { MigrationResolution } from './move-resolution.ts';
+import type { PagePlan } from './page-moves.ts';
 
 export interface FileChange {
 	readonly path: string;
 	readonly kind: 'created' | 'changed' | 'removed';
 }
 
-interface RecutReportInput {
+interface MigrationReportInput {
 	readonly root: string;
 	readonly conversion: LegacyConversion | undefined;
 	readonly plan: CutPlan;
-	readonly resolution: RecutResolution;
+	readonly resolution: MigrationResolution;
 	readonly pagePlan: PagePlan;
-	readonly projects: ReadonlyMap<string, RecutProject>;
+	readonly projects: ReadonlyMap<string, MigrationProject>;
 	readonly declaredPages: ReadonlyMap<string, readonly PageDeclaration[]>;
 	readonly staleProse: readonly {
 		readonly from: string;
@@ -34,7 +34,7 @@ function section(title: string, lines: readonly string[]): string[] {
 }
 
 /** The printed plan: every change, every collision, and what the Lead still places by hand. */
-export function formatRecutReport(input: RecutReportInput): string {
+export function formatMigrationReport(input: MigrationReportInput): string {
 	const { plan, resolution, pagePlan, relativePath } = input;
 	const newAddress = (address: string): string =>
 		resolution.recordMoves.get(address)?.to ??
@@ -45,10 +45,10 @@ export function formatRecutReport(input: RecutReportInput): string {
 		...resolution.recordMoves.values(),
 	].filter((move) => move.oldId !== move.newId);
 	const header = input.dryRun
-		? `Re-cut of ${input.root} (dry run: nothing written)`
+		? `Move deliverables of ${input.root} (dry run: nothing written)`
 		: input.applied
-			? `Re-cut of ${input.root} (written; the check passed)`
-			: `Re-cut of ${input.root} (nothing written: the check failed on the staged copy)`;
+			? `Move deliverables of ${input.root} (written; the check passed)`
+			: `Move deliverables of ${input.root} (nothing written: the check failed on the staged copy)`;
 	const projectLines = plan.projects.map((planned) => {
 		const project = input.projects.get(planned.key);
 		const where = project ? relativePath(project.directory) : planned.folder;

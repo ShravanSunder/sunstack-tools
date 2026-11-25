@@ -6,6 +6,7 @@ import {
 	type AddressMaps,
 	type AnchorTarget,
 } from './address-rewrite.ts';
+import { localId, projectOf } from './move-resolution.ts';
 import {
 	headingSection,
 	itemUnit,
@@ -15,7 +16,6 @@ import {
 	type PageUnit,
 	type ParsedPage,
 } from './page-units.ts';
-import { localId, projectOf } from './recut-resolution.ts';
 import { applyTextEdits, type TextEdit } from './source-edits.ts';
 
 export type { PageSource, PageUnit } from './page-units.ts';

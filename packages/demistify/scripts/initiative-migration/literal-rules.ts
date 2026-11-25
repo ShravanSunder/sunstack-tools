@@ -29,8 +29,8 @@ export const helperForKind: Readonly<Record<DesignRecord['kind'], string>> = {
 	assumption: 'defineAssumption',
 };
 /** A placeholder for a moved record's helper call, bound to the target file's import. */
-export const helperToken = (helper: string): string => `__recut_helper_${helper}__`;
-export const helperTokenPattern = /__recut_helper_(define[A-Za-z]+)__/gu;
+export const helperToken = (helper: string): string => `__migration_helper_${helper}__`;
+export const helperTokenPattern = /__migration_helper_(define[A-Za-z]+)__/gu;
 
 interface LiteralRule {
 	readonly pattern: readonly string[];
