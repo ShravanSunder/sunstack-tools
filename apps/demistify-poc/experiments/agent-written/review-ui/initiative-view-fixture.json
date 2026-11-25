@@ -282,6 +282,7 @@
 		"readyNow": [
 			"queue/DEL-01"
 		],
+		"needsPlan": [],
 		"blocksMost": [
 			{
 				"id": "queue/DEL-01",
