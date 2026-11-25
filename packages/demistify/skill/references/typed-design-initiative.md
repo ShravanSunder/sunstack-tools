@@ -89,6 +89,23 @@ demistify brief messages/DEL-01 docs/initiatives/2026-11-router --site-root docs
 
 Run `design types` for each project after a fresh checkout so the editor and `agents-identity.ts` can resolve the generated SDK. `initiative check` is read-only. It lists the projects by number, any order warnings, open owner questions under "Waiting on owner", then each deliverable's state; `--write` saves the ignored generated views. `initiative status` prints the plan: each project by number with its state, what it achieves and what the owner checks, every deliverable with its state, tasks done, checks passed and what it waits on, then what is ready now, what blocks the most open work, and what is built but not accepted; `--json` gives the same as data. `brief DEL-01` run inside a project and `brief messages/DEL-01` run at the root select the same deliverable; a bare ID that matches in several projects returns the qualified choices.
 
+## Record the owner's answers
+
+When the owner answers open choices on a page and copies the review, save the copied text (or pipe it on stdin with `-`) and apply it:
+
+```sh
+demistify initiative answer review.md docs/initiatives/2026-11-router --site-root docs
+demistify initiative answer review.md docs/initiatives/2026-11-router --site-root docs --write
+```
+
+The first run is a preview that writes nothing. With `--write`, each answer with a Decision ID settles its open choice:
+
+- The record's `authority` becomes `owner-decided`, with `chosen` the selected option and `decision` its title, dated today (or `--decided-on YYYY-MM-DD`).
+- When the owner commented on the question or the selected option, the comments are the owner's words. They go into a `<p id="D4-answer">` before `</ex-document>` on the page that places the record, and the record cites them verbatim with `sourceKind: 'owner-words'`.
+- A bare selection is `owner-accepted`, citing the record's placement and the option title.
+
+The item moves to its settled section on its own. The command then runs `initiative check --write`; if that check fails, every file it changed is restored. It refuses the whole review when a record is not an open choice, or when the review selects anything but one of its options. Answers without a Decision ID are skipped. Rewrite `decision` afterwards when the option title does not read as the answer.
+
 For an initiative-wide view, place this in the initiative's `index.html` and serve it with `open`:
 
 ```html
