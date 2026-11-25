@@ -1,6 +1,6 @@
 import type typescript from 'typescript';
 
-import type { DesignRecord } from '../schema.ts';
+import type { DesignRecord } from '../../src/node/design-authoring/schema.ts';
 import {
 	rewriteReference,
 	type AddressMaps,

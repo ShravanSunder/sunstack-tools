@@ -3,7 +3,7 @@ import { dirname, join, relative } from 'node:path';
 
 import { expect, it } from 'vitest';
 
-import { checkInitiative } from '../check-initiative.ts';
+import { checkInitiative } from '../../src/node/design-authoring/check-initiative.ts';
 import { AnchorRelocations, rewriteReference } from './address-rewrite.ts';
 import { parseCutPlan } from './cut-plan.ts';
 import { migrateInitiative } from './migrate-initiative.ts';

@@ -1,5 +1,5 @@
-import type { DeliveryEntry } from '../delivery-model.ts';
-import { recordRelationships, type DesignRecord } from '../schema.ts';
+import type { DeliveryEntry } from '../../src/node/design-authoring/delivery-model.ts';
+import { recordRelationships, type DesignRecord } from '../../src/node/design-authoring/schema.ts';
 import type { CutPlan } from './cut-plan.ts';
 
 /** What the re-cut reads from the initiative as it is: one set per registered project. */

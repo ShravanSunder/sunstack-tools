@@ -4,7 +4,7 @@ import { basename, dirname, join, resolve } from 'node:path';
 import { parse, type DefaultTreeAdapterMap } from 'parse5';
 import typescript from 'typescript';
 
-import { escapeHtml } from '../../../core/html-text.ts';
+import { escapeHtml } from '../../src/core/html-text.ts';
 import type { CutPlan } from './cut-plan.ts';
 import { initiativeSource, type InitiativeProjectEntry } from './initiative-source.ts';
 import type { SourceWorkspace } from './recut-workspace.ts';

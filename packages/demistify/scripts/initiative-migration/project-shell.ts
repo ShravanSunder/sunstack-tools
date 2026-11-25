@@ -1,4 +1,4 @@
-import { escapeHtml } from '../../../core/html-text.ts';
+import { escapeHtml } from '../../src/core/html-text.ts';
 
 export interface ShellRuntime {
 	readonly stylesheet: string;

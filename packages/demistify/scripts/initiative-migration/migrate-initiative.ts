@@ -3,9 +3,12 @@ import { cp, mkdtemp, readFile, realpath, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join, relative, resolve, sep } from 'node:path';
 
-import { containsPath } from '../../local-site.ts';
-import { buildInitiative, loadInitiative } from '../check-initiative.ts';
-import { requiredSectionHolds } from '../section-layout.ts';
+import {
+	buildInitiative,
+	loadInitiative,
+} from '../../src/node/design-authoring/check-initiative.ts';
+import { requiredSectionHolds } from '../../src/node/design-authoring/section-layout.ts';
+import { containsPath } from '../../src/node/local-site.ts';
 import type { AddressMaps, AnchorTarget } from './address-rewrite.ts';
 import { parseCutPlan, type CutPlan } from './cut-plan.ts';
 import { initiativeSource, type InitiativeProjectEntry } from './initiative-source.ts';

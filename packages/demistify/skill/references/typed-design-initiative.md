@@ -94,42 +94,6 @@ For an initiative-wide view, place this in the initiative's `index.html` and ser
 
 It opens with the projects grouped by number, each with what it achieves and what the owner checks, linked to its page; then owner questions, the work lists, deliverables and records. Every state and id prefix carries a plain explanation. Use `ex-deliverables` for one project's detail.
 
-## Re-cut or convert an initiative
-
-Move whole deliverables between projects with one command. Run the dry run first: it writes nothing and prints every change, collision and passage it cannot place.
-
-```sh
-demistify initiative migrate docs/initiatives/2026-11-router --plan cut.json --site-root docs --dry-run
-demistify initiative migrate docs/initiatives/2026-11-router --plan cut.json --site-root docs
-```
-
-The plan is JSON. Addresses name the tree as it is before the run.
-
-```json
-{
-  "projects": [
-    { "key": "harness-contract", "folder": "2026-11-harness-contract", "number": 1,
-      "title": "One contract for every harness", "achieves": "…", "acceptance": "…", "lead": "mac-lead" }
-  ],
-  "moves": [{ "from": "mac-side/DEL-07", "to": "harness-contract" }],
-  "records": [{ "record": "mac-side/R14", "to": "harness-contract" }],
-  "add": [{ "project": "harness-contract", "title": "Claude through its SDK", "dependsOn": [], "why": "…" }],
-  "withdraw": ["mac-side/DEL-17"],
-  "dependsOnChanges": [{ "deliverable": "mac-side/DEL-19", "from": [], "to": ["mac-side/DEL-02"] }],
-  "remove": [],
-  "open": []
-}
-```
-
-- `projects` lists every project the initiative keeps, with its number. A project not yet on disk is created in `folder`, with the typed files, `deliverables/` and an `index.html` that declares the record sections; `title` and `lead` apply only to these. A project the plan omits stays registered and is printed; list it in `remove` to drop it from `initiative.ts` once nothing is left in it.
-- A move takes the deliverable module, its delivery entry and acceptance, and every record it scopes: rules, needs, realizations, checks and the decisions and assumptions they rest on. A record that a deliverable staying behind also scopes stays, and the moved deliverable names it qualified. `records` overrides where one record goes.
-- Ids change only when they collide in the target project, and never reuse an id the target already had. Every reference, `dependsOn`, Map and Walkthrough target, page binding, status and `#ID` link is rewritten to the new address.
-- `add` creates a `later` deliverable with the next free id; the run prints its `dependsOn` and `why` for you to apply when you scope it. `withdraw` removes the deliverable and every `dependsOn` naming it.
-- A passage moves with its record only when its heading section, or its section item, holds nothing else. Everything else stays and is listed under "For you to place". Prose is never rewritten: the run lists where a renamed item's old id still appears in text.
-- The real run checks a staged copy first and writes nothing when that check fails. Afterwards, run `design types` for each new project and `initiative check --write`.
-
-A tree still in the `project.ts` layout is converted in the same run: `initiative.ts` takes the plan's numbers (a project the plan omits gets the highest one), `project-decisions.ts` and `project-assumptions.ts` become `initiative-*`, `project/` references become `initiative/`, and `ex-project-overview` becomes `ex-initiative-overview`.
-
 ## Migrate an initiative from 1.32.1
 
 From the Demistify source checkout, run the migration against a committed copy of the docs tree. The dry run validates a temporary copy when all required inputs are present. If the JSON report has `blocked: true`, fill the missing values in its `recordInput` object and save that object in `record-input.json`. Where the report lists `sourceCandidates`, copy the source that establishes the decision into the record's `source` field.

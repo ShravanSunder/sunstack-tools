@@ -1,5 +1,5 @@
-import { escapeHtml } from '../../../core/html-text.ts';
-import type { SectionHold } from '../../../core/section-routing.ts';
+import { escapeHtml } from '../../src/core/html-text.ts';
+import type { SectionHold } from '../../src/core/section-routing.ts';
 import {
 	AnchorRelocations,
 	rewriteReference,

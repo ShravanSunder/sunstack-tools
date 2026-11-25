@@ -2,8 +2,8 @@ import { basename, dirname, join } from 'node:path';
 
 import typescript from 'typescript';
 
-import type { DeliveryEntry } from '../delivery-model.ts';
-import type { DesignRecord } from '../schema.ts';
+import type { DeliveryEntry } from '../../src/node/design-authoring/delivery-model.ts';
+import type { DesignRecord } from '../../src/node/design-authoring/schema.ts';
 import type { AddressMaps, AnchorRelocations } from './address-rewrite.ts';
 import { readDeliveryFile, updateDelivery } from './delivery-sources.ts';
 import {
