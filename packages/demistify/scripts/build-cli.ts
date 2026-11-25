@@ -27,21 +27,32 @@ const packageMetadataSchema = z.object({
 	description: z.string(),
 	devDependencies: z.object({ typescript: z.string() }),
 });
-const npmPackReceiptSchema = z.tuple([
-	z.object({ filename: z.string(), integrity: z.string(), entryCount: z.number() }),
+const npmPackReceipt = z.object({
+	filename: z.string(),
+	integrity: z.string(),
+	entryCount: z.number(),
+});
+/** npm 11 prints `[receipt]`; npm 12 prints `{ [packageName]: receipt }`. */
+const npmPackReceiptSchema = z.union([
+	z.tuple([npmPackReceipt]).transform(([receipt]) => receipt),
+	z.record(z.string(), npmPackReceipt).transform((receipts, context) => {
+		const [receipt, ...extra] = Object.values(receipts);
+		if (receipt && extra.length === 0) return receipt;
+		context.addIssue({ code: 'custom', message: 'npm pack must report exactly one archive.' });
+		return z.NEVER;
+	}),
 ]);
 
 async function packArchive(
 	stagingDirectory: string,
 	outputDirectory: string,
-): Promise<z.infer<typeof npmPackReceiptSchema>[0]> {
+): Promise<z.infer<typeof npmPackReceipt>> {
 	const { stdout } = await run(
 		'npm',
 		['pack', '--json', '--ignore-scripts', '--pack-destination', outputDirectory],
 		{ cwd: stagingDirectory },
 	);
-	const [receipt] = npmPackReceiptSchema.parse(JSON.parse(stdout));
-	return receipt;
+	return npmPackReceiptSchema.parse(JSON.parse(stdout));
 }
 
 function npmGuideMarkdown(markdown: string): string {
