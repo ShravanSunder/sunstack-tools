@@ -5,6 +5,7 @@ import {
 	commentSnapshotSchema,
 	createCommentSnapshot,
 	formatReview,
+	parseReviewAnswers,
 	reviewEnvelopeSchema,
 	textAnchorMatches,
 	textCommentAnchorSchema,
@@ -285,4 +286,59 @@ test('a carried review rejects duplicate or unanswered question records', (): vo
 	expect(reviewEnvelopeSchema.safeParse({ ...snapshot, answers: [answer] }).success).toBe(true);
 	for (const answers of [[answer, answer], [{ ...answer, selected: [] }]])
 		expect(reviewEnvelopeSchema.safeParse({ ...snapshot, answers }).success).toBe(false);
+});
+
+test('a copied review reads back to its answers and the comments left on them', (): void => {
+	const time = '2026-11-25T12:00:00.000Z';
+	const comment = (commentId: string, targetId: string, body: string): unknown => ({
+		commentId,
+		anchor: { kind: 'entity', targetId, label: targetId },
+		body,
+		createdAt: time,
+		updatedAt: time,
+	});
+	const review = reviewEnvelopeSchema.parse({
+		...identity,
+		format: 'demistify-review-1',
+		reviewId: 'review-7',
+		comments: [
+			comment('c1', 'initiative/D2', 'yes, resume it\n\n- keep (this) line'),
+			comment('c2', 'initiative/D2--resume', 'and log each one'),
+			comment('c3', 'layout', 'Loose note'),
+		],
+		answers: [
+			{
+				questionId: 'initiative/D2',
+				decisionId: 'initiative/D2',
+				question: 'When can a request pick up leftover work?',
+				selected: [{ optionId: 'initiative/D2--resume', label: 'Resume overdue work' }],
+			},
+			{ questionId: 'q9', question: 'Plain question', selected: [{ optionId: 'a', label: 'A' }] },
+		],
+	});
+
+	const parsed = parseReviewAnswers(formatReview(review));
+
+	expect(parsed).toEqual({
+		reviewId: 'review-7',
+		answers: [
+			{
+				question: 'When can a request pick up leftover work?',
+				questionId: 'initiative/D2',
+				decisionId: 'initiative/D2',
+				selected: [{ optionId: 'initiative/D2--resume', label: 'Resume overdue work' }],
+				comments: [
+					{ targetId: 'initiative/D2', body: 'yes, resume it\n\n- keep (this) line' },
+					{ targetId: 'initiative/D2--resume', body: 'and log each one' },
+				],
+			},
+			{
+				question: 'Plain question',
+				questionId: 'q9',
+				selected: [{ optionId: 'a', label: 'A' }],
+				comments: [],
+			},
+		],
+	});
+	expect(() => parseReviewAnswers('# Review of scope')).toThrow('no "Review ID:" line');
 });

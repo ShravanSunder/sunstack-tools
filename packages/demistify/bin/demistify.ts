@@ -9,6 +9,7 @@
  */
 import { readFile, writeFile } from 'node:fs/promises';
 import { dirname, relative, resolve } from 'node:path';
+import { text as readStreamText } from 'node:stream/consumers';
 import { parseArgs } from 'node:util';
 
 import { applyEdits, type CheckOptions, checkHtml, formatFindings } from '../src/node/check.ts';
@@ -72,7 +73,7 @@ async function main(): Promise<number> {
 	if (command === 'initiative') {
 		const [action, ...args] = rest;
 		const usage =
-			'Usage: demistify initiative check [directory] [--site-root <directory>] [--write]\n       demistify initiative status [directory] [--site-root <directory>] [--json]';
+			'Usage: demistify initiative check [directory] [--site-root <directory>] [--write]\n       demistify initiative status [directory] [--site-root <directory>] [--json]\n       demistify initiative answer <review.md|-> [directory] [--site-root <directory>] [--decided-on <yyyy-mm-dd>] [--write]';
 		if (!action || action === '--help') {
 			write(usage);
 			return 0;
@@ -84,6 +85,7 @@ async function main(): Promise<number> {
 				'site-root': { type: 'string' },
 				write: { type: 'boolean' },
 				json: { type: 'boolean' },
+				'decided-on': { type: 'string' },
 				help: { type: 'boolean', short: 'h' },
 			},
 		});
@@ -91,15 +93,31 @@ async function main(): Promise<number> {
 			write(usage);
 			return 0;
 		}
+		if (action === 'answer' && positionals.length >= 1 && positionals.length <= 2 && !values.json) {
+			const [reviewFile = '-', answerDirectory = '.'] = positionals;
+			const reviewText =
+				reviewFile === '-'
+					? await readStreamText(process.stdin)
+					: await readFile(reviewFile, 'utf8');
+			const { applyReviewAnswers } = await import('../src/node/design-authoring/review-answers.ts');
+			write(
+				await applyReviewAnswers(reviewText, answerDirectory, {
+					siteRoot: values['site-root'],
+					decidedOn: values['decided-on'],
+					write: values.write,
+				}),
+			);
+			return 0;
+		}
 		const [directory = '.'] = positionals;
-		if (action === 'check' && positionals.length <= 1 && !values.json) {
+		if (action === 'check' && positionals.length <= 1 && !values.json && !values['decided-on']) {
 			const { checkInitiative } = await import('../src/node/design-authoring/check-initiative.ts');
 			write(
 				await checkInitiative(directory, { siteRoot: values['site-root'], write: values.write }),
 			);
 			return 0;
 		}
-		if (action === 'status' && positionals.length <= 1 && !values.write) {
+		if (action === 'status' && positionals.length <= 1 && !values.write && !values['decided-on']) {
 			const { initiativeStatus } =
 				await import('../src/node/design-authoring/initiative-status.ts');
 			write(
@@ -244,7 +262,7 @@ async function main(): Promise<number> {
 	}
 	if (command !== 'check') {
 		write(
-			'Usage: demistify check [--fix] [--render] [--no-diagrams] <page.html …>\n       demistify check --hook\n       demistify open <page.html> [--site-root <directory>] [--no-browser]\n       demistify design --help\n       demistify brief <deliverable> [directory] [--site-root <directory>]\n       demistify initiative check [directory] [--site-root <directory>] [--write]\n       demistify initiative status [directory] [--site-root <directory>] [--json]',
+			'Usage: demistify check [--fix] [--render] [--no-diagrams] <page.html …>\n       demistify check --hook\n       demistify open <page.html> [--site-root <directory>] [--no-browser]\n       demistify design --help\n       demistify brief <deliverable> [directory] [--site-root <directory>]\n       demistify initiative check [directory] [--site-root <directory>] [--write]\n       demistify initiative status [directory] [--site-root <directory>] [--json]\n       demistify initiative answer <review.md|-> [directory] [--site-root <directory>] [--decided-on <yyyy-mm-dd>] [--write]',
 		);
 		return !command || ['--help', '-h', 'help'].includes(command) ? 0 : 1;
 	}

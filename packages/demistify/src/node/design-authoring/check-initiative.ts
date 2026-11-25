@@ -32,6 +32,7 @@ import {
 	attachDecisionDeliverables,
 	projectedDestinations,
 	qualifyRecord,
+	type RecordProjection,
 } from './record-projection.ts';
 import { recordLabel, recordRelationships, type DesignCore, type DesignRecord } from './schema.ts';
 import { unregisteredRecordPages } from './unregistered-pages.ts';
@@ -235,6 +236,8 @@ export interface CheckedInitiativeBuild {
 	readonly design: DesignCore;
 	readonly entries: readonly DeliveryEntry[];
 	readonly delivery: DeliveryProjection;
+	/** Qualified record ID to the page and fragment that place it. */
+	readonly placements: RecordProjection['placements'];
 }
 
 interface SharedRecordSource {
@@ -532,6 +535,7 @@ export async function buildInitiative(
 		entries,
 		delivery,
 		projects,
+		placements: projection.placements,
 	};
 }
 
