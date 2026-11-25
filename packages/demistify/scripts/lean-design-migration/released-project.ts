@@ -138,7 +138,8 @@ export async function planReleasedProject({
 		const text = await read(file);
 		if (text === undefined) continue;
 		const namespace =
-			declared.find((candidate) => containsPath(candidate.directory, file))?.namespace ?? 'project';
+			declared.find((candidate) => containsPath(candidate.directory, file))?.namespace ??
+			'initiative';
 		const page = migrateReleasedSections(file, text);
 		const choices = migrateReleasedChoices(file, page.output);
 		for (const choice of choices.choices) {

@@ -94,18 +94,6 @@ For an initiative-wide view, place this in the initiative's `index.html` and ser
 
 It opens with the projects grouped by number, each with what it achieves and what the owner checks, linked to its page; then owner questions, the work lists, deliverables and records. Every state and id prefix carries a plain explanation. Use `ex-deliverables` for one project's detail.
 
-## Migrate an initiative from 1.32.1
+## Trees on an older layout
 
-From the Demistify source checkout, run the migration against a committed copy of the docs tree. The dry run validates a temporary copy when all required inputs are present. If the JSON report has `blocked: true`, fill the missing values in its `recordInput` object and save that object in `record-input.json`. Where the report lists `sourceCandidates`, copy the source that establishes the decision into the record's `source` field.
-
-```sh
-node packages/demistify/scripts/migrate-lean-design-records.ts \
-  --released-lean --source /path/to/copied/docs --project initiatives/2026-11-router --dry-run
-node packages/demistify/scripts/migrate-lean-design-records.ts \
-  --released-lean --source /path/to/copied/docs --project initiatives/2026-11-router \
-  --record-input /path/to/record-input.json --output /path/to/new/docs
-```
-
-The migration uses the original record IDs, page bindings and links. It reads a contiguous block of migration comments immediately above a record. Use `// weight: design`, `// weight: process` or `// weight: minor` for weight and `// by: messages-lead lead` for an assumption's author. Use `// settles: <sentence>` for an open assumption's settling condition and `// settledBy: <alias>` for a confirmed or refuted assumption. A `settles: unknown` comment leaves the settling condition missing. Explicit input takes precedence over comments and the report lists conflicts.
-
-If a bound Choice already has options in HTML, the migration reads them from that page and preserves the original option and Details fragment IDs. Supply the recommendation and any other missing decision fields in the input file. The migration moves a section's authored contents into a sibling item and publishes the requested output directory only after the initiative checker passes. Regenerate views with `initiative check --write` using the matching CLI, then open the resulting pages.
+A tree still on 1.32.1 records, or on `project.ts`, is converted from a sunstack-tools source checkout, not with this CLI: first the 1.32.1 record migration from the 1.33.0 release commit (`git checkout a9e9a34c`, then `node packages/demistify/scripts/migrate-lean-design-records.ts --released-lean …` as that commit's guide describes), then `packages/demistify/scripts/initiative-migration/` on main, whose README gives the command. Run each with its dry run first.

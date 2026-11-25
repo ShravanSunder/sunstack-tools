@@ -25,8 +25,8 @@ nothing else; every other passage is listed under "For you to place".
 
 --dry-run   print every change and collision; write nothing
 --plan      JSON: projects [{key, folder, number, title, achieves?, acceptance?, lead?}],
-            moves [{from: "mac-side/DEL-07", to: "harness-contract"}],
-            records [{record: "mac-side/R14", to: "<project>"}] (overrides),
+            moves [{from: "queue/DEL-07", to: "history"}],
+            records [{record: "queue/R14", to: "<project>"}] (overrides),
             add [{project, title, dependsOn?, why?}], withdraw ["<project>/DEL-nn"],
             dependsOnChanges [{deliverable, from, to, why?}], remove ["<project>"],
             open [...] (printed, never applied)
@@ -39,8 +39,8 @@ The real run checks a staged copy first and writes nothing when that check fails
 Move whole deliverables between projects with one command. Run the dry run first: it writes nothing and prints every change, collision and passage it cannot place.
 
 ```sh
-demistify initiative migrate docs/initiatives/2026-11-router --plan cut.json --site-root docs --dry-run
-demistify initiative migrate docs/initiatives/2026-11-router --plan cut.json --site-root docs
+node packages/demistify/scripts/initiative-migration/run.ts docs/initiatives/2026-11-router --plan cut.json --site-root docs --dry-run
+node packages/demistify/scripts/initiative-migration/run.ts docs/initiatives/2026-11-router --plan cut.json --site-root docs
 ```
 
 The plan is JSON. Addresses name the tree as it is before the run.
@@ -49,27 +49,27 @@ The plan is JSON. Addresses name the tree as it is before the run.
 {
 	"projects": [
 		{
-			"key": "harness-contract",
-			"folder": "2026-11-harness-contract",
+			"key": "history",
+			"folder": "2026-11-history",
 			"number": 1,
 			"title": "One contract for every harness",
 			"achieves": "…",
 			"acceptance": "…",
-			"lead": "mac-lead"
+			"lead": "queue-lead"
 		}
 	],
-	"moves": [{ "from": "mac-side/DEL-07", "to": "harness-contract" }],
-	"records": [{ "record": "mac-side/R14", "to": "harness-contract" }],
+	"moves": [{ "from": "queue/DEL-07", "to": "history" }],
+	"records": [{ "record": "queue/R14", "to": "history" }],
 	"add": [
 		{
-			"project": "harness-contract",
+			"project": "history",
 			"title": "Claude through its SDK",
 			"dependsOn": [],
 			"why": "…"
 		}
 	],
-	"withdraw": ["mac-side/DEL-17"],
-	"dependsOnChanges": [{ "deliverable": "mac-side/DEL-19", "from": [], "to": ["mac-side/DEL-02"] }],
+	"withdraw": ["queue/DEL-17"],
+	"dependsOnChanges": [{ "deliverable": "queue/DEL-19", "from": [], "to": ["queue/DEL-02"] }],
 	"remove": [],
 	"open": []
 }

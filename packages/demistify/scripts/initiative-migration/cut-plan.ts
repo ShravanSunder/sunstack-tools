@@ -3,14 +3,14 @@ import { z } from 'zod';
 /**
  * The Lead's re-cut plan: which projects the initiative has afterwards, and which
  * whole deliverables move between them. Addresses name the tree as it is before
- * the run (`mac-side/DEL-07`); the command translates them.
+ * the run (`queue/DEL-07`); the command translates them.
  */
 const projectKey = z.string().regex(/^[A-Za-z][A-Za-z0-9-]*$/);
 const qualifiedAddress = z
 	.string()
 	.regex(
 		/^[A-Za-z][A-Za-z0-9-]*\/[A-Za-z][A-Za-z0-9-]*$/,
-		'must be a qualified address such as mac-side/DEL-07',
+		'must be a qualified address such as queue/DEL-07',
 	);
 const sentence = z.string().trim().min(1);
 
@@ -32,7 +32,7 @@ const plannedProjectSchema = z.strictObject({
 
 const deliverableMoveSchema = z.strictObject({ from: qualifiedAddress, to: projectKey });
 const recordPlacementSchema = z.strictObject({
-	/** A record of the tree before the run, such as `mac-side/R14`. */
+	/** A record of the tree before the run, such as `queue/R14`. */
 	record: qualifiedAddress,
 	/** The project that owns it afterwards; its own project keeps it in place. */
 	to: projectKey,

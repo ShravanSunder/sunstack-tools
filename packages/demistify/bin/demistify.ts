@@ -51,7 +51,7 @@ async function main(): Promise<number> {
 				options: {
 					'site-root': { type: 'string' },
 					'no-browser': { type: 'boolean' },
-					help: { type: 'boolean' },
+					help: { type: 'boolean', short: 'h' },
 				},
 			});
 			if (values.help || positionals.length !== 1 || !positionals[0]) {
@@ -84,7 +84,7 @@ async function main(): Promise<number> {
 				'site-root': { type: 'string' },
 				write: { type: 'boolean' },
 				json: { type: 'boolean' },
-				help: { type: 'boolean' },
+				help: { type: 'boolean', short: 'h' },
 			},
 		});
 		if (values.help) {

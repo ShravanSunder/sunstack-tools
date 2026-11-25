@@ -5,7 +5,7 @@ import type { CutPlan } from './cut-plan.ts';
 /** What the re-cut reads from the initiative as it is: one set per registered project. */
 export interface InitiativeSnapshot {
 	readonly projects: readonly SnapshotProject[];
-	/** Every record, qualified (`mac-side/R1`, `initiative/D1`). */
+	/** Every record, qualified (`queue/R1`, `initiative/D1`). */
 	readonly records: readonly DesignRecord[];
 	/** Every delivery entry, qualified. */
 	readonly entries: readonly DeliveryEntry[];
