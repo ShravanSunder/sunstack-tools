@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 /**
- * demistify check [--fix] [--render] [--no-diagrams] <page.html …>
+ * demistify check [--fix] [--render] [--no-diagrams] [--site-root <dir>] [--write] <page.html | directory …>
+ *   A directory with initiative.ts or design.ts, or a page that binds generated design data, gets
+ *   that tree's typed check (once per tree); every other page gets the page check.
  * demistify check --hook      (Claude Code PostToolUse hook: reads the hook event from stdin)
  *
  * Prints one line per problem: file:line:col severity rule: message. Exits 1 when any error remains.
@@ -287,7 +289,7 @@ async function main(): Promise<number> {
 	}
 	if (command !== 'check') {
 		write(
-			'Usage: demistify check [--fix] [--render] [--no-diagrams] <page.html …>\n       demistify check --hook\n       demistify open <page.html> [--site-root <directory>] [--no-browser]\n       demistify design --help\n       demistify brief <deliverable> [directory] [--site-root <directory>]\n       demistify initiative check [directory] [--site-root <directory>] [--write]\n       demistify initiative status [directory] [--site-root <directory>] [--json]\n       demistify initiative answer <review.md|-> [directory] [--site-root <directory>] [--decided-on <yyyy-mm-dd>] [--write]\n       demistify initiative add <choice|ruling|assumption> [directory] --namespace <initiative|project> --page <page.html> [--words <owner words>] [--author <alias>] [--site-root <directory>] [--write]',
+			'Usage: demistify check [--fix] [--render] [--no-diagrams] [--site-root <directory>] [--write] <page.html | directory …>\n       demistify check --hook\n       demistify open <page.html> [--site-root <directory>] [--no-browser]\n       demistify design --help\n       demistify brief <deliverable> [directory] [--site-root <directory>]\n       demistify initiative check [directory] [--site-root <directory>] [--write]\n       demistify initiative status [directory] [--site-root <directory>] [--json]\n       demistify initiative answer <review.md|-> [directory] [--site-root <directory>] [--decided-on <yyyy-mm-dd>] [--write]\n       demistify initiative add <choice|ruling|assumption> [directory] --namespace <initiative|project> --page <page.html> [--words <owner words>] [--author <alias>] [--site-root <directory>] [--write]',
 		);
 		return !command || ['--help', '-h', 'help'].includes(command) ? 0 : 1;
 	}
@@ -311,13 +313,51 @@ async function main(): Promise<number> {
 		return 2;
 	}
 
-	const files = rest.filter((argument): boolean => !argument.startsWith('--'));
-	if (files.length === 0) {
-		write('Usage: demistify check <page.html …>');
+	const siteRootIndex = rest.indexOf('--site-root');
+	const siteRoot = siteRootIndex === -1 ? undefined : rest[siteRootIndex + 1];
+	if (siteRootIndex !== -1 && (!siteRoot || siteRoot.startsWith('--'))) {
+		write('Usage: demistify check --site-root <directory> <path …>');
 		return 1;
 	}
+	const files = rest.filter(
+		(argument, index): boolean =>
+			!argument.startsWith('--') && (siteRootIndex === -1 || index !== siteRootIndex + 1),
+	);
+	if (files.length === 0) {
+		write('Usage: demistify check <page.html | directory …>');
+		return 1;
+	}
+	const { routeCheckTargets } = await import('../src/node/check-routing.ts');
+	const routes = await routeCheckTargets(files);
+	let errors = 0;
+	let warnings = 0;
+	const treeReports = await Promise.all(
+		routes.trees.map(async (tree) => {
+			const label = `${relative(process.cwd(), tree.directory) || '.'} (${tree.kind} check for ${tree.inputs.join(', ')})`;
+			try {
+				const result =
+					tree.kind === 'initiative'
+						? await (
+								await import('../src/node/design-authoring/check-initiative.ts')
+							).checkInitiative(tree.directory, { siteRoot, write: flags.has('--write') })
+						: await (
+								await import('../src/node/design-authoring/check-design.ts')
+							).checkDesignSet(tree.directory, siteRoot, flags.has('--write'));
+				return { failed: false, text: `${label}:\n${result}` };
+			} catch (error) {
+				return {
+					failed: true,
+					text: `${label}: error: ${error instanceof Error ? error.message : String(error)}`,
+				};
+			}
+		}),
+	);
+	for (const report of treeReports) {
+		write(report.text);
+		if (report.failed) errors += 1;
+	}
 	const results = await Promise.all(
-		files.map(async (file) => {
+		routes.pages.map(async (file) => {
 			let source = await readFile(file, 'utf8');
 			let findings = await checkHtml(source, optionsFor(file));
 			if (flags.has('--fix') && findings.some((finding): boolean => finding.edit !== undefined)) {
@@ -328,17 +368,16 @@ async function main(): Promise<number> {
 			return { file, findings };
 		}),
 	);
-	let errors = 0;
-	let warnings = 0;
 	for (const { file, findings } of results) {
 		write(formatFindings(file, findings));
 		errors += findings.filter((finding): boolean => finding.severity === 'error').length;
 		warnings += findings.filter((finding): boolean => finding.severity === 'warning').length;
 	}
-	if (flags.has('--render') && files.length > 0) {
+	const htmlFiles = files.filter((file): boolean => file.endsWith('.html'));
+	if (flags.has('--render') && htmlFiles.length > 0) {
 		const { renderCheck } = await import('../src/node/render-check.ts');
 		try {
-			for (const finding of await renderCheck(process.cwd(), files)) {
+			for (const finding of await renderCheck(process.cwd(), htmlFiles)) {
 				const warning = finding.severity === 'warning';
 				write(
 					`${finding.file} render(${finding.width}px): ${warning ? 'warning: ' : ''}${finding.message}`,
@@ -351,8 +390,18 @@ async function main(): Promise<number> {
 			return 1;
 		}
 	}
+	const pageCount = routes.pages.length;
+	// Page-only runs keep their established summary; typed trees add their own count.
+	const checked = routes.trees.length
+		? [
+				pageCount ? `${pageCount} page${pageCount === 1 ? '' : 's'}` : '',
+				`${routes.trees.length} typed tree${routes.trees.length === 1 ? '' : 's'}`,
+			]
+				.filter(Boolean)
+				.join(' and ')
+		: `${pageCount} file${pageCount === 1 ? '' : 's'}`;
 	write(
-		`${files.length} file${files.length === 1 ? '' : 's'}: ${errors} error${errors === 1 ? '' : 's'}, ${warnings} warning${warnings === 1 ? '' : 's'}`,
+		`${checked}: ${errors} error${errors === 1 ? '' : 's'}, ${warnings} warning${warnings === 1 ? '' : 's'}`,
 	);
 	return errors > 0 ? 1 : 0;
 }

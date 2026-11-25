@@ -87,6 +87,8 @@ demistify initiative status docs/initiatives/2026-11-router --site-root docs
 demistify brief messages/DEL-01 docs/initiatives/2026-11-router --site-root docs
 ```
 
+`demistify check <page.html | folder …>` does the same for any mix of pages: pages and folders of the initiative run `initiative check` once, and standalone pages get the page check.
+
 Run `design types` for each project after a fresh checkout so the editor and `agents-identity.ts` can resolve the generated SDK. `initiative check` is read-only. It lists the projects by number, any order warnings, open owner questions under "Waiting on owner", then each deliverable's state; `--write` saves the ignored generated views. `initiative status` prints the plan: each project by number with its state, what it achieves and what the owner checks, every deliverable with its state, tasks done, checks passed and what it waits on, then what is ready now, what blocks the most open work, and what is built but not accepted; `--json` gives the same as data. `brief DEL-01` run inside a project and `brief messages/DEL-01` run at the root select the same deliverable; a bare ID that matches in several projects returns the qualified choices.
 
 ## Record the owner's answers
