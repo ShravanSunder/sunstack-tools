@@ -1,11 +1,7 @@
 import { expect, it } from 'vitest';
 
 import { type DeliverableView, deliverableViewSchema } from '../../core/deliverables-view.ts';
-import {
-	initiativeMilestones,
-	initiativeWork,
-	orderInitiativeProjects,
-} from './initiative-order.ts';
+import { initiativeWork, projectProgress } from './initiative-order.ts';
 
 function core(
 	id: string,
@@ -33,41 +29,7 @@ function core(
 	});
 }
 
-it('orders projects after the projects they depend on, keeping authored order for ties', (): void => {
-	// Arrange
-	const projects = new Map<string, readonly string[]>([
-		['first-message', ['staging', 'messages']],
-		['messages', []],
-		['staging', []],
-		['approvals', ['messages']],
-	]);
-
-	// Act
-	const { order, loops } = orderInitiativeProjects(projects);
-
-	// Assert
-	expect(order).toEqual(['messages', 'staging', 'approvals', 'first-message']);
-	expect(loops).toEqual([]);
-});
-
-it('reports projects that depend on each other as one loop and still lists every project', (): void => {
-	// Arrange
-	const projects = new Map<string, readonly string[]>([
-		['sign-in', ['central-path']],
-		['central-path', ['sign-in']],
-		['staging', []],
-		['first-message', ['sign-in']],
-	]);
-
-	// Act
-	const { order, loops } = orderInitiativeProjects(projects);
-
-	// Assert
-	expect(order).toEqual(['staging', 'sign-in', 'central-path', 'first-message']);
-	expect(loops).toEqual([['sign-in', 'central-path']]);
-});
-
-it('expands nested milestones and ranks what blocks the most open work', (): void => {
+it('ranks what blocks the most open work across projects and lists ready and built work', (): void => {
 	// Arrange
 	const deliverables = {
 		'link/DEL-01': core('link/DEL-01', 'awaiting-verification', [], 'abc123'),
@@ -78,35 +40,30 @@ it('expands nested milestones and ranks what blocks the most open work', (): voi
 	};
 
 	// Act
-	const milestones = initiativeMilestones(
-		{
-			registered: {
-				title: 'Registered',
-				check: 'A session registers.',
-				includes: ['sessions/DEL-01'],
-			},
-			approval: {
-				title: 'Approval',
-				check: 'One approval is answered.',
-				includes: ['registered', 'staging/DEL-01'],
-			},
-		},
-		deliverables,
-	);
 	const work = initiativeWork(deliverables);
 
 	// Assert
-	expect(milestones['approval']).toMatchObject({
-		deliverables: ['sessions/DEL-01', 'staging/DEL-01'],
-		state: 'open',
-	});
 	expect(work.readyNow).toEqual(['harness/DEL-01']);
 	expect(work.blocksMost[0]).toEqual({ id: 'link/DEL-01', waiting: 2 });
 	expect(work.builtNotAccepted).toEqual(['link/DEL-01']);
-	expect(() =>
-		initiativeMilestones(
-			{ loop: { title: 'Loop', check: 'Never.', includes: ['loop'] } },
-			deliverables,
-		),
-	).toThrow(/include each other/);
+});
+
+it('derives a project state from its own deliverables only', (): void => {
+	// Arrange
+	const blocked = [core('sessions/DEL-01', 'dependency-blocked', ['link/DEL-01'])];
+	const mixed = [
+		core('sessions/DEL-01', 'dependency-blocked', ['link/DEL-01']),
+		core('sessions/DEL-02', 'implementation-in-progress'),
+	];
+
+	// Act
+	const blockedState = projectProgress(blocked);
+	const mixedState = projectProgress(mixed);
+
+	// Assert
+	expect(blockedState).toEqual({
+		state: 'dependency-blocked',
+		reason: 'Every open core deliverable waits on another: link/DEL-01.',
+	});
+	expect(mixedState.state).toBe('in-progress');
 });

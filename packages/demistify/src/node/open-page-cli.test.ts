@@ -123,7 +123,7 @@ async function createExternalPageProject(
 	await Promise.all([
 		writeFile(
 			join(directory, 'initiative.ts'),
-			"import notes from './milestone/design.ts'; export default { projects: { notes: { design: notes } } };",
+			"import notes from './milestone/design.ts'; export default { projects: { notes: { design: notes, number: 1 } } };",
 		),
 		writeFile(
 			join(milestone, 'design.ts'),

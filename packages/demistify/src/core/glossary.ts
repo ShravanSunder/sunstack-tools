@@ -22,10 +22,10 @@ export type GlossaryDeliverableState = keyof typeof deliverableStateGlossary;
 /** Plain-language meaning of each project state in an initiative. */
 export const projectStateGlossary: Readonly<Record<ProjectState, string>> = {
 	accepted: 'Every core deliverable in this project is accepted.',
-	'dependency-blocked': 'Waiting for a project it depends on to finish, or in a dependency loop.',
+	'dependency-blocked': 'Every open core deliverable here waits on a deliverable it depends on.',
 	'design-blocked': 'Every open core deliverable here waits on an open owner decision.',
 	'in-progress': 'Work has started on at least one core deliverable.',
-	planned: 'Ready to start; no core deliverable has started.',
+	planned: 'A core deliverable can start; none has started.',
 	later: 'Only later deliverables; nothing is designed or checked now.',
 };
 

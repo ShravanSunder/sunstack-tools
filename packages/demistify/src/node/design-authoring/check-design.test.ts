@@ -367,7 +367,7 @@ export default [{
 		await writeFile(
 			join(directory, 'initiative.ts'),
 			`import milestone from './milestone/design.ts';
-export default { projects: { milestone: { design: milestone } } };`,
+export default { projects: { milestone: { design: milestone, number: 1 } } };`,
 		);
 		await run(process.execPath, [cli, 'initiative', 'check', directory, '--write']);
 		const project = await readFile(join(directory, 'initiative.generated.json'), 'utf8');

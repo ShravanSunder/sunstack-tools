@@ -114,7 +114,7 @@ it('plans without writing and migrates a copy with row and verbatim evidence anc
 		await Promise.all([
 			writeFile(
 				join(project, 'initiative.ts'),
-				"import phase from './phase/design.ts'; export default { projects: { phase: { design: phase } } };",
+				"import phase from './phase/design.ts'; export default { projects: { phase: { design: phase, number: 1 } } };",
 			),
 			writeFile(join(set, 'index.html'), oldHtml),
 			writeFile(join(set, 'design.ts'), oldSource),
@@ -223,7 +223,7 @@ it('plans without writing and migrates a copy with row and verbatim evidence anc
 			code: 'ENOENT',
 		});
 		const checked = await run(process.execPath, [cli, 'initiative', 'check', outProject]);
-		expect(checked.stdout).toContain('Checked 1 project(s) in order: phase.');
+		expect(checked.stdout).toContain('Checked 1 project(s) by number: 1 phase.');
 		expect(await readFile(join(set, 'index.html'), 'utf8')).toBe(oldHtml);
 		await expect(run(process.execPath, command)).rejects.toThrow(/Output already exists/);
 	} finally {
@@ -263,7 +263,7 @@ it.each(['design.ts', 'design-delivery.ts'])(
 					join(project, 'initiative.ts'),
 					"import phase from './phase/" +
 						manifestEntry +
-						"'; export default { projects: { phase: { design: phase } } };",
+						"'; export default { projects: { phase: { design: phase, number: 1 } } };",
 				),
 				writeFile(join(set, 'index.html'), oldHtml),
 				writeFile(join(set, 'design.ts'), 'export default ' + JSON.stringify(oldDesign)),
@@ -398,7 +398,7 @@ it('retains quoted container evidence and keeps public project record links at t
 		expect(assumptions).toContain('"href": "index.html#A1-source"');
 		expect(
 			(await run(process.execPath, [cli, 'initiative', 'check', outProject])).stdout,
-		).toContain('Checked 0 project(s) in order: .');
+		).toContain('Checked 0 project(s) by number: .');
 		const report: unknown = JSON.parse(stdout);
 		expect(report).toMatchObject({
 			passages: [
@@ -457,7 +457,7 @@ options: [{ id: 'yes', title: 'Keep it' }, { id: 'no', title: 'Remove it' }], au
 		await Promise.all([
 			writeFile(
 				join(project, 'initiative.ts'),
-				"import example from './example/design.ts'; export default { projects: { example: { design: example } } };",
+				"import example from './example/design.ts'; export default { projects: { example: { design: example, number: 1 } } };",
 			),
 			writeFile(
 				join(design, 'design.ts'),
@@ -563,7 +563,7 @@ export default [
 		await Promise.all([
 			writeFile(
 				join(project, 'initiative.ts'),
-				"import example from './example/design.ts'; export default { projects: { example: { design: example } } };",
+				"import example from './example/design.ts'; export default { projects: { example: { design: example, number: 1 } } };",
 			),
 			writeFile(
 				join(design, 'design.ts'),

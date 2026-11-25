@@ -10,27 +10,18 @@ import { designDeclarationFilename, readLiteral, unwrapExpression } from './read
 
 const alias = z.string().regex(/^[A-Za-z][A-Za-z0-9-]*$/);
 const filePath = z.string().min(1);
-/** A whole project (`link`) or one of its deliverables (`link/DEL-03`). */
-const projectDependency = z.string().regex(/^[A-Za-z][A-Za-z0-9-]*(?:\/[A-Za-z][A-Za-z0-9-]*)?$/);
 const sentence = z.string().trim().min(1);
 const initiativeProjectSchema = z.strictObject({
 	design: filePath,
-	dependsOn: z.array(projectDependency).default([]),
+	/** The initiative's order: lower first; the same number means side by side. */
+	number: z.number().int().positive(),
 	/** What the project achieves, in one sentence. */
 	achieves: sentence.optional(),
 	/** What the owner checks to accept the project. */
 	acceptance: sentence.optional(),
 });
-const milestoneSchema = z.strictObject({
-	title: sentence,
-	/** What the owner checks to accept the milestone. */
-	check: sentence,
-	/** Qualified deliverable ids (`sessions/DEL-01`) or other milestone keys. */
-	includes: z.array(z.string().min(1)).min(1),
-});
 const manifestSchema = z.strictObject({
 	projects: z.record(alias, initiativeProjectSchema).default({}),
-	milestones: z.record(alias, milestoneSchema).default({}),
 	decisions: filePath.optional(),
 	assumptions: filePath.optional(),
 	identities: filePath.optional(),
@@ -104,26 +95,6 @@ export function readInitiativeManifest(file: string, text: string): InitiativeMa
 		if (name === 'initiative')
 			throw new Error('The initiative namespace is reserved for shared records.');
 		check(project.design, ['design.ts', 'design-delivery.ts']);
-		for (const dependency of project.dependsOn) {
-			const target = dependency.split('/')[0] ?? dependency;
-			if (target === name) throw new Error(`${file}: project ${name} depends on itself.`);
-			if (!Object.hasOwn(manifest.projects, target))
-				throw new Error(`${file}: project ${name} depends on unknown project ${target}.`);
-		}
-		if (new Set(project.dependsOn).size !== project.dependsOn.length)
-			throw new Error(`${file}: project ${name} names a dependency twice.`);
-	}
-	for (const [key, milestone] of Object.entries(manifest.milestones)) {
-		if (Object.hasOwn(manifest.projects, key))
-			throw new Error(`${file}: milestone ${key} has the name of a project.`);
-		for (const included of milestone.includes) {
-			const [project, deliverable] = included.split('/');
-			if (deliverable === undefined) {
-				if (!Object.hasOwn(manifest.milestones, included))
-					throw new Error(`${file}: milestone ${key} includes unknown milestone ${included}.`);
-			} else if (!project || !Object.hasOwn(manifest.projects, project))
-				throw new Error(`${file}: milestone ${key} includes ${included} from an unknown project.`);
-		}
 	}
 	check(manifest.decisions, ['initiative-decisions.ts']);
 	check(manifest.assumptions, ['initiative-assumptions.ts']);

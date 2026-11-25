@@ -126,7 +126,6 @@ it('checks an empty project without discovering files beside the manifest', asyn
 			version: 2,
 			projects: {},
 			order: [],
-			milestones: {},
 			work: { readyNow: [], blocksMost: [], builtNotAccepted: [] },
 			records: [],
 			deliverables: {},
@@ -166,7 +165,7 @@ it('writes records under the shared projects ignore scope and clears obsolete pa
 			writeFile(join(project, '.gitignore'), patterns),
 			writeFile(
 				join(project, 'initiative.ts'),
-				"import phase from './phase/design.ts'; export default { projects: { phase: { design: phase } } };",
+				"import phase from './phase/design.ts'; export default { projects: { phase: { design: phase, number: 1 } } };",
 			),
 			writeFile(join(phase, 'design.ts'), designSource(false)),
 			writeFile(page, original),
@@ -239,7 +238,7 @@ it('initializes a design under the shared projects ignore scope without editing 
 		await git(['init', '--quiet', '--template=']);
 		await writeFile(
 			join(project, 'initiative.ts'),
-			"import phase from './phase/design.ts'; export default { projects: { phase: { design: phase } } };",
+			"import phase from './phase/design.ts'; export default { projects: { phase: { design: phase, number: 1 } } };",
 		);
 		await writeFile(join(phase, 'initiative.ts'), 'export const settings = { app: true };');
 		await writeFile(ignore, tracked);
@@ -371,7 +370,7 @@ it('qualifies need coverage and deduplicates scoped rule notes across a checked 
 		await Promise.all([
 			writeFile(
 				join(root, 'initiative.ts'),
-				`import queue from './queue/design.ts'; import history from './history/design.ts'; export default { projects: { queue: { design: queue }, history: { design: history } } };`,
+				`import queue from './queue/design.ts'; import history from './history/design.ts'; export default { projects: { queue: { design: queue, number: 1 }, history: { design: history, number: 1 } } };`,
 			),
 			writeFile(queueFile, designSource(false, receipt)),
 			writeFile(historyFile, realizedHistory),
@@ -479,7 +478,10 @@ it('checks explicit project records, qualified prerequisites, and Lead aliases a
 					writeFile(join(directory, 'design.ts'), designSource(directory === messages)),
 					writeFile(
 						join(directory, 'design-delivery.ts'),
-						deliverySource(undefined, directory === messages ? 'messages-lead' : undefined),
+						deliverySource(
+							directory === messages ? 'sessions/DEL-01' : undefined,
+							directory === messages ? 'messages-lead' : undefined,
+						),
 					),
 					writeFile(
 						join(directory, 'deliverables/unit.ts'),
@@ -503,7 +505,7 @@ import sessionsDesign from './milestones/2026-11-sessions#archive/design-deliver
 import decisions from './shared/initiative-decisions.ts';
 import assumptions from './shared/initiative-assumptions.ts';
 import agents from './agents-identity.ts';
-export default { projects: { messages: { design: messagesDesign, dependsOn: ['sessions'] }, sessions: { design: sessionsDesign } }, decisions, assumptions, identities: agents };`,
+export default { projects: { messages: { design: messagesDesign, number: 2 }, sessions: { design: sessionsDesign, number: 1 } }, decisions, assumptions, identities: agents };`,
 			),
 			writeFile(
 				join(root, 'agents-identity.ts'),
@@ -701,7 +703,7 @@ resolution: { href: 'evidence.txt', excerpt: 'Available.' }
 		expect(await readFile(outputPath, 'utf8')).toBe(previous);
 		await writeFile(join(messages, 'design.ts'), currentMessages);
 		await writeFile(join(sessions, 'design-delivery.ts'), deliverySource('messages/DEL-01'));
-		await expect(check()).rejects.toThrow(/depends on messages\/DEL-01 in another project/);
+		await expect(check()).rejects.toThrow(/dependency cycle/);
 		expect(await readFile(outputPath, 'utf8')).toBe(previous);
 		await writeFile(join(sessions, 'design-delivery.ts'), deliverySource());
 
@@ -771,7 +773,7 @@ it('uses one declared external page in two milestone scopes and confines authori
 		);
 		const projectSource = `import north from './north/design.ts';
 import south from './south/design.ts';
-export default { projects: { north: { design: north }, south: { design: south } } };`;
+export default { projects: { north: { design: north, number: 1 }, south: { design: south, number: 1 } } };`;
 		await Promise.all([
 			writeFile(canonicalPage, html),
 			writeFile(join(project, 'initiative.ts'), projectSource),

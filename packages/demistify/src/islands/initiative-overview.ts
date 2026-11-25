@@ -178,16 +178,6 @@ function renderProjects(content: HTMLElement, view: InitiativeView, source: URL)
 		const reason = document.createElement('p');
 		reason.textContent = project.reason;
 		section.append(reason);
-		if (project.dependsOn.length) {
-			const dependencies = document.createElement('p');
-			dependencies.append('Depends on ');
-			for (const [index, id] of project.dependsOn.entries()) {
-				const prerequisite = view.projects[id];
-				if (index) dependencies.append(', ');
-				dependencies.append(prerequisite ? projectLink(source, id, prerequisite) : id);
-			}
-			section.append(dependencies);
-		}
 		const planned = deliveries.get(name);
 		if (planned?.length) {
 			const list = appendList(section);

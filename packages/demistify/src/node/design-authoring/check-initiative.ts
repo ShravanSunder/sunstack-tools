@@ -21,12 +21,7 @@ import {
 import { compileDesignNavigation } from './design-navigation.ts';
 import { designTypeSource } from './design-type-source.ts';
 import { projectIgnoreDirectory } from './generated-ignore.ts';
-import {
-	initiativeMilestones,
-	initiativeWork,
-	orderInitiativeProjects,
-	projectProgress,
-} from './initiative-order.ts';
+import { initiativeWork, projectProgress } from './initiative-order.ts';
 import { checkAuthoringTypes, readDesignItems } from './read-design.ts';
 import {
 	projectRecordTypeImports,
@@ -257,8 +252,6 @@ interface LoadedInitiative {
 	readonly entries: readonly DeliveryEntry[];
 	/** Project directory to project name. */
 	readonly projects: ReadonlyMap<string, string>;
-	/** Project name to the projects or single deliverables it depends on. */
-	readonly dependencies: ReadonlyMap<string, readonly string[]>;
 	readonly manifest: ReturnType<typeof readInitiativeManifest>;
 }
 
@@ -332,22 +325,6 @@ export async function loadInitiative(
 			});
 		entries.push(...set.entries.map((entry) => projectEntry(entry, set.name, href)));
 	}
-	checkDeliverableDependencies(entries);
-	const loops = orderInitiativeProjects(projectEdges(manifest.projects)).loops;
-	if (loops.length)
-		throw new Error(
-			loops
-				.map(
-					(loop) =>
-						`Projects ${loop.join(', ')} depend on each other in initiative.ts; no order exists until the loop is broken.`,
-				)
-				.join('\n'),
-		);
-	const dependencies = new Map(
-		Object.entries(manifest.projects).map(([name, { dependsOn }]) => [name, dependsOn]),
-	);
-	checkNamedPieces(entries, dependencies);
-	const sequencedEntries = withProjectPrerequisites(entries, dependencies);
 	const qualifiedIds = design.records.map(({ id }) => id);
 	const records = checkRecordRelationships(design.records);
 	for (const set of sets) {
@@ -362,9 +339,8 @@ export async function loadInitiative(
 		sets,
 		shared,
 		design,
-		entries: sequencedEntries,
+		entries,
 		projects: new Map(sets.map((set) => [set.directory, set.name])),
-		dependencies,
 		manifest,
 	};
 }
@@ -374,87 +350,44 @@ function projectOf(qualifiedId: string): string {
 	return slash === -1 ? qualifiedId : qualifiedId.slice(0, slash);
 }
 
-/** Project-to-project edges: a dependency on one deliverable still orders the two projects. */
-function projectEdges(
-	projects: Readonly<Record<string, { readonly dependsOn: readonly string[] }>>,
-): Map<string, string[]> {
-	return new Map(
-		Object.entries(projects).map(([name, { dependsOn }]) => [
-			name,
-			[...new Set(dependsOn.map(projectOf))],
-		]),
-	);
-}
-
-function checkNamedPieces(
-	entries: readonly DeliveryEntry[],
-	dependencies: ReadonlyMap<string, readonly string[]>,
-): void {
-	const known = new Set(entries.map(({ deliverable }) => deliverable.id));
-	for (const [project, dependsOn] of dependencies)
-		for (const dependency of dependsOn)
-			if (dependency.includes('/') && !known.has(dependency))
-				throw new Error(`Project ${project} depends on unknown deliverable ${dependency}.`);
+/** Projects by their number, then in the initiative's authored order. */
+function projectsByNumber(
+	projects: Readonly<Record<string, { readonly number: number }>>,
+): string[] {
+	return Object.entries(projects)
+		.map(([name, { number }], position) => ({ name, number, position }))
+		.toSorted((left, right) => left.number - right.number || left.position - right.position)
+		.map(({ name }) => name);
 }
 
 /**
- * Deliverables are sequenced inside their project; projects are sequenced by the
- * initiative. A deliverable that names a deliverable in another project is refused.
+ * A deliverable that depends on one in a later-numbered project contradicts the
+ * initiative's order; the cut or the number is wrong. A warning, not a refusal.
  */
-function checkDeliverableDependencies(entries: readonly DeliveryEntry[]): void {
+function orderWarnings(
+	entries: readonly DeliveryEntry[],
+	projects: Readonly<Record<string, { readonly number: number }>>,
+): string[] {
+	const warnings: string[] = [];
 	for (const { deliverable, dependsOn } of entries) {
-		const own = projectOf(deliverable.id);
+		const own = projects[projectOf(deliverable.id)]?.number;
 		for (const prerequisite of dependsOn) {
-			const other = projectOf(prerequisite);
-			if (other !== own)
-				throw new Error(
-					`${deliverable.id} depends on ${prerequisite} in another project. Deliverables depend only on deliverables in their own project; put ${other} in ${own}'s dependsOn in initiative.ts instead.`,
+			const other = projects[projectOf(prerequisite)]?.number;
+			if (own !== undefined && other !== undefined && other > own)
+				warnings.push(
+					`${deliverable.id} (project number ${own}) depends on ${prerequisite} (project number ${other}); the cut or the number is wrong.`,
 				);
 		}
 	}
-}
-
-/**
- * A project waits for every project it depends on: each deliverable that starts
- * its project (one with no prerequisite inside it) also waits for every core
- * deliverable of those projects, so delivery states and briefs show the wait.
- */
-function withProjectPrerequisites(
-	entries: readonly DeliveryEntry[],
-	dependencies: ReadonlyMap<string, readonly string[]>,
-): DeliveryEntry[] {
-	const coreByProject = new Map<string, string[]>();
-	for (const { deliverable } of entries) {
-		if (deliverable.kind !== 'core') continue;
-		const project = projectOf(deliverable.id);
-		coreByProject.set(project, [...(coreByProject.get(project) ?? []), deliverable.id]);
-	}
-	return entries.map((entry): DeliveryEntry => {
-		if (entry.dependsOn.length) return entry;
-		const waits = (dependencies.get(projectOf(entry.deliverable.id)) ?? []).flatMap((dependency) =>
-			dependency.includes('/') ? [dependency] : (coreByProject.get(dependency) ?? []),
-		);
-		return waits.length ? { ...entry, dependsOn: waits } : entry;
-	});
+	return warnings;
 }
 
 export async function buildInitiative(
 	directory: string,
 	options: InitiativeCheckOptions = {},
 ): Promise<CheckedInitiativeBuild> {
-	const {
-		root,
-		initiativeFile,
-		check,
-		owner,
-		sets,
-		shared,
-		design,
-		entries,
-		projects,
-		dependencies,
-		manifest,
-	} = await loadInitiative(directory, options.siteRoot);
+	const { root, initiativeFile, check, owner, sets, shared, design, entries, projects, manifest } =
+		await loadInitiative(directory, options.siteRoot);
 	const projectOutput = join(root, 'initiative.generated.json');
 	const [preparedSets] = await Promise.all([
 		Promise.all(sets.map(async (set) => Object.assign({}, set, await check.prepare(set)))),
@@ -490,24 +423,15 @@ export async function buildInitiative(
 	const delivery = projectDelivery(design, entries, destinations);
 	attachDecisionDeliverables(recordOutputs, delivery, root, projection);
 	await Promise.all(delivery.evidence.map((href) => check.checkEvidence(href, initiativeFile)));
-	const { order, loops } = orderInitiativeProjects(projectEdges(manifest.projects));
-	const accepted = new Set<string>();
-	const progressByProject = new Map<string, ReturnType<typeof projectProgress>>();
-	for (const name of order) {
-		const own = Object.values(delivery.deliverables).filter(({ id }) => id.startsWith(`${name}/`));
-		const progress = projectProgress(
+	const order = projectsByNumber(manifest.projects);
+	const progressByProject = new Map(
+		order.map((name) => [
 			name,
-			dependencies.get(name) ?? [],
-			own,
-			(dependency) =>
-				dependency.includes('/')
-					? delivery.deliverables[dependency]?.state === 'accepted'
-					: accepted.has(dependency),
-			loops.find((loop) => loop.includes(name)),
-		);
-		if (progress.state === 'accepted') accepted.add(name);
-		progressByProject.set(name, progress);
-	}
+			projectProgress(
+				Object.values(delivery.deliverables).filter(({ id }) => id.startsWith(`${name}/`)),
+			),
+		]),
+	);
 	const output = {
 		version: 2,
 		...(owner === undefined ? {} : { owner }),
@@ -522,7 +446,7 @@ export async function buildInitiative(
 						firstPage: rebase(set.firstPage.href, set.directory, root),
 						title: set.firstPage.title,
 						...(set.lead ? { lead: set.lead } : {}),
-						dependsOn: [...(dependencies.get(set.name) ?? [])],
+						number: manifest.projects[set.name]?.number ?? 1,
 						...(manifest.projects[set.name]?.achieves
 							? { achieves: manifest.projects[set.name]?.achieves }
 							: {}),
@@ -536,7 +460,6 @@ export async function buildInitiative(
 			}),
 		),
 		order: [...order],
-		milestones: initiativeMilestones(manifest.milestones, delivery.deliverables),
 		work: initiativeWork(delivery.deliverables),
 		records: design.records.map((record) => ({
 			...record,
@@ -573,7 +496,8 @@ export async function buildInitiative(
 	else await check.verify();
 	const questions = projectDecisions(view.records).filter(({ status }) => status === 'Open');
 	const result = [
-		`Checked ${sets.length} project(s) in order: ${order.join(', ')}.`,
+		`Checked ${sets.length} project(s) by number: ${order.map((name) => `${manifest.projects[name]?.number ?? '?'} ${name}`).join(', ')}.`,
+		...orderWarnings(entries, manifest.projects).map((warning) => `Warning: ${warning}`),
 		options.write ? 'Generated views refreshed.' : 'Read-only check.',
 		...(options.write ? [] : await generatedViewNotes('initiative', generated, recordOutputs)),
 		...(questions.length

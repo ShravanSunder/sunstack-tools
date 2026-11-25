@@ -46,24 +46,11 @@ export const initiativeViewSchema = z.strictObject({
 			lead: z.string().optional(),
 			firstPage: localDeliveryHref.optional(),
 			title: z.string().min(1).optional(),
-			/** Whole projects (`link`) or single deliverables (`link/DEL-03`) this project waits for. */
-			dependsOn: z.array(z.string()),
+			/** The initiative's order: lower first; the same number means side by side. */
+			number: z.number().int().positive(),
 			achieves: z.string().min(1).optional(),
 			acceptance: z.string().min(1).optional(),
 			state: z.enum(projectStates),
-			reason: z.string().min(1),
-		}),
-	),
-	/** Named sets of deliverables across projects, each with the owner's check. */
-	milestones: z.record(
-		z.string(),
-		z.strictObject({
-			title: z.string().min(1),
-			check: z.string().min(1),
-			includes: z.array(z.string()),
-			/** Every deliverable the milestone needs, nested milestones expanded. */
-			deliverables: z.array(z.string()),
-			state: z.enum(['accepted', 'open']),
 			reason: z.string().min(1),
 		}),
 	),
@@ -76,7 +63,7 @@ export const initiativeViewSchema = z.strictObject({
 		/** Deliverables with a recorded candidate that are not accepted. */
 		builtNotAccepted: z.array(z.string()),
 	}),
-	/** Project names, every dependency before its dependents; ties keep the initiative's authored order. */
+	/** Project names by number, then in the initiative's authored order. */
 	order: z.array(z.string()),
 	records: z.array(projectRecord),
 	deliverables: z.record(z.string(), deliverableViewSchema),
