@@ -81,6 +81,9 @@ function linkDiagramNodes(owner: HTMLElement): void {
 export class MermaidIsland extends HTMLElement {
 	private renderPromise: Promise<void> | undefined;
 	private visibilityObserver: IntersectionObserver | undefined;
+	private scrollObserver: ResizeObserver | undefined;
+	private scrollHint: HTMLSpanElement | undefined;
+	private addedScrollTabStop = false;
 	connectedCallback(): void {
 		// A cold scoped fragment must find and reveal this lazy island before its SVG exists.
 		assignDiagramFragments(this);
@@ -93,6 +96,7 @@ export class MermaidIsland extends HTMLElement {
 			if (svg instanceof SVGSVGElement) {
 				colorPreparedDiagram(svg);
 				traceDiagram(svg);
+				this.observeScrollWidth(svg);
 			}
 			installIslandInspector(this);
 			return;
@@ -111,10 +115,53 @@ export class MermaidIsland extends HTMLElement {
 	}
 	disconnectedCallback(): void {
 		this.visibilityObserver?.disconnect();
+		this.scrollObserver?.disconnect();
 	}
+
+	private observeScrollWidth(svg: SVGSVGElement): void {
+		if (this.closest('[data-inspector-content], [data-inspector-copy]')) return;
+		this.scrollObserver?.disconnect();
+		const update = (): void => {
+			// Fullscreen temporarily moves the live SVG out of its original scroller.
+			const overflows =
+				this.clientWidth > 0 &&
+				svg.parentElement === this &&
+				svg.getBoundingClientRect().width > this.clientWidth + 1;
+			if (overflows) {
+				if (!this.scrollHint) {
+					const hint = document.createElement('span');
+					hint.className = 'ex-diagram-scroll-hint';
+					hint.textContent = 'Scroll sideways to see the full diagram';
+					this.scrollHint = hint;
+					// Keep the cue in view while the SVG scrolls beneath it.
+					this.addEventListener('scroll', this.positionScrollHint, { passive: true });
+				}
+				if (this.scrollHint.parentElement !== this) this.append(this.scrollHint);
+				this.positionScrollHint();
+				if (!this.hasAttribute('tabindex')) {
+					this.tabIndex = 0;
+					this.addedScrollTabStop = true;
+				}
+			} else {
+				if (this.scrollHint?.parentElement === this) this.scrollHint.remove();
+				if (this.addedScrollTabStop) this.removeAttribute('tabindex');
+				this.addedScrollTabStop = false;
+			}
+		};
+		this.scrollObserver = new ResizeObserver(update);
+		this.scrollObserver.observe(this);
+		this.scrollObserver.observe(svg);
+		update();
+	}
+
+	private readonly positionScrollHint = (): void => {
+		if (this.scrollHint) this.scrollHint.style.translate = `${this.scrollLeft}px`;
+	};
+
 	private async renderDiagram(): Promise<void> {
 		if (this.hasAttribute('prepared')) return;
 		const sourceText = readIslandSource(this) ?? '';
+		this.setAttribute('aria-busy', 'true');
 		try {
 			this.innerHTML = await renderDiagramSvg(normalizeIslandText(sourceText));
 			this.setAttribute('prepared', '');
@@ -123,12 +170,17 @@ export class MermaidIsland extends HTMLElement {
 			checkDiagram(this, sourceText);
 			linkDiagramNodes(this);
 			const svg = this.querySelector(':scope > svg');
-			if (svg instanceof SVGSVGElement) traceDiagram(svg);
+			if (svg instanceof SVGSVGElement) {
+				traceDiagram(svg);
+				this.observeScrollWidth(svg);
+			}
 			installIslandInspector(this);
 			this.dispatchEvent(new Event('island-ready', { bubbles: true }));
 		} catch (error) {
 			this.textContent = `Mermaid could not render: ${String(error)}`;
 			reportIssue(this, `Mermaid could not render: ${String(error)}`);
+		} finally {
+			this.removeAttribute('aria-busy');
 		}
 	}
 }

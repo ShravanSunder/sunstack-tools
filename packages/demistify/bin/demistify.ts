@@ -339,8 +339,12 @@ async function main(): Promise<number> {
 		const { renderCheck } = await import('../src/node/render-check.ts');
 		try {
 			for (const finding of await renderCheck(process.cwd(), files)) {
-				write(`${finding.file} render(${finding.width}px): ${finding.message}`);
-				errors += 1;
+				const warning = finding.severity === 'warning';
+				write(
+					`${finding.file} render(${finding.width}px): ${warning ? 'warning: ' : ''}${finding.message}`,
+				);
+				if (warning) warnings += 1;
+				else errors += 1;
 			}
 		} catch (error) {
 			process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);

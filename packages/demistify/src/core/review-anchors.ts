@@ -11,7 +11,7 @@ export type ResolvedCommentAnchor =
 	| { readonly kind: 'unavailable'; readonly message: string };
 
 const excludedText =
-	'button,input,textarea,select,script,style,template,.ex-inspect-controls,.ex-choice-inline > summary,[data-comment-control],[data-inspector-copy],[data-inspector-content]';
+	'button,input,textarea,select,script,style,template,.ex-inspect-controls,.ex-diagram-scroll-hint,.ex-choice-inline > summary,[data-comment-control],[data-inspector-copy],[data-inspector-content]';
 const automaticallyLabeledHeadings = new WeakSet<HTMLElement>();
 
 function textExclusions(element: Element): string {
