@@ -182,7 +182,12 @@
 				"reason": "Ready to start."
 			},
 			"implementation": {
-				"tasks": [],
+				"tasks": [
+					{
+						"id": "add-queue-acknowledgement",
+						"state": "open"
+					}
+				],
 				"evidence": []
 			},
 			"verification": {
@@ -228,6 +233,37 @@
 				"plan": {
 					"page": "decision-views.html",
 					"fragment": "worker-deliverable"
+				},
+				"rules": [],
+				"designItems": [],
+				"governingItems": [],
+				"verificationChecks": []
+			}
+		},
+		"queue/DEL-02": {
+			"kind": "core",
+			"id": "queue/DEL-02",
+			"title": "Report stuck stop requests",
+			"dependsOn": [],
+			"state": "planned",
+			"reasons": [
+				"Implementation steps have yet to be written."
+			],
+			"progress": {
+				"state": "planned",
+				"reason": "Implementation steps have yet to be written."
+			},
+			"implementation": {
+				"tasks": [],
+				"evidence": []
+			},
+			"verification": {
+				"checks": []
+			},
+			"links": {
+				"plan": {
+					"page": "decision-views.html",
+					"fragment": "queue-report-deliverable"
 				},
 				"rules": [],
 				"designItems": [],
@@ -282,7 +318,9 @@
 		"readyNow": [
 			"queue/DEL-01"
 		],
-		"needsPlan": [],
+		"needsPlan": [
+			"queue/DEL-02"
+		],
 		"blocksMost": [
 			{
 				"id": "queue/DEL-01",

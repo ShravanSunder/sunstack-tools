@@ -52,7 +52,7 @@ test.each([1400, 390])(
 						},
 					},
 					order: ['jobs'],
-					work: { readyNow: [], blocksMost: [], builtNotAccepted: [] },
+					work: { readyNow: [], needsPlan: [], blocksMost: [], builtNotAccepted: [] },
 					records: [],
 					deliverables,
 				}),
@@ -117,6 +117,7 @@ test.each([1400, 390])(
 			'Job cancellation',
 			'Work now',
 			'Ready now',
+			'Needs a plan',
 			'Blocks the most',
 			'Built, not accepted',
 			'Waiting on owner',
@@ -157,6 +158,7 @@ test.each([1400, 390])(
 			[...work.querySelectorAll('a')].map((link) => [link.textContent, new URL(link.href).hash]),
 		).toEqual([
 			['queue/DEL-01 · Acknowledge stop requests', '#queue-deliverable'],
+			['queue/DEL-02 · Report stuck stop requests', '#queue-report-deliverable'],
 			['queue/DEL-01 · Acknowledge stop requests', '#queue-deliverable'],
 			['jobs/DEL-01 · Prove cancellation', '#R1'],
 		]);
@@ -182,6 +184,10 @@ test.each([1400, 390])(
 		await expectExplanation(
 			overview.getByRole('button', { name: 'Explain 0', exact: true }),
 			/Number 0 can show finished groundwork\./,
+		);
+		await expectExplanation(
+			overview.getByRole('button', { name: 'Explain Needs a plan', exact: true }),
+			/^No implementation steps yet: write its plan before it can start\.$/,
 		);
 		const state = fixtureLocator(
 			frame,
@@ -238,6 +244,10 @@ test.each([1400, 390])(
 			.first()
 			.click();
 		await expect.poll((): string => fixture.location.hash).toBe('#queue-deliverable');
+		await fixtureLocator(frame, work)
+			.getByRole('link', { name: 'queue/DEL-02 · Report stuck stop requests', exact: true })
+			.click();
+		await expect.poll((): string => fixture.location.hash).toBe('#queue-report-deliverable');
 		await overview.getByRole('link', { name: /jobs\/D3/ }).click();
 		await expect.poll((): string => fixture.location.hash).toBe('#D3');
 		let answer: unknown;

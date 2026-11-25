@@ -342,9 +342,14 @@ function renderProjects(
 }
 
 function renderWorkNow(content: HTMLElement, view: InitiativeView, source: URL): void {
-	const { readyNow, blocksMost, builtNotAccepted } = view.work;
+	const { readyNow, needsPlan, blocksMost, builtNotAccepted } = view.work;
 	const groups = [
 		{ title: 'Ready now', entries: readyNow.map((id) => ({ id, detail: '' })) },
+		{
+			title: 'Needs a plan',
+			explanation: 'No implementation steps yet: write its plan before it can start.',
+			entries: needsPlan.map((id) => ({ id, detail: '' })),
+		},
 		{
 			title: 'Blocks the most',
 			entries: blocksMost.map(({ id, waiting }) => ({
@@ -357,9 +362,9 @@ function renderWorkNow(content: HTMLElement, view: InitiativeView, source: URL):
 	if (!groups.length) return;
 	const section = document.createElement('section');
 	appendHeading(section, 'h2', 'Work now');
-	for (const { title, entries } of groups) {
+	for (const { title, explanation, entries } of groups) {
 		const group = document.createElement('section');
-		appendHeading(group, 'h3', title);
+		appendHeading(group, 'h3', title, explanation);
 		const list = appendList(group);
 		for (const { id, detail } of entries) {
 			const item = appendItem(list);
