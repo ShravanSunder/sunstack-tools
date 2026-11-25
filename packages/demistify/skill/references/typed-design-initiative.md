@@ -94,54 +94,6 @@ For an initiative-wide view, place this in the initiative's `index.html` and ser
 
 It opens with the projects grouped by number, each with what it achieves and what the owner checks, linked to its page; then owner questions, the work lists, deliverables and records. Every state and id prefix carries a plain explanation. Use `ex-deliverables` for one project's detail.
 
-## Re-cut or convert an initiative
+## Trees on an older layout
 
-Move whole deliverables between projects with one command. Run the dry run first: it writes nothing and prints every change, collision and passage it cannot place.
-
-```sh
-demistify initiative migrate docs/initiatives/2026-11-router --plan cut.json --site-root docs --dry-run
-demistify initiative migrate docs/initiatives/2026-11-router --plan cut.json --site-root docs
-```
-
-The plan is JSON. Addresses name the tree as it is before the run.
-
-```json
-{
-  "projects": [
-    { "key": "harness-contract", "folder": "2026-11-harness-contract", "number": 1,
-      "title": "One contract for every harness", "achieves": "…", "acceptance": "…", "lead": "mac-lead" }
-  ],
-  "moves": [{ "from": "mac-side/DEL-07", "to": "harness-contract" }],
-  "records": [{ "record": "mac-side/R14", "to": "harness-contract" }],
-  "add": [{ "project": "harness-contract", "title": "Claude through its SDK", "dependsOn": [], "why": "…" }],
-  "withdraw": ["mac-side/DEL-17"],
-  "dependsOnChanges": [{ "deliverable": "mac-side/DEL-19", "from": [], "to": ["mac-side/DEL-02"] }],
-  "remove": [],
-  "open": []
-}
-```
-
-- `projects` lists every project the initiative keeps, with its number. A project not yet on disk is created in `folder`, with the typed files, `deliverables/` and an `index.html` that declares the record sections; `title` and `lead` apply only to these. A project the plan omits stays registered and is printed; list it in `remove` to drop it from `initiative.ts` once nothing is left in it.
-- A move takes the deliverable module, its delivery entry and acceptance, and every record it scopes: rules, needs, realizations, checks and the decisions and assumptions they rest on. A record that a deliverable staying behind also scopes stays, and the moved deliverable names it qualified. `records` overrides where one record goes.
-- Ids change only when they collide in the target project, and never reuse an id the target already had. Every reference, `dependsOn`, Map and Walkthrough target, page binding, status and `#ID` link is rewritten to the new address.
-- `add` creates a `later` deliverable with the next free id; the run prints its `dependsOn` and `why` for you to apply when you scope it. `withdraw` removes the deliverable and every `dependsOn` naming it.
-- A passage moves with its record only when its heading section, or its section item, holds nothing else. Everything else stays and is listed under "For you to place". Prose is never rewritten: the run lists where a renamed item's old id still appears in text.
-- The real run checks a staged copy first and writes nothing when that check fails. Afterwards, run `design types` for each new project and `initiative check --write`.
-
-A tree still in the `project.ts` layout is converted in the same run: `initiative.ts` takes the plan's numbers (a project the plan omits gets the highest one), `project-decisions.ts` and `project-assumptions.ts` become `initiative-*`, `project/` references become `initiative/`, and `ex-project-overview` becomes `ex-initiative-overview`.
-
-## Migrate an initiative from 1.32.1
-
-From the Demistify source checkout, run the migration against a committed copy of the docs tree. The dry run validates a temporary copy when all required inputs are present. If the JSON report has `blocked: true`, fill the missing values in its `recordInput` object and save that object in `record-input.json`. Where the report lists `sourceCandidates`, copy the source that establishes the decision into the record's `source` field.
-
-```sh
-node packages/demistify/scripts/migrate-lean-design-records.ts \
-  --released-lean --source /path/to/copied/docs --project initiatives/2026-11-router --dry-run
-node packages/demistify/scripts/migrate-lean-design-records.ts \
-  --released-lean --source /path/to/copied/docs --project initiatives/2026-11-router \
-  --record-input /path/to/record-input.json --output /path/to/new/docs
-```
-
-The migration uses the original record IDs, page bindings and links. It reads a contiguous block of migration comments immediately above a record. Use `// weight: design`, `// weight: process` or `// weight: minor` for weight and `// by: messages-lead lead` for an assumption's author. Use `// settles: <sentence>` for an open assumption's settling condition and `// settledBy: <alias>` for a confirmed or refuted assumption. A `settles: unknown` comment leaves the settling condition missing. Explicit input takes precedence over comments and the report lists conflicts.
-
-If a bound Choice already has options in HTML, the migration reads them from that page and preserves the original option and Details fragment IDs. Supply the recommendation and any other missing decision fields in the input file. The migration moves a section's authored contents into a sibling item and publishes the requested output directory only after the initiative checker passes. Regenerate views with `initiative check --write` using the matching CLI, then open the resulting pages.
+A tree still on 1.32.1 records, or on `project.ts`, is converted from a sunstack-tools source checkout, not with this CLI: first the 1.32.1 record migration from the 1.33.0 release commit (`git checkout a9e9a34c`, then `node packages/demistify/scripts/migrate-lean-design-records.ts --released-lean …` as that commit's guide describes), then `packages/demistify/scripts/initiative-migration/` on main, whose README gives the command. Run each with its dry run first.

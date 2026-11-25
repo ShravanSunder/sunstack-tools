@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 
 /**
- * A small initiative for re-cut tests. alpha holds three core deliverables and one
+ * A small initiative for move tests. alpha holds three core deliverables and one
  * later one; beta already uses R1, R3, DEL-01 and DEL-03, so arrivals collide.
  */
 const head = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Page</title>
@@ -276,7 +276,7 @@ export default [
 };
 
 async function writeTree(tree: Readonly<Record<string, string | undefined>>): Promise<string> {
-	const root = await mkdtemp(join(tmpdir(), 'demistify-recut-'));
+	const root = await mkdtemp(join(tmpdir(), 'demistify-migration-'));
 	const initiative = join(root, 'initiative');
 	await Promise.all(
 		Object.entries(tree).map(async ([path, text]) => {
@@ -290,11 +290,11 @@ async function writeTree(tree: Readonly<Record<string, string | undefined>>): Pr
 }
 
 /** Write the fixture into a fresh directory; returns the initiative root. */
-export function writeRecutFixture(): Promise<string> {
+export function writeMigrationFixture(): Promise<string> {
 	return writeTree(files);
 }
 
 /** The fixture in the project.ts layout. */
-export function writeLegacyRecutFixture(): Promise<string> {
+export function writeLegacyMigrationFixture(): Promise<string> {
 	return writeTree({ ...files, ...legacyFiles });
 }

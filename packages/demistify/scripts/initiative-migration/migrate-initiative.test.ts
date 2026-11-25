@@ -3,12 +3,16 @@ import { dirname, join, relative } from 'node:path';
 
 import { expect, it } from 'vitest';
 
-import { checkInitiative } from '../check-initiative.ts';
+import { checkInitiative } from '../../src/node/design-authoring/check-initiative.ts';
 import { AnchorRelocations, rewriteReference } from './address-rewrite.ts';
 import { parseCutPlan } from './cut-plan.ts';
 import { migrateInitiative } from './migrate-initiative.ts';
-import { fixturePlan, writeLegacyRecutFixture, writeRecutFixture } from './recut-fixture.ts';
-import { nextFreeId } from './recut-resolution.ts';
+import {
+	fixturePlan,
+	writeLegacyMigrationFixture,
+	writeMigrationFixture,
+} from './migration-fixture.ts';
+import { nextFreeId } from './move-resolution.ts';
 
 async function treeContents(root: string): Promise<Map<string, string>> {
 	const contents = new Map<string, string>();
@@ -28,7 +32,7 @@ async function treeContents(root: string): Promise<Map<string, string>> {
 async function withFixture(
 	plan: unknown,
 	run: (root: string, planFile: string) => Promise<void>,
-	write: () => Promise<string> = writeRecutFixture,
+	write: () => Promise<string> = writeMigrationFixture,
 ): Promise<void> {
 	const root = await write();
 	const planFile = join(dirname(root), 'plan.json');
@@ -94,7 +98,7 @@ it('follows a moved anchor and keeps unchanged links exactly as written', (): vo
 	);
 });
 
-it('prints the whole re-cut in a dry run and writes nothing', async (): Promise<void> => {
+it('prints the whole move in a dry run and writes nothing', async (): Promise<void> => {
 	await withFixture(fixturePlan, async (root, planFile) => {
 		const before = await treeContents(dirname(root));
 		const { report, applied } = await migrateInitiative(root, { plan: planFile, dryRun: true });
@@ -257,7 +261,7 @@ it('converts a project.ts tree to initiative.ts in the same run', async (): Prom
 			);
 			expect(await checkInitiative(root)).toContain('Checked 3 project(s) by number: 0 gamma');
 		},
-		writeLegacyRecutFixture,
+		writeLegacyMigrationFixture,
 	);
 }, 60_000);
 

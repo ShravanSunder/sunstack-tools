@@ -1,11 +1,11 @@
-import type { DeliveryEntry } from '../delivery-model.ts';
-import { recordRelationships, type DesignRecord } from '../schema.ts';
+import type { DeliveryEntry } from '../../src/node/design-authoring/delivery-model.ts';
+import { recordRelationships, type DesignRecord } from '../../src/node/design-authoring/schema.ts';
 import type { CutPlan } from './cut-plan.ts';
 
-/** What the re-cut reads from the initiative as it is: one set per registered project. */
+/** What the move reads from the initiative as it is: one set per registered project. */
 export interface InitiativeSnapshot {
 	readonly projects: readonly SnapshotProject[];
-	/** Every record, qualified (`mac-side/R1`, `initiative/D1`). */
+	/** Every record, qualified (`queue/R1`, `initiative/D1`). */
 	readonly records: readonly DesignRecord[];
 	/** Every delivery entry, qualified. */
 	readonly entries: readonly DeliveryEntry[];
@@ -73,7 +73,7 @@ export interface DependsOnEdit {
 	readonly why: string | undefined;
 }
 
-export interface RecutResolution {
+export interface MigrationResolution {
 	readonly recordMoves: ReadonlyMap<string, RecordMove>;
 	readonly deliverableMoves: ReadonlyMap<string, DeliverableMove>;
 	readonly shared: readonly SharedRecord[];
@@ -138,7 +138,7 @@ function scopedClosure(entry: DeliveryEntry, records: ReadonlyMap<string, Design
 	return [...reached];
 }
 
-export function resolveRecut(snapshot: InitiativeSnapshot, plan: CutPlan): RecutResolution {
+export function resolveMigration(snapshot: InitiativeSnapshot, plan: CutPlan): MigrationResolution {
 	const projectsByName = new Map(snapshot.projects.map((project) => [project.name, project]));
 	const records = new Map(snapshot.records.map((record) => [record.id, record]));
 	const entries = new Map(snapshot.entries.map((entry) => [entry.deliverable.id, entry]));

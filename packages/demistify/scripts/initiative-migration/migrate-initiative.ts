@@ -3,21 +3,28 @@ import { cp, mkdtemp, readFile, realpath, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join, relative, resolve, sep } from 'node:path';
 
-import { containsPath } from '../../local-site.ts';
-import { buildInitiative, loadInitiative } from '../check-initiative.ts';
-import { requiredSectionHolds } from '../section-layout.ts';
+import {
+	buildInitiative,
+	loadInitiative,
+} from '../../src/node/design-authoring/check-initiative.ts';
+import { requiredSectionHolds } from '../../src/node/design-authoring/section-layout.ts';
+import { containsPath } from '../../src/node/local-site.ts';
 import type { AddressMaps, AnchorTarget } from './address-rewrite.ts';
 import { parseCutPlan, type CutPlan } from './cut-plan.ts';
 import { initiativeSource, type InitiativeProjectEntry } from './initiative-source.ts';
 import { convertLegacyLayout, isLegacyLayout, type LegacyConversion } from './legacy-layout.ts';
 import { MemoryWorkspace } from './memory-workspace.ts';
+import { formatMigrationReport } from './migration-report.ts';
+import {
+	relativeHref,
+	type PageDeclaration,
+	type MigrationProject,
+} from './migration-workspace.ts';
+import { projectOf, resolveMigration, type InitiativeSnapshot } from './move-resolution.ts';
+import { planPages, type PageMoveRequest, type PageSource } from './page-moves.ts';
 import { scaffoldProjectSources } from './project-scaffold.ts';
 import { projectShellPage, shellRuntime } from './project-shell.ts';
-import { planPages, type PageMoveRequest, type PageSource } from './recut-pages.ts';
-import { formatRecutReport } from './recut-report.ts';
-import { projectOf, resolveRecut, type InitiativeSnapshot } from './recut-resolution.ts';
-import { planSources } from './recut-sources.ts';
-import { relativeHref, type PageDeclaration, type RecutProject } from './recut-workspace.ts';
+import { planSources } from './source-moves.ts';
 
 export interface MigrateInitiativeOptions {
 	readonly plan: string;
@@ -91,8 +98,8 @@ function snapshotOf(loaded: LoadedInitiative): InitiativeSnapshot {
 }
 
 /** Projects as they will be: existing ones keep their folders, the plan's new ones get theirs. */
-function recutProjects(loaded: LoadedInitiative, plan: CutPlan): Map<string, RecutProject> {
-	const projects = new Map<string, RecutProject>(
+function migrationProjects(loaded: LoadedInitiative, plan: CutPlan): Map<string, MigrationProject> {
+	const projects = new Map<string, MigrationProject>(
 		loaded.sets.map((set) => [
 			set.name,
 			{ name: set.name, directory: set.directory, designFile: set.designFile, created: false },
@@ -122,7 +129,7 @@ function recutProjects(loaded: LoadedInitiative, plan: CutPlan): Map<string, Rec
 function initiativeEntries(
 	loaded: LoadedInitiative,
 	plan: CutPlan,
-	projects: ReadonlyMap<string, RecutProject>,
+	projects: ReadonlyMap<string, MigrationProject>,
 ): InitiativeProjectEntry[] {
 	const planned = plan.projects.map((project): InitiativeProjectEntry => {
 		const existing = loaded.manifest.projects[project.key];
@@ -163,7 +170,7 @@ async function checkStaged(
 	siteRoot: string | undefined,
 	workspace: MemoryWorkspace,
 ): Promise<{ readonly passed: boolean; readonly result: string }> {
-	const stage = join(dirname(root), `.${basename(root)}.recut-${process.pid}`);
+	const stage = join(dirname(root), `.${basename(root)}.migration-${process.pid}`);
 	const unstaged = (text: string): string =>
 		text.replaceAll(stage, root).replaceAll(basename(stage), basename(root));
 	await rm(stage, { recursive: true, force: true });
@@ -193,19 +200,19 @@ export async function migrateInitiative(
 	const planFile = resolve(options.plan);
 	const plan = parseCutPlan(planFile, await readFile(planFile, 'utf8'));
 	if (!isLegacyLayout(root))
-		return recut({ root, workRoot: root, siteRoot, plan, dryRun: options.dryRun });
+		return migrate({ root, workRoot: root, siteRoot, plan, dryRun: options.dryRun });
 	// A project.ts tree is converted on a private copy, so the reader sees initiative.ts.
-	const scratch = await realpath(await mkdtemp(join(tmpdir(), 'demistify-recut-')));
+	const scratch = await realpath(await mkdtemp(join(tmpdir(), 'demistify-migration-')));
 	try {
 		const workRoot = join(scratch, basename(root));
 		await copyAuthoredTree(root, workRoot);
-		return await recut({ root, workRoot, siteRoot, plan, dryRun: options.dryRun, legacy: true });
+		return await migrate({ root, workRoot, siteRoot, plan, dryRun: options.dryRun, legacy: true });
 	} finally {
 		await rm(scratch, { recursive: true, force: true });
 	}
 }
 
-interface RecutRun {
+interface MigrationRun {
 	/** The initiative as it is: originals are read here and the result is written here. */
 	readonly root: string;
 	/** Where the run reads the tree from: the initiative, or a converted copy. */
@@ -216,7 +223,7 @@ interface RecutRun {
 	readonly legacy?: true;
 }
 
-async function recut(run: RecutRun): Promise<MigrateInitiativeResult> {
+async function migrate(run: MigrationRun): Promise<MigrateInitiativeResult> {
 	const { plan, siteRoot } = run;
 	const root = run.workRoot;
 	const workspace = new MemoryWorkspace(run.root, run.workRoot);
@@ -230,16 +237,16 @@ async function recut(run: RecutRun): Promise<MigrateInitiativeResult> {
 		loaded = await loadInitiative(root, run.legacy ? undefined : siteRoot);
 	} catch (error) {
 		throw new Error(
-			`The initiative must check before a re-cut. ${error instanceof Error ? error.message : String(error)}`,
+			`The initiative must check before a move. ${error instanceof Error ? error.message : String(error)}`,
 			{ cause: error },
 		);
 	}
-	const resolution = resolveRecut(snapshotOf(loaded), plan);
+	const resolution = resolveMigration(snapshotOf(loaded), plan);
 	const maps: AddressMaps = {
 		records: new Map([...resolution.recordMoves].map(([from, move]) => [from, move.to])),
 		deliverables: new Map([...resolution.deliverableMoves].map(([from, move]) => [from, move.to])),
 	};
-	const projects = recutProjects(loaded, plan);
+	const projects = migrationProjects(loaded, plan);
 
 	// New projects: typed files and a page that declares the record sections.
 	const runtime = shellRuntime(
@@ -458,7 +465,7 @@ async function recut(run: RecutRun): Promise<MigrateInitiativeResult> {
 	const check = run.dryRun ? undefined : await checkStaged(run.root, siteRoot, workspace);
 	const applied = check?.passed === true;
 	if (applied) await workspace.applyTo(run.root);
-	const report = formatRecutReport({
+	const report = formatMigrationReport({
 		root: run.root,
 		conversion: conversion && {
 			...conversion,

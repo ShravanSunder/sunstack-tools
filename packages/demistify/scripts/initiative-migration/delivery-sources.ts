@@ -2,8 +2,8 @@ import { join, relative, sep } from 'node:path';
 
 import typescript from 'typescript';
 
+import type { MigrationProject, SourceWorkspace } from './migration-workspace.ts';
 import { deliveryTemplate } from './project-scaffold.ts';
-import type { RecutProject, SourceWorkspace } from './recut-workspace.ts';
 import {
 	addImportLine,
 	applyTextEdits,
@@ -27,7 +27,7 @@ export interface DeliveryFile {
 }
 
 export function readDeliveryFile(
-	project: RecutProject,
+	project: MigrationProject,
 	workspace: SourceWorkspace,
 ): DeliveryFile | undefined {
 	const file = join(project.directory, 'design-delivery.ts');
@@ -99,7 +99,7 @@ function entryText(binding: string, dependsOn: readonly string[], quote: '"' | "
 
 /** Remove leaving entries and imports, rewrite changed dependsOn, append arrivals. */
 export function updateDelivery(
-	project: RecutProject,
+	project: MigrationProject,
 	workspace: SourceWorkspace,
 	update: DeliveryUpdate,
 ): void {

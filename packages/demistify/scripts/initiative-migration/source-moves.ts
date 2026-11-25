@@ -2,8 +2,8 @@ import { basename, dirname, join } from 'node:path';
 
 import typescript from 'typescript';
 
-import type { DeliveryEntry } from '../delivery-model.ts';
-import type { DesignRecord } from '../schema.ts';
+import type { DeliveryEntry } from '../../src/node/design-authoring/delivery-model.ts';
+import type { DesignRecord } from '../../src/node/design-authoring/schema.ts';
 import type { AddressMaps, AnchorRelocations } from './address-rewrite.ts';
 import { readDeliveryFile, updateDelivery } from './delivery-sources.ts';
 import {
@@ -17,14 +17,14 @@ import {
 	recordOrPagePath,
 	recordRules,
 } from './literal-rules.ts';
-import { camelBinding, laterDeliverableSource, recordsTemplate, slug } from './project-scaffold.ts';
-import { localId, projectOf, type RecutResolution } from './recut-resolution.ts';
 import {
 	sdkFilename,
 	type PageDeclaration,
-	type RecutProject,
+	type MigrationProject,
 	type SourceWorkspace,
-} from './recut-workspace.ts';
+} from './migration-workspace.ts';
+import { localId, projectOf, type MigrationResolution } from './move-resolution.ts';
+import { camelBinding, laterDeliverableSource, recordsTemplate, slug } from './project-scaffold.ts';
 import {
 	applyTextEdits,
 	defaultExport,
@@ -41,10 +41,10 @@ import {
 
 /** Everything the TypeScript pass needs to rewrite authored inputs. */
 export interface SourceInputs {
-	readonly projects: ReadonlyMap<string, RecutProject>;
+	readonly projects: ReadonlyMap<string, MigrationProject>;
 	readonly records: ReadonlyMap<string, DesignRecord>;
 	readonly entries: readonly DeliveryEntry[];
-	readonly resolution: RecutResolution;
+	readonly resolution: MigrationResolution;
 	readonly maps: AddressMaps;
 	readonly anchors: AnchorRelocations;
 	/** Destination of each moved deliverable: page relative to its new project, and fragment. */
@@ -75,7 +75,7 @@ function recordArray(
 }
 
 /** Record files of one design: design.ts, its imported records/*.ts, and the sidecars. */
-function recordFiles(project: RecutProject, workspace: SourceWorkspace): string[] {
+function recordFiles(project: MigrationProject, workspace: SourceWorkspace): string[] {
 	const designText = workspace.read(project.designFile);
 	if (designText === undefined) return [];
 	const source = parseModule(project.designFile, designText);
@@ -115,7 +115,7 @@ function pushTo<TValue>(map: Map<string, TValue[]>, key: string, value: TValue):
 	map.set(key, [...(map.get(key) ?? []), value]);
 }
 
-/** Rewrite every authored TypeScript input the re-cut touches. */
+/** Rewrite every authored TypeScript input the move touches. */
 export function planSources(inputs: SourceInputs, workspace: SourceWorkspace): void {
 	const { projects, resolution, maps } = inputs;
 	const designBase = (project: string): string => {
@@ -408,7 +408,7 @@ function appendRecords(file: string, texts: readonly string[], workspace: Source
 }
 
 function updateDesign(
-	project: RecutProject,
+	project: MigrationProject,
 	inputs: SourceInputs,
 	workspace: SourceWorkspace,
 	acceptances: readonly string[],

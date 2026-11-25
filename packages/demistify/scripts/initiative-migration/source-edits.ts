@@ -2,10 +2,10 @@ import { dirname, resolve } from 'node:path';
 
 import typescript from 'typescript';
 
-import { unwrapExpression } from '../read-design.ts';
+import { unwrapExpression } from '../../src/node/design-authoring/read-design.ts';
 
 /**
- * Surgical edits to authored TypeScript literals. The re-cut changes strings, removes
+ * Surgical edits to authored TypeScript literals. The move changes strings, removes
  * and appends array elements and adds imports; everything else, comments included,
  * keeps the author's text.
  */
