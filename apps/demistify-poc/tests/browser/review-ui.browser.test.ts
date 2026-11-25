@@ -52,7 +52,7 @@ test.each([1400, 390])(
 						},
 					},
 					order: ['jobs'],
-					work: { readyNow: [], blocksMost: [], builtNotAccepted: [] },
+					work: { readyNow: [], needsPlan: [], blocksMost: [], builtNotAccepted: [] },
 					records: [],
 					deliverables,
 				}),
@@ -76,8 +76,19 @@ test.each([1400, 390])(
 		expect(progress.querySelector('tbody :is(a, details)')).toBeNull();
 
 		const overview = fixtureLocator(frame, initiative);
-		await expect.element(overview.getByText(`${label} · Later`, { exact: true })).toBeVisible();
-		expect(initiative.querySelector('li :is(a, details)')).toBeNull();
+		await overview.getByRole('button', { name: 'Jobs', exact: true }).click();
+		const summary = fixtureLocator(
+			frame,
+			requiredElement(fixture, '.ex-initiative-project-summary'),
+		);
+		await expect.element(summary.getByText(`${label} · Later`, { exact: true })).toBeVisible();
+		await expect
+			.element(summary.getByText('No open owner decisions.', { exact: true }))
+			.toBeVisible();
+		expect(
+			requiredElement(fixture, '.ex-initiative-project-summary').querySelector('a, details'),
+		).toBeNull();
+		await frame.getByRole('button', { name: 'Close project summary', exact: true }).click();
 		await expect
 			.element(overview.getByRole('heading', { name: 'Work now' }))
 			.not.toBeInTheDocument();
@@ -106,6 +117,7 @@ test.each([1400, 390])(
 			'Job cancellation',
 			'Work now',
 			'Ready now',
+			'Needs a plan',
 			'Blocks the most',
 			'Built, not accepted',
 			'Waiting on owner',
@@ -134,25 +146,19 @@ test.each([1400, 390])(
 			(section) => section.querySelector('h4')?.textContent === 'Job cancellation',
 		);
 		if (!jobs) throw new Error('Job cancellation project is missing.');
-		const project = fixtureLocator(frame, jobs);
 		await expect
-			.element(project.getByRole('link', { name: 'Job cancellation', exact: true }))
-			.toHaveAttribute('href', expect.stringMatching(/decision-views\.html$/));
+			.element(
+				fixtureLocator(frame, jobs).getByRole('button', { name: 'Job cancellation', exact: true }),
+			)
+			.toBeVisible();
 		expect(jobs.textContent).toContain('Lead jobs-lead');
-		expect(jobs.textContent).toContain('Waiting for the queue prerequisite.');
-		expect(jobs.textContent).toContain('A caller can cancel a job already running.');
-		expect(jobs.textContent).toContain(
-			'What the owner checks Cancel a running job and check that its worker stops.',
-		);
-		await expect
-			.element(project.getByRole('link', { name: 'queue/DEL-01', exact: true }))
-			.toHaveAttribute('href', expect.stringMatching(/decision-views\.html#queue-deliverable$/));
 		const work = requiredElement(owner, 'section:has(> h2)');
 		expect(work.textContent).toContain('1 deliverable waiting');
 		expect(
 			[...work.querySelectorAll('a')].map((link) => [link.textContent, new URL(link.href).hash]),
 		).toEqual([
 			['queue/DEL-01 · Acknowledge stop requests', '#queue-deliverable'],
+			['queue/DEL-02 · Report stuck stop requests', '#queue-report-deliverable'],
 			['queue/DEL-01 · Acknowledge stop requests', '#queue-deliverable'],
 			['jobs/DEL-01 · Prove cancellation', '#R1'],
 		]);
@@ -180,12 +186,8 @@ test.each([1400, 390])(
 			/Number 0 can show finished groundwork\./,
 		);
 		await expectExplanation(
-			project.getByRole('button', { name: 'Explain jobs/DEL-01', exact: true }),
-			/a piece of a project that is built, checked and accepted/,
-		);
-		await expectExplanation(
-			project.getByRole('button', { name: 'Prerequisite', exact: true }),
-			/cannot be accepted before the deliverables it names/,
+			overview.getByRole('button', { name: 'Explain Needs a plan', exact: true }),
+			/^No implementation steps yet: write its plan before it can start\.$/,
 		);
 		const state = fixtureLocator(
 			frame,
@@ -205,22 +207,11 @@ test.each([1400, 390])(
 			.element(frame.getByRole('tooltip'))
 			.toHaveTextContent('Rule: one sentence the system must keep, with cases that test it.');
 		await userEvent.keyboard('{Escape}');
-		const evidence = project.getByText('Checks and evidence', { exact: true });
-		await evidence.click();
-		await project.getByRole('button', { name: 'Completed', exact: true }).click();
-		await expect
-			.element(frame.getByRole('tooltip'))
-			.toHaveTextContent('Recorded as done in the current candidate.');
-		await userEvent.keyboard('{Escape}');
-		await project.getByRole('button', { name: 'No result', exact: true }).click();
-		await expect
-			.element(frame.getByRole('tooltip'))
-			.toHaveTextContent('No result is recorded for this check yet.');
-		await userEvent.keyboard('{Escape}');
-		await evidence.click();
 		await expect.element(overview.getByText(/Authority: Lead · Status: Superseded/)).toBeVisible();
 		await expect.element(overview.getByText(/Authority: Owner · Status: Decided/)).toBeVisible();
-		await expect.element(overview.getByText(/Authority: Owner · Status: Open/)).toBeVisible();
+		await expect
+			.element(overview.getByText(/Authority: Owner · Status: Open/).first())
+			.toBeVisible();
 		await expect
 			.element(overview.getByText(/Workers can acknowledge a stop request.*Unverified/))
 			.toBeVisible();
@@ -228,7 +219,10 @@ test.each([1400, 390])(
 		await expect
 			.element(replacement)
 			.toHaveAttribute('href', expect.stringMatching(/decision-views\.html#D2$/));
-		await overview.getByText('Affected design records', { exact: true }).click();
+		const decidedChoice = overview
+			.getByRole('listitem')
+			.filter({ hasText: 'jobs/D2 · Send a stop request to the worker' });
+		await decidedChoice.getByText('Affected design records', { exact: true }).click();
 		await expect
 			.element(overview.getByRole('link', { name: 'jobs/R1 · Send the stop request once' }).first())
 			.toBeVisible();
@@ -250,6 +244,10 @@ test.each([1400, 390])(
 			.first()
 			.click();
 		await expect.poll((): string => fixture.location.hash).toBe('#queue-deliverable');
+		await fixtureLocator(frame, work)
+			.getByRole('link', { name: 'queue/DEL-02 · Report stuck stop requests', exact: true })
+			.click();
+		await expect.poll((): string => fixture.location.hash).toBe('#queue-report-deliverable');
 		await overview.getByRole('link', { name: /jobs\/D3/ }).click();
 		await expect.poll((): string => fixture.location.hash).toBe('#D3');
 		let answer: unknown;
@@ -266,6 +264,122 @@ test.each([1400, 390])(
 		});
 	},
 );
+
+test.each([1400, 390])(
+	'initiative project opens its own summary and follows authored destinations at %ipx',
+	async (width): Promise<void> => {
+		await page.viewport(width, 1000);
+		const { document: fixture, frame } = await openFixture('ui', '', 'decision-views.html');
+		const originalUrl = fixture.URL;
+		const project = frame.getByRole('button', { name: 'Job cancellation', exact: true });
+		await project.click();
+		expect(
+			requiredElement(fixture, '.ex-initiative-project-trigger[aria-expanded="true"]').textContent,
+		).toBe('Job cancellation');
+		expect(fixture.URL).toBe(originalUrl);
+		const panel = requiredElement(
+			fixture,
+			width === 390 ? 'dialog[data-mode="sidebar"][open]' : 'aside.ex-drawer:not([hidden])',
+		);
+		const contents = requiredElement(panel, '.ex-initiative-project-summary');
+		const summary = fixtureLocator(frame, contents);
+		const close = frame.getByRole('button', { name: 'Close project summary', exact: true });
+		await expect.element(close).toHaveFocus();
+		expect(panel.getAttribute('aria-label')).toBe('Job cancellation');
+		if (width === 390) {
+			expect(Math.round(panel.getBoundingClientRect().width)).toBe(width);
+		} else {
+			const overview = requiredElement(fixture, 'ex-initiative-overview');
+			expect(panel.getBoundingClientRect().left).toBeGreaterThanOrEqual(
+				overview.getBoundingClientRect().right,
+			);
+		}
+		await expect
+			.element(summary.getByText('A caller can cancel a job already running.', { exact: true }))
+			.toBeVisible();
+		await expect.element(summary.getByText(/What the owner checks/)).toBeVisible();
+		await expect
+			.element(summary.getByText('Waiting for the queue prerequisite.', { exact: true }))
+			.toBeVisible();
+		const ownerDecisions = requiredElement(contents, 'h3 + ul');
+		expect(
+			[...ownerDecisions.querySelectorAll('a')].map((link) => new URL(link.href).hash),
+		).toEqual(['#D3', '#D4', '#D5']);
+		await expect.element(summary.getByRole('link', { name: /jobs\/DEL-01/ })).toBeVisible();
+		const states = summary.getByRole('button', { name: 'Blocked on prerequisite', exact: true });
+		await expect.element(states.last()).toBeVisible();
+		const evidence = summary.getByText('Checks and evidence', { exact: true });
+		await evidence.click();
+		await expect
+			.element(summary.getByRole('link', { name: 'queue/DEL-01', exact: true }))
+			.toHaveAttribute('href', expect.stringMatching(/decision-views\.html#queue-deliverable$/));
+		await summary.getByRole('button', { name: 'Completed', exact: true }).click();
+		await expect
+			.poll(() => fixture.querySelector('[role="tooltip"]:popover-open')?.textContent ?? '')
+			.toMatch(/Recorded as done in the current candidate/);
+		await evidence.click();
+		await expect
+			.element(summary.getByRole('link', { name: 'Open design page' }))
+			.toHaveAttribute('href', expect.stringMatching(/job-cancellation-design\.html$/));
+		expect(contents.scrollWidth).toBeLessThanOrEqual(contents.clientWidth);
+		contents.scrollTop = 0;
+		await Promise.all(panel.getAnimations().map(({ finished }) => finished));
+		await page.screenshot({
+			path: browserScreenshotPath(`initiative-project-summary-${width}.png`),
+		});
+
+		await close.click();
+		await expect.element(project).toHaveFocus();
+		await expect.element(project).toHaveAttribute('aria-expanded', 'false');
+		await frame.getByRole('button', { name: 'Switch light or dark theme', exact: true }).click();
+		await project.click();
+		const reopenedContents = requiredElement(fixture, '.ex-initiative-project-summary');
+		const reopenedSummary = fixtureLocator(frame, reopenedContents);
+		await expect
+			.element(reopenedSummary.getByRole('heading', { name: 'Open owner decisions' }))
+			.toBeVisible();
+		await Promise.all(
+			reopenedContents.parentElement?.getAnimations().map(({ finished }) => finished) ?? [],
+		);
+		expect(reopenedContents.scrollWidth).toBeLessThanOrEqual(reopenedContents.clientWidth);
+		await page.screenshot({
+			path: browserScreenshotPath(`initiative-project-summary-dark-${width}.png`),
+		});
+
+		await reopenedSummary.getByRole('link', { name: /jobs\/D3/ }).click();
+		await expect.poll((): string => fixture.location.hash).toBe('#D3');
+		await expect.element(project).toHaveAttribute('aria-expanded', 'false');
+
+		await project.click();
+		await frame.getByRole('link', { name: 'Open design page', exact: true }).click();
+		await expect
+			.element(frame.getByRole('heading', { level: 1, name: 'Job cancellation' }))
+			.toBeVisible();
+	},
+);
+
+test('activating the open project title closes its desktop summary', async (): Promise<void> => {
+	await page.viewport(1400, 1000);
+	const { document: fixture, frame } = await openFixture('ui', '', 'decision-views.html');
+	const project = frame.getByRole('button', { name: 'Job cancellation', exact: true });
+	const summary = frame.getByRole('complementary', { name: 'Job cancellation', exact: true });
+	await expect.element(project).toHaveAttribute('aria-expanded', 'false');
+
+	await project.click();
+	await expect.element(project).toHaveAttribute('aria-expanded', 'true');
+	await expect.element(summary).toBeVisible();
+	const drawer = requiredElement(fixture, 'aside.ex-drawer:not([hidden])');
+
+	await project.click();
+	await expect.element(project).toHaveAttribute('aria-expanded', 'false');
+	expect(drawer.hasAttribute('hidden')).toBe(true);
+	expect(drawer.getClientRects()).toHaveLength(0);
+	await expect.element(project).toHaveFocus();
+
+	await project.click();
+	await expect.element(project).toHaveAttribute('aria-expanded', 'true');
+	await expect.element(summary).toBeVisible();
+});
 
 test('explicit destination IDs win over generated heading aliases', async (): Promise<void> => {
 	const { document: fixture, frame } = await openFixture('ui');

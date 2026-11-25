@@ -5,6 +5,7 @@ import {
 	levelGlossary,
 	projectStateGlossary,
 } from '../core/glossary.ts';
+import { createIconButton } from '../core/icons.ts';
 import {
 	parseInitiativeView,
 	projectDecisions,
@@ -15,6 +16,7 @@ import {
 import { reportIssue } from '../core/issues.ts';
 import { registerReviewSource, type ReviewSourceResult } from '../core/review-document.ts';
 import { deliveryDetails, deliveryState, linkTo } from './deliverables.ts';
+import { openDrawer } from './drawer.ts';
 import { explainRecord, glossaryTerm } from './glossary.ts';
 
 function appendHeading(
@@ -123,14 +125,20 @@ function renderDelivery(
 	appendDeliverableLink(parent, source, delivery.id, delivery);
 	parent.append(' · ', deliveryState(delivery.state));
 	if (delivery.kind === 'later') return;
-	if (delivery.builder) parent.append(` · Builder ${delivery.builder}`);
+	const details = deliveryDetails(delivery, source, false);
+	const context = document.createElement('div');
+	if (delivery.builder) {
+		const builder = document.createElement('p');
+		builder.textContent = `Builder ${delivery.builder}`;
+		context.append(builder);
+	}
 	for (const reason of delivery.state === 'accepted' ? [] : delivery.reasons) {
 		const paragraph = document.createElement('p');
 		paragraph.textContent = reason;
-		parent.append(paragraph);
+		context.append(paragraph);
 	}
 	if (delivery.dependsOn.length) {
-		const list = appendList(parent);
+		const list = appendList(context);
 		for (const id of delivery.dependsOn) {
 			const required = view.deliverables[id];
 			const item = appendItem(list);
@@ -143,7 +151,8 @@ function renderDelivery(
 			);
 		}
 	}
-	parent.append(deliveryDetails(delivery, source, false));
+	if (context.hasChildNodes()) details.firstElementChild?.after(context);
+	parent.append(details);
 }
 
 const projectStateLabels = {
@@ -155,55 +164,143 @@ const projectStateLabels = {
 	later: 'Later',
 } satisfies Record<InitiativeView['projects'][string]['state'], string>;
 
-function projectLink(
-	source: URL,
-	name: string,
-	project: InitiativeView['projects'][string],
-): HTMLAnchorElement | string {
-	const title = project.title ?? name;
-	return project.firstPage ? linkTo(source, project.firstPage, title) : title;
-}
+type InitiativeProject = InitiativeView['projects'][string];
 
-function renderProject(
-	name: string,
-	project: InitiativeView['projects'][string],
-	deliverables: readonly DeliverableView[],
-	view: InitiativeView,
-	source: URL,
-): HTMLElement {
-	const section = document.createElement('section');
-	section.className = 'ex-initiative-project';
-	appendHeading(section, 'h4', '').append(projectLink(source, name, project));
+function projectStatus(project: InitiativeProject): HTMLParagraphElement {
 	const status = document.createElement('p');
 	status.className = 'ex-initiative-project-state';
 	if (project.lead) status.append(`Lead ${project.lead} · `);
 	status.append(
 		glossaryTerm(projectStateLabels[project.state], projectStateGlossary[project.state]),
 	);
-	section.append(status);
+	return status;
+}
+
+function projectOwnerQuestions(
+	namespace: string,
+	questions: readonly ProjectDecision[],
+	deliverables: readonly DeliverableView[],
+): readonly ProjectDecision[] {
+	const governingIds = new Set(
+		deliverables.flatMap((delivery) =>
+			delivery.kind === 'core' ? delivery.links.governingItems.map(({ id }) => id) : [],
+		),
+	);
+	return questions.filter(
+		({ record, governedRecords }) =>
+			record.id.startsWith(namespace) ||
+			governingIds.has(record.id) ||
+			governedRecords.some(({ id }) => id.startsWith(namespace)),
+	);
+}
+
+function renderProjectSummary(
+	body: HTMLElement,
+	project: InitiativeProject,
+	deliverables: readonly DeliverableView[],
+	questions: readonly ProjectDecision[],
+	view: InitiativeView,
+	source: URL,
+): void {
+	body.append(projectStatus(project));
 	if (project.achieves) {
 		const achieves = document.createElement('p');
 		achieves.textContent = project.achieves;
-		section.append(achieves);
+		body.append(achieves);
 	}
 	if (project.acceptance) {
 		const acceptance = document.createElement('p');
 		const label = document.createElement('strong');
 		label.textContent = 'What the owner checks';
 		acceptance.append(label, ' ', project.acceptance);
-		section.append(acceptance);
+		body.append(acceptance);
 	}
 	const reason = document.createElement('p');
 	reason.textContent = project.reason;
-	section.append(reason);
-	if (deliverables.length) {
-		const list = appendList(section);
-		for (const delivery of deliverables) renderDelivery(appendItem(list), delivery, view, source);
+	body.append(reason);
+	if (project.firstPage) {
+		const designPage = linkTo(source, project.firstPage, 'Open design page');
+		designPage.className = 'ex-design-navigation-action';
+		body.append(designPage);
 	}
-	return section;
+
+	appendHeading(body, 'h3', 'Open owner decisions');
+	if (questions.length) {
+		const list = appendList(body);
+		for (const { record } of questions) {
+			const question = record.question ?? record.authority?.question;
+			appendItem(list).append(recordLink(source, record, question));
+		}
+	} else {
+		const empty = document.createElement('p');
+		empty.textContent = 'No open owner decisions.';
+		body.append(empty);
+	}
+
+	appendHeading(body, 'h3', 'Deliverables');
+	if (deliverables.length) {
+		const list = appendList(body);
+		for (const delivery of deliverables) renderDelivery(appendItem(list), delivery, view, source);
+	} else {
+		const empty = document.createElement('p');
+		empty.textContent = 'No deliverables planned.';
+		body.append(empty);
+	}
 }
 
-function renderProjects(content: HTMLElement, view: InitiativeView, source: URL): void {
+function openProjectSummary(
+	view: InitiativeView,
+	source: URL,
+	projectName: string,
+	questions: readonly ProjectDecision[],
+	trigger: HTMLButtonElement,
+): () => void {
+	const project = view.projects[projectName];
+	if (!project) throw new Error(`Generated initiative names unknown project ${projectName}.`);
+	const title = project.title ?? projectName;
+	const namespace = `${projectName}/`;
+	const deliverables = Object.values(view.deliverables).filter(({ id }) =>
+		id.startsWith(namespace),
+	);
+	const ownerQuestions = projectOwnerQuestions(namespace, questions, deliverables);
+	trigger.focus({ preventScroll: true });
+	return openDrawer(title, (close) => {
+		const header = document.createElement('header');
+		header.className = 'ex-inspect-header ex-initiative-project-header';
+		const heading = document.createElement('strong');
+		heading.textContent = title;
+		header.append(heading, createIconButton('x', 'Close project summary', close));
+		const body = document.createElement('div');
+		body.className = 'ex-inspect-body ex-initiative-project-summary';
+		renderProjectSummary(body, project, deliverables, ownerQuestions, view, source);
+		body.addEventListener('click', (event): void => {
+			if (
+				!event.defaultPrevented &&
+				event.button === 0 &&
+				!event.metaKey &&
+				!event.ctrlKey &&
+				!event.altKey &&
+				!event.shiftKey &&
+				event.target instanceof Element &&
+				event.target.closest('a[href]')
+			)
+				close();
+		});
+		trigger.setAttribute('aria-expanded', 'true');
+		return {
+			header,
+			body,
+			presentation: { kind: 'standard' },
+			restore: (): void => trigger.setAttribute('aria-expanded', 'false'),
+		};
+	});
+}
+
+function renderProjects(
+	content: HTMLElement,
+	view: InitiativeView,
+	toggleProjectSummary: (name: string, trigger: HTMLButtonElement) => void,
+): void {
 	appendHeading(content, 'h2', 'Projects', levelGlossary.project);
 	const introduction = document.createElement('p');
 	introduction.textContent = levelGlossary.initiative;
@@ -212,19 +309,24 @@ function renderProjects(content: HTMLElement, view: InitiativeView, source: URL)
 		content.append('No projects registered.');
 		return;
 	}
-	const deliveries = new Map<string, DeliverableView[]>();
-	for (const item of Object.values(view.deliverables)) {
-		const name = item.id.split('/', 1)[0] ?? '';
-		const projectDeliveries = deliveries.get(name) ?? [];
-		projectDeliveries.push(item);
-		deliveries.set(name, projectDeliveries);
-	}
 	const projectGroups = new Map<number, HTMLElement[]>();
 	for (const name of view.order) {
 		const project = view.projects[name];
 		if (!project) throw new Error(`Generated initiative order names unknown project ${name}.`);
+		const section = document.createElement('section');
+		section.className = 'ex-initiative-project';
+		const trigger = document.createElement('button');
+		trigger.type = 'button';
+		trigger.className = 'ex-initiative-project-trigger';
+		trigger.textContent = project.title ?? name;
+		trigger.setAttribute('aria-expanded', 'false');
+		trigger.addEventListener('click', (): void => toggleProjectSummary(name, trigger));
+		const heading = appendHeading(section, 'h4', '');
+		heading.setAttribute('aria-label', trigger.textContent);
+		heading.append(trigger);
+		section.append(projectStatus(project));
 		const projects = projectGroups.get(project.number) ?? [];
-		projects.push(renderProject(name, project, deliveries.get(name) ?? [], view, source));
+		projects.push(section);
 		projectGroups.set(project.number, projects);
 	}
 	for (const [number, projects] of projectGroups) {
@@ -240,9 +342,14 @@ function renderProjects(content: HTMLElement, view: InitiativeView, source: URL)
 }
 
 function renderWorkNow(content: HTMLElement, view: InitiativeView, source: URL): void {
-	const { readyNow, blocksMost, builtNotAccepted } = view.work;
+	const { readyNow, needsPlan, blocksMost, builtNotAccepted } = view.work;
 	const groups = [
 		{ title: 'Ready now', entries: readyNow.map((id) => ({ id, detail: '' })) },
+		{
+			title: 'Needs a plan',
+			explanation: 'No implementation steps yet: write its plan before it can start.',
+			entries: needsPlan.map((id) => ({ id, detail: '' })),
+		},
 		{
 			title: 'Blocks the most',
 			entries: blocksMost.map(({ id, waiting }) => ({
@@ -255,9 +362,9 @@ function renderWorkNow(content: HTMLElement, view: InitiativeView, source: URL):
 	if (!groups.length) return;
 	const section = document.createElement('section');
 	appendHeading(section, 'h2', 'Work now');
-	for (const { title, entries } of groups) {
+	for (const { title, explanation, entries } of groups) {
 		const group = document.createElement('section');
-		appendHeading(group, 'h3', title);
+		appendHeading(group, 'h3', title, explanation);
 		const list = appendList(group);
 		for (const { id, detail } of entries) {
 			const item = appendItem(list);
@@ -272,11 +379,16 @@ function renderWorkNow(content: HTMLElement, view: InitiativeView, source: URL):
 /** Initiative data links to authored projects and shares their delivery evidence. */
 export class InitiativeOverviewIsland extends HTMLElement {
 	private rendered: Promise<ReviewSourceResult> | undefined;
+	private closeProjectSummary: (() => void) | undefined;
 
 	connectedCallback(): void {
 		if (this.closest('[data-inspector-copy], [data-inspector-content]')) return;
 		this.rendered ??= this.renderInitiative();
 		registerReviewSource(this, this.rendered);
+	}
+
+	disconnectedCallback(): void {
+		this.closeProjectSummary?.();
 	}
 
 	private async renderInitiative(): Promise<ReviewSourceResult> {
@@ -304,10 +416,16 @@ export class InitiativeOverviewIsland extends HTMLElement {
 
 	private renderOverview(view: InitiativeView, source: URL): void {
 		const content = document.createElement('div');
-		renderProjects(content, view, source);
-		renderWorkNow(content, view, source);
 		const decisions = projectDecisions(view.records);
 		const questions = decisions.filter(({ status }) => status === 'Open');
+		renderProjects(content, view, (name, trigger): void => {
+			if (trigger.getAttribute('aria-expanded') === 'true') {
+				this.closeProjectSummary?.();
+				return;
+			}
+			this.closeProjectSummary = openProjectSummary(view, source, name, questions, trigger);
+		});
+		renderWorkNow(content, view, source);
 		if (questions.length) {
 			appendHeading(content, 'h2', 'Waiting on owner');
 			const list = appendList(content);

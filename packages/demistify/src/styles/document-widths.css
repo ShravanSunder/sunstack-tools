@@ -3,7 +3,7 @@ ex-initiative-overview {
 	min-width: 0;
 	overflow-wrap: anywhere;
 }
-ex-initiative-overview li {
+:is(ex-initiative-overview, .ex-initiative-project-summary) li {
 	margin-block: 0.25rem;
 }
 .ex-initiative-project-group {
@@ -16,6 +16,26 @@ ex-initiative-overview li {
 }
 .ex-initiative-project-state {
 	color: var(--ink-soft);
+}
+.ex-initiative-project-trigger {
+	padding: 0;
+	border: 0;
+	background: transparent;
+	color: var(--link-color);
+	font: inherit;
+	text-align: start;
+	text-decoration: underline;
+	cursor: pointer;
+}
+.ex-initiative-project-header > strong {
+	white-space: normal;
+	overflow-wrap: anywhere;
+}
+.ex-initiative-project-summary {
+	overflow-wrap: anywhere;
+}
+.ex-initiative-project-summary > :first-child {
+	margin-block-start: 0;
 }
 .ex-glossary-term {
 	padding: 0;

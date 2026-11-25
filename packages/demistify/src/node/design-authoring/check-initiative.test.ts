@@ -126,7 +126,7 @@ it('checks an empty project without discovering files beside the manifest', asyn
 			version: 2,
 			projects: {},
 			order: [],
-			work: { readyNow: [], blocksMost: [], builtNotAccepted: [] },
+			work: { readyNow: [], needsPlan: [], blocksMost: [], builtNotAccepted: [] },
 			records: [],
 			deliverables: {},
 		});

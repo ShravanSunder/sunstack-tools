@@ -56,8 +56,10 @@ export const initiativeViewSchema = z.strictObject({
 	),
 	/** Computed from deliverable states and dependencies. */
 	work: z.strictObject({
-		/** Core deliverables that may start now. */
+		/** Core deliverables that may start now, with their steps written, lower project numbers first. */
 		readyNow: z.array(z.string()),
+		/** Core deliverables with no implementation steps yet: they need a plan before they can start. */
+		needsPlan: z.array(z.string()),
 		/** Unaccepted deliverables ranked by how many other open deliverables wait on them. */
 		blocksMost: z.array(z.strictObject({ id: z.string(), waiting: z.number().int().positive() })),
 		/** Deliverables with a recorded candidate that are not accepted. */

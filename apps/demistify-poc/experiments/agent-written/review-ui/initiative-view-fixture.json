@@ -64,8 +64,51 @@
 				{
 					"relation": "governed-by",
 					"targetId": "jobs/D2"
+				},
+				{
+					"relation": "governed-by",
+					"targetId": "initiative/D5"
 				}
 			]
+		},
+		{
+			"id": "initiative/D4",
+			"kind": "choice",
+			"title": "Should cancellation be recorded in the activity log?",
+			"destination": {
+				"page": "decision-views.html",
+				"fragment": "D4"
+			},
+			"authority": {
+				"state": "owner-open",
+				"question": "Should cancellation be recorded in the activity log?"
+			}
+		},
+		{
+			"id": "initiative/D5",
+			"kind": "choice",
+			"title": "How long should the stop request be kept?",
+			"destination": {
+				"page": "decision-views.html",
+				"fragment": "D5"
+			},
+			"authority": {
+				"state": "owner-open",
+				"question": "How long should the stop request be kept?"
+			}
+		},
+		{
+			"id": "queue/D6",
+			"kind": "choice",
+			"title": "Should a worker acknowledge before taking more work?",
+			"destination": {
+				"page": "decision-views.html",
+				"fragment": "D6"
+			},
+			"authority": {
+				"state": "owner-open",
+				"question": "Should a worker acknowledge before taking more work?"
+			}
 		}
 	],
 	"deliverables": {
@@ -112,7 +155,16 @@
 				},
 				"rules": [],
 				"designItems": [],
-				"governingItems": [],
+				"governingItems": [
+					{
+						"id": "initiative/D4",
+						"label": "Should cancellation be recorded in the activity log?",
+						"destination": {
+							"page": "decision-views.html",
+							"fragment": "D4"
+						}
+					}
+				],
 				"verificationChecks": []
 			}
 		},
@@ -130,7 +182,12 @@
 				"reason": "Ready to start."
 			},
 			"implementation": {
-				"tasks": [],
+				"tasks": [
+					{
+						"id": "add-queue-acknowledgement",
+						"state": "open"
+					}
+				],
 				"evidence": []
 			},
 			"verification": {
@@ -182,12 +239,43 @@
 				"governingItems": [],
 				"verificationChecks": []
 			}
+		},
+		"queue/DEL-02": {
+			"kind": "core",
+			"id": "queue/DEL-02",
+			"title": "Report stuck stop requests",
+			"dependsOn": [],
+			"state": "planned",
+			"reasons": [
+				"Implementation steps have yet to be written."
+			],
+			"progress": {
+				"state": "planned",
+				"reason": "Implementation steps have yet to be written."
+			},
+			"implementation": {
+				"tasks": [],
+				"evidence": []
+			},
+			"verification": {
+				"checks": []
+			},
+			"links": {
+				"plan": {
+					"page": "decision-views.html",
+					"fragment": "queue-report-deliverable"
+				},
+				"rules": [],
+				"designItems": [],
+				"governingItems": [],
+				"verificationChecks": []
+			}
 		}
 	},
 	"projects": {
 		"jobs": {
 			"path": "design.ts",
-			"firstPage": "decision-views.html",
+			"firstPage": "job-cancellation-design.html",
 			"title": "Job cancellation",
 			"lead": "jobs-lead",
 			"state": "dependency-blocked",
@@ -229,6 +317,9 @@
 	"work": {
 		"readyNow": [
 			"queue/DEL-01"
+		],
+		"needsPlan": [
+			"queue/DEL-02"
 		],
 		"blocksMost": [
 			{
