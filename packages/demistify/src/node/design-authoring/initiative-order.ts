@@ -73,7 +73,7 @@ export function projectProgress(
 	name: string,
 	dependsOn: readonly string[],
 	deliverables: readonly DeliverableView[],
-	accepted: ReadonlySet<string>,
+	isAccepted: (dependency: string) => boolean,
 	loop: readonly string[] | undefined,
 ): ProjectProgress {
 	if (loop)
@@ -81,7 +81,7 @@ export function projectProgress(
 			state: 'dependency-blocked',
 			reason: `Depends on itself through ${loop.filter((other) => other !== name).join(', ')}; no order exists until the loop is broken.`,
 		};
-	const waiting = dependsOn.filter((dependency) => !accepted.has(dependency));
+	const waiting = dependsOn.filter((dependency) => !isAccepted(dependency));
 	if (waiting.length)
 		return { state: 'dependency-blocked', reason: `Waits for ${waiting.join(', ')} to finish.` };
 	const core = deliverables.filter((deliverable) => deliverable.kind === 'core');
@@ -107,4 +107,91 @@ export function projectProgress(
 			reason: `${started.length} of ${core.length} core deliverables started or done.`,
 		};
 	return { state: 'planned', reason: 'Ready to start; no core deliverable has started.' };
+}
+
+interface MilestoneInput {
+	readonly title: string;
+	readonly check: string;
+	readonly includes: readonly string[];
+}
+
+/** Each milestone with its included deliverables expanded and its state from theirs. */
+export function initiativeMilestones(
+	milestones: Readonly<Record<string, MilestoneInput>>,
+	deliverables: Readonly<Record<string, DeliverableView>>,
+): Record<
+	string,
+	MilestoneInput & {
+		readonly deliverables: string[];
+		readonly state: 'accepted' | 'open';
+		readonly reason: string;
+	}
+> {
+	const expand = (key: string, path: readonly string[]): string[] => {
+		if (path.includes(key))
+			throw new Error(`Milestones include each other: ${[...path, key].join(' -> ')}.`);
+		const milestone = milestones[key];
+		if (!milestone) throw new Error(`Unknown milestone ${key}.`);
+		return milestone.includes.flatMap((included) => {
+			if (!included.includes('/')) return expand(included, [...path, key]);
+			if (!deliverables[included])
+				throw new Error(`Milestone ${key} includes unknown deliverable ${included}.`);
+			return [included];
+		});
+	};
+	return Object.fromEntries(
+		Object.entries(milestones).map(([key, milestone]) => {
+			const needed = [...new Set(expand(key, []))];
+			const open = needed.filter((id) => deliverables[id]?.state !== 'accepted');
+			return [
+				key,
+				{
+					title: milestone.title,
+					check: milestone.check,
+					includes: [...milestone.includes],
+					deliverables: needed,
+					state: open.length ? 'open' : 'accepted',
+					reason: open.length
+						? `${open.length} of ${needed.length} deliverables not accepted: ${open.join(', ')}.`
+						: 'Every included deliverable is accepted.',
+				},
+			];
+		}),
+	);
+}
+
+/** What may start now, what blocks the most open work, and what is built but not accepted. */
+export function initiativeWork(deliverables: Readonly<Record<string, DeliverableView>>): {
+	readyNow: string[];
+	blocksMost: { id: string; waiting: number }[];
+	builtNotAccepted: string[];
+} {
+	const views = Object.values(deliverables);
+	const open = views.filter((view) => view.kind === 'core' && view.state !== 'accepted');
+	const dependents = new Map<string, string[]>();
+	for (const view of open)
+		if (view.kind === 'core')
+			for (const prerequisite of view.dependsOn)
+				dependents.set(prerequisite, [...(dependents.get(prerequisite) ?? []), view.id]);
+	const waitingOn = (id: string): number => {
+		const seen = new Set<string>();
+		const pending = [...(dependents.get(id) ?? [])];
+		for (let next = pending.pop(); next !== undefined; next = pending.pop()) {
+			if (seen.has(next)) continue;
+			seen.add(next);
+			pending.push(...(dependents.get(next) ?? []));
+		}
+		return seen.size;
+	};
+	return {
+		readyNow: open.filter((view) => view.state === 'planned').map(({ id }) => id),
+		blocksMost: open
+			.map(({ id }) => ({ id, waiting: waitingOn(id) }))
+			.filter(({ waiting }) => waiting > 0)
+			.toSorted((left, right) => right.waiting - left.waiting || left.id.localeCompare(right.id))
+			.slice(0, 10),
+		builtNotAccepted: open
+			.filter((view) => view.kind === 'core' && view.implementation.candidate !== undefined)
+			.map(({ id }) => id),
+	};
 }
