@@ -67,6 +67,9 @@ it('one check runs a typed page through its design set and a plain page through 
 		const byDirectory = await run(process.execPath, [cli, 'check', project]);
 		expect(byDirectory.stdout).toContain('1 typed tree: 0 errors');
 
+		await expect(
+			run(process.execPath, [cli, 'check', join(root, 'mistyped.html')]),
+		).rejects.toThrow('mistyped.html: no such page or folder.');
 		await writeFile(join(root, 'stray.html'), typedPage);
 		await expect(run(process.execPath, [cli, 'check', join(root, 'stray.html')])).rejects.toThrow(
 			'binds generated design data, but no initiative.ts or design.ts encloses it.',

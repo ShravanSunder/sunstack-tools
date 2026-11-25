@@ -66,7 +66,9 @@ export async function routeCheckTargets(paths: readonly string[]): Promise<Check
 	>();
 	const routed = await Promise.all(
 		paths.map(async (path) => {
-			if (!(await isFile(path))) return { path, tree: await directoryTree(path) };
+			const entry = await stat(path).catch(() => undefined);
+			if (!entry) throw new Error(`${path}: no such page or folder.`);
+			if (entry.isDirectory()) return { path, tree: await directoryTree(path) };
 			if (!typedPageMarkup.test(await readFile(path, 'utf8'))) return { path, tree: undefined };
 			const tree = await enclosingTree(path);
 			if (!tree)
