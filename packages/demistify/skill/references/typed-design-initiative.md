@@ -31,6 +31,7 @@ export default {
   decisions,
   assumptions,
   identities,
+  pages: ['decisions.html'],
 };
 ```
 
@@ -60,6 +61,8 @@ export default [
 Shared rulings use `kind: 'ruling'`, `statement` and settled authority. Shared assumptions use `kind: 'assumption'` and the `DesignAssumption` type. Follow the [decision and assumption fields](typed-design.md#decisions-and-assumptions) in both cases. Shared source links resolve from the initiative folder.
 
 Refer to a shared record as `initiative/D1` or `initiative/A1`, and to another project's record or deliverable as `sessions/D4` or `sessions/DEL-01`. Place a shared decision or assumption with `<ex-section-item record="initiative/D1">` and its authored body on one declared page. Qualified references need `initiative check`. Use links from any other page that discusses the record.
+
+The check reads three kinds of page: each project's pages declared in its `design.ts`, the initiative's `index.html`, and the initiative pages listed in `pages`, relative to `initiative.ts`. Any of them may place `initiative/` records and other projects' records by qualified ID; an initiative page has no namespace of its own, so every ID on it is qualified. Give each initiative page `<meta name="demistify-records" content="records.generated.js">` with the path to the initiative folder. The check warns about any HTML page under the initiative that binds records while nothing registers it, because its records would stay empty.
 
 ## Agent aliases
 

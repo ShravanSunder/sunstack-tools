@@ -22,6 +22,11 @@ const initiativeProjectSchema = z.strictObject({
 });
 const manifestSchema = z.strictObject({
 	projects: z.record(alias, initiativeProjectSchema).default({}),
+	/**
+	 * Initiative-level HTML pages, relative to initiative.ts. Each may place the
+	 * initiative's records and any project's, by qualified ID.
+	 */
+	pages: z.array(filePath).default([]),
 	decisions: filePath.optional(),
 	assumptions: filePath.optional(),
 	identities: filePath.optional(),
@@ -99,7 +104,29 @@ export function readInitiativeManifest(file: string, text: string): InitiativeMa
 	check(manifest.decisions, ['initiative-decisions.ts']);
 	check(manifest.assumptions, ['initiative-assumptions.ts']);
 	check(manifest.identities, ['agents-identity.ts']);
-	return manifest;
+	return { ...manifest, pages: initiativePages(file, manifest.pages) };
+}
+
+/** Resolve each initiative page beside initiative.ts; it stays inside the initiative. */
+function initiativePages(file: string, pages: readonly string[]): string[] {
+	const root = dirname(file);
+	const resolved = pages.map((page): string => {
+		const target = resolve(root, page);
+		const child = relative(root, target);
+		if (
+			!page.endsWith('.html') ||
+			page.includes('\\') ||
+			isAbsolute(page) ||
+			!child ||
+			child === '..' ||
+			child.startsWith(`..${sep}`)
+		)
+			throw new Error(`${file}: page ${page} must be an HTML file inside the initiative.`);
+		return target;
+	});
+	if (new Set(resolved).size !== resolved.length)
+		throw new Error(`${file}: register each initiative page once.`);
+	return resolved;
 }
 
 interface RegisteredProject {
