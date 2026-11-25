@@ -15,7 +15,7 @@ export function placeSectionItems(): void {
 			item.hidden = true;
 			reportIssue(
 				item,
-				'Section item has no checked destination. Run the design or project checker.',
+				'Section item has no checked destination. Run the design or initiative checker.',
 			);
 		}
 	}
