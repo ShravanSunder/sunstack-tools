@@ -28,7 +28,7 @@ export const levelGlossary = {
 	deliverable:
 		'Deliverable: a piece of a project that is built, checked and accepted. It can depend on deliverables in any project.',
 	number:
-		'Number: the order the owner wants. Every project numbered 1 runs side by side; projects numbered 2 come after them, then 3, and so on.',
+		'Lower numbers come first. Projects with the same number can run side by side. Number 0 can show finished groundwork.',
 	dependsOn: 'Depends on: this deliverable cannot be accepted before the deliverables it names.',
 } as const;
 
@@ -52,7 +52,7 @@ export const recordKindGlossary = {
 	ruling: 'Ruling: a decision with no alternatives to weigh.',
 	assumption:
 		'Assumption: something the design treats as true that nobody has checked or authorized.',
-	deliverable: 'Deliverable: a piece of work that is built, checked and accepted.',
+	deliverable: levelGlossary.deliverable,
 } as const;
 
 /** The id prefixes authors use, by convention, for each record kind. */

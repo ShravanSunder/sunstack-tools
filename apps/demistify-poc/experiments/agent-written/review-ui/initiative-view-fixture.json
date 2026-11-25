@@ -73,10 +73,13 @@
 			"kind": "core",
 			"id": "jobs/DEL-01",
 			"title": "Prove cancellation",
-			"dependsOn": [],
-			"state": "awaiting-verification",
+			"dependsOn": [
+				"queue/DEL-01"
+			],
+			"state": "dependency-blocked",
 			"reasons": [
-				"The candidate needs a check."
+				"The candidate needs a check.",
+				"Waiting for queue/DEL-01 to be accepted."
 			],
 			"progress": {
 				"state": "awaiting-verification",
@@ -112,6 +115,73 @@
 				"governingItems": [],
 				"verificationChecks": []
 			}
+		},
+		"queue/DEL-01": {
+			"kind": "core",
+			"id": "queue/DEL-01",
+			"title": "Acknowledge stop requests",
+			"dependsOn": [],
+			"state": "planned",
+			"reasons": [
+				"Ready to start."
+			],
+			"progress": {
+				"state": "planned",
+				"reason": "Ready to start."
+			},
+			"implementation": {
+				"tasks": [],
+				"evidence": []
+			},
+			"verification": {
+				"checks": []
+			},
+			"links": {
+				"plan": {
+					"page": "decision-views.html",
+					"fragment": "queue-deliverable"
+				},
+				"rules": [],
+				"designItems": [],
+				"governingItems": [],
+				"verificationChecks": []
+			}
+		},
+		"worker/DEL-01": {
+			"kind": "core",
+			"id": "worker/DEL-01",
+			"title": "Process a queued job",
+			"dependsOn": [],
+			"state": "accepted",
+			"reasons": [],
+			"progress": {
+				"state": "accepted",
+				"reason": "The owner accepted the worker build.",
+				"acceptance": {
+					"deliverableId": "worker/DEL-01",
+					"build": "worker-1",
+					"evidence": "decision-views.html#worker-deliverable"
+				}
+			},
+			"implementation": {
+				"candidate": "worker-1",
+				"tasks": [],
+				"evidence": []
+			},
+			"verification": {
+				"build": "worker-1",
+				"checks": []
+			},
+			"links": {
+				"plan": {
+					"page": "decision-views.html",
+					"fragment": "worker-deliverable"
+				},
+				"rules": [],
+				"designItems": [],
+				"governingItems": [],
+				"verificationChecks": []
+			}
 		}
 	},
 	"projects": {
@@ -120,23 +190,54 @@
 			"firstPage": "decision-views.html",
 			"title": "Job cancellation",
 			"lead": "jobs-lead",
-			"dependsOn": [
-				"queue"
-			],
 			"state": "dependency-blocked",
-			"reason": "Waiting for the queue prerequisite."
+			"reason": "Waiting for the queue prerequisite.",
+			"number": 2,
+			"achieves": "A caller can cancel a job already running.",
+			"acceptance": "Cancel a running job and check that its worker stops."
+		},
+		"audit": {
+			"path": "audit/design.ts",
+			"title": "Cancellation history",
+			"number": 1,
+			"state": "later",
+			"reason": "History work is planned for later."
 		},
 		"queue": {
 			"path": "queue/design.ts",
 			"firstPage": "decision-views.html",
 			"title": "Queue foundations",
-			"dependsOn": [],
-			"state": "in-progress",
-			"reason": "The queue work is underway."
+			"state": "planned",
+			"reason": "Queue acknowledgement can start now.",
+			"number": 1
+		},
+		"worker": {
+			"path": "worker/design.ts",
+			"firstPage": "decision-views.html",
+			"title": "Worker groundwork",
+			"number": 0,
+			"state": "accepted",
+			"reason": "The worker can already process a job."
 		}
 	},
 	"order": [
+		"worker",
 		"queue",
+		"audit",
 		"jobs"
-	]
+	],
+	"work": {
+		"readyNow": [
+			"queue/DEL-01"
+		],
+		"blocksMost": [
+			{
+				"id": "queue/DEL-01",
+				"waiting": 1
+			}
+		],
+		"builtNotAccepted": [
+			"jobs/DEL-01"
+		]
+	}
 }

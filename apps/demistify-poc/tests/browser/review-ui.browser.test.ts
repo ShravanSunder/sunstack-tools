@@ -46,12 +46,13 @@ test.each([1400, 390])(
 						jobs: {
 							path: 'design.ts',
 							title: 'Jobs',
-							dependsOn: [],
+							number: 1,
 							state: 'later',
 							reason: 'Named for later.',
 						},
 					},
 					order: ['jobs'],
+					work: { readyNow: [], blocksMost: [], builtNotAccepted: [] },
 					records: [],
 					deliverables,
 				}),
@@ -77,12 +78,15 @@ test.each([1400, 390])(
 		const overview = fixtureLocator(frame, initiative);
 		await expect.element(overview.getByText(`${label} · Later`, { exact: true })).toBeVisible();
 		expect(initiative.querySelector('li :is(a, details)')).toBeNull();
+		await expect
+			.element(overview.getByRole('heading', { name: 'Work now' }))
+			.not.toBeInTheDocument();
 		expect(fixture.documentElement.scrollWidth).toBeLessThanOrEqual(width);
 	},
 );
 
 test.each([1400, 390])(
-	'initiative starts with projects in generated order and retains owner actions at %ipx',
+	'initiative shows numbered project groups, work, and owner actions at %ipx',
 	async (width): Promise<void> => {
 		await page.viewport(width, 1000);
 		const { document: fixture, frame } = await openFixture('ui', '', 'decision-views.html');
@@ -91,32 +95,106 @@ test.each([1400, 390])(
 		await expect
 			.element(overview.getByRole('heading', { name: 'Projects', exact: true }))
 			.toBeVisible();
-		expect(
-			[...owner.querySelectorAll('h2, .ex-initiative-project h3')].map((item) => item.textContent),
-		).toEqual([
+		expect([...owner.querySelectorAll('h2, h3, h4')].map((item) => item.textContent)).toEqual([
 			'Projects',
+			'0',
+			'Worker groundwork',
+			'1 · side by side',
 			'Queue foundations',
+			'Cancellation history',
+			'2',
 			'Job cancellation',
+			'Work now',
+			'Ready now',
+			'Blocks the most',
+			'Built, not accepted',
 			'Waiting on owner',
 			'Decisions',
 			'Assumptions',
 			'Design records',
 		]);
-		const jobs = requiredElement(owner, '.ex-initiative-project + .ex-initiative-project');
+		const parallelProjects = requiredElement(
+			owner,
+			'.ex-initiative-project-group:has(> section:nth-child(2))',
+		);
+		expect(parallelProjects.children).toHaveLength(2);
+		const queueProject = requiredElement(parallelProjects, 'section:first-child');
+		const auditProject = requiredElement(parallelProjects, 'section:last-child');
+		if (width === 390) {
+			expect(auditProject.getBoundingClientRect().top).toBeGreaterThan(
+				queueProject.getBoundingClientRect().bottom,
+			);
+		} else {
+			expect(auditProject.getBoundingClientRect().left).toBeGreaterThan(
+				queueProject.getBoundingClientRect().right,
+			);
+		}
+
+		const jobs = [...owner.querySelectorAll('.ex-initiative-project')].find(
+			(section) => section.querySelector('h4')?.textContent === 'Job cancellation',
+		);
+		if (!jobs) throw new Error('Job cancellation project is missing.');
+		const project = fixtureLocator(frame, jobs);
+		await expect
+			.element(project.getByRole('link', { name: 'Job cancellation', exact: true }))
+			.toHaveAttribute('href', expect.stringMatching(/decision-views\.html$/));
 		expect(jobs.textContent).toContain('Lead jobs-lead');
 		expect(jobs.textContent).toContain('Waiting for the queue prerequisite.');
-		expect(jobs.textContent).toContain('Depends on Queue foundations');
-		const prerequisite = fixtureLocator(frame, jobs).getByRole('link', {
-			name: 'Queue foundations',
-		});
+		expect(jobs.textContent).toContain('A caller can cancel a job already running.');
+		expect(jobs.textContent).toContain(
+			'What the owner checks Cancel a running job and check that its worker stops.',
+		);
 		await expect
-			.element(prerequisite)
-			.toHaveAttribute('href', expect.stringMatching(/decision-views\.html$/));
-		const state = overview.getByRole('button', { name: 'Blocked on prerequisite', exact: true });
+			.element(project.getByRole('link', { name: 'queue/DEL-01', exact: true }))
+			.toHaveAttribute('href', expect.stringMatching(/decision-views\.html#queue-deliverable$/));
+		const work = requiredElement(owner, 'section:has(> h2)');
+		expect(work.textContent).toContain('1 deliverable waiting');
+		expect(
+			[...work.querySelectorAll('a')].map((link) => [link.textContent, new URL(link.href).hash]),
+		).toEqual([
+			['queue/DEL-01 · Acknowledge stop requests', '#queue-deliverable'],
+			['queue/DEL-01 · Acknowledge stop requests', '#queue-deliverable'],
+			['jobs/DEL-01 · Prove cancellation', '#R1'],
+		]);
+		await expect.element(overview.getByText(/Initiative: the whole plan/)).toBeVisible();
+		const expectExplanation = async (
+			term: ReturnType<typeof page.getByRole>,
+			definition: RegExp,
+		): Promise<void> => {
+			await term.click();
+			await expect
+				.poll(() => fixture.querySelector('[role="tooltip"]:popover-open')?.textContent ?? '')
+				.toMatch(definition);
+			await userEvent.keyboard('{Escape}');
+		};
+		await expectExplanation(
+			overview.getByRole('button', { name: 'Explain Projects', exact: true }),
+			/one piece of work that finishes/,
+		);
+		await expectExplanation(
+			overview.getByRole('button', { name: 'Explain 1 · side by side', exact: true }),
+			/Projects with the same number can run side by side\./,
+		);
+		await expectExplanation(
+			overview.getByRole('button', { name: 'Explain 0', exact: true }),
+			/Number 0 can show finished groundwork\./,
+		);
+		await expectExplanation(
+			project.getByRole('button', { name: 'Explain jobs/DEL-01', exact: true }),
+			/a piece of a project that is built, checked and accepted/,
+		);
+		await expectExplanation(
+			project.getByRole('button', { name: 'Prerequisite', exact: true }),
+			/cannot be accepted before the deliverables it names/,
+		);
+		const state = fixtureLocator(
+			frame,
+			requiredElement(jobs, '.ex-initiative-project-state'),
+		).getByRole('button', { name: 'Blocked on prerequisite', exact: true });
 		await state.hover();
 		await expect
 			.element(frame.getByRole('tooltip'))
-			.toHaveTextContent('Waiting for a project it depends on to finish.');
+			.toHaveTextContent('Every open core deliverable here waits on a deliverable it depends on.');
 		await state.click();
 		await userEvent.keyboard('{Escape}');
 		const recordHelp = overview
@@ -127,14 +205,14 @@ test.each([1400, 390])(
 			.element(frame.getByRole('tooltip'))
 			.toHaveTextContent('Rule: one sentence the system must keep, with cases that test it.');
 		await userEvent.keyboard('{Escape}');
-		const evidence = overview.getByText('Checks and evidence', { exact: true });
+		const evidence = project.getByText('Checks and evidence', { exact: true });
 		await evidence.click();
-		await overview.getByRole('button', { name: 'Completed', exact: true }).click();
+		await project.getByRole('button', { name: 'Completed', exact: true }).click();
 		await expect
 			.element(frame.getByRole('tooltip'))
 			.toHaveTextContent('Recorded as done in the current candidate.');
 		await userEvent.keyboard('{Escape}');
-		await overview.getByRole('button', { name: 'No result', exact: true }).click();
+		await project.getByRole('button', { name: 'No result', exact: true }).click();
 		await expect
 			.element(frame.getByRole('tooltip'))
 			.toHaveTextContent('No result is recorded for this check yet.');
@@ -155,12 +233,23 @@ test.each([1400, 390])(
 			.element(overview.getByRole('link', { name: 'jobs/R1 · Send the stop request once' }).first())
 			.toBeVisible();
 		expect(fixture.documentElement.scrollWidth).toBeLessThanOrEqual(width);
+		parallelProjects.parentElement?.scrollIntoView({ block: 'center', behavior: 'instant' });
 		await page.screenshot({ path: browserScreenshotPath(`decision-views-${width}.png`) });
+		work.scrollIntoView({ block: 'center', behavior: 'instant' });
+		await page.screenshot({ path: browserScreenshotPath(`initiative-work-${width}.png`) });
 		await frame.getByRole('button', { name: 'Switch light or dark theme', exact: true }).click();
 		await expect.element(overview.getByText(/Authority: Lead · Status: Superseded/)).toBeVisible();
 		expect(fixture.documentElement.scrollWidth).toBeLessThanOrEqual(width);
+		work.scrollIntoView({ block: 'center', behavior: 'instant' });
+		await page.screenshot({ path: browserScreenshotPath(`initiative-work-dark-${width}.png`) });
+		parallelProjects.parentElement?.scrollIntoView({ block: 'center', behavior: 'instant' });
 		await page.screenshot({ path: browserScreenshotPath(`decision-views-dark-${width}.png`) });
 
+		await fixtureLocator(frame, work)
+			.getByRole('link', { name: 'queue/DEL-01 · Acknowledge stop requests', exact: true })
+			.first()
+			.click();
+		await expect.poll((): string => fixture.location.hash).toBe('#queue-deliverable');
 		await overview.getByRole('link', { name: /jobs\/D3/ }).click();
 		await expect.poll((): string => fixture.location.hash).toBe('#D3');
 		let answer: unknown;
