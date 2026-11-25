@@ -25,24 +25,40 @@ const projectRecord = z.looseObject({
 	relationships: z.array(z.object({ relation: z.string(), targetId: z.string() })).optional(),
 });
 
-export const projectViewSchema = z.strictObject({
-	version: z.literal(1),
+export const projectStates = [
+	'accepted',
+	'dependency-blocked',
+	'design-blocked',
+	'in-progress',
+	'planned',
+	'later',
+] as const;
+export type ProjectState = (typeof projectStates)[number];
+
+/** The generated view of an initiative: its projects, the order their dependencies produce, records and deliverables. */
+export const initiativeViewSchema = z.strictObject({
+	version: z.literal(2),
 	owner: z.string().optional(),
-	designs: z.record(
+	projects: z.record(
 		z.string(),
 		z.strictObject({
 			path: localDeliveryHref,
 			lead: z.string().optional(),
 			firstPage: localDeliveryHref.optional(),
 			title: z.string().min(1).optional(),
+			dependsOn: z.array(z.string()),
+			state: z.enum(projectStates),
+			reason: z.string().min(1),
 		}),
 	),
+	/** Project names, every dependency before its dependents; ties keep the initiative's authored order. */
+	order: z.array(z.string()),
 	records: z.array(projectRecord),
 	deliverables: z.record(z.string(), deliverableViewSchema),
 });
 
-export type ProjectView = z.infer<typeof projectViewSchema>;
-export type ProjectRecord = ProjectView['records'][number];
+export type InitiativeView = z.infer<typeof initiativeViewSchema>;
+export type ProjectRecord = InitiativeView['records'][number];
 
 export interface ProjectDecision {
 	readonly record: ProjectRecord;
@@ -52,8 +68,8 @@ export interface ProjectDecision {
 	readonly governedRecords: readonly ProjectRecord[];
 }
 
-export function parseProjectView(source: string): ProjectView {
-	return projectViewSchema.parse(JSON.parse(source));
+export function parseInitiativeView(source: string): InitiativeView {
+	return initiativeViewSchema.parse(JSON.parse(source));
 }
 
 export function projectDecisions(records: readonly ProjectRecord[]): ProjectDecision[] {
