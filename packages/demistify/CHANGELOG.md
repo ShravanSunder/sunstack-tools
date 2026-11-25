@@ -1,5 +1,16 @@
 # @sunstack/demistify
 
+## 1.36.0
+
+### Minor Changes
+
+- 0563ea7: `demistify initiative add <choice|ruling|assumption> --namespace <namespace> --page <page.html>` scaffolds a record with `TODO:` placeholders, its section item on the page, and the owner's verbatim words with `--words`, then refreshes the generated views (restoring every changed file when the check fails). It previews by default; `--write` applies.
+- 1cd49bd: `demistify initiative answer <review.md|->` applies a copied page review to its open choices: it settles each record's authority, writes the owner's commented words on the page that places the record, and refreshes the generated views, restoring every changed file when the check fails. It previews by default; `--write` applies.
+
+### Patch Changes
+
+- b6c022d: The missing-section error now says why a record needs every section it can reach, and the guide says a choice's `template data-record-body` sits directly inside its `ex-choice`.
+
 ## 1.35.0
 
 ### Minor Changes
