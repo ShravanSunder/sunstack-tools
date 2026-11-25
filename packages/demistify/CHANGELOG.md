@@ -1,5 +1,15 @@
 # @sunstack/demistify
 
+## 1.35.0
+
+### Minor Changes
+
+- 591ba3c: `initiative.ts` takes `pages`: initiative-level HTML pages, relative to it, that may place `initiative/` records and any project's records by qualified ID. `initiative check` warns about an HTML page under the initiative that binds records while no `design.ts` or `initiative.ts` registers it, and `open` finds the initiative as the owner of a registered page.
+
+### Patch Changes
+
+- 7a46401: The records-source error now names a `../<project>/` folder instead of an old milestone folder, and the library builds with npm 12, whose `npm pack --json` prints an object keyed by package name.
+
 ## 1.34.2
 
 ### Patch Changes
