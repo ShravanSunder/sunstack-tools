@@ -1,4 +1,4 @@
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 
 import { sdkFilename, type MigrationProject, type SourceWorkspace } from './migration-workspace.ts';
 import type { AddedRow } from './move-resolution.ts';
@@ -7,10 +7,11 @@ import { isIdentifierName } from './source-edits.ts';
 /** Files the move writes for a project it creates, and for an added later row. */
 export const designTemplate = (
 	title: string,
+	page: string,
 ): string => `import { defineDesign } from './${sdkFilename}';
 
 export default defineDesign({
-  pages: [{ id: 'home', title: ${JSON.stringify(title)}, href: 'index.html', icon: 'file' }],
+  pages: [{ id: 'home', title: ${JSON.stringify(title)}, href: ${JSON.stringify(page)}, icon: 'file' }],
   mapGroups: [],
   records: [],
 });
@@ -30,7 +31,10 @@ export function scaffoldProjectSources(
 	lead: string | undefined,
 	workspace: SourceWorkspace,
 ): void {
-	workspace.write(project.designFile, designTemplate(title));
+	workspace.write(
+		project.designFile,
+		designTemplate(title, basename(project.shellPage ?? join(project.directory, 'index.html'))),
+	);
 	workspace.write(join(project.directory, 'design-decisions.ts'), recordsTemplate);
 	workspace.write(join(project.directory, 'design-assumptions.ts'), recordsTemplate);
 	workspace.write(join(project.directory, 'design-delivery.ts'), deliveryTemplate(lead));

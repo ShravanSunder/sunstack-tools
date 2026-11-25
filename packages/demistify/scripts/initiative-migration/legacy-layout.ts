@@ -8,6 +8,7 @@ import { escapeHtml } from '../../src/core/html-text.ts';
 import type { CutPlan } from './cut-plan.ts';
 import { initiativeSource, type InitiativeProjectEntry } from './initiative-source.ts';
 import type { SourceWorkspace } from './migration-workspace.ts';
+import { adoptedFiles, commonParent } from './project-folders.ts';
 import {
 	applyTextEdits,
 	defaultExport,
@@ -234,10 +235,19 @@ export function convertLegacyLayout(
 		'initiative-assumptions.ts',
 	);
 
+	// Hand-made pages in a folder the move will adopt stay exactly as they are.
+	const leftAlone = adoptedFiles(
+		commonParent(
+			[...manifest.designs.values()].map((design) => dirname(design)),
+			root,
+		),
+		plan.projects.filter(({ key }) => !manifest.designs.has(key)).map(({ folder }) => folder),
+		root,
+	);
 	let references = 0;
 	let files = 0;
 	for (const file of authoredFiles(root)) {
-		if (file === manifestFile) continue;
+		if (file === manifestFile || leftAlone.has(file)) continue;
 		const text = workspace.read(file);
 		if (text === undefined) continue;
 		const converted = file.endsWith('.ts') ? convertTypeScript(file, text) : convertHtml(text);

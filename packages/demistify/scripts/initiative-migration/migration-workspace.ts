@@ -5,7 +5,12 @@ export interface MigrationProject {
 	readonly name: string;
 	readonly directory: string;
 	readonly designFile: string;
+	/** The run writes this project's typed files: a new folder, or an adopted one. */
 	readonly created: boolean;
+	/** The page the run writes for a project it sets up (index.html, or moved-records.html). */
+	readonly shellPage?: string;
+	/** Files an adopted folder already had; the run leaves every one as it is. */
+	readonly leftAlone?: readonly string[];
 }
 
 /** Authored files read from the tree; the run never writes generated files. */
