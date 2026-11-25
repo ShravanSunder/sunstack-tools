@@ -103,7 +103,10 @@ export function collectSearchDestinations(props: {
 	const parents: { level: number; title: string }[] = [];
 	const firstHeading = contentRoot.querySelector('h1');
 	for (const heading of contentRoot.querySelectorAll<HTMLHeadingElement>('h1,h2,h3,h4,h5,h6')) {
-		if (heading === firstHeading || heading.closest('figcaption, ex-gallery, ex-presentation, svg'))
+		if (
+			heading === firstHeading ||
+			heading.closest('ex-section[hidden], figcaption, ex-gallery, ex-presentation, svg')
+		)
 			continue;
 		const title = heading.textContent?.trim() ?? '';
 		if (!heading.id || !title) continue;

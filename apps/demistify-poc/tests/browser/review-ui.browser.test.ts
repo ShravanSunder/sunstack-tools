@@ -38,6 +38,20 @@ test.each([1400, 390])(
 		await expect.element(closeComments).toBeVisible();
 		expect(fixture.querySelector('ex-comments [role="alert"]')).toBeNull();
 		await closeComments.click();
+		const outline = requiredElement(fixture, '.ex-heading-outline');
+		expect(outline.textContent).toContain('Background');
+		expect(outline.textContent).not.toMatch(/For you to decide|You decided/);
+		await frame.getByRole('button', { name: 'Search documents', exact: true }).click();
+		const search = frame.getByRole('dialog', { name: 'Search documents', exact: true });
+		const query = search.getByRole('combobox');
+		await query.fill('For you to decide');
+		await expect.element(search.getByText('No matching destinations.')).toBeVisible();
+		await query.fill('You decided');
+		await expect.element(search.getByText('No matching destinations.')).toBeVisible();
+		await query.fill('Background');
+		await expect.element(search.getByRole('option', { name: /Background/ })).toBeVisible();
+		await userEvent.keyboard('{Escape}');
+
 		expect(fixture.documentElement.scrollWidth).toBeLessThanOrEqual(width);
 		await page.screenshot({ path: browserScreenshotPath(`missing-design-records-${width}.png`) });
 		await frame.getByRole('button', { name: 'Switch light or dark theme', exact: true }).click();
