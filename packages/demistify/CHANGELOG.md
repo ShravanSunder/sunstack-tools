@@ -1,5 +1,11 @@
 # @sunstack/demistify
 
+## 1.38.1
+
+### Patch Changes
+
+- 41e88d8: `demistify check` gives a published copy of a typed design (a page that binds generated design data with no `design.ts` or `initiative.ts` around it) the page check, with a note, instead of refusing it.
+
 ## 1.38.0
 
 ### Minor Changes
