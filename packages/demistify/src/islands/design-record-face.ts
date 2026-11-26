@@ -1,0 +1,236 @@
+import { decisionDetailsId, type RecordFace } from '../core/design-record-view.ts';
+import { assumptionStateGlossary, decisionStatusGlossary } from '../core/glossary.ts';
+import { explainRecord, glossaryTerm } from './glossary.ts';
+
+export const choiceRecordFaces = new WeakMap<HTMLElement, RecordFace>();
+
+function textNode(tag: string, text: string): HTMLElement {
+	const element = document.createElement(tag);
+	element.textContent = text;
+	return element;
+}
+
+function sourceLink(source: {
+	readonly href: string;
+	readonly excerpt: string;
+}): HTMLAnchorElement {
+	const link = document.createElement('a');
+	link.href = source.href;
+	link.textContent = source.excerpt;
+	return link;
+}
+
+const recordKindBadges = {
+	need: { label: 'requirements', icon: 'target' },
+	rule: { label: 'spec', icon: 'article' },
+	realization: { label: 'program', icon: 'code' },
+	'planned-check': { label: 'verification', icon: 'shield-check' },
+} as const;
+
+export function recordCategoryBadge(
+	label: string,
+	tone?: 'done' | 'note' | 'risk' | 'question' | 'decision',
+): HTMLElement {
+	const badge = textNode('ex-badge', label);
+	if (tone) badge.setAttribute('tone', tone);
+	return badge;
+}
+
+function recordPresentation(record: RecordFace['record']): {
+	readonly label: string;
+	readonly metadataLabel?: string;
+	readonly tone: 'done' | 'risk' | 'question' | 'decision';
+	readonly reviewPending: boolean;
+} {
+	if (record.kind === 'assumption') {
+		if (record.status === 'confirmed')
+			return { label: 'Confirmed', tone: 'done', reviewPending: false };
+		if (record.status === 'open')
+			return {
+				label: 'Assumed',
+				metadataLabel: 'Not confirmed',
+				tone: 'risk',
+				reviewPending: false,
+			};
+		return { label: 'Refuted', tone: 'risk', reviewPending: false };
+	}
+	const { authority } = record;
+	if (authority.state === 'owner-open')
+		return { label: 'Needs you', tone: 'question', reviewPending: false };
+	if (authority.state === 'owner-decided')
+		return { label: 'You decided', tone: 'decision', reviewPending: false };
+	const reviewPending = authority.sourceKind !== 'contract' && authority.weight === 'design';
+	return {
+		label: `${authority.by.alias} decided`,
+		tone: reviewPending ? 'risk' : 'decision',
+		reviewPending,
+	};
+}
+
+export function recordStateLine(
+	{ record, held, ruledBy, replacement }: RecordFace,
+	factsFirst = false,
+): HTMLElement {
+	const metadata = document.createElement('div');
+	metadata.className = 'ex-record-state-line';
+	const chips = factsFirst ? document.createElement('span') : metadata;
+	chips.classList.toggle('ex-record-state-chips', factsFirst);
+	if (ruledBy) {
+		const { label, icon } = recordKindBadges[ruledBy];
+		const badge = recordCategoryBadge(label);
+		badge.setAttribute('icon', icon);
+		const kind = document.createElement('span');
+		kind.append(badge, explainRecord(label, ruledBy));
+		chips.append(kind);
+	}
+	const presentation = recordPresentation(record);
+
+	const facts: (string | Node)[] = [record.id, explainRecord(record.id, record.kind)];
+	let date: string | undefined;
+	if (record.kind === 'assumption') {
+		chips.append(recordCategoryBadge(record.weight));
+		const label = presentation.metadataLabel ?? presentation.label;
+		const status = document.createElement('span');
+		status.append(
+			recordCategoryBadge(label, presentation.tone),
+			glossaryTerm(label, assumptionStateGlossary[record.status], true),
+		);
+		chips.append(status);
+	} else {
+		const { authority } = record;
+		if (authority.state === 'owner-open') {
+			if (held) facts.push(' · ', held === 1 ? '1 deliverable waits' : `${held} deliverables wait`);
+		} else {
+			date = authority.decidedOn;
+			if (authority.state === 'agent-decided') {
+				chips.append(recordCategoryBadge(authority.weight));
+				if (presentation.reviewPending)
+					chips.append(recordCategoryBadge('Not reviewed by you', 'risk'));
+				facts.push(' · ', authority.by.alias);
+				if (authority.sourceKind === 'contract') facts.push(' · from contract');
+			}
+		}
+	}
+	const plain = document.createElement('span');
+	plain.append(...facts);
+	if (date) {
+		const time = document.createElement('time');
+		time.dateTime = date;
+		time.textContent = new Intl.DateTimeFormat('en-GB', {
+			timeZone: 'UTC',
+			day: 'numeric',
+			month: 'short',
+		}).format(new Date(date));
+		plain.append(' · ', time);
+	}
+	if (replacement) plain.append(` · Replaced by ${replacement}`, explainRecord(replacement));
+	metadata.append(plain);
+	if (factsFirst && chips.childElementCount) metadata.append(chips);
+	return metadata;
+}
+
+function recordReason({ record }: RecordFace, chosenTitle?: string): HTMLElement | undefined {
+	if (record.kind === 'assumption') {
+		if (record.status === 'open') return textNode('p', record.settles);
+		const reason = textNode('p', record.settledBy + ' · ');
+		reason.append(sourceLink(record.resolution));
+		return reason;
+	}
+	const { authority } = record;
+	if (authority.state === 'owner-open') return undefined;
+	if (authority.state === 'agent-decided') {
+		const reason = textNode('p', authority.rationale);
+		if (authority.sourceKind === 'contract') reason.append(' · ', sourceLink(authority.source));
+		return reason;
+	}
+	const { href, excerpt, shown } = authority.source;
+	const label = authority.sourceKind === 'owner-words' ? 'Your words' : 'Wording you accepted';
+	const reason = document.createElement('p');
+	reason.append(
+		textNode('strong', shown === undefined ? label : `${label}, tidied`),
+		' ',
+		sourceLink({ href, excerpt: shown ?? (chosenTitle === excerpt ? 'your answer' : excerpt) }),
+	);
+	if (shown === undefined) return reason;
+
+	const exactWords = document.createElement('details');
+	exactWords.append(textNode('summary', 'Your exact words'), textNode('p', excerpt));
+	const attribution = document.createElement('div');
+	attribution.className = 'ex-record-attributed-reason';
+	attribution.append(reason, exactWords);
+	return attribution;
+}
+
+export function appendRecordBasis(
+	parent: HTMLElement,
+	face: RecordFace,
+	{
+		body = parent,
+		chosenTitle,
+	}: { readonly body?: HTMLElement; readonly chosenTitle?: string } = {},
+): void {
+	const reason = face.record.kind === 'choice' ? recordReason(face, chosenTitle) : undefined;
+	if (reason) {
+		reason.classList.add('ex-record-basis');
+		parent.append(reason);
+	}
+	let linkedWork: HTMLElement | undefined;
+	if (face.dependents.length) {
+		linkedWork = document.createElement('p');
+		linkedWork.className = 'ex-record-dependents';
+		linkedWork.append(textNode('strong', 'Rests on this'), ' ');
+		for (const [index, { fragment, label }] of face.dependents.entries()) {
+			if (index) linkedWork.append(' · ');
+			linkedWork.append(
+				fragment ? sourceLink({ href: '#' + encodeURIComponent(fragment), excerpt: label }) : label,
+			);
+		}
+		body.append(linkedWork);
+	}
+	const anchor =
+		reason ?? linkedWork ?? body.querySelector<HTMLElement>('legend, .ex-record-item-title');
+	if (anchor) anchor.id = decisionDetailsId(parent.id);
+}
+
+export function renderSectionRecord(item: HTMLElement, face: RecordFace): void {
+	if (face.record.kind === 'choice') return;
+	const { statement } = face.record;
+	const heading = face.record.title ?? statement;
+	const title = textNode('h4', heading);
+	title.className = 'ex-record-item-title';
+	item.dataset['commentLabel'] = face.record.statement;
+	const body = document.createElement('article');
+	body.className = 'ex-record-surface';
+	body.dataset['commentSlot'] = '';
+	const reason = recordReason(face);
+	const content = [...item.childNodes];
+	body.append(title, recordStateLine(face, true));
+	if (heading !== statement) {
+		title.setAttribute('data-record-display-title', '');
+		const fullStatement = textNode('div', statement);
+		fullStatement.className = 'ex-record-statement';
+		fullStatement.setAttribute('data-record-statement', '');
+		body.append(fullStatement);
+	}
+	if (reason) body.append(reason);
+	body.append(...content);
+	item.append(body);
+	appendRecordBasis(item, face, { body });
+}
+
+export function inlineRecordStatus(
+	element: HTMLElement,
+	record: RecordFace['record'],
+	href: string,
+): void {
+	const { label, tone } = recordPresentation(record);
+	const link = document.createElement('a');
+	link.href = href;
+	const badge = recordCategoryBadge(label, tone);
+	link.append(badge);
+	const explanation =
+		record.kind === 'assumption'
+			? assumptionStateGlossary[record.status]
+			: decisionStatusGlossary[record.authority.state === 'owner-open' ? 'Open' : 'Decided'];
+	element.replaceChildren(link, glossaryTerm(label, explanation, true));
+}

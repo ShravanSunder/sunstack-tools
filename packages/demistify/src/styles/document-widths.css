@@ -1,7 +1,106 @@
+ex-initiative-overview {
+	display: block;
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+:is(ex-initiative-overview, .ex-initiative-project-summary) li {
+	margin-block: 0.25rem;
+}
+.ex-initiative-project-group {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+	gap: var(--space-4);
+}
+.ex-initiative-project > p {
+	margin-block: var(--space-2);
+}
+.ex-initiative-project-state {
+	color: var(--ink-soft);
+}
+.ex-initiative-project-trigger {
+	padding: 0;
+	border: 0;
+	background: transparent;
+	color: var(--link-color);
+	font: inherit;
+	text-align: start;
+	text-decoration: underline;
+	cursor: pointer;
+}
+.ex-initiative-project-header > strong {
+	white-space: normal;
+	overflow-wrap: anywhere;
+}
+.ex-initiative-project-summary {
+	overflow-wrap: anywhere;
+}
+.ex-initiative-project-summary > :first-child {
+	margin-block-start: 0;
+}
+.ex-glossary-term {
+	padding: 0;
+	border: 0;
+	background: transparent;
+	color: inherit;
+	font: inherit;
+	text-align: start;
+	text-decoration: underline dotted;
+	text-underline-offset: 0.2em;
+	cursor: help;
+}
+.ex-glossary-marker {
+	margin-inline-start: var(--space-1);
+	padding-inline: var(--space-1);
+	min-inline-size: var(--space-6);
+	min-block-size: var(--space-6);
+	color: var(--ink-soft);
+	text-decoration: none;
+}
+.ex-glossary-popup {
+	position: fixed;
+	inset: auto;
+	margin: 0;
+	box-sizing: border-box;
+	max-inline-size: min(24rem, calc(100vw - 16px));
+	padding: var(--space-2) var(--space-3);
+	border: 1px solid var(--rule);
+	border-radius: var(--radius-md);
+	background: var(--surface-content);
+	color: var(--ink);
+	font: var(--text-md)/1.4 var(--font-body);
+	white-space: normal;
+	overflow-wrap: anywhere;
+}
+
 /* Two section widths share one left edge: Reading starts where Canvas starts. HTML and nested
    islands retain ownership of their own layout. */
 ex-document {
 	max-width: var(--width-canvas);
+}
+ex-deliverables {
+	display: block;
+	min-width: 0;
+}
+@media (max-width: 600px) {
+	ex-deliverables .ex-table-scroll table,
+	ex-deliverables :is(caption, tbody, tr, th, td) {
+		display: block;
+		width: 100%;
+		min-width: 0;
+		box-sizing: border-box;
+		white-space: normal;
+		overflow-wrap: anywhere;
+	}
+	ex-deliverables thead {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+	}
+	ex-deliverables tbody tr + tr {
+		border-top: 1px solid var(--rule);
+	}
 }
 /* Only document flow participates: structural wrappers are transparent, other islands stop it. */
 ex-document
@@ -102,8 +201,10 @@ ex-document:not(.ex-gallery-document) {
 			ex-file-tree,
 			ex-pre,
 			ex-explorer,
+			ex-deliverables,
 			ex-gallery,
 			ex-trace,
+			ex-timeline,
 			figure,
 			table,
 			.ex-table-scroll,
@@ -126,8 +227,10 @@ ex-document:not(.ex-gallery-document) {
 			ex-file-tree,
 			ex-pre,
 			ex-explorer,
+			ex-deliverables,
 			ex-gallery,
 			ex-trace,
+			ex-timeline,
 			figure,
 			table,
 			.ex-table-scroll,

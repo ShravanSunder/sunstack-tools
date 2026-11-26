@@ -9,6 +9,432 @@ afterEach(async (): Promise<void> => {
 	await page.viewport(1600, 1000);
 });
 
+test.each([1400, 390])(
+	'missing design records show a migration notice instead of empty decision sections at %ipx',
+	async (width): Promise<void> => {
+		await page.viewport(width, 1000);
+		const { document: fixture, frame } = await openFixture('ui', '', 'missing-design-records.html');
+		const notice = frame.getByText(/Design records are unavailable/);
+		await expect.element(notice).toBeVisible();
+		const bounds = requiredElement(fixture, '.ex-design-records-status').getBoundingClientRect();
+		const toolbar = requiredElement(fixture, '.ex-document-toolbar').getBoundingClientRect();
+		expect(bounds.top).toBeGreaterThanOrEqual(toolbar.bottom);
+		expect(bounds.bottom).toBeLessThanOrEqual(1000);
+		expect(
+			[...fixture.querySelectorAll('ex-section[holds]')].filter(
+				(section) => section.getClientRects().length > 0,
+			),
+		).toHaveLength(0);
+		await expect
+			.element(
+				frame.getByText(/ex-project-overview was replaced by ex-initiative-overview in 1\.34/),
+			)
+			.toBeVisible();
+		await expect
+			.element(frame.getByText('Authored background still belongs on the page.'))
+			.toBeVisible();
+		await frame.getByRole('button', { name: 'Comments (0)', exact: true }).click();
+		const closeComments = frame.getByRole('button', { name: 'Close comments', exact: true });
+		await expect.element(closeComments).toBeVisible();
+		expect(fixture.querySelector('ex-comments [role="alert"]')).toBeNull();
+		await closeComments.click();
+		const outline = requiredElement(fixture, '.ex-heading-outline');
+		expect(outline.textContent).toContain('Background');
+		expect(outline.textContent).not.toMatch(/For you to decide|You decided/);
+		await frame.getByRole('button', { name: 'Search documents', exact: true }).click();
+		const search = frame.getByRole('dialog', { name: 'Search documents', exact: true });
+		const query = search.getByRole('combobox');
+		await query.fill('For you to decide');
+		await expect.element(search.getByText('No matching destinations.')).toBeVisible();
+		await query.fill('You decided');
+		await expect.element(search.getByText('No matching destinations.')).toBeVisible();
+		await query.fill('Background');
+		await expect.element(search.getByRole('option', { name: /Background/ })).toBeVisible();
+		await userEvent.keyboard('{Escape}');
+
+		expect(fixture.documentElement.scrollWidth).toBeLessThanOrEqual(width);
+		await page.screenshot({ path: browserScreenshotPath(`missing-design-records-${width}.png`) });
+		await frame.getByRole('button', { name: 'Switch light or dark theme', exact: true }).click();
+		await expect.element(notice).toBeVisible();
+		expect(fixture.documentElement.scrollWidth).toBeLessThanOrEqual(width);
+		await page.screenshot({
+			path: browserScreenshotPath(`missing-design-records-dark-${width}.png`),
+		});
+	},
+);
+
+test('empty delivery progress shows only its status', async (): Promise<void> => {
+	const { document: fixture, frame } = await openFixture('ui');
+	const progress = fixture.createElement('ex-deliverables');
+	const view = { version: 1, deliverables: {} };
+	progress.setAttribute('src', `data:application/json,${encodeURIComponent(JSON.stringify(view))}`);
+	requiredElement(fixture, 'ex-document').append(progress);
+	const overview = fixtureLocator(frame, progress);
+	await expect
+		.element(overview.getByText('No deliverables planned.', { exact: true }))
+		.toBeVisible();
+	expect(progress.textContent).toBe('No deliverables planned.');
+});
+
+test.each([1400, 390])(
+	'later delivery shows its ID and title without scoped work at %ipx',
+	async (width): Promise<void> => {
+		await page.viewport(width, 1000);
+		const { document: fixture, frame } = await openFixture('ui');
+		const content = requiredElement(fixture, 'ex-document');
+		const id = 'jobs/DEL-LATER';
+		const title = 'Expand queue coverage';
+		const deliverables = { [id]: { kind: 'later', id, title, state: 'later' } };
+		const progress = fixture.createElement('ex-deliverables');
+		const initiative = fixture.createElement('ex-initiative-overview');
+		progress.setAttribute(
+			'src',
+			`data:application/json,${encodeURIComponent(JSON.stringify({ version: 1, deliverables }))}`,
+		);
+		initiative.setAttribute(
+			'src',
+			`data:application/json,${encodeURIComponent(
+				JSON.stringify({
+					version: 2,
+					projects: {
+						jobs: {
+							path: 'design.ts',
+							title: 'Jobs',
+							number: 1,
+							state: 'later',
+							reason: 'Named for later.',
+						},
+					},
+					order: ['jobs'],
+					work: { readyNow: [], needsPlan: [], blocksMost: [], builtNotAccepted: [] },
+					records: [],
+					deliverables,
+				}),
+			)}`,
+		);
+		content.append(progress, initiative);
+
+		const label = `${id} · ${title}`;
+		const table = fixtureLocator(frame, progress);
+		await expect.element(table.getByText(label, { exact: true })).toBeVisible();
+		const state = table.getByRole('button', { name: 'Later', exact: true });
+		await expect.element(state).toBeVisible();
+		await state.click();
+		await expect
+			.element(frame.getByRole('tooltip'))
+			.toHaveTextContent('Named for later; not designed or checked now.');
+		await userEvent.keyboard('{Escape}');
+		expect(
+			[...requiredElement(progress, 'tbody tr').children].map((cell) => cell.textContent),
+		).toEqual([label, 'Later', '']);
+		expect(progress.querySelector('tbody :is(a, details)')).toBeNull();
+
+		const overview = fixtureLocator(frame, initiative);
+		await overview.getByRole('button', { name: 'Jobs', exact: true }).click();
+		const summary = fixtureLocator(
+			frame,
+			requiredElement(fixture, '.ex-initiative-project-summary'),
+		);
+		await expect.element(summary.getByText(`${label} · Later`, { exact: true })).toBeVisible();
+		await expect
+			.element(summary.getByText('No open owner decisions.', { exact: true }))
+			.toBeVisible();
+		expect(
+			requiredElement(fixture, '.ex-initiative-project-summary').querySelector('a, details'),
+		).toBeNull();
+		await frame.getByRole('button', { name: 'Close project summary', exact: true }).click();
+		await expect
+			.element(overview.getByRole('heading', { name: 'Work now' }))
+			.not.toBeInTheDocument();
+		expect(fixture.documentElement.scrollWidth).toBeLessThanOrEqual(width);
+	},
+);
+
+test.each([1400, 390])(
+	'initiative shows numbered project groups, work, and owner actions at %ipx',
+	async (width): Promise<void> => {
+		await page.viewport(width, 1000);
+		const { document: fixture, frame } = await openFixture('ui', '', 'decision-views.html');
+		const owner = requiredElement(fixture, 'ex-initiative-overview');
+		const overview = fixtureLocator(frame, owner);
+		await expect
+			.element(overview.getByRole('heading', { name: 'Projects', exact: true }))
+			.toBeVisible();
+		expect([...owner.querySelectorAll('h2, h3, h4')].map((item) => item.textContent)).toEqual([
+			'Projects',
+			'0',
+			'Worker groundwork',
+			'1 · side by side',
+			'Queue foundations',
+			'Cancellation history',
+			'2',
+			'Job cancellation',
+			'Work now',
+			'Ready now',
+			'Needs a plan',
+			'Blocks the most',
+			'Built, not accepted',
+			'Waiting on owner',
+			'Decisions',
+			'Assumptions',
+			'Design records',
+		]);
+		const parallelProjects = requiredElement(
+			owner,
+			'.ex-initiative-project-group:has(> section:nth-child(2))',
+		);
+		expect(parallelProjects.children).toHaveLength(2);
+		const queueProject = requiredElement(parallelProjects, 'section:first-child');
+		const auditProject = requiredElement(parallelProjects, 'section:last-child');
+		if (width === 390) {
+			expect(auditProject.getBoundingClientRect().top).toBeGreaterThan(
+				queueProject.getBoundingClientRect().bottom,
+			);
+		} else {
+			expect(auditProject.getBoundingClientRect().left).toBeGreaterThan(
+				queueProject.getBoundingClientRect().right,
+			);
+		}
+
+		const jobs = [...owner.querySelectorAll('.ex-initiative-project')].find(
+			(section) => section.querySelector('h4')?.textContent === 'Job cancellation',
+		);
+		if (!jobs) throw new Error('Job cancellation project is missing.');
+		await expect
+			.element(
+				fixtureLocator(frame, jobs).getByRole('button', { name: 'Job cancellation', exact: true }),
+			)
+			.toBeVisible();
+		expect(jobs.textContent).toContain('Lead jobs-lead');
+		const work = requiredElement(owner, 'section:has(> h2)');
+		expect(work.textContent).toContain('1 deliverable waiting');
+		expect(
+			[...work.querySelectorAll('a')].map((link) => [link.textContent, new URL(link.href).hash]),
+		).toEqual([
+			['queue/DEL-01 · Acknowledge stop requests', '#queue-deliverable'],
+			['queue/DEL-02 · Report stuck stop requests', '#queue-report-deliverable'],
+			['queue/DEL-01 · Acknowledge stop requests', '#queue-deliverable'],
+			['jobs/DEL-01 · Prove cancellation', '#R1'],
+		]);
+		await expect.element(overview.getByText(/Initiative: the whole plan/)).toBeVisible();
+		const expectExplanation = async (
+			term: ReturnType<typeof page.getByRole>,
+			definition: RegExp,
+		): Promise<void> => {
+			await term.click();
+			await expect
+				.poll(() => fixture.querySelector('[role="tooltip"]:popover-open')?.textContent ?? '')
+				.toMatch(definition);
+			await userEvent.keyboard('{Escape}');
+		};
+		await expectExplanation(
+			overview.getByRole('button', { name: 'Explain Projects', exact: true }),
+			/one piece of work that finishes/,
+		);
+		await expectExplanation(
+			overview.getByRole('button', { name: 'Explain 1 · side by side', exact: true }),
+			/Projects with the same number can run side by side\./,
+		);
+		await expectExplanation(
+			overview.getByRole('button', { name: 'Explain 0', exact: true }),
+			/Number 0 can show finished groundwork\./,
+		);
+		await expectExplanation(
+			overview.getByRole('button', { name: 'Explain Needs a plan', exact: true }),
+			/^No implementation steps yet: write its plan before it can start\.$/,
+		);
+		const state = fixtureLocator(
+			frame,
+			requiredElement(jobs, '.ex-initiative-project-state'),
+		).getByRole('button', { name: 'Blocked on prerequisite', exact: true });
+		await state.hover();
+		await expect
+			.element(frame.getByRole('tooltip'))
+			.toHaveTextContent('Every open core deliverable here waits on a deliverable it depends on.');
+		await state.click();
+		await userEvent.keyboard('{Escape}');
+		const recordHelp = overview
+			.getByRole('button', { name: 'Explain jobs/R1', exact: true })
+			.last();
+		await recordHelp.click();
+		await expect
+			.element(frame.getByRole('tooltip'))
+			.toHaveTextContent('Rule: one sentence the system must keep, with cases that test it.');
+		await userEvent.keyboard('{Escape}');
+		await expect.element(overview.getByText(/Authority: Lead · Status: Superseded/)).toBeVisible();
+		await expect.element(overview.getByText(/Authority: Owner · Status: Decided/)).toBeVisible();
+		await expect
+			.element(overview.getByText(/Authority: Owner · Status: Open/).first())
+			.toBeVisible();
+		await expect
+			.element(overview.getByText(/Workers can acknowledge a stop request.*Unverified/))
+			.toBeVisible();
+		const replacement = overview.getByText('Replaced by', { exact: false }).getByRole('link');
+		await expect
+			.element(replacement)
+			.toHaveAttribute('href', expect.stringMatching(/decision-views\.html#D2$/));
+		const decidedChoice = overview
+			.getByRole('listitem')
+			.filter({ hasText: 'jobs/D2 · Send a stop request to the worker' });
+		await decidedChoice.getByText('Affected design records', { exact: true }).click();
+		await expect
+			.element(overview.getByRole('link', { name: 'jobs/R1 · Send the stop request once' }).first())
+			.toBeVisible();
+		expect(fixture.documentElement.scrollWidth).toBeLessThanOrEqual(width);
+		parallelProjects.parentElement?.scrollIntoView({ block: 'center', behavior: 'instant' });
+		await page.screenshot({ path: browserScreenshotPath(`decision-views-${width}.png`) });
+		work.scrollIntoView({ block: 'center', behavior: 'instant' });
+		await page.screenshot({ path: browserScreenshotPath(`initiative-work-${width}.png`) });
+		await frame.getByRole('button', { name: 'Switch light or dark theme', exact: true }).click();
+		await expect.element(overview.getByText(/Authority: Lead · Status: Superseded/)).toBeVisible();
+		expect(fixture.documentElement.scrollWidth).toBeLessThanOrEqual(width);
+		work.scrollIntoView({ block: 'center', behavior: 'instant' });
+		await page.screenshot({ path: browserScreenshotPath(`initiative-work-dark-${width}.png`) });
+		parallelProjects.parentElement?.scrollIntoView({ block: 'center', behavior: 'instant' });
+		await page.screenshot({ path: browserScreenshotPath(`decision-views-dark-${width}.png`) });
+
+		await fixtureLocator(frame, work)
+			.getByRole('link', { name: 'queue/DEL-01 · Acknowledge stop requests', exact: true })
+			.first()
+			.click();
+		await expect.poll((): string => fixture.location.hash).toBe('#queue-deliverable');
+		await fixtureLocator(frame, work)
+			.getByRole('link', { name: 'queue/DEL-02 · Report stuck stop requests', exact: true })
+			.click();
+		await expect.poll((): string => fixture.location.hash).toBe('#queue-report-deliverable');
+		await overview.getByRole('link', { name: /jobs\/D3/ }).click();
+		await expect.poll((): string => fixture.location.hash).toBe('#D3');
+		let answer: unknown;
+		requiredElement(fixture, '#D3').addEventListener('choice-change', (event): void => {
+			if ('detail' in event) answer = event.detail;
+		});
+		const option = frame.getByRole('radio', { name: 'Show stopping', exact: true });
+		await option.click();
+		await expect.element(option).toBeChecked();
+		expect(answer).toMatchObject({
+			questionId: 'D3',
+			decisionId: 'jobs/D3',
+			selected: [{ optionId: 'show-stopping' }],
+		});
+	},
+);
+
+test.each([1400, 390])(
+	'initiative project opens its own summary and follows authored destinations at %ipx',
+	async (width): Promise<void> => {
+		await page.viewport(width, 1000);
+		const { document: fixture, frame } = await openFixture('ui', '', 'decision-views.html');
+		const originalUrl = fixture.URL;
+		const project = frame.getByRole('button', { name: 'Job cancellation', exact: true });
+		await project.click();
+		expect(
+			requiredElement(fixture, '.ex-initiative-project-trigger[aria-expanded="true"]').textContent,
+		).toBe('Job cancellation');
+		expect(fixture.URL).toBe(originalUrl);
+		const panel = requiredElement(
+			fixture,
+			width === 390 ? 'dialog[data-mode="sidebar"][open]' : 'aside.ex-drawer:not([hidden])',
+		);
+		const contents = requiredElement(panel, '.ex-initiative-project-summary');
+		const summary = fixtureLocator(frame, contents);
+		const close = frame.getByRole('button', { name: 'Close project summary', exact: true });
+		await expect.element(close).toHaveFocus();
+		expect(panel.getAttribute('aria-label')).toBe('Job cancellation');
+		if (width === 390) {
+			expect(Math.round(panel.getBoundingClientRect().width)).toBe(width);
+		} else {
+			const overview = requiredElement(fixture, 'ex-initiative-overview');
+			expect(panel.getBoundingClientRect().left).toBeGreaterThanOrEqual(
+				overview.getBoundingClientRect().right,
+			);
+		}
+		await expect
+			.element(summary.getByText('A caller can cancel a job already running.', { exact: true }))
+			.toBeVisible();
+		await expect.element(summary.getByText(/What the owner checks/)).toBeVisible();
+		await expect
+			.element(summary.getByText('Waiting for the queue prerequisite.', { exact: true }))
+			.toBeVisible();
+		const ownerDecisions = requiredElement(contents, 'h3 + ul');
+		expect(
+			[...ownerDecisions.querySelectorAll('a')].map((link) => new URL(link.href).hash),
+		).toEqual(['#D3', '#D4', '#D5']);
+		await expect.element(summary.getByRole('link', { name: /jobs\/DEL-01/ })).toBeVisible();
+		const states = summary.getByRole('button', { name: 'Blocked on prerequisite', exact: true });
+		await expect.element(states.last()).toBeVisible();
+		const evidence = summary.getByText('Checks and evidence', { exact: true });
+		await evidence.click();
+		await expect
+			.element(summary.getByRole('link', { name: 'queue/DEL-01', exact: true }))
+			.toHaveAttribute('href', expect.stringMatching(/decision-views\.html#queue-deliverable$/));
+		await summary.getByRole('button', { name: 'Completed', exact: true }).click();
+		await expect
+			.poll(() => fixture.querySelector('[role="tooltip"]:popover-open')?.textContent ?? '')
+			.toMatch(/Recorded as done in the current candidate/);
+		await evidence.click();
+		await expect
+			.element(summary.getByRole('link', { name: 'Open design page' }))
+			.toHaveAttribute('href', expect.stringMatching(/job-cancellation-design\.html$/));
+		expect(contents.scrollWidth).toBeLessThanOrEqual(contents.clientWidth);
+		contents.scrollTop = 0;
+		await Promise.all(panel.getAnimations().map(({ finished }) => finished));
+		await page.screenshot({
+			path: browserScreenshotPath(`initiative-project-summary-${width}.png`),
+		});
+
+		await close.click();
+		await expect.element(project).toHaveFocus();
+		await expect.element(project).toHaveAttribute('aria-expanded', 'false');
+		await frame.getByRole('button', { name: 'Switch light or dark theme', exact: true }).click();
+		await project.click();
+		const reopenedContents = requiredElement(fixture, '.ex-initiative-project-summary');
+		const reopenedSummary = fixtureLocator(frame, reopenedContents);
+		await expect
+			.element(reopenedSummary.getByRole('heading', { name: 'Open owner decisions' }))
+			.toBeVisible();
+		await Promise.all(
+			reopenedContents.parentElement?.getAnimations().map(({ finished }) => finished) ?? [],
+		);
+		expect(reopenedContents.scrollWidth).toBeLessThanOrEqual(reopenedContents.clientWidth);
+		await page.screenshot({
+			path: browserScreenshotPath(`initiative-project-summary-dark-${width}.png`),
+		});
+
+		await reopenedSummary.getByRole('link', { name: /jobs\/D3/ }).click();
+		await expect.poll((): string => fixture.location.hash).toBe('#D3');
+		await expect.element(project).toHaveAttribute('aria-expanded', 'false');
+
+		await project.click();
+		await frame.getByRole('link', { name: 'Open design page', exact: true }).click();
+		await expect
+			.element(frame.getByRole('heading', { level: 1, name: 'Job cancellation' }))
+			.toBeVisible();
+	},
+);
+
+test('activating the open project title closes its desktop summary', async (): Promise<void> => {
+	await page.viewport(1400, 1000);
+	const { document: fixture, frame } = await openFixture('ui', '', 'decision-views.html');
+	const project = frame.getByRole('button', { name: 'Job cancellation', exact: true });
+	const summary = frame.getByRole('complementary', { name: 'Job cancellation', exact: true });
+	await expect.element(project).toHaveAttribute('aria-expanded', 'false');
+
+	await project.click();
+	await expect.element(project).toHaveAttribute('aria-expanded', 'true');
+	await expect.element(summary).toBeVisible();
+	const drawer = requiredElement(fixture, 'aside.ex-drawer:not([hidden])');
+
+	await project.click();
+	await expect.element(project).toHaveAttribute('aria-expanded', 'false');
+	expect(drawer.hasAttribute('hidden')).toBe(true);
+	expect(drawer.getClientRects()).toHaveLength(0);
+	await expect.element(project).toHaveFocus();
+
+	await project.click();
+	await expect.element(project).toHaveAttribute('aria-expanded', 'true');
+	await expect.element(summary).toBeVisible();
+});
+
 test('explicit destination IDs win over generated heading aliases', async (): Promise<void> => {
 	const { document: fixture, frame } = await openFixture('ui');
 	const link = requiredElement(fixture, '#exact-link');
@@ -285,40 +711,44 @@ test('tabs carry meaningful icons, layer switches expose checked state and Home 
 	);
 });
 
-test('timeline and layer-band content share deliberate type metrics and aligned markers', async (): Promise<void> => {
-	const { document: fixture } = await openFixture('ui');
-	const fixtureWindow = fixture.defaultView;
-	if (!fixtureWindow) throw new Error('Missing fixture window.');
-	const styles = (selector: string): CSSStyleDeclaration =>
-		fixtureWindow.getComputedStyle(requiredElement(fixture, selector));
-	expect(styles('ex-timeline section small').fontSize).toBe('13px');
-	expect(styles('ex-timeline section h3').fontSize).toBe('17px');
-	expect(styles('ex-timeline section p').fontSize).toBe('15px');
-	expect(styles('ex-timeline section p').fontFamily).toBe(
-		styles('ex-timeline section h3').fontFamily,
-	);
-	expect(fixture.querySelectorAll('#status-timeline .ex-timeline-marker')).toHaveLength(2);
-	const marker = requiredElement(fixture, '#plain-timeline .ex-timeline-marker');
-	expect(marker.querySelector('.ex-tone-icon')).toBeNull();
-	expect(marker.getBoundingClientRect().width).toBe(32);
-	expect(marker.getBoundingClientRect().height).toBe(32);
-	expect(styles('#plain-timeline .ex-timeline-marker').borderRadius).toBe('50%');
-	expect(styles('ex-layer > strong').fontSize).toBe('15px');
-	expect(styles('ex-layer > p').lineHeight).toBe('22.5px');
-	expect(styles('ex-layer > strong').paddingTop).toBe(styles('ex-layer > p').paddingTop);
-	const label = requiredElement(fixture, 'ex-layer > strong');
-	const description = requiredElement(fixture, 'ex-layer > p');
-	expect(styles('ex-layer > strong').fontSize).toBe(styles('ex-layer > p').fontSize);
-	expect(styles('ex-layer > strong').lineHeight).toBe(styles('ex-layer > p').lineHeight);
-	expect(
-		Math.abs(
-			label.getBoundingClientRect().top +
-				label.getBoundingClientRect().height / 2 -
-				description.getBoundingClientRect().top -
-				description.getBoundingClientRect().height / 2,
-		),
-	).toBeLessThan(1);
-});
+test.each([1400, 390])(
+	'the timeline alias uses Trace disclosure, roles and layout at %i CSS px',
+	async (width): Promise<void> => {
+		await page.viewport(width, 1000);
+		const { document: fixture, frame } = await openFixture('ui');
+		const alias = requiredElement(fixture, '#status-timeline');
+		const plainAlias = requiredElement(fixture, '#plain-timeline');
+		const trace = requiredElement(fixture, '#plain-trace');
+		const aliasView = fixtureLocator(frame, alias);
+		const constructors = fixture.defaultView?.customElements;
+		expect(constructors?.get('ex-timeline')).toBeDefined();
+		for (const retired of ['ex-zoom', 'ex-decision', 'ex-diagram-diff', 'ex-layer'])
+			expect(constructors?.get(retired)).toBeUndefined();
+		expect(alias.querySelectorAll('.ex-trace-summary')).toHaveLength(2);
+		await expect.element(aliasView.getByRole('list')).toBeVisible();
+		expect(aliasView.getByRole('listitem').all()).toHaveLength(2);
+		expect(plainAlias.querySelector('.ex-trace-dot')).not.toBeNull();
+		expect(alias.querySelector('.ex-trace-summary .ex-tone-icon')).not.toBeNull();
+		const summary = requiredElement(alias, '.ex-trace-summary');
+		const traceSummary = requiredElement(trace, '.ex-trace-summary');
+		expect(summary.getBoundingClientRect().width).toBeCloseTo(
+			traceSummary.getBoundingClientRect().width,
+		);
+		expect(fixture.defaultView?.getComputedStyle(alias).display).toBe(
+			fixture.defaultView?.getComputedStyle(trace).display,
+		);
+
+		const attachment = aliasView.getByText(
+			'Observe the same session after replacing its transport.',
+		);
+		await expect.element(attachment).not.toBeVisible();
+		await aliasView.getByText('Prove reconnection', { exact: true }).click();
+		await expect.element(attachment).toBeVisible();
+		await page.screenshot({ path: browserScreenshotPath(`trace-alias-${width}.png`) });
+		await aliasView.getByText('Prove reconnection', { exact: true }).click();
+		await expect.element(attachment).not.toBeVisible();
+	},
+);
 
 test('dedicated gallery fills available space and its short grid scrolls without shrinking rows', async (): Promise<void> => {
 	const { document: fixture, frame } = await openFixture('ui', '', 'gallery.html');

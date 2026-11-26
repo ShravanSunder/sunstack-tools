@@ -14,7 +14,7 @@ const story = `<ex-story subject="Renderer" time="Fri 08:31" icon="package" tone
 </details></details></ex-story>`;
 
 function pageWithStory(storySource: string): string {
-	return `<html><head><link rel="stylesheet" href="theme.css"><script type="module" src="runtime.js"></script></head><body><ex-document id="work"><h1>Shared story records</h1><h2>What it means <ex-fold-toggle for="work"></ex-fold-toggle></h2><ex-section id="done-next" title="What's done / what's next" icon="clock" series="2">${storySource}</ex-section></ex-document></body></html>`;
+	return `<html><head><link rel="stylesheet" href="theme.css"><script type="module" src="runtime.js"></script></head><body><ex-document id="work"><h1>Shared story records</h1><h2>What it means <ex-fold-toggle for="work"></ex-fold-toggle></h2><ex-section id="done-next" title="What's done / what's next" icon="clock" series="2"></ex-section><ex-section-item section="done-next">${storySource}</ex-section-item></ex-document></body></html>`;
 }
 
 test('the complete native story and section composition checks without errors', async (): Promise<void> => {

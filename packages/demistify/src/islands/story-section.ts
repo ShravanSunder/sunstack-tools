@@ -1,73 +1,74 @@
 import { createDisclosureControl, type ScopeControl } from '../core/disclosure-scope.ts';
 import { createHead, readIcon } from '../core/head.ts';
 import { reportIssue } from '../core/issues.ts';
-import { readSectionMembership } from '../core/section-membership.ts';
+import { readSectionMembership, smallerStoriesSelector } from '../core/section-membership.ts';
+import { sectionHolds, type SectionHold } from '../core/section-routing.ts';
 import { prepareStoryDisclosure } from '../core/story-content.ts';
 import { readTone } from '../core/tones.ts';
 
+const recordSectionIcons = {
+	'needs-owner': 'user',
+	'decided-by-agent': 'robot',
+	settled: 'user',
+	assumed: 'test-tube',
+} satisfies Record<SectionHold, string>;
+
 export class SectionIsland extends HTMLElement {
-	private control: ScopeControl | undefined;
-	private observer: MutationObserver | undefined;
-	private count: HTMLElement | undefined;
 	private headerObserver: ResizeObserver | undefined;
+	private membershipObserver: MutationObserver | undefined;
+	private control: ScopeControl | undefined;
 
 	connectedCallback(): void {
 		if (this.closest('[data-inspector-content], [data-inspector-copy]')) return;
 		if (!this.hasAttribute('prepared')) {
-			const authoredChildren = Array.from(this.children);
-			const smallerGroups = authoredChildren.filter(
-				(child): boolean => child.getAttribute('slot') === 'smaller',
-			);
-			if (
-				smallerGroups.length > 1 ||
-				(smallerGroups[0] &&
-					(!(smallerGroups[0] instanceof HTMLDetailsElement) ||
-						authoredChildren.at(-1) !== smallerGroups[0]))
-			) {
-				reportIssue(this, 'A section has at most one native smaller-stories fold, at its end.');
-				return;
-			}
-			const title = this.getAttribute('title') ?? '';
-			if (!this.id || !title.trim()) {
+			const title = this.getAttribute('title')?.trim();
+			if (!this.id || !title) {
 				reportIssue(this, 'A section needs its stable id and title.');
 				return;
 			}
-			this.dataset['title'] = title;
-			this.removeAttribute('title');
+			const hold = sectionHolds.find((state) => state === this.getAttribute('holds'));
+			const tone = readTone(this, undefined);
 			const header = createHead('h3', 'ex-section-head', {
 				title,
-				icon: readIcon(this),
-				tone: readTone(this, undefined),
+				icon: readIcon(this) ?? (hold && !tone ? recordSectionIcons[hold] : undefined),
+				tone,
 			});
-			this.count = document.createElement('span');
-			this.count.className = 'ex-section-count';
-			const titleText = header.querySelector('strong');
-			const heading = document.createElement('span');
-			heading.className = 'ex-section-heading';
-			if (titleText) {
-				titleText.before(heading);
-				heading.append(titleText);
-			} else header.append(heading);
-			heading.append(this.count);
+			const count = document.createElement('span');
+			count.className = 'ex-section-count';
+			header.append(count);
+			this.dataset['title'] = title;
+			this.removeAttribute('title');
+			// A published v1 section may still contain its original authored body.
+			if (
+				!Array.from(this.childNodes).some((child) =>
+					child instanceof Element
+						? child.localName !== 'ex-section-item'
+						: child.nodeType === Node.TEXT_NODE && child.textContent?.trim(),
+				)
+			)
+				this.classList.add('ex-section-floating');
 			this.prepend(header);
-			const smaller = this.querySelector(':scope > details[slot="smaller"]');
-			if (smaller instanceof HTMLDetailsElement)
-				prepareStoryDisclosure(smaller, undefined, undefined);
 			this.setAttribute('prepared', '');
 		}
 		const header = this.querySelector(':scope > .ex-section-head');
 		if (!header) return;
-		this.control ??= createDisclosureControl(this, this.dataset['title'] ?? 'section');
-		header.append(this.control.button);
-		const refresh = (): void => {
-			const membership = readSectionMembership(this);
-			const text = ` · ${membership.primary}${membership.smaller ? ` + ${membership.smaller} smaller` : ''}`;
-			if (this.count && this.count.textContent !== text) this.count.textContent = text;
+		const count = header.querySelector('.ex-section-count');
+		const refreshMembership = (): void => {
+			const { primary, smaller } = readSectionMembership(this);
+			const label = `· ${primary}${smaller ? ` + ${smaller} smaller` : ''}`;
+			if (count && count.textContent !== label) count.textContent = label;
+			for (const group of this.querySelectorAll(smallerStoriesSelector))
+				if (group instanceof HTMLDetailsElement)
+					prepareStoryDisclosure(group, undefined, undefined);
+			if (!this.control && this.querySelector('ex-story')) {
+				this.control = createDisclosureControl(this, this.dataset['title'] ?? 'section');
+				header.append(this.control.button);
+			}
 		};
-		this.observer?.disconnect();
-		this.observer = new MutationObserver(refresh);
-		this.observer.observe(this, { childList: true, subtree: true });
-		refresh();
+		this.membershipObserver?.disconnect();
+		this.membershipObserver = new MutationObserver(refreshMembership);
+		this.membershipObserver.observe(this, { childList: true, subtree: true });
+		refreshMembership();
 		const measureHeader = (): void => {
 			this.style.setProperty(
 				'--ex-section-header-height',
@@ -84,7 +85,7 @@ export class SectionIsland extends HTMLElement {
 		this.control?.disconnect();
 		this.control?.button.remove();
 		this.control = undefined;
-		this.observer?.disconnect();
+		this.membershipObserver?.disconnect();
 		this.headerObserver?.disconnect();
 	}
 }

@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Choose a Demistify component for a PR</title>
+		<link rel="stylesheet" href="https://demistify.getagentstudio.dev/v1/theme.css" />
+		<script type="module" src="https://demistify.getagentstudio.dev/v1/runtime.js"></script>
+	</head>
+	<body>
+		<ex-nav for="guide"></ex-nav>
+		<ex-document id="guide">
+			<h1>Choose a Demistify component for a PR</h1>
+			<p>
+				Start with the question a reviewer has to answer. Write the answer in ordinary HTML, then
+				add one view that makes the deciding relationship easier to see. The author writes the
+				prose, diagrams, and examples. The components present that work.
+			</p>
+
+			<h2 id="pr-sections">What belongs in each part of the PR?</h2>
+			<div class="ex-table-scroll">
+				<table>
+					<thead>
+						<tr>
+							<th scope="col">Reviewer question</th>
+							<th scope="col">View to use</th>
+							<th scope="col">What the author supplies</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							<th scope="row">What changed and why?</th>
+							<td>
+								Opening prose. A callout when a release constraint or open question changes the next
+								action.
+							</td>
+							<td>
+								The current behavior, the proposed behavior, and the effect readers can check.
+							</td>
+						</tr>
+						<tr>
+							<th scope="row">What outcome is required?</th>
+							<td>
+								A requirements heading with an exact anchor. A Tree when several requirements form a
+								meaningful hierarchy.
+							</td>
+							<td>A user outcome, its source, and an ordinary link to the corresponding rule.</td>
+						</tr>
+						<tr>
+							<th scope="row">What must always hold?</th>
+							<td>Rule prose with a small case table when the same outcomes must be compared.</td>
+							<td>
+								Preconditions, outcomes, and errors. Use one heading per question the reader needs
+								to find.
+							</td>
+						</tr>
+						<tr>
+							<th scope="row">How does it work?</th>
+							<td>
+								Sequence diagram for calls, state diagram for lifecycle, or a Board for ownership
+								boundaries.
+							</td>
+							<td>
+								Real owners, events, and branches, with the important exceptions in nearby prose.
+							</td>
+						</tr>
+						<tr>
+							<th scope="row">Which option should we choose?</th>
+							<td>
+								Compare for aligned tradeoffs. Choice with optional Details when the owner needs to
+								answer.
+							</td>
+							<td>
+								The alternatives, consequences, recommendation, and one precise question. Cite the
+								decision after it is confirmed.
+							</td>
+						</tr>
+						<tr>
+							<th scope="row">Where should I look in the diff?</th>
+							<td>File Tree for structure. Code or Diff for an exact excerpt with a line note.</td>
+							<td>
+								Real paths, the decisive change, and a link to the full review. A short excerpt can
+								be enough.
+							</td>
+						</tr>
+						<tr>
+							<th scope="row">How will we know it works?</th>
+							<td>A planned-check section. Trace when ordered evidence has several stops.</td>
+							<td>
+								The action, passing observation, rejecting case, and proof boundary. Link a real run
+								and revision when it exists.
+							</td>
+						</tr>
+						<tr>
+							<th scope="row">What does the reader see?</th>
+							<td>A figure for one capture. A linked Gallery page for multiple related states.</td>
+							<td>
+								Actual screen, state, viewport, and build. Use paired pictures only when a visual
+								comparison answers a real question.
+							</td>
+						</tr>
+						<tr>
+							<th scope="row">Where can I find the related sections?</th>
+							<td>
+								Pages for documents, Outline for the current page, Map for concerns, and Walkthrough
+								for a useful reading route.
+							</td>
+							<td>
+								Stable authored targets. Group linked passages around a question, such as how
+								cancellation is enforced.
+							</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+
+			<h2 id="worked-example">Follow one change from need to proof</h2>
+			<p>
+				Example: A previously queued job must stay cancelled when the worker drains the queue. The
+				design explains which transition the store accepts. The check below covers the case where
+				cancellation commits first.
+			</p>
+			<ex-mermaid
+				id="cancellation-handoff"
+				label="The cancellation rule links to its design and planned check"
+				><script type="text/plain">
+					flowchart LR
+					  Need["Need: stop queued work"] --> Rule["Rule: a cancelled job never starts"]
+					  Rule --> Design["Design: the store arbitrates the two writes"]
+					  Rule --> Check["Planned check: stored status and handler entry"]
+				</script></ex-mermaid
+			>
+			<p>
+				In a multi-page version of this example, Pages would list Requirements, Specification,
+				Program Design, and Verification. The Map groups the passages under cancellation. A
+				Walkthrough asks which operation wins, then takes the reader from the rule to the diagram
+				and check. A receiving agent can follow the same destinations by file and heading from its
+				handoff.
+			</p>
+			<ex-trace title="Inspect the planned cancellation check">
+				<details icon="test-tube" tone="planned" tag="Planned" open>
+					<summary>Cancel before the worker claims the job</summary>
+					<p>
+						Let the worker drain the queue. The job must stay cancelled and the handler must have
+						zero entries. A build that keeps the status but calls the handler fails.
+					</p>
+				</details>
+			</ex-trace>
+			<p>
+				After running the check, link the observed result and exact build to the planned check. The
+				same trace structure can present the receipt when a result exists.
+			</p>
+
+			<h2 id="skill-delivery">How should an agent get the component instructions?</h2>
+			<p>
+				Keep the component chooser in the presentation skill. Design skills describe what to explain
+				and send the author there. The Demistify guide owns exact markup for the selected runtime.
+			</p>
+			<div class="ex-table-scroll">
+				<table>
+					<thead>
+						<tr>
+							<th scope="col">Option</th>
+							<th scope="col">What an agent loads</th>
+							<th scope="col">What we maintain</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							<th scope="row">Published references today</th>
+							<td>The release's entry guide and the selected component files over HTTPS.</td>
+							<td>
+								Demistify publishes one source. A cold read needs network access. Guide text enters
+								the model context whenever the agent reads it.
+							</td>
+						</tr>
+						<tr>
+							<th scope="row">Versioned copy in the installed skills</th>
+							<td>
+								A local component index and just the references selected for the page. Older or
+								custom bindings use their own guide.
+							</td>
+							<td>
+								Demistify remains the source. A release sync copies exact references and opens a
+								reviewable Sunstack update.
+							</td>
+						</tr>
+						<tr>
+							<th scope="row">Render the manual inside Sunstack</th>
+							<td>
+								A local skill index and the same selected text. A rendered manual serves people
+								browsing it.
+							</td>
+							<td>
+								A render step and its output. It helps humans browse, while agents still need the
+								source text or an equivalent retrieval interface.
+							</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+			<p>
+				<strong>Proposed.</strong> Vendor the versioned reference files and read them on demand.
+				Render examples for people separately. When a page uses a newer release or a different
+				binding, use that binding's guide. Compare how much text an agent actually loads for the
+				same PR before claiming a token saving.
+			</p>
+			<p>
+				<a href="https://demistify.getagentstudio.dev/v1/authoring/SKILL.md"
+					>Published Demistify authoring guide</a
+				>
+			</p>
+		</ex-document>
+	</body>
+</html>

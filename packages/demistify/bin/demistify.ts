@@ -1,6 +1,9 @@
 #!/usr/bin/env node
 /**
- * demistify check [--fix] [--render] [--no-diagrams] <page.html …>
+ * demistify check [--fix] [--render] [--no-diagrams] [--site-root <dir>] [--write] <page.html | directory …>
+ *   A directory with initiative.ts or design.ts, or a page that binds generated design data, gets
+ *   that tree's typed check (once per tree). A typed page outside any tree is a published copy and,
+ *   like every other page, gets the page check.
  * demistify check --hook      (Claude Code PostToolUse hook: reads the hook event from stdin)
  *
  * Prints one line per problem: file:line:col severity rule: message. Exits 1 when any error remains.
@@ -9,6 +12,8 @@
  */
 import { readFile, writeFile } from 'node:fs/promises';
 import { dirname, relative, resolve } from 'node:path';
+import { text as readStreamText } from 'node:stream/consumers';
+import { parseArgs } from 'node:util';
 
 import { applyEdits, type CheckOptions, checkHtml, formatFindings } from '../src/node/check.ts';
 import { indexCollectionSearch, type SearchPageSource } from '../src/node/collection-search.ts';
@@ -41,6 +46,182 @@ async function readHookFile(): Promise<string | undefined> {
 
 async function main(): Promise<number> {
 	const [command, ...rest] = process.argv.slice(2);
+	if (command === 'open') {
+		const usage = 'Usage: demistify open <page.html> [--site-root <directory>] [--no-browser]';
+		try {
+			const { values, positionals } = parseArgs({
+				args: rest,
+				allowPositionals: true,
+				options: {
+					'site-root': { type: 'string' },
+					'no-browser': { type: 'boolean' },
+					help: { type: 'boolean', short: 'h' },
+				},
+			});
+			if (values.help || positionals.length !== 1 || !positionals[0]) {
+				write(usage);
+				return values.help ? 0 : 1;
+			}
+			const { openPage } = await import('../src/node/open-page.ts');
+			await openPage(positionals[0], {
+				siteRoot: values['site-root'],
+				noBrowser: values['no-browser'] ?? false,
+			});
+			return 0;
+		} catch (error) {
+			process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
+			return 1;
+		}
+	}
+	if (command === 'initiative') {
+		const [action, ...args] = rest;
+		const usage =
+			'Usage: demistify initiative check [directory] [--site-root <directory>] [--write]\n       demistify initiative status [directory] [--site-root <directory>] [--json]\n       demistify initiative answer <review.md|-> [directory] [--site-root <directory>] [--decided-on <yyyy-mm-dd>] [--write]\n       demistify initiative add <choice|ruling|assumption> [directory] --namespace <initiative|project> --page <page.html> [--words <owner words>] [--author <alias>] [--site-root <directory>] [--write]';
+		if (!action || action === '--help') {
+			write(usage);
+			return 0;
+		}
+		const { values, positionals } = parseArgs({
+			args,
+			allowPositionals: true,
+			options: {
+				'site-root': { type: 'string' },
+				write: { type: 'boolean' },
+				json: { type: 'boolean' },
+				'decided-on': { type: 'string' },
+				namespace: { type: 'string' },
+				page: { type: 'string' },
+				words: { type: 'string' },
+				author: { type: 'string' },
+				help: { type: 'boolean', short: 'h' },
+			},
+		});
+		if (values.help) {
+			write(usage);
+			return 0;
+		}
+		if (action === 'answer' && positionals.length >= 1 && positionals.length <= 2 && !values.json) {
+			const [reviewFile = '-', answerDirectory = '.'] = positionals;
+			const reviewText =
+				reviewFile === '-'
+					? await readStreamText(process.stdin)
+					: await readFile(reviewFile, 'utf8');
+			const { applyReviewAnswers } = await import('../src/node/design-authoring/review-answers.ts');
+			write(
+				await applyReviewAnswers(reviewText, answerDirectory, {
+					siteRoot: values['site-root'],
+					decidedOn: values['decided-on'],
+					write: values.write,
+				}),
+			);
+			return 0;
+		}
+		if (action === 'add' && positionals.length >= 1 && positionals.length <= 2) {
+			const [kind, addDirectory = '.'] = positionals;
+			const { addRecord, scaffoldKinds } =
+				await import('../src/node/design-authoring/record-scaffold.ts');
+			const scaffoldKind = scaffoldKinds.find((candidate) => candidate === kind);
+			if (!scaffoldKind || !values.namespace || !values.page) {
+				write(usage);
+				return 1;
+			}
+			write(
+				await addRecord(scaffoldKind, addDirectory, {
+					namespace: values.namespace,
+					page: values.page,
+					words: values.words,
+					author: values.author,
+					siteRoot: values['site-root'],
+					write: values.write,
+				}),
+			);
+			return 0;
+		}
+		const [directory = '.'] = positionals;
+		if (action === 'check' && positionals.length <= 1 && !values.json && !values['decided-on']) {
+			const { checkInitiative } = await import('../src/node/design-authoring/check-initiative.ts');
+			write(
+				await checkInitiative(directory, { siteRoot: values['site-root'], write: values.write }),
+			);
+			return 0;
+		}
+		if (action === 'status' && positionals.length <= 1 && !values.write && !values['decided-on']) {
+			const { initiativeStatus } =
+				await import('../src/node/design-authoring/initiative-status.ts');
+			write(
+				await initiativeStatus(directory, { siteRoot: values['site-root'], json: values.json }),
+			);
+			return 0;
+		}
+		write(usage);
+		return 1;
+	}
+	if (command === 'brief') {
+		const usage = 'Usage: demistify brief <deliverable> [directory] [--site-root <directory>]';
+		const { values, positionals } = parseArgs({
+			args: rest,
+			allowPositionals: true,
+			options: { 'site-root': { type: 'string' }, help: { type: 'boolean', short: 'h' } },
+		});
+		const [reference, directory = '.'] = positionals;
+		if (values.help || !reference || positionals.length > 2) {
+			write(usage);
+			return values.help ? 0 : 1;
+		}
+		const { deliveryBrief } = await import('../src/node/design-authoring/delivery-brief.ts');
+		write(await deliveryBrief(reference, directory, values['site-root']));
+		return 0;
+	}
+	if (command === 'design') {
+		const [action, ...args] = rest;
+		const usage =
+			'Usage: demistify design init [directory]\n       demistify design types [directory]\n       demistify design check [directory] [--site-root <directory>] [--write]';
+		if (!action || action === '--help') {
+			write(usage);
+			return 0;
+		}
+		const { values, positionals } = parseArgs({
+			args,
+			allowPositionals: true,
+			options: {
+				'site-root': { type: 'string' },
+				write: { type: 'boolean' },
+				help: { type: 'boolean' },
+			},
+		});
+		if (values.help) {
+			write(usage);
+			return 0;
+		}
+		const [directory = '.'] = positionals;
+		if (
+			positionals.length <= 1 &&
+			action === 'init' &&
+			values['site-root'] === undefined &&
+			!values.write
+		) {
+			const { initDesignSet } = await import('../src/node/design-authoring/init-design.ts');
+			write(await initDesignSet(directory));
+			return 0;
+		}
+		if (
+			positionals.length <= 1 &&
+			action === 'types' &&
+			values['site-root'] === undefined &&
+			!values.write
+		) {
+			const { refreshDesignTypes } = await import('../src/node/design-authoring/init-design.ts');
+			write(await refreshDesignTypes(directory));
+			return 0;
+		}
+		if (positionals.length <= 1 && action === 'check') {
+			const { checkDesignSet } = await import('../src/node/design-authoring/check-design.ts');
+			write(await checkDesignSet(directory, values['site-root'], values.write));
+			return 0;
+		}
+		write(usage);
+		return 1;
+	}
 	if (command === 'prepare') {
 		const [directory] = rest;
 		if (!directory || rest.length !== 1) {
@@ -52,7 +233,7 @@ async function main(): Promise<number> {
 			[...prepared.pages].map(([page, html]) => writeFile(resolve(directory, page), html)),
 		);
 		write(
-			`Prepared ${prepared.pages.size} pages, ${prepared.collection.records.length} records, revision ${prepared.collection.identity}.`,
+			`Prepared ${prepared.pages.size} pages and ${prepared.collection.records.length} records.`,
 		);
 		return 0;
 	}
@@ -109,9 +290,9 @@ async function main(): Promise<number> {
 	}
 	if (command !== 'check') {
 		write(
-			'Usage: demistify check [--fix] [--render] [--no-diagrams] <page.html …>\n       demistify check --hook',
+			'Usage: demistify check [--fix] [--render] [--no-diagrams] [--site-root <directory>] [--write] <page.html | directory …>\n       demistify check --hook\n       demistify open <page.html> [--site-root <directory>] [--no-browser]\n       demistify design --help\n       demistify brief <deliverable> [directory] [--site-root <directory>]\n       demistify initiative check [directory] [--site-root <directory>] [--write]\n       demistify initiative status [directory] [--site-root <directory>] [--json]\n       demistify initiative answer <review.md|-> [directory] [--site-root <directory>] [--decided-on <yyyy-mm-dd>] [--write]\n       demistify initiative add <choice|ruling|assumption> [directory] --namespace <initiative|project> --page <page.html> [--words <owner words>] [--author <alias>] [--site-root <directory>] [--write]',
 		);
-		return command ? 1 : 0;
+		return !command || ['--help', '-h', 'help'].includes(command) ? 0 : 1;
 	}
 	const flags = new Set(rest.filter((argument): boolean => argument.startsWith('--')));
 	const optionsFor = (page: string): CheckOptions => ({
@@ -133,13 +314,55 @@ async function main(): Promise<number> {
 		return 2;
 	}
 
-	const files = rest.filter((argument): boolean => !argument.startsWith('--'));
-	if (files.length === 0) {
-		write('Usage: demistify check <page.html …>');
+	const siteRootIndex = rest.indexOf('--site-root');
+	const siteRoot = siteRootIndex === -1 ? undefined : rest[siteRootIndex + 1];
+	if (siteRootIndex !== -1 && (!siteRoot || siteRoot.startsWith('--'))) {
+		write('Usage: demistify check --site-root <directory> <path …>');
 		return 1;
 	}
+	const files = rest.filter(
+		(argument, index): boolean =>
+			!argument.startsWith('--') && (siteRootIndex === -1 || index !== siteRootIndex + 1),
+	);
+	if (files.length === 0) {
+		write('Usage: demistify check <page.html | directory …>');
+		return 1;
+	}
+	const { routeCheckTargets } = await import('../src/node/check-routing.ts');
+	const routes = await routeCheckTargets(files);
+	let errors = 0;
+	let warnings = 0;
+	const treeReports = await Promise.all(
+		routes.trees.map(async (tree) => {
+			const label = `${relative(process.cwd(), tree.directory) || '.'} (${tree.kind} check for ${tree.inputs.join(', ')})`;
+			try {
+				const result =
+					tree.kind === 'initiative'
+						? await (
+								await import('../src/node/design-authoring/check-initiative.ts')
+							).checkInitiative(tree.directory, { siteRoot, write: flags.has('--write') })
+						: await (
+								await import('../src/node/design-authoring/check-design.ts')
+							).checkDesignSet(tree.directory, siteRoot, flags.has('--write'));
+				return { failed: false, text: `${label}:\n${result}` };
+			} catch (error) {
+				return {
+					failed: true,
+					text: `${label}: error: ${error instanceof Error ? error.message : String(error)}`,
+				};
+			}
+		}),
+	);
+	for (const report of treeReports) {
+		write(report.text);
+		if (report.failed) errors += 1;
+	}
+	for (const page of routes.published)
+		write(
+			`${page}: no initiative.ts or design.ts encloses it, so it gets the page check as a published copy.`,
+		);
 	const results = await Promise.all(
-		files.map(async (file) => {
+		routes.pages.map(async (file) => {
 			let source = await readFile(file, 'utf8');
 			let findings = await checkHtml(source, optionsFor(file));
 			if (flags.has('--fix') && findings.some((finding): boolean => finding.edit !== undefined)) {
@@ -150,24 +373,45 @@ async function main(): Promise<number> {
 			return { file, findings };
 		}),
 	);
-	let errors = 0;
-	let warnings = 0;
 	for (const { file, findings } of results) {
 		write(formatFindings(file, findings));
 		errors += findings.filter((finding): boolean => finding.severity === 'error').length;
 		warnings += findings.filter((finding): boolean => finding.severity === 'warning').length;
 	}
-	if (flags.has('--render') && files.length > 0) {
+	const htmlFiles = files.filter((file): boolean => file.endsWith('.html'));
+	if (flags.has('--render') && htmlFiles.length > 0) {
 		const { renderCheck } = await import('../src/node/render-check.ts');
-		for (const finding of await renderCheck(process.cwd(), files)) {
-			write(`${finding.file} render(${finding.width}): ${finding.message}`);
-			errors += 1;
+		try {
+			for (const finding of await renderCheck(process.cwd(), htmlFiles)) {
+				const warning = finding.severity === 'warning';
+				write(
+					`${finding.file} render(${finding.width}px): ${warning ? 'warning: ' : ''}${finding.message}`,
+				);
+				if (warning) warnings += 1;
+				else errors += 1;
+			}
+		} catch (error) {
+			process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
+			return 1;
 		}
 	}
+	const pageCount = routes.pages.length;
+	// Page-only runs keep their established summary; typed trees add their own count.
+	const checked = routes.trees.length
+		? [
+				pageCount ? `${pageCount} page${pageCount === 1 ? '' : 's'}` : '',
+				`${routes.trees.length} typed tree${routes.trees.length === 1 ? '' : 's'}`,
+			]
+				.filter(Boolean)
+				.join(' and ')
+		: `${pageCount} file${pageCount === 1 ? '' : 's'}`;
 	write(
-		`${files.length} file${files.length === 1 ? '' : 's'}: ${errors} error${errors === 1 ? '' : 's'}, ${warnings} warning${warnings === 1 ? '' : 's'}`,
+		`${checked}: ${errors} error${errors === 1 ? '' : 's'}, ${warnings} warning${warnings === 1 ? '' : 's'}`,
 	);
 	return errors > 0 ? 1 : 0;
 }
 
-process.exitCode = await main();
+process.exitCode = await main().catch((error: unknown): number => {
+	process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
+	return 1;
+});

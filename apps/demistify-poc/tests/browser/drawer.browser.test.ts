@@ -48,7 +48,7 @@ test.each(['large', 'content'])(
 		iframe.title = 'Authored drawer fixture';
 		iframe.style.cssText = 'display:block;width:100%;height:100vh;border:0';
 		iframe.srcdoc = `<!doctype html><html><head><link rel="stylesheet" href="/__demistify/library/theme.css"></head><body>
-			<ex-document><ex-drawer open size="${size}" label="Authored drawer"><header class="ex-inspect-header"><strong>Authored drawer</strong><button type="button">Close</button></header><div class="ex-inspect-body">${'<p>Visible authored content.</p>'.repeat(50)}</div></ex-drawer></ex-document>
+			<ex-document><ex-drawer open size="${size}" label="Authored drawer"><header class="ex-inspect-header"><strong>Authored drawer</strong></header><div class="ex-inspect-body">${'<p>Visible authored content.</p>'.repeat(50)}</div></ex-drawer></ex-document>
 			<script type="module">
 				document.body.dataset.closeCount = '0';
 				document.addEventListener('close', (event) => {
@@ -79,10 +79,13 @@ test.each(['large', 'content'])(
 		expect(fixture.body.dataset['closeCount']).toBe('1');
 		drawer.show();
 		const frame = page.frameLocator(page.getByTestId('explainer'));
-		await fixtureLocator(frame, requiredElement(drawer, 'button')).click();
-		await userEvent.keyboard('{Escape}');
+		await frame.getByRole('button', { name: 'Close drawer', exact: true }).click();
 		expect(drawer.matches(':popover-open')).toBe(false);
 		expect(fixture.body.dataset['closeCount']).toBe('2');
+		drawer.show();
+		await userEvent.keyboard('{Escape}');
+		expect(drawer.matches(':popover-open')).toBe(false);
+		expect(fixture.body.dataset['closeCount']).toBe('3');
 	},
 );
 

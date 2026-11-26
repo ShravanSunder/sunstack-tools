@@ -1,0 +1,334 @@
+{
+	"version": 2,
+	"records": [
+		{
+			"id": "jobs/D1",
+			"kind": "choice",
+			"title": "Stop queued work only",
+			"destination": {
+				"page": "decision-views.html",
+				"fragment": "D1"
+			},
+			"authority": {
+				"state": "lead-decided",
+				"lead": "jobs-lead",
+				"decidedOn": "2026-11-19"
+			}
+		},
+		{
+			"id": "jobs/D2",
+			"kind": "choice",
+			"title": "Send a stop request to the worker",
+			"destination": {
+				"page": "decision-views.html",
+				"fragment": "D2"
+			},
+			"authority": {
+				"state": "owner-decided",
+				"decidedOn": "2026-11-20"
+			},
+			"supersedes": "jobs/D1"
+		},
+		{
+			"id": "jobs/D3",
+			"kind": "choice",
+			"title": "Cancellation display",
+			"destination": {
+				"page": "decision-views.html",
+				"fragment": "D3"
+			},
+			"authority": {
+				"state": "owner-open",
+				"question": "What should the caller see while the worker stops?"
+			}
+		},
+		{
+			"id": "jobs/A1",
+			"kind": "assumption",
+			"title": "Workers can acknowledge a stop request",
+			"destination": {
+				"page": "decision-views.html",
+				"fragment": "A1"
+			},
+			"status": "open"
+		},
+		{
+			"id": "jobs/R1",
+			"kind": "rule",
+			"title": "Send the stop request once",
+			"destination": {
+				"page": "decision-views.html",
+				"fragment": "R1"
+			},
+			"relationships": [
+				{
+					"relation": "governed-by",
+					"targetId": "jobs/D2"
+				},
+				{
+					"relation": "governed-by",
+					"targetId": "initiative/D5"
+				}
+			]
+		},
+		{
+			"id": "initiative/D4",
+			"kind": "choice",
+			"title": "Should cancellation be recorded in the activity log?",
+			"destination": {
+				"page": "decision-views.html",
+				"fragment": "D4"
+			},
+			"authority": {
+				"state": "owner-open",
+				"question": "Should cancellation be recorded in the activity log?"
+			}
+		},
+		{
+			"id": "initiative/D5",
+			"kind": "choice",
+			"title": "How long should the stop request be kept?",
+			"destination": {
+				"page": "decision-views.html",
+				"fragment": "D5"
+			},
+			"authority": {
+				"state": "owner-open",
+				"question": "How long should the stop request be kept?"
+			}
+		},
+		{
+			"id": "queue/D6",
+			"kind": "choice",
+			"title": "Should a worker acknowledge before taking more work?",
+			"destination": {
+				"page": "decision-views.html",
+				"fragment": "D6"
+			},
+			"authority": {
+				"state": "owner-open",
+				"question": "Should a worker acknowledge before taking more work?"
+			}
+		}
+	],
+	"deliverables": {
+		"jobs/DEL-01": {
+			"kind": "core",
+			"id": "jobs/DEL-01",
+			"title": "Prove cancellation",
+			"dependsOn": [
+				"queue/DEL-01"
+			],
+			"state": "dependency-blocked",
+			"reasons": [
+				"The candidate needs a check.",
+				"Waiting for queue/DEL-01 to be accepted."
+			],
+			"progress": {
+				"state": "awaiting-verification",
+				"reason": "The candidate needs a check."
+			},
+			"implementation": {
+				"candidate": "build-2",
+				"tasks": [
+					{
+						"id": "capture-proof",
+						"state": "completed"
+					}
+				],
+				"evidence": []
+			},
+			"verification": {
+				"build": "build-2",
+				"checks": [
+					{
+						"id": "jobs/V1",
+						"state": "missing",
+						"reason": "No receipt for build-2."
+					}
+				]
+			},
+			"links": {
+				"plan": {
+					"page": "decision-views.html",
+					"fragment": "R1"
+				},
+				"rules": [],
+				"designItems": [],
+				"governingItems": [
+					{
+						"id": "initiative/D4",
+						"label": "Should cancellation be recorded in the activity log?",
+						"destination": {
+							"page": "decision-views.html",
+							"fragment": "D4"
+						}
+					}
+				],
+				"verificationChecks": []
+			}
+		},
+		"queue/DEL-01": {
+			"kind": "core",
+			"id": "queue/DEL-01",
+			"title": "Acknowledge stop requests",
+			"dependsOn": [],
+			"state": "planned",
+			"reasons": [
+				"Ready to start."
+			],
+			"progress": {
+				"state": "planned",
+				"reason": "Ready to start."
+			},
+			"implementation": {
+				"tasks": [
+					{
+						"id": "add-queue-acknowledgement",
+						"state": "open"
+					}
+				],
+				"evidence": []
+			},
+			"verification": {
+				"checks": []
+			},
+			"links": {
+				"plan": {
+					"page": "decision-views.html",
+					"fragment": "queue-deliverable"
+				},
+				"rules": [],
+				"designItems": [],
+				"governingItems": [],
+				"verificationChecks": []
+			}
+		},
+		"worker/DEL-01": {
+			"kind": "core",
+			"id": "worker/DEL-01",
+			"title": "Process a queued job",
+			"dependsOn": [],
+			"state": "accepted",
+			"reasons": [],
+			"progress": {
+				"state": "accepted",
+				"reason": "The owner accepted the worker build.",
+				"acceptance": {
+					"deliverableId": "worker/DEL-01",
+					"build": "worker-1",
+					"evidence": "decision-views.html#worker-deliverable"
+				}
+			},
+			"implementation": {
+				"candidate": "worker-1",
+				"tasks": [],
+				"evidence": []
+			},
+			"verification": {
+				"build": "worker-1",
+				"checks": []
+			},
+			"links": {
+				"plan": {
+					"page": "decision-views.html",
+					"fragment": "worker-deliverable"
+				},
+				"rules": [],
+				"designItems": [],
+				"governingItems": [],
+				"verificationChecks": []
+			}
+		},
+		"queue/DEL-02": {
+			"kind": "core",
+			"id": "queue/DEL-02",
+			"title": "Report stuck stop requests",
+			"dependsOn": [],
+			"state": "planned",
+			"reasons": [
+				"Implementation steps have yet to be written."
+			],
+			"progress": {
+				"state": "planned",
+				"reason": "Implementation steps have yet to be written."
+			},
+			"implementation": {
+				"tasks": [],
+				"evidence": []
+			},
+			"verification": {
+				"checks": []
+			},
+			"links": {
+				"plan": {
+					"page": "decision-views.html",
+					"fragment": "queue-report-deliverable"
+				},
+				"rules": [],
+				"designItems": [],
+				"governingItems": [],
+				"verificationChecks": []
+			}
+		}
+	},
+	"projects": {
+		"jobs": {
+			"path": "design.ts",
+			"firstPage": "job-cancellation-design.html",
+			"title": "Job cancellation",
+			"lead": "jobs-lead",
+			"state": "dependency-blocked",
+			"reason": "Waiting for the queue prerequisite.",
+			"number": 2,
+			"achieves": "A caller can cancel a job already running.",
+			"acceptance": "Cancel a running job and check that its worker stops."
+		},
+		"audit": {
+			"path": "audit/design.ts",
+			"title": "Cancellation history",
+			"number": 1,
+			"state": "later",
+			"reason": "History work is planned for later."
+		},
+		"queue": {
+			"path": "queue/design.ts",
+			"firstPage": "decision-views.html",
+			"title": "Queue foundations",
+			"state": "planned",
+			"reason": "Queue acknowledgement can start now.",
+			"number": 1
+		},
+		"worker": {
+			"path": "worker/design.ts",
+			"firstPage": "decision-views.html",
+			"title": "Worker groundwork",
+			"number": 0,
+			"state": "accepted",
+			"reason": "The worker can already process a job."
+		}
+	},
+	"order": [
+		"worker",
+		"queue",
+		"audit",
+		"jobs"
+	],
+	"work": {
+		"readyNow": [
+			"queue/DEL-01"
+		],
+		"needsPlan": [
+			"queue/DEL-02"
+		],
+		"blocksMost": [
+			{
+				"id": "queue/DEL-01",
+				"waiting": 1
+			}
+		],
+		"builtNotAccepted": [
+			"jobs/DEL-01"
+		]
+	}
+}

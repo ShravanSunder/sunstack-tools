@@ -4,9 +4,11 @@ import { commands, page, userEvent } from 'vitest/browser';
 import { commentStorageKey } from '../../../../packages/demistify/src/core/comment-store.ts';
 import { assignHeadingFragments } from '../../../../packages/demistify/src/core/heading-fragments.ts';
 import { createCommentSnapshot } from '../../../../packages/demistify/src/core/review-model.ts';
+import { browserScreenshotPath } from './browser-evidence.ts';
 import { fixtureLocator, openFixture, requiredElement } from './fixture-page.ts';
 import {
 	openBoundaryReviewFixture,
+	openReviewFixture,
 	readChoiceResponse,
 	readCurrentReview,
 	textCaretRect,
@@ -362,14 +364,123 @@ test('a choice-only document gets automatic Comments and retains the 8px phone g
 	await page.viewport(390, 900);
 	const { document: fixture, frame } = await openFixture('review', '', 'choice-only.html');
 	await expect.poll((): number => fixture.querySelectorAll('ex-choice input').length).toBe(2);
-	expect(fixture.defaultView?.getComputedStyle(fixture.body).paddingLeft).toBe('8px');
-	expect(fixture.defaultView?.getComputedStyle(fixture.body).paddingRight).toBe('8px');
+	const content = requiredElement(fixture, 'ex-document').getBoundingClientRect();
+	expect(content.left).toBe(8);
+	expect(fixture.documentElement.clientWidth - content.right).toBe(8);
 	expect(fixture.documentElement.scrollWidth).toBeLessThanOrEqual(391);
 	await expect.poll((): number => fixture.querySelectorAll('.ex-comments-trigger').length).toBe(1);
 	await frame.getByRole('radio', { name: 'Concise', exact: true }).click();
 	expect(
 		readChoiceResponse(requiredElement(fixture, '#format-question')).selected[0]?.optionId,
 	).toBe('concise-format');
+});
+
+test.each([1600, 390])(
+	'published v1 Choice, Comments, Stories and Map still work at %ipx',
+	async (width): Promise<void> => {
+		await page.viewport(width, 1000);
+		const { document: fixture, frame } = await openFixture('show-me-work', '', 'rolling-v1.html');
+		await expect.element(frame.getByRole('group', { name: 'Which store?' })).toBeVisible();
+		await frame.getByRole('radio', { name: 'Postgres', exact: true }).click();
+		await frame.getByRole('button', { name: 'Comments (0)', exact: true }).click();
+		expect(readCurrentReview(fixture).answers).toMatchObject([
+			{
+				questionId: 'D1',
+				decisionId: 'legacy/D1',
+				selected: [{ optionId: 'pg', label: 'Postgres' }],
+			},
+		]);
+		await page.screenshot({ path: browserScreenshotPath(`rolling-v1-choice-${width}.png`) });
+		await frame.getByRole('button', { name: 'Map', exact: true }).click();
+		const mapBranch = requiredElement(fixture, '#work-map a.ex-tree-go[href$="#delivery"]').closest(
+			'.ex-tree-node',
+		);
+		if (!mapBranch) throw new Error('Missing published section branch.');
+		expect(requiredElement(mapBranch, '.ex-map-count').textContent).toBe(' · 2');
+		await frame.getByRole('button', { name: 'Close Map', exact: true }).click();
+		expect(
+			requiredElement(fixture, '#delivery > .ex-section-count, #delivery .ex-section-count')
+				.textContent,
+		).toContain('1 + 1 smaller');
+		await frame
+			.getByRole('button', { name: "Expand What's done / what's next", exact: true })
+			.click();
+		expect(requiredElement(fixture, '#smaller').hasAttribute('open')).toBe(true);
+		expect(requiredElement(fixture, '#story-minor').hasAttribute('open')).toBe(true);
+		expect(requiredElement(fixture, '#ordinary-notes').hasAttribute('open')).toBe(false);
+		await page.screenshot({ path: browserScreenshotPath(`rolling-v1-story-${width}.png`) });
+	},
+);
+
+test('a settled choice shows the selected record and exports only the reader answer', async (): Promise<void> => {
+	const { document: fixture, frame } = await openFixture('review', '', 'settled-choice.html');
+	await expect.element(frame.getByText('Chosen', { exact: true })).toBeVisible();
+	await frame.getByRole('radio', { name: 'Read the report', exact: true }).click();
+	await frame.getByRole('button', { name: 'Comments (0)', exact: true }).click();
+	expect(readCurrentReview(fixture).answers).toMatchObject([
+		{ questionId: 'reader', selected: [{ optionId: 'read-report', label: 'Read the report' }] },
+	]);
+});
+
+test('a stored comment survives moving its passage into a section item', async (): Promise<void> => {
+	const source = 'comment-section-migration.html';
+	const archived = await openFixture('show-me-work', '', source);
+	const archivedReview = readCurrentReview(archived.document);
+	const targetId = 'evidence--review-p-2';
+	const label = 'Keep the second passage available.';
+	expect(requiredElement(archived.document, `#${targetId}`).textContent).toContain(label);
+	const snapshot = createCommentSnapshot(archivedReview);
+	const key = commentStorageKey(snapshot);
+	const comment = {
+		commentId: 'archived-passage',
+		anchor: { kind: 'entity', targetId, label },
+		body: 'Keep the reference to this passage.',
+		createdAt: '2026-11-24T10:00:00Z',
+		updatedAt: '2026-11-24T10:00:00Z',
+	};
+	localStorage.setItem(key, JSON.stringify({ ...snapshot, comments: [comment] }));
+	try {
+		document.body.replaceChildren();
+		const { document: migrated, frame } = await openFixture(
+			'show-me-work',
+			'',
+			`${source}?mode=migrated`,
+		);
+		const passage = requiredElement(migrated, '#evidence > ex-section-item > p:nth-child(2)');
+		expect(passage.id).toBe(targetId);
+		expect(readCurrentReview(migrated)).toMatchObject({ ...snapshot, comments: [comment] });
+		await frame.getByRole('button', { name: 'Comments (1)', exact: true }).click();
+		await frame.getByRole('button', { name: `Show anchor: ${label}`, exact: true }).click();
+		await expect
+			.element(frame.getByText('The original item is not on this page.', { exact: true }))
+			.not.toBeInTheDocument();
+		expect(
+			requiredElement(passage, '[data-comment-control]').getAttribute('data-comment-count'),
+		).toBe('1');
+
+		document.body.replaceChildren();
+		const edited = await openFixture('show-me-work', '', `${source}?mode=edited`);
+		const editedReview = readCurrentReview(edited.document);
+		expect(editedReview.documentRevision).not.toBe(snapshot.documentRevision);
+		expect(editedReview.comments).toEqual([]);
+	} finally {
+		localStorage.removeItem(key);
+	}
+});
+
+test('a migrated Choice preserves its published option and Details fragment IDs', async (): Promise<void> => {
+	const { document: fixture, frame } = await openFixture('review', '', 'migrated-choice.html');
+	await frame.getByRole('link', { name: 'Archived option link', exact: true }).click();
+	expect(fixture.location.hash).toBe('#old-keep');
+	expect(requiredElement(fixture, '#D1 #old-keep').textContent).toContain(
+		'Keep the archived wording.',
+	);
+	await frame.getByRole('link', { name: 'Archived Details link', exact: true }).click();
+	expect(fixture.location.hash).toBe('#old-keep--choice-details');
+	await expect.element(frame.getByText('The original Details remain reachable.')).toBeVisible();
+	expect(requiredElement(fixture, '#old-keep--choice-details #old-detail-body').id).toBe(
+		'old-detail-body',
+	);
 });
 
 test('editable shortcuts keep native newlines and unified manual-copy/export content retains identities', async (): Promise<void> => {
@@ -435,7 +546,7 @@ test('editable shortcuts keep native newlines and unified manual-copy/export con
 
 test('phone anchor reveal dismisses Comments, missing targets stay honest, and old disconnect cannot close new Details', async (): Promise<void> => {
 	await page.viewport(390, 900);
-	const { document: fixture, frame } = await openBoundaryReviewFixture();
+	const { document: fixture, frame } = await openReviewFixture('boundary-sidebar.html');
 	const context = requiredElement(fixture, '#context');
 	context.scrollIntoView({ block: 'center' });
 	// On a compact reader the exact section action is revealed by keyboard focus.

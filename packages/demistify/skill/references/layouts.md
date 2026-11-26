@@ -22,7 +22,7 @@ Apply `data-width="reading"` or `data-width="canvas"` to the **whole** component
 <p>A lost connection does not itself end the session.</p>
 ```
 
-The shared layout adds a larger Reading↔Canvas gap on roomy documents and a compact rhythm when narrow. Use that rhythm rather than local width caps, per-page type sizes, hard-coded side margins or extra spacer elements. A lone `ex-stat` remains Reading width. Wide tables scroll locally; use the shared wrapper from `content.md` rather than clipping their columns.
+The shared layout adds a larger Reading↔Canvas gap on roomy documents and a compact rhythm when narrow. Use that rhythm rather than local width caps, per-page type sizes, hard-coded side margins or extra spacer elements. A lone `ex-stat` remains Reading width. Wide tables scroll locally; load `tables.md` for the shared wrapper and return the table with its headers and local scrolling surface.
 
 ## Grids keep related items together
 

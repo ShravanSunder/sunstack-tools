@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Decisions about job cancellation</title>
+	<link rel="stylesheet" href="/experiments/islands/theme.css">
+	<script type="module" src="/experiments/islands/runtime.js"></script>
+</head>
+<body>
+	<ex-document id="cancellation">
+		<h1>Decisions about job cancellation</h1>
+		<ex-initiative-overview src="./initiative-view-fixture.json"></ex-initiative-overview>
+		<h2 id="worker-deliverable">Process a queued job</h2>
+		<p>The owner checked that the worker could claim and finish a queued job.</p>
+		<h2 id="queue-deliverable">Acknowledge stop requests</h2>
+		<p>The queue must confirm it received a stop request before job cancellation can be accepted.</p>
+		<h2 id="queue-report-deliverable">Report stuck stop requests</h2>
+		<p>Show which stop requests have been waiting too long for a worker acknowledgement.</p>
+		<h2 id="D1">Stop queued work only</h2>
+		<p>The original Lead decision allowed work already claimed by a worker to continue.</p>
+		<h2 id="D2">Send a stop request to the worker</h2>
+		<p>The Owner replaced the original decision so claimed work receives a stop request.</p>
+		<h2>What should the caller see while the worker stops?</h2>
+		<ex-choice id="D3" title="What should the caller see while the worker stops?" data-decision="jobs/D3">
+			<ex-option id="show-stopping" title="Show stopping">
+				<template slot="summary">Show an intermediate state until the worker confirms.</template>
+			</ex-option>
+			<ex-option id="keep-running" title="Keep showing running">
+				<template slot="summary">The display changes only when the worker confirms.</template>
+			</ex-option>
+		</ex-choice>
+		<h2 id="A1">Workers can acknowledge a stop request</h2>
+		<p>Verify this behavior on the worker implementations that the project supports.</p>
+		<h2 id="R1">Send the stop request once</h2>
+		<p>A repeat cancellation should return its current state without submitting a second request.</p>
+		<h2 id="D4">Should cancellation be recorded in the activity log?</h2>
+		<h2 id="D5">How long should the stop request be kept?</h2>
+		<h2 id="D6">Should a worker acknowledge before taking more work?</h2>
+	</ex-document>
+</body>
+</html>

@@ -1,3 +1,4 @@
+import { sectionHolds } from './core/section-routing.ts';
 import type { AttributeSpec, ElementSpec } from './vocabulary.ts';
 
 /** The single named-child contract consumed by story guards, the checker and authoring metadata. */
@@ -48,7 +49,8 @@ export function storyElementVocabulary(
 		},
 		'ex-section': {
 			description:
-				'A story group with a sticky category header, derived counts and scoped fold control.',
+				'An empty declaration. Put content in a separate ex-section-item, never inside ex-section.',
+			noAuthoredChildren: true,
 			attributes: {
 				id: {
 					description: 'Stable section target for Map.',
@@ -63,6 +65,25 @@ export function storyElementVocabulary(
 				icon: shared.icon,
 				tone: shared.tone,
 				series: shared.series,
+				holds: {
+					description: 'Collects record items in this state.',
+					type: { kind: 'enum', values: sectionHolds },
+				},
+			},
+		},
+		'ex-section-item': {
+			description:
+				'Content belonging to a section. Use exactly one record or section attribute, outside all ex-section and ex-section-item elements.',
+			attributes: {
+				record: {
+					description:
+						'Decision or assumption ID that routes this item. Use a single native ex-choice for a choice, or direct authored prose for a ruling or assumption.',
+					type: { kind: 'text' },
+				},
+				section: {
+					description: 'ID of an ordinary section that receives this item.',
+					type: { kind: 'text' },
+				},
 			},
 		},
 		'ex-fold-toggle': {

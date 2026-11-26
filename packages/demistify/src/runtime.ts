@@ -5,14 +5,14 @@ import { CalloutIsland, CardIsland } from './islands/card.ts';
 import { ChoiceIsland, OptionIsland } from './islands/choice.ts';
 import { CodeIsland, CodeNoteIsland } from './islands/code.ts';
 import { CommentsIsland } from './islands/comments.ts';
-import { CompareIsland, DiagramDiffIsland } from './islands/compare.ts';
+import { CompareIsland } from './islands/compare.ts';
+import { DeliverablesIsland } from './islands/deliverables.ts';
 import { DrawerIsland } from './islands/drawer.ts';
 import { EvidenceTraceIsland } from './islands/evidence-trace.ts';
 import { ExplorerIsland } from './islands/explorer.ts';
 import { FileTreeIsland } from './islands/file-tree.ts';
 import { GalleryIsland } from './islands/gallery.ts';
-import { ZoomIsland } from './islands/inspector.ts';
-import { DecisionIsland, LayerIsland, TimelineIsland } from './islands/legacy.ts';
+import { InitiativeOverviewIsland } from './islands/initiative-overview.ts';
 import { MapIsland } from './islands/map.ts';
 import { MarkdownIsland } from './islands/markdown.ts';
 import { MermaidIsland } from './islands/mermaid.ts';
@@ -25,24 +25,27 @@ import { TabsIsland } from './islands/tabs.ts';
 import { TreeIsland } from './islands/tree.ts';
 import { ArrowIsland } from './layout/arrows.ts';
 import { BoardIsland, RegionIsland } from './layout/board.ts';
+import { hydrateDesignRecords } from './layout/design-records.ts';
 import { DocumentIsland, GridIsland, installDocumentBehavior } from './layout/document.ts';
 import { FlowIsland } from './layout/flow.ts';
 import { LayersElement } from './layout/layers.ts';
 import { HeadingNavigation } from './layout/navigation.ts';
 import { installRoutes, RouteElement, StepElement } from './layout/route.ts';
+import { placeSectionItems, SectionItemIsland } from './layout/section-items.ts';
 import { installArrowTracing } from './layout/trace.ts';
 
-// Preserve authored source before any island upgrades replace it or add controls.
-for (const root of document.querySelectorAll<HTMLElement>('ex-document'))
-	captureReviewDocument(root);
+// The custom-element registry requires a distinct constructor for each name.
+class TimelineAlias extends EvidenceTraceIsland {}
 
 // A board is defined first so it arranges its children before they upgrade.
-for (const [tagName, constructor] of [
+const islands = [
 	['ex-board', BoardIsland],
 	['ex-region', RegionIsland],
 	['ex-trace', EvidenceTraceIsland],
+	['ex-timeline', TimelineAlias],
 	['ex-story', StoryIsland],
 	['ex-section', SectionIsland],
+	['ex-section-item', SectionItemIsland],
 	['ex-fold-toggle', FoldToggleIsland],
 	['ex-markdown', MarkdownIsland],
 	['ex-option', OptionIsland],
@@ -51,19 +54,16 @@ for (const [tagName, constructor] of [
 	['ex-mermaid', MermaidIsland],
 	['ex-arrow', ArrowIsland],
 	['ex-tabs', TabsIsland],
-	['ex-zoom', ZoomIsland],
 	['ex-drawer', DrawerIsland],
 	['ex-call-stack', CallStackIsland],
-	['ex-decision', DecisionIsland],
 	['ex-callout', CalloutIsland],
 	['ex-compare', CompareIsland],
-	['ex-diagram-diff', DiagramDiffIsland],
-	['ex-timeline', TimelineIsland],
-	['ex-layer', LayerIsland],
 	['ex-file-tree', FileTreeIsland],
 	['ex-gallery', GalleryIsland],
 	['ex-pre', PreformattedIsland],
 	['ex-explorer', ExplorerIsland],
+	['ex-deliverables', DeliverablesIsland],
+	['ex-initiative-overview', InitiativeOverviewIsland],
 	['ex-tree', TreeIsland],
 	['ex-map', MapIsland],
 	['ex-card', CardIsland],
@@ -80,12 +80,25 @@ for (const [tagName, constructor] of [
 	['ex-document', DocumentIsland],
 	['ex-nav', HeadingNavigation],
 	['ex-layers', LayersElement],
-] satisfies readonly (readonly [string, CustomElementConstructor])[]) {
-	if (!customElements.get(tagName)) customElements.define(tagName, constructor);
+] satisfies readonly (readonly [string, CustomElementConstructor])[];
+
+function startRuntime(): void {
+	placeSectionItems();
+	// Preserve authored source before any island upgrades replace it or add controls.
+	for (const root of document.querySelectorAll<HTMLElement>('ex-document'))
+		captureReviewDocument(root);
+
+	for (const [tagName, constructor] of islands) {
+		if (!customElements.get(tagName)) customElements.define(tagName, constructor);
+	}
+
+	reportStructuralIssues();
+	installDefaultComments();
+	installDocumentBehavior();
+	if (!document.querySelector('ex-nav[src]')) installRoutes();
+	installArrowTracing();
 }
 
-reportStructuralIssues();
-installDefaultComments();
-installDocumentBehavior();
-if (!document.querySelector('ex-nav[src]')) installRoutes();
-installArrowTracing();
+const recordsReady = hydrateDesignRecords();
+if (recordsReady) void recordsReady.then(startRuntime);
+else startRuntime();

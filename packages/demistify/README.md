@@ -30,6 +30,16 @@ For reader delivery, keep HTML small and import the matching shared library from
 </ex-document>
 ```
 
+## Open a local review
+
+From a matching source checkout, open the authored page in your browser:
+
+```sh
+node packages/demistify/bin/demistify.ts open docs/review/index.html
+```
+
+From the installed package, use `npx demistify open docs/review/index.html`. The preview serves the page directory over loopback. Set `--site-root docs` if the page depends on siblings elsewhere in that collection. Add `--no-browser` to print an address without launching a browser. Keep the process running during review.
+
 ## Files and no-server delivery
 
 Small HTML plus shared HTTPS assets is the default. Do not inline the library, fonts or image bytes. Keep images as ordinary local paths or web URLs. Several HTML pages reuse the same Cloudflare assets and browser cache.
@@ -99,6 +109,26 @@ Collections can author Pages, semantic Map and complete Walkthroughs once in a s
 
 Serve these pages and the JSON over HTTP. Direct-file compilation and standalone packaging are separate delivery work. The [navigation guide](skill/references/navigation.md) documents the version-1 contract, and [the ordinary multi-page example](../../apps/demistify-poc/experiments/agent-written/shared-navigation/how-work-runs.html) illustrates the central execution flows. This source capability requires its matching runtime; it is not present in older published assets.
 
+### Project decisions in shared navigation
+
+The initiative overview shows open owner questions, dated decisions, replacements and assumptions.
+Authority identifies the Lead or Owner. Status shows Open, Decided or Superseded. The reader
+derives Superseded from the replacement decision's `supersedes` link and links to affected
+design records.
+
+In `design.ts`, use `target: { record: 'D6' }` for a Map node or Walkthrough step. A qualified
+reference such as `messages/D6` or `initiative/D6` resolves during `demistify initiative check`.
+Declare the destination page in the design's `pages`. The checker resolves the record to its
+reviewed HTML fragment when generating navigation. Run `demistify design types <project>`
+before adding record targets to a typed design that uses older generated declarations.
+
+An authored `<ex-choice id="D6" data-decision="D6" title="…">` can serve as an open owner
+decision's destination. Use its recorded question as the title. The review handoff carries the
+decision ID with the selected options. The Lead records the actual answer in the decision file.
+On a shared initiative page, use the qualified decision ID, such as `data-decision="messages/D6"`.
+`initiative check` validates Choices across the initiative's declared and referenced record pages.
+`design check` validates Choices on the design's own pages and at its own decision destinations.
+
 ### Reading measure and visual canvas
 
 Typography uses regular 18px Source Sans 3 prose, Source Sans 3 controls, Archivo headings, and IBM Plex Mono for code. Tree roots use 20px/600, branches 17px/500 and leaves 17px/400.
@@ -142,21 +172,21 @@ Rich alternatives use `ex-compare`: keyed `data-compare-row` topics share CSS Gr
 
 `ex-trace` is an ordered sequence of native disclosures with status and arbitrary rich attachments. Tree remains the hierarchy/navigation view. The [Trace reference](skill/references/traces.md) shows its syntax; [source-derived call paths](skill/references/call-paths.md) compose it with comparison while keeping branches distinct from call frames and runtime evidence.
 
-| Elements                                                               | Use                                                                                          |
-| ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| `ex-document`, `ex-nav`                                                | Document and collection navigation                                                           |
-| `ex-markdown`, `ex-mermaid`                                            | Full Markdown/file islands and scoped diagrams                                               |
-| `ex-card`, `ex-callout`, `ex-region`, `ex-stat`                        | Titled semantic content, findings, regions and figures                                       |
-| `ex-code`, `ex-note`                                                   | Code/unified diffs with neutral margin comments beside colored changes                       |
-| `ex-tree`                                                              | Collapsible Markdown tree; plain labels, separate leading disclosure and trailing go-to icon |
-| `ex-pre`, `ex-file-tree`                                               | Literal text/TUI drawings and plain file trees                                               |
-| `ex-gallery`                                                           | Screenshot review and grid views over one collection                                         |
-| `ex-compare`, `ex-trace`                                               | Aligned arbitrary alternatives and ordered expandable evidence                               |
-| `ex-grid`, `ex-flow`, `ex-arrow`                                       | Native composition and labelled connections                                                  |
-| `ex-tabs`, `ex-board`, `ex-layers`                                     | Alternative views, boards and optional layers                                                |
-| `ex-presentation`, `ex-step`                                           | Named/described ordered stops through existing content                                       |
-| `ex-explorer`                                                          | Searchable graph document, selection/history, tracing and evidence                           |
-| `ex-zoom`, `ex-decision`, `ex-diagram-diff`, `ex-timeline`, `ex-layer` | Earlier lab vocabulary; reviewable in the legacy guide page                                  |
+| Elements                                        | Use                                                                                          |
+| ----------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `ex-document`, `ex-nav`                         | Document and collection navigation                                                           |
+| `ex-markdown`, `ex-mermaid`                     | Full Markdown/file islands and scoped diagrams                                               |
+| `ex-card`, `ex-callout`, `ex-region`, `ex-stat` | Titled semantic content, findings, regions and figures                                       |
+| `ex-code`, `ex-note`                            | Code/unified diffs with neutral margin comments beside colored changes                       |
+| `ex-tree`                                       | Collapsible Markdown tree; plain labels, separate leading disclosure and trailing go-to icon |
+| `ex-pre`, `ex-file-tree`                        | Literal text/TUI drawings and plain file trees                                               |
+| `ex-gallery`                                    | Screenshot review and grid views over one collection                                         |
+| `ex-compare`, `ex-trace`                        | Aligned arbitrary alternatives and ordered expandable evidence                               |
+| `ex-grid`, `ex-flow`, `ex-arrow`                | Native composition and labelled connections                                                  |
+| `ex-tabs`, `ex-board`, `ex-layers`              | Alternative views, boards and optional layers                                                |
+| `ex-presentation`, `ex-step`                    | Named/described ordered stops through existing content                                       |
+| `ex-explorer`                                   | Searchable graph document, selection/history, tracing and evidence                           |
+| `ex-timeline`                                   | Alias of `ex-trace`, with the same step disclosures, evidence, and inspection                |
 
 `src/vocabulary.ts` owns element attributes and validation/editor metadata. The packaged `skill/` teaches the matching markup; component-guide pages provide runnable examples.
 

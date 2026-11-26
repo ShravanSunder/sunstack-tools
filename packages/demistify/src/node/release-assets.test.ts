@@ -216,6 +216,7 @@ it('publishes byte-addressed CLI paths and binds every guide example while retai
 			writeFile(join(next.guideDirectory, path), text),
 		),
 	);
+	await unlink(join(next.guideDirectory, 'references/design-documents.md'));
 	await writeFile(join(next.libraryDirectory, 'demistify-cli.tgz'), secondArchive);
 
 	// Act: real staging fetches retained history over HTTP before advertising the next CLI.
@@ -247,6 +248,11 @@ it('publishes byte-addressed CLI paths and binds every guide example while retai
 	);
 	await Promise.all(
 		Object.entries(guideInputs).map(async ([path, text]): Promise<void> => {
+			if (path === 'references/design-documents.md') {
+				expect(staged.manifest.files.some((file) => file.path === 'authoring/' + path)).toBe(false);
+				expect((await fetch(`${origin}/v1/authoring/${path}`)).status).toBe(404);
+				return;
+			}
 			expect(await readFile(join(next.outputDirectory, 'v1/authoring', path), 'utf8')).toBe(
 				text.replaceAll('demistify-cli.tgz', secondPath),
 			);

@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Owner decisions</title>
+	<link rel="stylesheet" href="/experiments/islands/theme.css">
+	<meta name="demistify-records" content="./owner-source/records.generated.js">
+	<script type="module" src="/experiments/islands/runtime.js"></script>
+</head>
+<body>
+	<ex-document id="owner-decisions">
+		<h1>Owner decisions</h1>
+		<ex-section id="open-decisions" holds="needs-owner" title="For you to decide"></ex-section>
+		<ex-section id="settled" holds="settled" title="You decided"></ex-section>
+
+		<ex-section-item record="D1">
+			<p>Apply the same limit to each retry.</p>
+		</ex-section-item>
+		<ex-section-item record="D2">
+			<ex-choice>
+				<ex-option data-option="keep"><template slot="summary">Reuse the current queue.</template></ex-option>
+				<ex-option data-option="replace"><template slot="summary">Use a new queue.</template></ex-option>
+			</ex-choice>
+		</ex-section-item>
+		<ex-section-item record="D3">
+			<ex-choice>
+				<ex-option data-option="keep"><template slot="summary">Keep entries available.</template></ex-option>
+				<ex-option data-option="replace"><template slot="summary">Clear the log each day.</template></ex-option>
+			</ex-choice>
+		</ex-section-item>
+		<ex-section-item record="D4">
+			<p>Reuse the receipt in both views.</p>
+		</ex-section-item>
+
+		<ex-section-item record="D5">
+			<ex-choice>
+				<template data-record-body>
+					<p>See <code>packages/example/requests/retries/describe_a_very_long_internal_retry_policy.ts</code>.</p>
+					<table><thead><tr><th>Signal</th><th>Meaning</th></tr></thead><tbody><tr><td>Timeout</td><td>No response.</td></tr></tbody></table>
+				</template>
+				<ex-option data-option="wait"><template slot="summary">Give the service time to recover.</template></ex-option>
+				<ex-option data-option="stop"><template slot="summary">Return the failure immediately.</template></ex-option>
+			</ex-choice>
+		</ex-section-item>
+
+		<h2 id="source-notes">Source notes</h2>
+		<p id="retry-source">Owner note on retries.</p>
+		<p id="queue-source">Owner answer about the queue.</p>
+		<p id="history-source">Owner answer about history.</p>
+		<p id="receipt-source">Owner note on receipts.</p>
+	</ex-document>
+</body>
+</html>

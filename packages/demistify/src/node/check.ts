@@ -7,7 +7,9 @@ import { dirname, join } from 'node:path';
 
 import { type DefaultTreeAdapterMap, parse } from 'parse5';
 
-import { headingSlug } from '../core/heading-fragments.ts';
+import { parseDeliverablesView } from '../core/deliverables-view.ts';
+import { availableHeadingFragment, headingSlug } from '../core/heading-fragments.ts';
+import { parseInitiativeView } from '../core/initiative-view.ts';
 import { parseMarkdownSource } from '../core/markdown-source.ts';
 import {
 	parseBreakdownValue,
@@ -30,6 +32,106 @@ import { checkStoryMarkup } from './story-markup.ts';
 
 type Element = DefaultTreeAdapterMap['element'];
 type ParentNode = DefaultTreeAdapterMap['parentNode'];
+
+async function markdownTargets(
+	pageElements: readonly Element[],
+	readSource?: CheckOptions['readSource'],
+): Promise<ReadonlySet<string>> {
+	const targets = new Set<string>();
+	const addDiagramTargets = (diagram: Element, ownerId: string): void => {
+		targets.add(ownerId);
+		for (const word of textOf(diagram).match(/[A-Za-z_][\w-]*/g) ?? [])
+			targets.add(`${ownerId}--${word}`);
+	};
+	for (const diagram of pageElements.filter(
+		(element): boolean => element.tagName === 'ex-mermaid',
+	)) {
+		const ownerId = attributeMap(diagram).get('id');
+		if (ownerId) addDiagramTargets(diagram, ownerId);
+	}
+	const owners = pageElements.filter((element): boolean => element.tagName === 'ex-markdown');
+	const sources = await Promise.all(
+		owners.map((owner): Promise<string | undefined> => {
+			const reference = attributeMap(owner).get('src');
+			return reference && readSource ? readSource(reference) : Promise.resolve(undefined);
+		}),
+	);
+	for (const [index, owner] of owners.entries()) {
+		const attrs = attributeMap(owner);
+		const prefix = attrs.get('id');
+		if (!prefix) continue;
+		const sourceElement = owner.childNodes
+			.filter(isElement)
+			.find((child): boolean => child.tagName === 'script');
+		const external = sources[index];
+		const content =
+			external ??
+			(sourceElement && attributeMap(sourceElement).has('data-ex-markdown-source')
+				? parseMarkdownSource(textOf(sourceElement)).text
+				: sourceElement
+					? textOf(sourceElement)
+					: textOf(owner));
+		const rendered = Array.from(walk(parse(renderMarkdownContent(content))));
+		const diagrams = rendered.filter((element): boolean => element.tagName === 'ex-mermaid');
+		for (const [diagramIndex, diagram] of diagrams.entries())
+			addDiagramTargets(diagram, `${prefix}--diagram-${diagramIndex + 1}`);
+		const seen = new Map<string, number>();
+		for (const heading of rendered.filter((element): boolean => /^h[1-6]$/.test(element.tagName))) {
+			const slug = headingSlug(textOf(heading));
+			const occurrence = (seen.get(slug) ?? 0) + 1;
+			seen.set(slug, occurrence);
+			targets.add(`${prefix}--${slug}${occurrence > 1 ? `-${occurrence}` : ''}`);
+		}
+	}
+	return targets;
+}
+
+/** Source and generated fragment IDs usable by document navigation. */
+export async function documentFragmentIds(
+	html: string,
+	readSource?: CheckOptions['readSource'],
+): Promise<ReadonlySet<string>> {
+	const elements = Array.from(walk(parse(html), false));
+	const bindsRuntime = elements.some(
+		(element): boolean =>
+			element.tagName === 'script' && runtimeSource.test(attributeMap(element).get('src') ?? ''),
+	);
+	const targets = new Set(await markdownTargets(elements, readSource));
+	for (const element of elements) {
+		const id = attributeMap(element).get('id');
+		if (id && !element.namespaceURI.endsWith('svg') && !hasAncestor(element, ['svg']))
+			targets.add(id);
+	}
+	if (!bindsRuntime) return targets;
+	const owners = elements.filter((element): boolean => element.tagName === 'ex-nav');
+	const defaultScope =
+		elements.find((element): boolean => ['ex-document', 'main'].includes(element.tagName)) ??
+		elements.find((element): boolean => element.tagName === 'body');
+	const scopes = new Set(
+		owners.map((owner): Element | undefined => {
+			const reference = attributeMap(owner).get('for');
+			return (
+				(reference
+					? elements.find((element): boolean => attributeMap(element).get('id') === reference)
+					: undefined) ?? defaultScope
+			);
+		}),
+	);
+	if (!owners.length)
+		scopes.add(elements.find((element): boolean => element.tagName === 'ex-document'));
+	const assigned = new Set<Element>();
+	for (const scope of scopes) {
+		if (!scope) continue;
+		for (const heading of walk(scope, false)) {
+			if (!/^h[1-6]$/.test(heading.tagName) || attributeMap(heading).get('id')) continue;
+			if (assigned.has(heading)) continue;
+			assigned.add(heading);
+			const base = `heading-${headingSlug(textOf(heading))}`;
+			targets.add(availableHeadingFragment(base, (id): boolean => targets.has(id)));
+		}
+	}
+	return targets;
+}
 
 export interface TextEdit {
 	readonly start: number;
@@ -72,17 +174,19 @@ const markdownHosts = new Set([
 /** CSS the author may write: layout only; the library owns colour, borders, type and shadows. */
 const layoutProperty =
 	/^(display|grid|gap|row-gap|column-gap|flex|order|align|justify|place|position|inset|top|right|bottom|left|width|height|min-|max-|margin|padding|overflow|z-index|aspect-ratio|box-sizing|container)/;
+const runtimeSource = /runtime\.js(\?|$)/;
 
 function isElement(node: DefaultTreeAdapterMap['node']): node is Element {
 	return 'tagName' in node;
 }
 
-function* walk(parent: ParentNode): Generator<Element> {
+function* walk(parent: ParentNode, includeTemplates = true): Generator<Element> {
 	for (const child of parent.childNodes) {
 		if (!isElement(child)) continue;
 		yield child;
-		if (child.tagName === 'template' && 'content' in child) yield* walk(child.content);
-		else yield* walk(child);
+		if (child.tagName === 'template' && 'content' in child) {
+			if (includeTemplates) yield* walk(child.content, includeTemplates);
+		} else yield* walk(child, includeTemplates);
 	}
 }
 
@@ -95,6 +199,15 @@ function attributeMap(element: Element): Map<string, string> {
 function parentElement(element: Element): Element | undefined {
 	const parent = element.parentNode;
 	return parent && isElement(parent) ? parent : undefined;
+}
+
+function isSectionRecordChoice(element: Element | undefined): boolean {
+	if (element?.tagName !== 'ex-choice') return false;
+	const sectionItem = parentElement(element);
+	return (
+		sectionItem?.tagName === 'ex-section-item' &&
+		Boolean(attributeMap(sectionItem).get('record')?.trim())
+	);
 }
 
 function isDedicatedGalleryDocument(gallery: Element, documentCount: number): boolean {
@@ -266,63 +379,7 @@ export async function checkHtml(source: string, options: CheckOptions = {}): Pro
 		else ids.set(id, element);
 	}
 
-	const markdownTargets = async (
-		pageElements: readonly Element[],
-		relativeTo = '',
-	): Promise<ReadonlySet<string>> => {
-		const targets = new Set<string>();
-		const addDiagramTargets = (diagram: Element, ownerId: string): void => {
-			targets.add(ownerId);
-			for (const word of textOf(diagram).match(/[A-Za-z_][\w-]*/g) ?? [])
-				targets.add(`${ownerId}--${word}`);
-		};
-		for (const diagram of pageElements.filter(
-			(element): boolean => element.tagName === 'ex-mermaid',
-		)) {
-			const ownerId = attributeMap(diagram).get('id');
-			if (ownerId) addDiagramTargets(diagram, ownerId);
-		}
-		const owners = pageElements.filter((element): boolean => element.tagName === 'ex-markdown');
-		const sources = await Promise.all(
-			owners.map((owner): Promise<string | undefined> => {
-				const reference = attributeMap(owner).get('src');
-				return reference && options.readSource
-					? options.readSource(join(relativeTo, reference))
-					: Promise.resolve(undefined);
-			}),
-		);
-		for (const [index, owner] of owners.entries()) {
-			const attrs = attributeMap(owner);
-			const prefix = attrs.get('id');
-			if (!prefix) continue;
-			const sourceElement = owner.childNodes
-				.filter(isElement)
-				.find((child): boolean => child.tagName === 'script');
-			const external = sources[index];
-			const content =
-				external ??
-				(sourceElement && attributeMap(sourceElement).has('data-ex-markdown-source')
-					? parseMarkdownSource(textOf(sourceElement)).text
-					: sourceElement
-						? textOf(sourceElement)
-						: textOf(owner));
-			const rendered = Array.from(walk(parse(renderMarkdownContent(content))));
-			const diagrams = rendered.filter((element): boolean => element.tagName === 'ex-mermaid');
-			for (const [diagramIndex, diagram] of diagrams.entries())
-				addDiagramTargets(diagram, `${prefix}--diagram-${diagramIndex + 1}`);
-			const seen = new Map<string, number>();
-			for (const heading of rendered.filter((element): boolean =>
-				/^h[1-6]$/.test(element.tagName),
-			)) {
-				const slug = headingSlug(textOf(heading));
-				const occurrence = (seen.get(slug) ?? 0) + 1;
-				seen.set(slug, occurrence);
-				targets.add(`${prefix}--${slug}${occurrence > 1 ? `-${occurrence}` : ''}`);
-			}
-		}
-		return targets;
-	};
-	for (const target of await markdownTargets(elements))
+	for (const target of await markdownTargets(elements, options.readSource))
 		if (!ids.has(target)) {
 			const owner = elements.find((element): boolean => element.tagName === 'ex-markdown');
 			if (owner) ids.set(target, owner);
@@ -335,30 +392,20 @@ export async function checkHtml(source: string, options: CheckOptions = {}): Pro
 		elements.some((element): boolean => element.tagName === 'ex-mermaid')
 			? await import('beautiful-mermaid')
 			: undefined;
-	const otherPages = new Map<string, Set<string> | undefined>();
-	const idsOnPage = async (file: string): Promise<Set<string> | undefined> => {
-		if (!otherPages.has(file)) {
-			const text = await options.readSource?.(file);
-			otherPages.set(
-				file,
-				text === undefined
-					? undefined
-					: new Set(
-							Array.from(text.matchAll(/\sid="([^"]+)"/g), (match): string => match[1] ?? ''),
-						),
+	const otherPages = new Map<string, Promise<ReadonlySet<string> | undefined>>();
+	const idsOnPage = (file: string): Promise<ReadonlySet<string> | undefined> => {
+		const cached = otherPages.get(file);
+		if (cached) return cached;
+		const checking = (async (): Promise<ReadonlySet<string> | undefined> => {
+			const html = await options.readSource?.(file);
+			if (html === undefined) return undefined;
+			return documentFragmentIds(
+				html,
+				(path) => options.readSource?.(join(dirname(file), path)) ?? Promise.resolve(undefined),
 			);
-		}
-		const targets = otherPages.get(file);
-		if (targets && options.readSource) {
-			const referencedHtml = await options.readSource(file);
-			if (referencedHtml)
-				for (const target of await markdownTargets(
-					Array.from(walk(parse(referencedHtml))),
-					dirname(file),
-				))
-					targets.add(target);
-		}
-		return targets;
+		})();
+		otherPages.set(file, checking);
+		return checking;
 	};
 	for (const problem of checkSharedTreeMarkup(elements, ids, inertTemplateElements))
 		report(problem.element, problem.severity, 'shared-navigation', problem.message);
@@ -416,8 +463,7 @@ export async function checkHtml(source: string, options: CheckOptions = {}): Pro
 				'A Gallery needs a dedicated page: one <ex-gallery> directly in <ex-document>, with only an optional preceding <h1>. Move prose to another page and link here; use an ordinary <figure> for an inline picture.',
 			);
 		if (name === 'link' && /theme\.css(\?|$)/.test(attributes.get('href') ?? '')) loadsTheme = true;
-		if (name === 'script' && /runtime\.js(\?|$)/.test(attributes.get('src') ?? ''))
-			loadsRuntime = true;
+		if (name === 'script' && runtimeSource.test(attributes.get('src') ?? '')) loadsRuntime = true;
 		if (name === 'style')
 			for (const property of new Set(cssProblems(textOf(element))))
 				report(
@@ -437,8 +483,13 @@ export async function checkHtml(source: string, options: CheckOptions = {}): Pro
 					'style',
 				);
 		const parent = parentElement(element);
+		const recordChoice = isSectionRecordChoice(element);
+		const recordOption = name === 'ex-option' && isSectionRecordChoice(parent);
 		for (const problem of checkAttributes(name, attributes, parent?.tagName)) {
 			if (
+				((recordChoice || recordOption) &&
+					(problem.attribute === 'id' || problem.attribute === 'title') &&
+					!attributes.has(problem.attribute)) ||
 				(name === 'ex-breakdown' && problem.attribute === 'scale') ||
 				(name === 'data' && parent?.tagName === 'ex-breakdown' && problem.attribute === 'series')
 			)
@@ -476,13 +527,22 @@ export async function checkHtml(source: string, options: CheckOptions = {}): Pro
 		}
 
 		if (name === 'ex-choice') {
-			const children = element.childNodes.filter(isElement);
+			const children = element.childNodes
+				.filter(isElement)
+				.filter(
+					(child) =>
+						(!recordChoice && !attributes.has('data-decision')) ||
+						child.tagName !== 'template' ||
+						!attributeMap(child).has('data-record-body'),
+				);
 			if (!children.length || children.some((child): boolean => child.tagName !== 'ex-option'))
 				report(element, 'error', 'choice', 'A choice needs direct ex-option children.');
 		}
 		if (name === 'ex-option') {
 			if (parent?.tagName !== 'ex-choice')
 				report(element, 'error', 'choice', 'An ex-option must be a direct child of ex-choice.');
+			if (recordOption && !attributes.get('data-option')?.trim())
+				report(element, 'error', 'choice', 'A record-bound option needs a nonempty data-option.');
 			const summaries = element.childNodes
 				.filter(isElement)
 				.filter(
@@ -491,10 +551,12 @@ export async function checkHtml(source: string, options: CheckOptions = {}): Pro
 				);
 			if (summaries.length !== 1 || !summaries[0] || !textOf(summaries[0]).trim())
 				report(element, 'error', 'choice', 'An option needs one nonempty template slot="summary".');
-			try {
-				renderChoiceTitle(attributes.get('title') ?? '');
-			} catch (error) {
-				report(element, 'error', 'choice-title', String(error));
+			if (!recordOption || attributes.has('title')) {
+				try {
+					renderChoiceTitle(attributes.get('title') ?? '');
+				} catch (error) {
+					report(element, 'error', 'choice-title', String(error));
+				}
 			}
 		}
 		if (name === 'ex-document') {
@@ -666,6 +728,46 @@ export async function checkHtml(source: string, options: CheckOptions = {}): Pro
 						error instanceof Error ? error.message : 'Invalid explorer data.',
 					);
 				}
+			}
+		}
+
+		if ((name === 'ex-deliverables' || name === 'ex-initiative-overview') && options.readSource) {
+			const file = attributes.get('src')?.trim();
+			// oxlint-disable-next-line no-await-in-loop -- inspect this island's declared data source.
+			const deliverySource = file ? await options.readSource(file) : undefined;
+			try {
+				if (deliverySource === undefined)
+					throw new Error(`Cannot read generated data for <${name}>.`);
+				if (name === 'ex-deliverables') parseDeliverablesView(deliverySource);
+				else parseInitiativeView(deliverySource);
+			} catch (error) {
+				report(
+					element,
+					'error',
+					name === 'ex-deliverables' ? 'deliverables-source' : 'project-overview-source',
+					error instanceof Error ? error.message : `Invalid data for <${name}>.`,
+					'src',
+				);
+			}
+		}
+
+		if (name === 'ex-trace' || name === 'ex-timeline') {
+			for (const child of element.childNodes.filter(isElement)) {
+				const summaries = child.childNodes
+					.filter(isElement)
+					.filter((item): boolean => item.tagName === 'summary');
+				if (
+					child.tagName !== 'details' ||
+					summaries.length !== 1 ||
+					!summaries[0] ||
+					!textOf(summaries[0]).trim()
+				)
+					report(
+						child,
+						'error',
+						'trace',
+						'A Trace step needs a direct details element with one nonempty summary.',
+					);
 			}
 		}
 

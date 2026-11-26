@@ -112,6 +112,25 @@ test('progress count is centered inside its actual ring and fits a long value', 
 	expect(largeCount.innerEdgeClearance).toBeGreaterThanOrEqual(2);
 });
 
+test.each([1400, 390])(
+	'three-digit progress fits its ring at %i CSS px',
+	async (width): Promise<void> => {
+		await page.viewport(width, 900);
+		const { document: fixture } = await openFixture('ui', '', 'small-parts.html');
+		const progress = fixture.createElement('ex-progress');
+		progress.setAttribute('label', 'Ordering checks');
+		progress.setAttribute('value', '128');
+		progress.setAttribute('max', '240');
+		requiredElement(fixture, 'ex-document').append(progress);
+		await expect.poll((): boolean => progress.hasAttribute('prepared')).toBe(true);
+		const count = measureProgressCountRing(progress);
+		expect(count.countText).toBe('128/240');
+		expect(count.centerOffsetX).toBeLessThanOrEqual(1);
+		expect(count.centerOffsetY).toBeLessThanOrEqual(1);
+		expect(count.innerEdgeClearance).toBeGreaterThanOrEqual(2);
+	},
+);
+
 test('compact C timing retains the selected two-line presentation', async (): Promise<void> => {
 	const { document: fixture } = await openFixture('ui', '', 'small-parts.html');
 	const breakdown = requiredElement(fixture, '#share-breakdown');

@@ -14,6 +14,7 @@ export class EvidenceTraceIsland extends HTMLElement {
 			);
 			const list = document.createElement('ol');
 			list.className = 'ex-trace-list';
+			list.setAttribute('role', 'list');
 			for (const details of rows) {
 				const summary = details.querySelector(':scope > summary');
 				if (!(summary instanceof HTMLElement)) {

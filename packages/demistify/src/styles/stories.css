@@ -1,24 +1,45 @@
 :root {
 	--surface-document-card: var(--surface-content);
+	--surface-record: var(--surface-code);
 }
 @media (prefers-color-scheme: dark) {
 	:root:not([data-theme='light']) {
 		--surface-document-card: color-mix(in srgb, var(--surface-page) 99%, #fff);
+		--surface-record: color-mix(in srgb, var(--surface-content) 75%, var(--surface-page));
 	}
 }
 :root[data-theme='dark'] {
 	--surface-document-card: color-mix(in srgb, var(--surface-page) 99%, #fff);
+	--surface-record: color-mix(in srgb, var(--surface-content) 75%, var(--surface-page));
 }
 ex-section {
+	--section-padding: var(--space-5);
+	--section-heading-fill: color-mix(
+		in srgb,
+		var(--surface-category, var(--surface-document-card)) 10%,
+		var(--surface-document-card)
+	);
 	display: block;
 	min-width: 0;
 	margin-block: var(--space-6);
-	padding: var(--space-5);
+	padding: var(--section-padding);
 	border: 1px solid var(--rule);
 	border-top: 2px solid var(--surface-category, var(--rule));
 	border-radius: var(--radius-md);
 	background: var(--surface-document-card);
 	font: 400 var(--text-md)/1.5 var(--font-body);
+}
+ex-section[holds='needs-owner']:not([series], [tone]) {
+	--surface-category: var(--chart-5);
+}
+ex-section[holds='decided-by-agent']:not([series], [tone]) {
+	--surface-category: var(--chart-2);
+}
+ex-section[holds='settled']:not([series], [tone]) {
+	--surface-category: var(--chart-3);
+}
+ex-section[holds='assumed']:not([series], [tone]) {
+	--surface-category: var(--chart-1);
 }
 .ex-section-head {
 	position: sticky;
@@ -27,34 +48,76 @@ ex-section {
 	display: flex;
 	align-items: center;
 	gap: var(--space-2);
-	margin: calc(-1 * var(--space-5)) calc(-1 * var(--space-5)) var(--space-5);
+	margin: calc(-1 * var(--section-padding)) calc(-1 * var(--section-padding)) var(--space-5);
 	padding: var(--space-3) var(--space-5);
-	padding-inline-end: calc(var(--space-5) + var(--space-6));
 	border-bottom: 1px solid var(--rule);
 	border-radius: var(--radius-md) var(--radius-md) 0 0;
-	background: color-mix(
-		in srgb,
-		var(--surface-category, var(--surface-document-card)) 10%,
-		var(--surface-document-card)
-	);
+	background: var(--section-heading-fill);
 	font: 600 var(--text-lg)/1.4 var(--font-display);
+}
+ex-section.ex-section-floating {
+	--section-sticky-gap: var(--space-2);
+	margin-block: var(--space-8);
+	border: 0;
+	font: inherit;
+	line-height: 1.55;
+}
+.ex-section-floating > .ex-section-head {
+	top: calc(var(--ex-document-toolbar-height, 0px) + var(--section-sticky-gap));
+	box-sizing: border-box;
+	margin-block: calc(-1 * var(--section-padding)) var(--space-4);
+	margin-inline: calc(-1 * var(--section-padding));
+	padding: calc(var(--space-2) + 1px) var(--space-5);
+	border: 0;
+	border-radius: var(--radius-md);
+	isolation: isolate;
+	background: transparent;
+}
+.ex-section-floating > .ex-section-head::before,
+.ex-section-floating > .ex-section-head::after {
+	content: '';
+	position: absolute;
+	pointer-events: none;
+}
+.ex-section-floating > .ex-section-head::before {
+	z-index: -2;
+	inset: calc(-1 * var(--section-sticky-gap)) 0 calc(-1 * var(--space-3));
+	background: linear-gradient(var(--surface-page) calc(100% - var(--space-2)), transparent);
+}
+.ex-section-floating > .ex-section-head::after {
+	z-index: -1;
+	inset: 0;
+	border-radius: inherit;
+	background: var(--section-heading-fill);
+}
+ex-section.ex-section-floating:not(:has(> ex-section-item)) {
+	padding-block-end: 0;
+}
+.ex-section-floating:not(:has(> ex-section-item)) > .ex-section-head {
+	margin-block-end: 0;
 }
 .ex-section-head.ex-comment-target {
 	position: sticky;
-	padding-inline-end: calc(var(--space-5) + var(--space-6));
+	padding-inline-end: var(--space-5);
+}
+@media (hover: hover) and (min-width: 761px) {
+	.ex-section-head > .ex-fold-control {
+		position: absolute;
+		inset-inline-start: 100%;
+		inset-block-start: calc(var(--space-8) + var(--space-1));
+		translate: -50% -50%;
+		z-index: 11;
+		border: 1px solid var(--rule);
+		border-radius: 50%;
+		background: var(--surface-content);
+	}
+	.ex-section-head > .ex-fold-control:dir(rtl) {
+		translate: 50% -50%;
+	}
 }
 .ex-section-head > .ex-tone-icon {
 	flex: none;
 	color: var(--surface-category, var(--tone, var(--ink-soft)));
-}
-.ex-section-heading {
-	flex: 1;
-	min-width: 0;
-}
-.ex-section-heading > strong {
-	min-width: 0;
-	overflow-wrap: anywhere;
-	font-weight: 600;
 }
 .ex-section-count {
 	color: var(--ink-soft);
@@ -67,11 +130,13 @@ ex-story {
 }
 ex-section :is([id], ex-mermaid, ex-tree, ex-code, ex-pre, ex-gallery) {
 	scroll-margin-top: calc(
-		var(--ex-document-toolbar-height, 0px) + var(--ex-section-header-height, 0px) + var(--space-3)
+		var(--ex-document-toolbar-height, 0px) + var(--ex-section-header-height, 0px) +
+			var(--section-sticky-gap, 0px) + var(--space-3)
 	);
 }
 ex-story + ex-story,
-ex-section > details[slot='smaller'] {
+ex-section > details[slot='smaller'],
+ex-section > ex-section-item > details[slot='smaller'] {
 	margin-top: var(--space-6);
 }
 details.ex-story-disclosure {
@@ -206,4 +271,75 @@ h2:has(> ex-fold-toggle) {
 	.ex-story-chevron {
 		transition: none;
 	}
+}
+
+ex-section-item {
+	display: none;
+}
+ex-section > ex-section-item:not([hidden]) {
+	display: block;
+}
+ex-section-item
+	ex-markdown.ex-inspectable:has(> .ex-inspect-controls:not(.ex-inspect-more, [hidden])) {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr);
+}
+ex-section-item ex-markdown.ex-inspectable > .ex-inspect-controls:not(.ex-inspect-more, [hidden]) {
+	position: static;
+	grid-row: 1;
+	justify-self: end;
+}
+ex-section-item + ex-section-item {
+	margin-block-start: var(--space-8);
+}
+ex-section > ex-section-item[record] {
+	--record-surface-width: calc(var(--width-reading) + 2 * var(--space-4) + 2px);
+	--record-item-start: 0px;
+	position: relative;
+	isolation: isolate;
+	padding-block: var(--record-item-start) 0;
+	overflow-wrap: anywhere;
+}
+ex-section > ex-section-item[record]:first-of-type {
+	--record-item-start: var(--space-4);
+}
+ex-section > ex-section-item[record] + ex-section-item[record] {
+	margin-block-start: var(--space-6);
+}
+ex-section > ex-section-item[record]::before {
+	content: '';
+	position: absolute;
+	inset-block: var(--record-item-start) 0;
+	inset-inline-start: calc(2px - var(--section-padding));
+	inline-size: 6px;
+	border-radius: var(--radius-pill);
+	background: var(--section-heading-fill);
+	pointer-events: none;
+}
+ex-section-item[record] > .ex-bound-choice {
+	margin-block: 0;
+}
+.ex-record-surface {
+	box-sizing: border-box;
+	inline-size: 100%;
+	max-inline-size: var(--record-surface-width);
+	margin: 0;
+	padding: var(--space-4);
+	border: 1px solid var(--rule);
+	border-radius: var(--radius-md);
+	background: var(--surface-record);
+}
+.ex-record-surface > ex-choice {
+	margin-block: 0;
+}
+/* Settled Choices retain their historical review wrapper without drawing a second card. */
+ex-section-item[record] > div.ex-record-surface:has(> ex-choice) {
+	display: contents;
+}
+
+ex-section-item[record] > :is(ex-card, ex-choice, ex-code) + ex-code {
+	margin-block-start: var(--space-4);
+}
+ex-section-item[record] > ex-choice:has(+ ex-code) {
+	margin-block-end: 0;
 }

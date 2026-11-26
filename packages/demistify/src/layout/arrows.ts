@@ -12,7 +12,7 @@ import {
 
 /** Elements an arrow must route around. Arrow endpoints are always obstacles too. */
 const obstacleSelector =
-	'ex-card, ex-callout, ex-markdown, ex-mermaid, ex-file-tree, ex-zoom, ex-stat, ex-code, ex-decision, ex-compare, ex-timeline, ex-layer, ex-tabs, ex-flow, ex-region, img, figure, table, pre';
+	'ex-card, ex-callout, ex-markdown, ex-mermaid, ex-file-tree, ex-stat, ex-code, ex-compare, ex-trace, ex-timeline, ex-tabs, ex-flow, ex-region, img, figure, table, pre';
 const inspectionScope = '.ex-drawer, dialog';
 
 const activeArrows = new Set<ArrowIsland>();

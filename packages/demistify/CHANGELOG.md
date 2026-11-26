@@ -1,5 +1,175 @@
 # @sunstack/demistify
 
+## 1.38.2
+
+### Patch Changes
+
+- b4e40bd: Give typed decision sections consistent icons, colors, and card edges. Use short record titles above the complete question or ruling, align option metadata to the left with consistent spacing beneath it, and give open and settled choices the same separate card layout. Keep long code paths within the reading column on phones and keep diagram controls reachable below sticky headers.
+
+## 1.38.1
+
+### Patch Changes
+
+- 41e88d8: `demistify check` gives a published copy of a typed design (a page that binds generated design data with no `design.ts` or `initiative.ts` around it) the page check, with a note, instead of refusing it.
+
+## 1.38.0
+
+### Minor Changes
+
+- 5466771: A verbatim source may carry `shown`, the Lead's cleaned wording of the owner's exact words. The record then owns the exact words, and the check no longer requires the linked page to repeat them. `shown` without `verbatim: true` is refused.
+
+## 1.37.0
+
+### Minor Changes
+
+- 3608f5d: `demistify check` now takes typed pages and folders as well as standalone pages: a page that binds generated design data, or a folder with `design.ts` or `initiative.ts`, runs that tree's typed check once (`--site-root` and `--write` pass through), and every other page gets the page check.
+
+## 1.36.2
+
+### Patch Changes
+
+- bf0dfc4: The one-time initiative migration scripts are removed from main; the guide and the 1.32.1 record error now point to them at the 1.36.1 release commit `da3363b6`.
+- 9f0d40e: Show a sideways-scroll cue on diagrams that overflow their reading area, and let keyboard readers focus the scroll surface. The rendered check warns when a diagram's natural width exceeds its available space at 390 px.
+
+## 1.36.1
+
+### Patch Changes
+
+- 58c39cb: `design check` no longer fails its own prepared page on a record-bound choice: preparation keeps each option's `data-option` (as the browser's hydration already did), so the check's "A record-bound option needs a nonempty data-option" no longer fires on valid markup, and a settled choice in a prepared page marks its chosen option.
+
+## 1.36.0
+
+### Minor Changes
+
+- 0563ea7: `demistify initiative add <choice|ruling|assumption> --namespace <namespace> --page <page.html>` scaffolds a record with `TODO:` placeholders, its section item on the page, and the owner's verbatim words with `--words`, then refreshes the generated views (restoring every changed file when the check fails). It previews by default; `--write` applies.
+- 1cd49bd: `demistify initiative answer <review.md|->` applies a copied page review to its open choices: it settles each record's authority, writes the owner's commented words on the page that places the record, and refreshes the generated views, restoring every changed file when the check fails. It previews by default; `--write` applies.
+
+### Patch Changes
+
+- b6c022d: The missing-section error now says why a record needs every section it can reach, and the guide says a choice's `template data-record-body` sits directly inside its `ex-choice`.
+
+## 1.35.0
+
+### Minor Changes
+
+- 591ba3c: `initiative.ts` takes `pages`: initiative-level HTML pages, relative to it, that may place `initiative/` records and any project's records by qualified ID. `initiative check` warns about an HTML page under the initiative that binds records while no `design.ts` or `initiative.ts` registers it, and `open` finds the initiative as the owner of a registered page.
+
+### Patch Changes
+
+- 7a46401: The records-source error now names a `../<project>/` folder instead of an old milestone folder, and the library builds with npm 12, whose `npm pack --json` prints an object keyed by package name.
+
+## 1.34.2
+
+### Patch Changes
+
+- 3aab3a3: A page that places design records but has no record source now shows a visible notice instead of empty sections with a zero count, and names `ex-project-overview` (replaced by `ex-initiative-overview` in 1.34) when a page still uses it. The standalone `check` accepts a typed choice inside a record section item without authored titles, as `initiative check` does.
+
+## 1.34.1
+
+### Patch Changes
+
+- 6881cfd: The initiative migration script (internal, not in the CLI) adopts an existing project folder without design.ts: it adds the typed files and a moved-records.html page beside the folder's own pages and leaves every existing file untouched.
+- 90188b9: `initiative status` and the initiative view list ready work in project-number order and leave out core deliverables with no implementation steps; those appear in a new "needs a plan" list.
+
+## 1.34.0
+
+### Minor Changes
+
+- 47a7642: Organize typed design as an initiative of numbered projects. `initiative.ts` replaces `project.ts`: each project names its design, a number (the same number runs side by side; 2 comes after 1), what it achieves and what the owner checks. Deliverables may depend on deliverables in any project, and the check warns when one depends on a higher-numbered project. `demistify initiative check` replaces `project check`; `demistify initiative status` prints the plan, and the generated view lists what is ready now, what blocks the most and what is built but not accepted. The initiative overview opens with the projects by number, and every state, level and id prefix carries a plain explanation.
+
+  This experimental v1 update renames the levels. Rename `project.ts` to `initiative.ts` with `projects: { name: { design, number } }`, `project-decisions.ts` and `project-assumptions.ts` to `initiative-decisions.ts` and `initiative-assumptions.ts`, `project/` references to `initiative/`, and `ex-project-overview` with `project.generated.json` to `ex-initiative-overview` with `initiative.generated.json`. Regenerate the design SDK and views with the matching CLI.
+
+### Patch Changes
+
+- 1d88f32: Remove `demistify initiative migrate` from the CLI. The one-time conversion and re-cut of `project.ts` trees runs from a source checkout as `node packages/demistify/scripts/initiative-migration/run.ts`, documented beside the script, and is not part of the published CLI or guide.
+
+## 1.33.0
+
+### Minor Changes
+
+- a9e9a34: Render choices, rulings and assumptions as section items with their own evidence, state and links to dependent work. Keep option summaries and Details available after a choice is answered.
+
+  This experimental v1 update changes typed decision and assumption authoring. Use the new record helpers and authority fields, move page content out of section declarations into section items, and put record option Details in templates. Regenerate the design SDK and record views with the matching CLI after migrating the source.
+
+  Existing v1 pages keep their published Choice answers, Comments and Story disclosure controls while their owners migrate. Label chips use a plain outline and supported status tones carry a dot. Code blocks use the dedicated code surface.
+
+## 1.32.1
+
+### Patch Changes
+
+- 7e19790: Load specialized authoring references only when a page needs them. Use Trace for new source-derived call paths and keep the prepared call-stack reader working for existing pages.
+- 891b326: Preserve quoted evidence inside HTML containers during lean-record migration while keeping existing fragment links pointed at their records.
+
+## 1.32.0
+
+### Minor Changes
+
+- 616dec9: Author lean typed design records and place their statements in HTML by ID. Map, Tree,
+  Walkthrough, Choice, and Deliverables share the checked record projection. The CLI
+  opens fresh project checkouts, prints scoped deliverable briefs, and checks core
+  delivery against its current build and evidence. Existing typed designs must adopt
+  the new record, placement, and delivery shapes.
+
+## 1.31.0
+
+### Minor Changes
+
+- c91a8bb: Split a milestone’s design records by subject. Import local TypeScript files that default-export literal record arrays, then spread them into `design.ts` alongside inline records. Run `demistify design types` to refresh the generated `DesignRecord` type.
+
+### Patch Changes
+
+- ca05702: Keep verification and acceptance current when adding a neighboring heading only changes the blank space after a design passage. Continue to require a recheck when the passage or its governing data changes.
+
+## 1.30.1
+
+### Patch Changes
+
+- 963f346: Keep generated revisions out of routine CLI output, delivery views, and copied review text. Show delivery status and recheck guidance in plain language while retaining evidence matching in generated data.
+
+## 1.30.0
+
+### Minor Changes
+
+- f69ccb9: Show decision authority, status, replacement links and affected records in the project overview. Link Map and Walkthrough targets to checked design record IDs, and carry the decision ID with answers from an HTML Choice bound to an open owner question.
+
+## 1.29.0
+
+### Minor Changes
+
+- b9f42d8: Retire the old Zoom, Decision, Diagram Diff, and Layer elements. Use supported inspection controls, decisions, comparisons, and layer switches in authored pages. Timeline is now an alias for Trace. Use a native details disclosure and summary for each step.
+
+## 1.28.1
+
+### Patch Changes
+
+- f38191f: Open Details beside card choices by default, with sidebar placement available on request. Add a built-in Close button to authored drawers and align desktop section fold controls on the component edge. Open Tree Details fullscreen from a compact trailing button so deep Maps retain their width.
+
+## 1.28.0
+
+### Minor Changes
+
+- caa4546: Add `demistify open <page.html>` to preview authored HTML with its local Markdown, JSON, and assets. Use `--site-root` for a collection and `--no-browser` to print a URL for someone else to open.
+
+## 1.27.0
+
+### Minor Changes
+
+- 9833e65: Check a Demistify project without writing generated files by default. Add `--write` to existing project check automation that refreshes project and milestone views. After updating the CLI, run `demistify design types <milestone>` for each registered milestone to refresh the generated SDK and types.
+
+  Projects can link to declared reviewed passages within the site root. The project overview shows open owner questions, milestones, delivery state and builder assignments. The installed CLI can also check rendered pages at desktop and phone widths using a local Playwright installation.
+
+## 1.26.0
+
+### Minor Changes
+
+- 533fd20: Compose a delivery graph from typed deliverable modules, track progress against a build and design scope, and render the generated delivery view in HTML.
+
+  Record dated Lead and Owner decisions and link assumptions to the work that relies on them. Delivery state exposes open governing questions and unconfirmed or refuted assumptions.
+
+  Keep decisions, assumptions, and delivery in named files beside each design. Check explicitly registered project sets together and resolve shared records, Lead aliases, and cross-set prerequisites.
+
+- 83be660: Add typed design authoring and checking, including cross-set links within an explicit site root. Build an opt-in npm candidate containing the CLI, browser assets, and matching guide.
+
 ## 1.25.3
 
 ### Patch Changes

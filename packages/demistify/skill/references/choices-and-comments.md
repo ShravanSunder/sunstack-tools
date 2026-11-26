@@ -70,7 +70,7 @@ With a pointer, clicking the title, Markdown body or card background selects or 
 
 ## Choose the response view and optional detail
 
-Cards use Reading width by default. A compact **Details** button sits at the right edge of each card's title row. Supporting extras open in the native sidebar by default. Use `details="beside"` on a card choice to keep the closed card list at Reading width and use Canvas width when the panel opens. The panel opens beside the cards where space allows and below them on narrow screens. An explicit `data-width` takes precedence. Close or Escape returns focus to the opening Details button. Opening or switching panels leaves the selected answer unchanged.
+Cards use Reading width by default. A compact **Details** button sits at the right edge of each card's title row. Supporting extras open beside card choices by default. The closed list uses Reading width and the open panel uses Canvas width. Use `details="sidebar"` to request a sidebar explicitly. Table choices retain their sidebar details. The panel opens beside the cards where space allows and below them on narrow screens. An explicit `data-width` takes precedence. Close or Escape returns focus to the opening Details button. Opening or switching panels leaves the selected answer unchanged.
 
 Use `view="table"` on the choice when short corresponding option bodies benefit from aligned selectable rows. The same option declarations become a Canvas-width native table; narrow scrolling stays inside the table boundary. Do not invent extra column or criteria attributes. Use `details="inline"` when extras should expand locally beneath an option, accepting that they move later content down. Both variations retain separate selection, detail and feedback actions.
 

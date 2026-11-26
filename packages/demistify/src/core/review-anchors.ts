@@ -1,4 +1,5 @@
 import { textAnchorMatches, type CommentAnchor, type TextCommentAnchor } from './review-model.ts';
+import { sectionForReviewWrapper } from './section-membership.ts';
 
 export interface ReviewTarget {
 	readonly targetId: string;
@@ -10,7 +11,7 @@ export type ResolvedCommentAnchor =
 	| { readonly kind: 'unavailable'; readonly message: string };
 
 const excludedText =
-	'button,input,textarea,select,script,style,template,.ex-inspect-controls,.ex-choice-inline > summary,[data-comment-control],[data-inspector-copy],[data-inspector-content]';
+	'button,input,textarea,select,script,style,template,.ex-inspect-controls,.ex-diagram-scroll-hint,.ex-choice-inline > summary,[data-comment-control],[data-inspector-copy],[data-inspector-content]';
 const automaticallyLabeledHeadings = new WeakSet<HTMLElement>();
 
 function textExclusions(element: Element): string {
@@ -55,11 +56,20 @@ export function ensureReviewTargetId(element: Element, root: HTMLElement): void 
 	while (current && current !== root && !current.id) {
 		const parent: Element | null = current.parentElement;
 		if (!parent) break;
-		const siblings = [...parent.children].filter(
-			(sibling): boolean => sibling.localName === current?.localName,
-		);
+		if (current.matches('.ex-record-surface') && parent.matches('ex-section-item[record]')) {
+			current = parent;
+			continue;
+		}
+		const owner: Element = sectionForReviewWrapper(parent) ?? parent;
+		// Count all logical siblings in DOM order, including across ordinary section items.
+		const siblings: Element[] = [];
+		for (const child of owner.children) {
+			const group = sectionForReviewWrapper(child) ? child.children : [child];
+			for (const sibling of group)
+				if (sibling.localName === current.localName) siblings.push(sibling);
+		}
 		path.unshift(`${current.localName}-${siblings.indexOf(current) + 1}`);
-		current = parent;
+		current = owner;
 	}
 	const base = `${current?.id || root.id}--review-${path.join('-')}`;
 	let candidate = base;
@@ -206,6 +216,26 @@ export function captureCommentAnchor(
 	};
 }
 
+/** Rebuild the text order used before record titles and complete statements had separate positions. */
+function previousRecordTextNodes(element: Element, current: readonly Text[]): readonly Text[] {
+	const selector = '[data-record-display-title]';
+	const titles = element.matches(selector) ? [element] : [...element.querySelectorAll(selector)];
+	const replacement = new Map<Text, Text[]>();
+	const relocated = new Set<Text>();
+	for (const title of titles) {
+		const record = title.closest('ex-section-item[record]');
+		const statement = record?.querySelector('[data-record-statement]');
+		if (!statement) continue;
+		const [first, ...rest] = reviewTextNodes(title);
+		if (!first) continue;
+		const statementNodes = reviewTextNodes(statement);
+		replacement.set(first, statementNodes);
+		for (const node of [...rest, ...statementNodes]) relocated.add(node);
+	}
+	if (!replacement.size) return [];
+	return current.flatMap((node) => replacement.get(node) ?? (relocated.has(node) ? [] : [node]));
+}
+
 export function resolveCommentAnchor(
 	anchor: CommentAnchor,
 	targets: ReadonlyMap<string, ReviewTarget>,
@@ -214,19 +244,29 @@ export function resolveCommentAnchor(
 	if (!target?.element.isConnected)
 		return { kind: 'unavailable', message: 'The original item is not on this page.' };
 	if (anchor.kind === 'entity') return { kind: 'resolved', target, range: null };
-	if (!textAnchorMatches(reviewTargetText(target.element), anchor))
+	const textMatches = (nodes: readonly Text[]): boolean =>
+		textAnchorMatches(nodes.map((node) => node.data).join(''), anchor);
+	const current = reviewTextNodes(target.element);
+	const matchesCurrent = textMatches(current);
+	const nodes = matchesCurrent ? current : previousRecordTextNodes(target.element, current);
+	if (!matchesCurrent && (!nodes.length || !textMatches(nodes)))
 		return { kind: 'unavailable', message: 'The selected text or its context has changed.' };
 	const range = target.element.ownerDocument.createRange();
 	let count = 0;
 	let started = false;
-	for (const node of reviewTextNodes(target.element)) {
+	for (const node of nodes) {
 		const end = count + node.data.length;
-		if (!started && anchor.start <= end) {
+		if (!started && anchor.start < end) {
 			range.setStart(node, anchor.start - count);
 			started = true;
 		}
 		if (started && anchor.end <= end) {
 			range.setEnd(node, anchor.end - count);
+			if (
+				!matchesCurrent &&
+				fragmentText(range.cloneContents(), textExclusions(target.element)) !== anchor.sourceText
+			)
+				return { kind: 'unavailable', message: 'The selected text or its context has changed.' };
 			return { kind: 'resolved', target, range };
 		}
 		count = end;

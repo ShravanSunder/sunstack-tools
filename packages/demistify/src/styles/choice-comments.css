@@ -6,6 +6,7 @@ ex-comments {
 	display: contents;
 }
 ex-choice {
+	--choice-stack-width: var(--width-reading);
 	display: block;
 	margin-block: var(--space-5) var(--space-10);
 }
@@ -94,7 +95,8 @@ ex-option .ex-choice-title-row > .ex-choice-details-button {
 	font: inherit;
 	cursor: pointer;
 }
-.ex-choice-details-button {
+.ex-choice-details-button,
+.ex-tree-details-button {
 	display: inline-flex;
 	align-items: center;
 	gap: var(--space-1);
@@ -108,10 +110,12 @@ ex-option .ex-choice-title-row > .ex-choice-details-button {
 	color: var(--ink-soft);
 	font: 600 var(--text-sm)/1 var(--font-body);
 }
-.ex-choice-details-button .ph {
+.ex-choice-details-button .ph,
+.ex-tree-details-button .ph {
 	font-size: var(--text-lg);
 }
-.ex-choice-details-button:hover {
+.ex-choice-details-button:hover,
+.ex-tree-details-button:hover {
 	color: var(--ink);
 	border-color: var(--ink-soft);
 }
@@ -119,9 +123,10 @@ ex-option .ex-choice-title-row > .ex-choice-details-button {
 	container-type: inline-size;
 }
 ex-choice.ex-choice-default-width:has(> .ex-choice-beside-fieldset):not(
-		:has(> fieldset > .ex-choice-detail-layout > .ex-choice-detail-panels > :not([hidden]))
+		:has(> fieldset > .ex-choice-detail-layout > .ex-choice-detail-panels > :not([hidden])),
+		.ex-bound-choice:has(> fieldset > [data-width='canvas'])
 	) {
-	max-inline-size: var(--width-reading);
+	max-inline-size: var(--choice-stack-width);
 	margin-inline: 0 auto;
 }
 .ex-choice-detail-layout {
@@ -129,6 +134,9 @@ ex-choice.ex-choice-default-width:has(> .ex-choice-beside-fieldset):not(
 	gap: var(--space-3);
 	align-items: start;
 	margin-block: var(--space-3);
+}
+ex-section-item[record] .ex-bound-choice > fieldset > .ex-choice-detail-layout {
+	margin-block: calc(var(--space-6) + var(--space-3)) var(--space-3);
 }
 .ex-choice-detail-options {
 	display: grid;
@@ -205,6 +213,11 @@ ex-choice.ex-choice-default-width:has(> .ex-choice-beside-fieldset):not(
 	margin-top: var(--space-1);
 	font: 400 var(--text-md)/1.5 var(--font-body);
 	color: var(--ink-soft);
+}
+ex-section-item[record]
+	.ex-choice-title-row:has(> .ex-record-option-metadata)
+	+ .ex-choice-summary {
+	margin-block-start: var(--space-2);
 }
 .ex-choice-summary :is(p, ul, ol, blockquote) {
 	margin: 0;
@@ -678,4 +691,219 @@ ex-choice.ex-choice-cards ex-option:has(:focus-visible) > .ex-entity-comment {
 		opacity: 1;
 		pointer-events: auto;
 	}
+}
+
+.ex-record-state-line {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: var(--space-1) var(--space-2);
+	margin-block: 0 var(--space-3);
+	color: var(--ink-soft);
+	font: 400 var(--text-md)/1.4 var(--font-body);
+}
+.ex-choice-details-button.ex-record-detail-button {
+	display: inline-grid;
+	place-items: center;
+	width: var(--space-8);
+	padding: 0;
+}
+.ex-record-option-mark {
+	color: var(--ink-soft);
+	font-size: var(--text-sm);
+}
+.ex-choice-title-row :is(.ex-card-pick, .ex-record-option-mark) {
+	margin-inline-start: var(--space-2);
+}
+.ex-choice-option:is(.ex-record-chosen, .ex-record-alternative) {
+	grid-template-columns: minmax(0, 1fr);
+}
+.ex-choice-option.ex-record-alternative {
+	border-color: var(--rule);
+}
+.ex-record-item-title {
+	margin-block: 0 var(--space-3);
+	font: 600 var(--text-xl)/1.35 var(--font-body);
+}
+.ex-record-surface > p:last-of-type,
+.ex-bound-choice > .ex-record-dependents:last-child {
+	margin-block-end: 0;
+}
+.ex-record-attributed-reason {
+	margin-block: var(--space-4);
+	overflow-wrap: anywhere;
+}
+.ex-record-attributed-reason > p {
+	margin-block: 0 var(--space-2);
+}
+.ex-record-attributed-reason > details > summary {
+	width: fit-content;
+	max-inline-size: 100%;
+	color: var(--ink-soft);
+	cursor: pointer;
+}
+.ex-record-attributed-reason > details > p {
+	margin-block: var(--space-2) 0;
+	white-space: pre-wrap;
+}
+.ex-bound-choice > :is(.ex-record-basis, .ex-record-dependents) {
+	max-inline-size: var(--width-reading);
+}
+
+.ex-bound-choice.ex-choice-default-width:has(> fieldset > [data-width='canvas'])
+	> .ex-record-state-line,
+.ex-bound-choice.ex-choice-default-width:has(> fieldset > [data-width='canvas'])
+	> fieldset
+	> :is(
+		legend,
+		p:not([data-width='canvas']),
+		.ex-choice-detail-layout:not(:has(.ex-choice-detail-panel:not([hidden])))
+	) {
+	max-inline-size: var(--width-reading);
+}
+
+ex-section-item[record] .ex-record-item-title {
+	margin-block-end: var(--space-2);
+	text-wrap: wrap;
+}
+ex-section-item[record] .ex-record-state-line {
+	max-inline-size: var(--width-reading);
+	margin-block-end: var(--space-6);
+	flex-wrap: wrap;
+}
+ex-section-item[record] .ex-record-state-line + p {
+	margin-block-start: 0;
+}
+.ex-record-state-chips {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: flex-end;
+	gap: var(--space-1) var(--space-2);
+	max-inline-size: 100%;
+	margin-inline-start: auto;
+}
+ex-section-item[record] .ex-choice-title-row:has(> .ex-record-option-title) {
+	display: grid;
+	align-items: start;
+	gap: var(--space-1) var(--space-2);
+}
+.ex-record-option-title {
+	grid-row: 1;
+	grid-column: 1;
+	min-inline-size: 0;
+	overflow-wrap: anywhere;
+}
+.ex-choice-title-row > .ex-record-detail-button {
+	grid-row: 1;
+	grid-column: 2;
+}
+.ex-record-option-metadata {
+	grid-row: 2;
+	grid-column: 1 / -1;
+	justify-self: start;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--space-1) var(--space-2);
+	min-inline-size: 0;
+	max-inline-size: 100%;
+	overflow-wrap: anywhere;
+}
+.ex-record-option-metadata > ex-badge {
+	white-space: nowrap;
+}
+.ex-choice-title-row .ex-record-option-metadata > .ex-record-option-mark {
+	margin-inline-start: 0;
+	font-weight: 400;
+}
+ex-section-item[record] .ex-choice-option {
+	--record-option-fill: color-mix(in srgb, var(--strong-bg) 40%, var(--surface-content));
+}
+ex-section-item[record] .ex-choice-option:not(:has(> input:checked)) {
+	background: var(--record-option-fill);
+}
+ex-section-item[record] .ex-choice-option:hover:not(:has(> input:checked)) {
+	background: color-mix(in srgb, var(--ink) 3%, var(--record-option-fill));
+}
+ex-section-item[record] .ex-record-detail-button {
+	background: transparent;
+}
+ex-section-item[record] .ex-record-detail-button:hover {
+	background: color-mix(in srgb, currentColor 10%, transparent);
+}
+/* The record surface sets the reading edge. Its comment controls sit beside that edge. */
+ex-section-item[record] > .ex-bound-choice,
+ex-section-item[record] > div.ex-record-surface > .ex-bound-choice {
+	--choice-stack-width: var(--record-surface-width);
+}
+ex-section-item[record] .ex-bound-choice.ex-choice-cards > fieldset {
+	padding-inline-end: 0;
+}
+ex-section-item[record]
+	ex-mermaid.ex-inspectable:not([data-comment-gutter-offscreen])
+	> .ex-inspect-controls:not([hidden]) {
+	opacity: 1;
+	pointer-events: auto;
+}
+.ex-record-statement {
+	margin-block: 0 var(--space-3);
+}
+@media (max-width: 760px), (hover: none) {
+	[data-show-comment-markers] ex-section-item[record] ex-option.ex-choice-option {
+		padding-inline-end: calc(var(--space-8) + var(--space-4));
+	}
+	ex-section-item[record]
+		ex-choice.ex-choice-cards
+		ex-option.ex-choice-option
+		> .ex-entity-comment {
+		inset-inline-start: auto;
+		inset-inline-end: var(--space-2);
+	}
+}
+.ex-record-choice-context {
+	isolation: isolate;
+}
+.ex-record-choice-context::before {
+	content: '';
+	position: absolute;
+	z-index: -1;
+	inset: 0 auto auto 0;
+	box-sizing: border-box;
+	inline-size: min(100%, var(--record-surface-width));
+	block-size: var(--record-choice-context-height, 0px);
+	border: 1px solid var(--rule);
+	border-radius: var(--radius-md);
+	background: var(--surface-record);
+	pointer-events: none;
+}
+.ex-record-choice-context > fieldset > .ex-record-choice-context-part {
+	box-sizing: border-box;
+	max-inline-size: var(--record-surface-width);
+	padding-inline: var(--space-4);
+}
+.ex-record-choice-context > fieldset > legend.ex-record-choice-context-part {
+	padding-block-start: var(--space-4);
+}
+.ex-record-choice-context > fieldset > .ex-record-choice-context-end {
+	padding-block-end: var(--space-4);
+}
+
+.ex-record-choice-context > fieldset > table.ex-record-choice-context-part {
+	--table-header-background: color-mix(in srgb, var(--ink) 8%, var(--surface-record));
+	--table-border: var(--rule);
+	inline-size: calc(100% - 2 * var(--space-4));
+	max-inline-size: calc(var(--record-surface-width) - 2 * var(--space-4));
+	margin-inline: var(--space-4);
+	padding-inline: 0;
+}
+
+.ex-record-choice-context > fieldset > table.ex-record-choice-context-part > tbody {
+	background: var(--surface-record);
+}
+.ex-record-choice-context
+	> fieldset
+	> table.ex-record-choice-context-part
+	> tbody
+	> tr:nth-child(even) {
+	background: color-mix(in srgb, var(--ink) 3%, var(--surface-record));
 }

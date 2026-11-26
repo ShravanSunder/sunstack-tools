@@ -13,7 +13,7 @@ Pages are separate HTML documents. Tabs switch peer views in one place. A native
 
 Use the supplied library base, normally `https://demistify.getagentstudio.dev/v1/`. Read `authoring/SKILL.md` from that base once; use its API and keep theme, runtime and CLI on that same base. Do not reload the guide recursively or audit release hashes for routine authoring. Experimental v1 can change. A source preview uses its matching local build and names absent release metadata instead of claiming a published binding.
 
-IF the supplied content contains actual secrets or credentials, real personal or customer records or security-sensitive detail, or the user, its source markings or an applicable handling policy classify it private, load the runtime-trust section of `references/content.md` before writing the shell and return the trusted binding and opening method it names.
+IF the supplied content contains actual secrets or credentials, real personal or customer records or security-sensitive detail, or the user, its source markings or an applicable handling policy classify it private, load `references/runtime-trust.md` before writing the shell and return the trusted binding and opening method it names.
 
 ```html
 <!doctype html>
@@ -37,7 +37,11 @@ IF the supplied content contains actual secrets or credentials, real personal or
 
 Ordinary `ex-document` pages always get Comments automatically, initially closed, with a page-address identity, a content fingerprint and targets for semantic content. Author no feedback tag, page name/version or paragraph labels. Choose an explicit identity or revision only when its namespace consequence is intended.
 
-MUST load `references/content.md` and return the actual source carriers, image/data references and intended delivery method. A reader can double-click a prepared HTML file: HTTPS library assets need the network, not a local application/server. Sibling Markdown/JSON fetches need HTTP or author-time embedding. Keep relative page/image paths intact. Offline delivery also needs the complete matching library; two copied asset files are insufficient.
+MUST load `references/content.md` and return the source carriers, image/data references and delivery method.
+
+IF the reader needs a local HTTP review, load `references/local-review.md` and return the command and usable loopback address.
+
+IF the reader will open the HTML from disk, or Markdown contains a closing-script delimiter, load `references/double-click.md` and return the prepared file and any assets it still needs.
 
 Completion: the binding and opening method are concrete, supplied sources are preserved, and every required fetch can work through that method.
 
@@ -53,6 +57,7 @@ For each matching condition below, load the named reference and return its autho
 | A card, consequential callout or reported number | `references/cards-and-callouts.md` | Meaningful units, tones/icons and truthful recommendation/chosen states |
 | The reader must select answers, attach feedback or override review identity | `references/choices-and-comments.md` | Requested response/feedback arrangement, default or overridden identities and binding, optional supporting details and intended interactions |
 | A compact status or identity, exact progress count or named phase comparison | `references/small-parts.md` | Supported parts, the complete combined-row recipe when requested, truthful boundaries, stable phase slots and exact supplied values |
+| Typed design records, their placements, deliverables or a deliverable brief | `references/typed-design.md` | The record IDs and where each is placed, the authored TypeScript and HTML files, the `design check` or `initiative check` result, and any `brief` a helper receives |
 | Pages, heading links, breadcrumbs or collection search | `references/navigation.md` | Native page links, stable targets and current collection index when needed |
 | Sidebar/fullscreen inspection, including a visual's default controls | `references/inspection.md` | Inspection choice and return/state behavior |
 | A large bottom workspace beside Comments, such as related documents | `references/inspection.md` | Drawer markup, its initial state and lifecycle, and who reopens it after a close |
@@ -64,10 +69,13 @@ For each matching condition below, load the named reference and return its autho
 | Alternatives on corresponding topics | `references/comparisons.md` | Matching topic keys, authored columns/tabs and natural content height |
 | Hierarchy, file paths or a literal text drawing | `references/trees.md` | Shared or independent Tree, File Tree, or exact text |
 | An ordered explanation with expandable evidence | `references/traces.md` | Native step disclosures with source/observation status |
-| A page-level `ex-map` reader panel, an `ex-story` account with labelled rows and a supporting record, or `ex-section` story scopes | `references/stories.md` | The supported composition, authored fields and states, and stable destinations |
+| A page-level `ex-map` reader panel, an `ex-story` account with labelled rows and a supporting record, or empty section declarations with sibling section items | `references/stories.md` | The supported composition, authored fields and states, and stable destinations |
 | Source-derived call-path changes | `references/call-paths.md` | Calls, branches and unknown execution kept distinct |
-| A supplied call stack | `references/design-documents.md` | Visible owner pages, need/frame/stack mapping, call-stack markup and preparation/check result |
+| An HTML or Markdown table | `references/tables.md` | The table’s headers and local scrolling surface |
+| A disclosure for optional detail | `references/optional-detail.md` | Summary, content and initial state |
 | A supplied Explorer graph document | `references/explorers.md` | Original graph data, real selection IDs and source-backed views |
+
+Existing pages using `ex-call-stack` keep working. For new source-derived call paths, load `references/call-paths.md` and use Trace.
 
 Completion: selected constructs answer the reader's task, their references were applied, and every construct is supported by the chosen binding.
 
@@ -85,7 +93,11 @@ Completion: facts occur once, navigation resolves to the intended content, and p
 
 ## 4. Lint the final files once
 
-Run the CLI shipped at the page's library binding (Node 26+). Copy the exact CLI URL printed in this binding's current published guide; do not construct the archive filename from the binding root:
+Run the CLI shipped at the page's library binding (Node 26+). Copy the exact CLI URL printed in this binding's current published guide; do not construct the archive filename from the binding root.
+
+For **typed design sources**, keep the same CLI package prefix shown below and use `design check <project>` or `initiative check <initiative>` in place of `check /path/page.html`. The typed check validates prepared pages in memory and is the final lint command for those pages.
+
+For **ordinary standalone HTML**, use these raw HTML check examples:
 
 <!-- Release staging binds the logical archive filename below to the built archive's content hash. -->
 
@@ -94,9 +106,11 @@ pnpm dlx https://demistify.getagentstudio.dev/v1/demistify-cli.tgz check /path/p
 # Or: npx --yes --package=https://demistify.getagentstudio.dev/v1/demistify-cli.tgz demistify check /path/page.html
 ```
 
-Use the same base as the runtime and theme. List the HTML files changed by this task in one invocation. Fix reported errors in the authoring source; rerun only after a correction. Warnings are advice, not an automatic zero-warning gate. Keep supplied facts, source files and relative links intact.
+Use the same base as the runtime and theme. For ordinary standalone HTML, list the changed HTML files in one `check` invocation. `check` also takes pages of a typed design or initiative, and their folders: a page that binds generated design data, or a folder with `design.ts` or `initiative.ts`, runs that tree's typed check once (pass `--site-root` and `--write` as for `design check` or `initiative check`), and every other page gets the page check. Fix reported errors in the authoring source; rerun only after a correction. Warnings are advice, not an automatic zero-warning gate. Keep supplied facts, source files and relative links intact.
 
 Routine document authoring ends with this source check. Do not install or launch Playwright, Chrome, another browser, a preview server or a device/theme matrix to certify shared components. Browser inspection is only for an explicit user request or diagnosing a concrete rendering/interaction defect; inspect the affected view only. Component regression verification belongs to library development. This workflow policy also governs the component references below.
+
+IF the user explicitly requests a rendering check or you are diagnosing a concrete rendering defect, load `references/render-check.md` and return the affected page, viewport and observed result.
 
 A source check does not establish visual or interaction behavior. Report a failed command or unavailable tool plainly; do not turn routine authoring into a browser-proof task or claim unobserved behavior.
 

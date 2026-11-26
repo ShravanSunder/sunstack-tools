@@ -5,12 +5,12 @@ import { subjectIcons } from './subject-icons.ts';
 
 const navigationId = z.string().regex(/^[A-Za-z][A-Za-z0-9-]*$/);
 const navigationIcon = z.enum(subjectIcons);
-const navigationTargetSchema = z.strictObject({
+export const navigationTargetSchema = z.strictObject({
 	page: navigationId,
 	fragment: z.string().min(1).optional(),
 });
 
-const sharedMapNodeSchema = z.strictObject({
+export const sharedMapNodeSchema = z.strictObject({
 	title: z.string().min(1),
 	description: z.string().min(1),
 	icon: navigationIcon,
@@ -18,6 +18,19 @@ const sharedMapNodeSchema = z.strictObject({
 	get children(): z.ZodDefault<z.ZodArray<typeof sharedMapNodeSchema>> {
 		return z.array(sharedMapNodeSchema).default([]);
 	},
+});
+
+export const sharedWalkthroughStepSchema = z.strictObject({
+	target: navigationTargetSchema.optional(),
+	narration: z.string().min(1),
+	icon: navigationIcon.optional(),
+});
+
+export const sharedWalkthroughSchema = z.strictObject({
+	id: navigationId,
+	title: z.string().min(1),
+	description: z.string().min(1),
+	steps: z.array(sharedWalkthroughStepSchema).min(1),
 });
 
 /** One source owns collection menus, semantic relationships and ordered explanatory paths. */
@@ -35,24 +48,7 @@ export const sharedNavigationSchema = z
 			)
 			.min(1),
 		map: z.array(sharedMapNodeSchema).default([]),
-		walkthroughs: z
-			.array(
-				z.strictObject({
-					id: navigationId,
-					title: z.string().min(1),
-					description: z.string().min(1),
-					steps: z
-						.array(
-							z.strictObject({
-								target: navigationTargetSchema,
-								narration: z.string().min(1),
-								icon: navigationIcon.optional(),
-							}),
-						)
-						.min(1),
-				}),
-			)
-			.default([]),
+		walkthroughs: z.array(sharedWalkthroughSchema).default([]),
 	})
 	.superRefine((navigation, context): void => {
 		const pageIds = new Set<string>();
@@ -75,7 +71,7 @@ export const sharedNavigationSchema = z
 			if (routeIds.has(route.id))
 				context.addIssue({ code: 'custom', message: `Duplicate walkthrough id: ${route.id}` });
 			routeIds.add(route.id);
-			for (const step of route.steps) checkTarget(step.target);
+			for (const step of route.steps) if (step.target) checkTarget(step.target);
 		}
 	});
 

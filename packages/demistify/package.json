@@ -1,6 +1,6 @@
 {
 	"name": "@sunstack/demistify",
-	"version": "1.25.3",
+	"version": "1.38.2",
 	"private": true,
 	"description": "Composable visual documents using native Web Components",
 	"bin": {
@@ -35,6 +35,7 @@
 		"zod": "4.6.6"
 	},
 	"devDependencies": {
-		"subset-font": "2.4.0"
+		"subset-font": "2.4.0",
+		"typescript": "5.9.3"
 	}
 }

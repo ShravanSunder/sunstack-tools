@@ -15,6 +15,8 @@ Mermaid diagrams offer only the fullscreen (arrows-out) icon. Code, file trees a
 
 Use `label` for a useful inspector name when the visual alone has no clear title. `zoom="true"` is not the flag syntax; write bare `zoom` on a supported owner. Native `details` remain a local disclosure, not an inspector or a guided path. Whole Tabs inspection can serve a different question from its children's controls; Grid/Flow authors inspect supported children rather than adding a container affordance.
 
+For a Card attachment that belongs in the inspector, use a direct child with `slot="details"`. The Card keeps that child hidden inline and exposes it through **More**. With `zoom="none"`, the Card leaves the child’s authored visibility in place.
+
 Clicking an ordinary image opens fullscreen with its caption. Mermaid opens fullscreen only through its arrows-out icon; clicking the drawing does not open inspection. Closing fullscreen restores the original content. Linked images and diagram nodes keep their link action; dragging to select text does not open a viewer. Explicit sidebar buttons still open beside the explanation. `zoom="none"` on the visual owner disables direct enlargement as well as its inspection buttons. Gallery screenshots use their own fullscreen action and Gallery arrow navigation; they do not open a screenshot inspection sidebar. `pictures.md` owns that branch. Markdown's source button opens the retained source, which is different from enlarging its rendered view.
 
 ## What the reader can do
@@ -42,7 +44,7 @@ Use `ex-drawer` for a large bottom workspace that stays interactive beside Comme
 
 Its lifecycle:
 
-- A static `open` attribute shows it when the page loads; without `open` it starts hidden.
+- A static `open` attribute shows it when the page loads; without `open` it starts hidden. The drawer supplies a visible Close button in its header.
 - Escape closes the latest workspace unless a control inside it used the key first. Closing returns focus to where it came from and fires a `close` event.
 - Nothing in plain document markup opens it later or reopens it after a close. Triggering is application-embedding API: a page controller calls `drawer.show()` and `drawer.close()`, or toggles `open`, and listens for `close` to restore its own view state. An ordinary declarative document adds no such script. When nothing on the page can reopen the drawer and readers must reach its content again after closing it, put that content in the document flow or a native disclosure instead of the drawer, so the page keeps one copy of it and its IDs.
 - `size="content"` opens a detail sheet above its parent workspace, while a large workspace closes the others. Opening one from a modal enlargement first returns that content to its document.

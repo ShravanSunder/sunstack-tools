@@ -1,4 +1,5 @@
 import { documentIdentitySchema, type DocumentIdentity } from './review-model.ts';
+import { sectionForReviewWrapper } from './section-membership.ts';
 
 export type ReviewSourceResult =
 	| { readonly kind: 'loaded'; readonly source: string }
@@ -11,11 +12,36 @@ interface ReviewDocumentSource {
 const documentSources = new WeakMap<HTMLElement, ReviewDocumentSource>();
 const sourceLoads = new WeakMap<HTMLElement, Promise<ReviewSourceResult>>();
 const inspectionCopy = '[data-inspector-copy],[data-inspector-content]';
+const placedSectionItems = 'ex-section > ex-section-item[section]';
+
+function reviewSourceMarkup(root: HTMLElement): string {
+	const displayTitles =
+		'ex-section-item[record] > .ex-record-surface > [data-record-display-title]';
+	if (
+		![...root.querySelectorAll(placedSectionItems)].some(sectionForReviewWrapper) &&
+		!root.querySelector(displayTitles)
+	)
+		return root.outerHTML;
+	// Reconstruct the old authored section body for the revision hash.
+	const copy = root.cloneNode(true);
+	if (!(copy instanceof HTMLElement)) return root.outerHTML;
+	for (const item of copy.querySelectorAll(placedSectionItems)) {
+		if (sectionForReviewWrapper(item)) item.replaceWith(...item.childNodes);
+	}
+	for (const title of copy.querySelectorAll(displayTitles)) {
+		const statement = title.parentElement?.querySelector(':scope > [data-record-statement]');
+		if (!statement) continue;
+		title.textContent = statement.textContent;
+		title.removeAttribute('data-record-display-title');
+		statement.remove();
+	}
+	return copy.outerHTML;
+}
 
 /** Capture source before upgrades replace it with rendered views and transient controls. */
 export function captureReviewDocument(root: HTMLElement): void {
 	if (root.closest(inspectionCopy) || documentSources.has(root)) return;
-	const markup = root.outerHTML;
+	const markup = reviewSourceMarkup(root);
 	if (!root.id) {
 		let index = 1;
 		while (root.ownerDocument.getElementById(`ex-content${index === 1 ? '' : `-${index}`}`))
@@ -24,7 +50,7 @@ export function captureReviewDocument(root: HTMLElement): void {
 	}
 	const inputs = [
 		...root.querySelectorAll<HTMLElement>(
-			'ex-markdown[src]:not([prepared]),ex-explorer[src],ex-call-stack',
+			'ex-markdown[src]:not([prepared]),ex-explorer[src],ex-call-stack,ex-deliverables[src]',
 		),
 	].filter((element): boolean => !element.closest(inspectionCopy));
 	documentSources.set(root, { markup, inputs });

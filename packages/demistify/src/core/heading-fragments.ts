@@ -9,6 +9,13 @@ export function headingSlug(label: string): string {
 	);
 }
 
+export function availableHeadingFragment(base: string, taken: (id: string) => boolean): string {
+	let id = base;
+	let suffix = 1;
+	while (taken(id)) id = `${base}-${++suffix}`;
+	return id;
+}
+
 export function assignHeadingFragments(root: HTMLElement): void {
 	const localFragments = new Map<string, string>();
 	const assignedIds = new Set(
@@ -21,15 +28,11 @@ export function assignHeadingFragments(root: HTMLElement): void {
 		if (!heading.id) {
 			const base =
 				root.localName === 'ex-markdown' && root.id ? `${root.id}--${slug}` : `heading-${slug}`;
-			heading.id = base;
-			let suffix = 1;
 			// Retained author content can finish rendering while detached from the document.
-			while (
-				assignedIds.has(heading.id) ||
-				(root.ownerDocument.getElementById(heading.id) !== null &&
-					root.ownerDocument.getElementById(heading.id) !== heading)
-			)
-				heading.id = `${base}-${++suffix}`;
+			heading.id = availableHeadingFragment(base, (id): boolean => {
+				const existing = root.ownerDocument.getElementById(id);
+				return assignedIds.has(id) || (existing !== null && existing !== heading);
+			});
 		}
 		assignedIds.add(heading.id);
 		if (!localFragments.has(slug)) localFragments.set(slug, heading.id);

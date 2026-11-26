@@ -5,6 +5,7 @@ export async function openFixture(
 	name:
 		| 'navigation'
 		| 'layout'
+		| 'capabilities'
 		| 'embedded'
 		| 'gallery'
 		| 'ui'

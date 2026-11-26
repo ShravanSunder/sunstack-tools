@@ -11,6 +11,38 @@ test('the public choice and identified Comments markup checks without warnings',
 	expect(await checkHtml(page, { diagrams: false })).toEqual([]);
 });
 
+const recordChoice = `<ex-choice>
+	<template data-record-body><p>What changed since the last decision.</p></template>
+	<ex-option data-option="layout"><template slot="summary">Review the layout.</template></ex-option>
+</ex-choice>`;
+const sectionChoice = page.replace(
+	/<ex-choice.*<\/ex-choice>/u,
+	`<ex-section id="open-decisions" title="For you to decide" holds="needs-owner"></ex-section>
+	<ex-section-item record="project/D40">${recordChoice}</ex-section-item>`,
+);
+
+test('the standalone checker accepts a typed section choice with record-owned titles and IDs', async (): Promise<void> => {
+	expect(await checkHtml(sectionChoice, { diagrams: false })).toEqual([]);
+});
+
+test.each([
+	['Review the layout.', 'one nonempty template slot="summary"'],
+	[' data-option="layout"', 'nonempty data-option'],
+])(
+	'the standalone checker retains typed option validation',
+	async (removed, message): Promise<void> => {
+		const findings = await checkHtml(sectionChoice.replace(removed, ''), { diagrams: false });
+		expect(findings.map(({ rule }) => rule)).toEqual(['choice']);
+		expect(findings[0]?.message).toContain(message);
+	},
+);
+
+test('the standalone checker still requires authored titles for a plain choice', async (): Promise<void> => {
+	const invalid = page.replace(' title="Which scope?"', '').replace(' title="**Layout** only"', '');
+	const findings = await checkHtml(invalid, { diagrams: false });
+	expect(findings.map(({ rule }) => rule)).toEqual(['attribute', 'attribute', 'choice-title']);
+});
+
 test('Comments derives missing metadata without author setup', async (): Promise<void> => {
 	expect(
 		await checkHtml(page.replace('document-id="scope" revision="r1"', ''), { diagrams: false }),

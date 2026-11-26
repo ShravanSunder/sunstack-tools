@@ -166,7 +166,9 @@ export class TreeIsland extends HTMLElement {
 					button.className = 'ex-icon-button ex-tree-details-button';
 					button.dataset['exTreeDetail'] = detail;
 					button.setAttribute('aria-label', `Open details for ${node.title}`);
-					button.append(createPhosphorIcon('article'), 'Details');
+					button.setAttribute('aria-haspopup', 'dialog');
+					button.title = 'Details';
+					button.append(createPhosphorIcon('article'));
 					titleRow.append(button);
 				}
 			}
@@ -250,7 +252,7 @@ export class TreeIsland extends HTMLElement {
 		const detailsButton = event.target.closest<HTMLButtonElement>('button[data-ex-tree-detail]');
 		if (detailsButton) {
 			const target = document.getElementById(detailsButton.dataset['exTreeDetail'] ?? '');
-			if (target && !this.contains(target) && !target.contains(this)) openIsland(target, 'sidebar');
+			if (target && !this.contains(target) && !target.contains(this)) openIsland(target, 'modal');
 			else reportIssue(this, 'Tree Details section is unavailable.');
 			return;
 		}

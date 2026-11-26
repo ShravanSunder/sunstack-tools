@@ -65,7 +65,7 @@ export async function checkSharedNavigation(props: {
 	};
 	for (const node of navigation.map) visit(node);
 	for (const route of navigation.walkthroughs)
-		for (const step of route.steps) targets.push(step.target);
+		for (const step of route.steps) if (step.target) targets.push(step.target);
 	const checked = new Set<string>();
 	for (const target of targets) {
 		const key = `${target.page}#${target.fragment ?? ''}`;
