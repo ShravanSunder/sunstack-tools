@@ -1,12 +1,14 @@
 #!/usr/bin/env node
 /**
- * demistify check [--fix] [--render] [--no-diagrams] [--site-root <dir>] [--write] <page.html | directory …>
+ * demistify check [--fix] [--render] [--no-diagrams] [--site-root <dir>] [--write] [--json] <page.html | directory …>
  *   A directory with initiative.ts or design.ts, or a page that binds generated design data, gets
  *   that tree's typed check (once per tree). A typed page outside any tree is a published copy and,
  *   like every other page, gets the page check.
  * demistify check --hook      (Claude Code PostToolUse hook: reads the hook event from stdin)
  *
  * Prints one line per problem: file:line:col severity rule: message. Exits 1 when any error remains.
+ * With --json it prints one object instead: error and warning counts, each typed tree's error,
+ * warnings and report, published copies, each page's findings and any render findings.
  * In hook mode it stays silent on clean or non-explainer files, and otherwise prints the problems to
  * stderr and exits 2 so the agent sees them and fixes the page.
  */
@@ -23,6 +25,69 @@ import { embedMarkdownFiles, markdownFileReferences } from '../src/node/markdown
 const write = (text: string): void => {
 	if (text) process.stdout.write(`${text}\n`);
 };
+
+/** Options `answer` and `add` take, under `initiative` and under `design`. */
+const recordEditOptions = {
+	'site-root': { type: 'string' },
+	write: { type: 'boolean' },
+	'decided-on': { type: 'string' },
+	namespace: { type: 'string' },
+	page: { type: 'string' },
+	words: { type: 'string' },
+	author: { type: 'string' },
+} as const;
+
+interface RecordEditValues {
+	readonly 'site-root'?: string | undefined;
+	readonly write?: boolean | undefined;
+	readonly 'decided-on'?: string | undefined;
+	readonly namespace?: string | undefined;
+	readonly page?: string | undefined;
+	readonly words?: string | undefined;
+	readonly author?: string | undefined;
+}
+
+/**
+ * Run `answer` or `add` on the initiative or standalone design set in the given directory.
+ * Returns undefined when the arguments don't fit, so the caller prints its usage.
+ */
+async function runRecordEdit(
+	action: 'answer' | 'add',
+	values: RecordEditValues,
+	positionals: readonly string[],
+): Promise<number | undefined> {
+	if (positionals.length < 1 || positionals.length > 2) return undefined;
+	if (action === 'answer') {
+		const [reviewFile = '-', directory = '.'] = positionals;
+		const reviewText =
+			reviewFile === '-' ? await readStreamText(process.stdin) : await readFile(reviewFile, 'utf8');
+		const { applyReviewAnswers } = await import('../src/node/design-authoring/review-answers.ts');
+		write(
+			await applyReviewAnswers(reviewText, directory, {
+				siteRoot: values['site-root'],
+				decidedOn: values['decided-on'],
+				write: values.write,
+			}),
+		);
+		return 0;
+	}
+	const [kind, directory = '.'] = positionals;
+	const { addRecord, scaffoldKinds } =
+		await import('../src/node/design-authoring/record-scaffold.ts');
+	const scaffoldKind = scaffoldKinds.find((candidate) => candidate === kind);
+	if (!scaffoldKind || !values.page) return undefined;
+	write(
+		await addRecord(scaffoldKind, directory, {
+			namespace: values.namespace,
+			page: values.page,
+			words: values.words,
+			author: values.author,
+			siteRoot: values['site-root'],
+			write: values.write,
+		}),
+	);
+	return 0;
+}
 
 async function readHookFile(): Promise<string | undefined> {
 	process.stdin.setEncoding('utf8');
@@ -100,42 +165,10 @@ async function main(): Promise<number> {
 			write(usage);
 			return 0;
 		}
-		if (action === 'answer' && positionals.length >= 1 && positionals.length <= 2 && !values.json) {
-			const [reviewFile = '-', answerDirectory = '.'] = positionals;
-			const reviewText =
-				reviewFile === '-'
-					? await readStreamText(process.stdin)
-					: await readFile(reviewFile, 'utf8');
-			const { applyReviewAnswers } = await import('../src/node/design-authoring/review-answers.ts');
-			write(
-				await applyReviewAnswers(reviewText, answerDirectory, {
-					siteRoot: values['site-root'],
-					decidedOn: values['decided-on'],
-					write: values.write,
-				}),
-			);
-			return 0;
-		}
-		if (action === 'add' && positionals.length >= 1 && positionals.length <= 2) {
-			const [kind, addDirectory = '.'] = positionals;
-			const { addRecord, scaffoldKinds } =
-				await import('../src/node/design-authoring/record-scaffold.ts');
-			const scaffoldKind = scaffoldKinds.find((candidate) => candidate === kind);
-			if (!scaffoldKind || !values.namespace || !values.page) {
-				write(usage);
-				return 1;
-			}
-			write(
-				await addRecord(scaffoldKind, addDirectory, {
-					namespace: values.namespace,
-					page: values.page,
-					words: values.words,
-					author: values.author,
-					siteRoot: values['site-root'],
-					write: values.write,
-				}),
-			);
-			return 0;
+		if ((action === 'answer' || action === 'add') && !values.json) {
+			const code = await runRecordEdit(action, values, positionals);
+			if (code === undefined) write(usage);
+			return code ?? 1;
 		}
 		const [directory = '.'] = positionals;
 		if (action === 'check' && positionals.length <= 1 && !values.json && !values['decided-on']) {
@@ -175,10 +208,24 @@ async function main(): Promise<number> {
 	if (command === 'design') {
 		const [action, ...args] = rest;
 		const usage =
-			'Usage: demistify design init [directory]\n       demistify design types [directory]\n       demistify design check [directory] [--site-root <directory>] [--write]';
+			'Usage: demistify design init [directory]\n       demistify design types [directory]\n       demistify design check [directory] [--site-root <directory>] [--write]\n       demistify design answer <review.md|-> [directory] [--site-root <directory>] [--decided-on <yyyy-mm-dd>] [--write]\n       demistify design add <choice|ruling|assumption> [directory] --page <page.html> [--words <owner words>] [--author <alias>] [--site-root <directory>] [--write]';
 		if (!action || action === '--help') {
 			write(usage);
 			return 0;
+		}
+		if (action === 'answer' || action === 'add') {
+			const { values, positionals } = parseArgs({
+				args,
+				allowPositionals: true,
+				options: { ...recordEditOptions, help: { type: 'boolean', short: 'h' } },
+			});
+			if (values.help) {
+				write(usage);
+				return 0;
+			}
+			const code = await runRecordEdit(action, values, positionals);
+			if (code === undefined) write(usage);
+			return code ?? 1;
 		}
 		const { values, positionals } = parseArgs({
 			args,
@@ -290,7 +337,7 @@ async function main(): Promise<number> {
 	}
 	if (command !== 'check') {
 		write(
-			'Usage: demistify check [--fix] [--render] [--no-diagrams] [--site-root <directory>] [--write] <page.html | directory …>\n       demistify check --hook\n       demistify open <page.html> [--site-root <directory>] [--no-browser]\n       demistify design --help\n       demistify brief <deliverable> [directory] [--site-root <directory>]\n       demistify initiative check [directory] [--site-root <directory>] [--write]\n       demistify initiative status [directory] [--site-root <directory>] [--json]\n       demistify initiative answer <review.md|-> [directory] [--site-root <directory>] [--decided-on <yyyy-mm-dd>] [--write]\n       demistify initiative add <choice|ruling|assumption> [directory] --namespace <initiative|project> --page <page.html> [--words <owner words>] [--author <alias>] [--site-root <directory>] [--write]',
+			'Usage: demistify check [--fix] [--render] [--no-diagrams] [--site-root <directory>] [--write] [--json] <page.html | directory …>\n       demistify check --hook\n       demistify open <page.html> [--site-root <directory>] [--no-browser]\n       demistify design --help\n       demistify brief <deliverable> [directory] [--site-root <directory>]\n       demistify initiative check [directory] [--site-root <directory>] [--write]\n       demistify initiative status [directory] [--site-root <directory>] [--json]\n       demistify initiative answer <review.md|-> [directory] [--site-root <directory>] [--decided-on <yyyy-mm-dd>] [--write]\n       demistify initiative add <choice|ruling|assumption> [directory] --namespace <initiative|project> --page <page.html> [--words <owner words>] [--author <alias>] [--site-root <directory>] [--write]',
 		);
 		return !command || ['--help', '-h', 'help'].includes(command) ? 0 : 1;
 	}
@@ -328,37 +375,42 @@ async function main(): Promise<number> {
 		write('Usage: demistify check <page.html | directory …>');
 		return 1;
 	}
+	const json = flags.has('--json');
+	const text = (line: string): void => {
+		if (!json) write(line);
+	};
 	const { routeCheckTargets } = await import('../src/node/check-routing.ts');
 	const routes = await routeCheckTargets(files);
 	let errors = 0;
 	let warnings = 0;
 	const treeReports = await Promise.all(
 		routes.trees.map(async (tree) => {
-			const label = `${relative(process.cwd(), tree.directory) || '.'} (${tree.kind} check for ${tree.inputs.join(', ')})`;
+			const directory = relative(process.cwd(), tree.directory) || '.';
+			const options = { siteRoot, write: flags.has('--write') };
 			try {
-				const result =
+				const build =
 					tree.kind === 'initiative'
 						? await (
 								await import('../src/node/design-authoring/check-initiative.ts')
-							).checkInitiative(tree.directory, { siteRoot, write: flags.has('--write') })
+							).buildInitiative(tree.directory, options)
 						: await (
 								await import('../src/node/design-authoring/check-design.ts')
-							).checkDesignSet(tree.directory, siteRoot, flags.has('--write'));
-				return { failed: false, text: `${label}:\n${result}` };
+							).buildDesignSet(tree.directory, options);
+				return { ...tree, directory, error: null, warnings: build.warnings, report: build.result };
 			} catch (error) {
-				return {
-					failed: true,
-					text: `${label}: error: ${error instanceof Error ? error.message : String(error)}`,
-				};
+				const message = error instanceof Error ? error.message : String(error);
+				return { ...tree, directory, error: message, warnings: [], report: '' };
 			}
 		}),
 	);
-	for (const report of treeReports) {
-		write(report.text);
-		if (report.failed) errors += 1;
+	for (const tree of treeReports) {
+		const label = `${tree.directory} (${tree.kind} check for ${tree.inputs.join(', ')})`;
+		text(tree.error === null ? `${label}:\n${tree.report}` : `${label}: error: ${tree.error}`);
+		if (tree.error !== null) errors += 1;
+		warnings += tree.warnings.length;
 	}
 	for (const page of routes.published)
-		write(
+		text(
 			`${page}: no initiative.ts or design.ts encloses it, so it gets the page check as a published copy.`,
 		);
 	const results = await Promise.all(
@@ -374,17 +426,24 @@ async function main(): Promise<number> {
 		}),
 	);
 	for (const { file, findings } of results) {
-		write(formatFindings(file, findings));
+		text(formatFindings(file, findings));
 		errors += findings.filter((finding): boolean => finding.severity === 'error').length;
 		warnings += findings.filter((finding): boolean => finding.severity === 'warning').length;
 	}
 	const htmlFiles = files.filter((file): boolean => file.endsWith('.html'));
+	const renderFindings: { file: string; width: number; severity: string; message: string }[] = [];
 	if (flags.has('--render') && htmlFiles.length > 0) {
 		const { renderCheck } = await import('../src/node/render-check.ts');
 		try {
 			for (const finding of await renderCheck(process.cwd(), htmlFiles)) {
 				const warning = finding.severity === 'warning';
-				write(
+				renderFindings.push({
+					file: finding.file,
+					width: finding.width,
+					severity: finding.severity,
+					message: finding.message,
+				});
+				text(
 					`${finding.file} render(${finding.width}px): ${warning ? 'warning: ' : ''}${finding.message}`,
 				);
 				if (warning) warnings += 1;
@@ -394,6 +453,36 @@ async function main(): Promise<number> {
 			process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
 			return 1;
 		}
+	}
+	if (json) {
+		write(
+			JSON.stringify(
+				{
+					errors,
+					warnings,
+					trees: treeReports.map((tree) => ({
+						kind: tree.kind,
+						directory: tree.directory,
+						inputs: tree.inputs,
+						error: tree.error,
+						warnings: tree.warnings,
+						report: tree.report,
+					})),
+					published: routes.published,
+					pages: results.map(({ file, findings }) => ({
+						file,
+						findings: findings.map(({ edit, ...finding }) => ({
+							...finding,
+							fixable: edit !== undefined,
+						})),
+					})),
+					render: renderFindings,
+				},
+				null,
+				2,
+			),
+		);
+		return errors > 0 ? 1 : 0;
 	}
 	const pageCount = routes.pages.length;
 	// Page-only runs keep their established summary; typed trees add their own count.

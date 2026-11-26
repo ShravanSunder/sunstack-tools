@@ -34,11 +34,27 @@ export function resolveDesignLink(
 	const pathname = decodeURIComponent(address.split('?')[0] ?? '');
 	const fragment = hash < 0 ? '' : decodeURIComponent(href.slice(hash + 1));
 	const file = pathname ? resolve(dirname(from), pathname) : from;
-	if (isAbsolute(pathname) || pathname.includes('\\') || !containsPath(siteRoot, file))
+	if (isAbsolute(pathname) || pathname.includes('\\'))
 		throw new Error(
 			`Relative link escapes the site root: ${href} from ${relative(siteRoot, from)}`,
 		);
+	if (!containsPath(siteRoot, file))
+		throw new Error(
+			`Relative link escapes the site root: ${href} from ${relative(siteRoot, from)}. Pass --site-root ${siteRootSuggestion(siteRoot, file)} so the root holds both files.`,
+		);
 	return { file, fragment };
+}
+
+/**
+ * The nearest folder holding both the current site root and the linked file: relative to the
+ * working directory when it sits inside it, otherwise absolute.
+ */
+function siteRootSuggestion(siteRoot: string, file: string): string {
+	let shared = resolve(siteRoot);
+	while (!containsPath(shared, file) && dirname(shared) !== shared) shared = dirname(shared);
+	const typed = relative(process.cwd(), shared);
+	if (typed === '') return '.';
+	return typed.startsWith('..') || isAbsolute(typed) ? shared : typed;
 }
 
 export function declaredDesignPagePath(href: string, from: string, siteRoot: string): string {

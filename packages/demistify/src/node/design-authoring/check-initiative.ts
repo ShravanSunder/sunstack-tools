@@ -16,6 +16,7 @@ import {
 	type DeliveryProjection,
 	type DeliveryViews,
 	designCheckNotes,
+	placeholderWarnings,
 	projectDelivery,
 } from './delivery-model.ts';
 import { compileDesignNavigation } from './design-navigation.ts';
@@ -231,6 +232,8 @@ interface InitiativeCheckOptions {
 export interface CheckedInitiativeBuild {
 	readonly projects: ReadonlyMap<string, string>;
 	readonly result: string;
+	/** Advice the check found, also printed in `result` as `Warning:` lines. */
+	readonly warnings: readonly string[];
 	readonly generated: ReadonlyMap<string, unknown>;
 	readonly preparedPages: ReadonlyMap<string, string>;
 	readonly design: DesignCore;
@@ -506,13 +509,17 @@ export async function buildInitiative(
 		);
 	else await check.verify();
 	const questions = projectDecisions(view.records).filter(({ status }) => status === 'Open');
-	const result = [
-		`Checked ${sets.length} project(s) by number: ${order.map((name) => `${manifest.projects[name]?.number ?? '?'} ${name}`).join(', ')}.`,
-		...orderWarnings(entries, manifest.projects).map((warning) => `Warning: ${warning}`),
+	const warnings = [
+		...orderWarnings(entries, manifest.projects),
 		...unregisteredPages.map(
 			(page) =>
-				`Warning: ${page} binds design records, but no design.ts or initiative.ts registers it; its records stay empty. Add it to initiative.ts pages or its project's design.ts.`,
+				`${page} binds design records, but no design.ts or initiative.ts registers it; its records stay empty. Add it to initiative.ts pages or its project's design.ts.`,
 		),
+		...placeholderWarnings(design.records),
+	];
+	const result = [
+		`Checked ${sets.length} project(s) by number: ${order.map((name) => `${manifest.projects[name]?.number ?? '?'} ${name}`).join(', ')}.`,
+		...warnings.map((warning) => `Warning: ${warning}`),
 		options.write ? 'Generated views refreshed.' : 'Read-only check.',
 		...(options.write ? [] : await generatedViewNotes('initiative', generated, recordOutputs)),
 		...(questions.length
@@ -529,6 +536,7 @@ export async function buildInitiative(
 	].join('\n');
 	return {
 		result,
+		warnings,
 		generated,
 		preparedPages,
 		design,

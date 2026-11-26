@@ -1,7 +1,5 @@
 import { readFile, writeFile } from 'node:fs/promises';
 
-import { buildInitiative } from './check-initiative.ts';
-
 /** Replace `start..end` of a file's text; an insertion has `start === end`. */
 export interface TextEdit {
 	readonly start: number;
@@ -77,14 +75,13 @@ export function paragraphBeforeDocumentEnd(
 }
 
 /**
- * Write every edit, then run `initiative check --write`. When the check fails, restore
- * each changed file to the text the edits were planned against.
+ * Write every edit, then run the tree's own check with `--write` (`checkAndWrite`). When
+ * the check fails, restore each changed file to the text the edits were planned against.
  */
 export async function applyEditsThenCheck(
-	root: string,
 	edits: ReadonlyMap<string, readonly TextEdit[]>,
 	textOf: (file: string) => Promise<string>,
-	siteRoot: string | undefined,
+	checkAndWrite: () => Promise<string>,
 ): Promise<string> {
 	const originals = new Map(
 		await Promise.all([...edits.keys()].map(async (file) => [file, await textOf(file)] as const)),
@@ -98,7 +95,7 @@ export async function applyEditsThenCheck(
 		}),
 	);
 	try {
-		return (await buildInitiative(root, { siteRoot, write: true })).result;
+		return await checkAndWrite();
 	} catch (error) {
 		await Promise.all([...originals].map(([file, text]) => writeFile(file, text)));
 		throw new Error(

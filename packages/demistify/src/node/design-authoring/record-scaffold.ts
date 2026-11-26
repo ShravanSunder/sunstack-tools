@@ -1,5 +1,5 @@
 import { realpath } from 'node:fs/promises';
-import { dirname, join, relative, resolve } from 'node:path';
+import { relative, resolve } from 'node:path';
 
 import typescript from 'typescript';
 
@@ -9,19 +9,16 @@ import {
 	decisionRecord,
 } from '../../core/decision-record.ts';
 import { escapeHtml } from '../../core/html-text.ts';
-import { buildInitiative } from './check-initiative.ts';
+import { openEditableTree } from './editable-tree.ts';
+import { unwrapExpression } from './read-design.ts';
 import {
 	applyEditsThenCheck,
 	formatLiteral,
 	localDate,
 	paragraphBeforeDocumentEnd,
-	readOptionalText,
-	readText,
 	type TextEdit,
 	textCache,
-} from './initiative-edits.ts';
-import { unwrapExpression } from './read-design.ts';
-import { readInitiativeManifest } from './read-initiative.ts';
+} from './record-edits.ts';
 import { relativePage } from './record-projection.ts';
 import { requiredSectionHolds } from './section-layout.ts';
 
@@ -29,8 +26,8 @@ export const scaffoldKinds = ['choice', 'ruling', 'assumption'] as const;
 type ScaffoldKind = (typeof scaffoldKinds)[number];
 
 interface AddRecordOptions {
-	/** `initiative` or a project name from initiative.ts. */
-	readonly namespace: string;
+	/** In an initiative, `initiative` or a project name from initiative.ts; a design set has none. */
+	readonly namespace?: string | undefined;
 	/** The page that places the record, relative to the working directory. */
 	readonly page: string;
 	/** The owner's exact words that prompted the record. */
@@ -39,31 +36,6 @@ interface AddRecordOptions {
 	readonly author?: string | undefined;
 	readonly siteRoot?: string | undefined;
 	readonly write?: boolean | undefined;
-}
-
-/** The record file and the directory its links resolve from. */
-async function targetRecordFile(
-	root: string,
-	namespace: string,
-	kind: ScaffoldKind,
-	projects: ReadonlyMap<string, string>,
-): Promise<{ file: string; base: string; projectDirectory?: string }> {
-	const field = kind === 'assumption' ? 'assumptions' : 'decisions';
-	if (namespace === 'initiative') {
-		const initiativeFile = join(root, 'initiative.ts');
-		const manifest = readInitiativeManifest(initiativeFile, await readText(initiativeFile));
-		const file = manifest[field];
-		if (!file) throw new Error(`initiative.ts registers no ${field} file; add one first.`);
-		return { file, base: dirname(file) };
-	}
-	const directory = [...projects].find(([, name]) => name === namespace)?.[0];
-	if (!directory) throw new Error(`No project named ${namespace} in this initiative.`);
-	const file = join(directory, `design-${field}.ts`);
-	if ((await readOptionalText(file)) === undefined)
-		throw new Error(
-			`${relative(root, file)} does not exist. Create it with \`export default [];\`, or add the record by hand to another record file.`,
-		);
-	return { file, base: directory, projectDirectory: directory };
 }
 
 const recordHelpers: Readonly<Record<ScaffoldKind, string>> = {
@@ -164,26 +136,26 @@ export async function addRecord(
 		throw new Error('An assumption needs --author <alias> for the agent who holds it.');
 	if (kind === 'ruling' && !worded && !options.author)
 		throw new Error("An agent's ruling needs --author <alias>, or --words with the owner's words.");
-	const root = await realpath(resolve(directory));
+	const tree = await openEditableTree(directory, options.siteRoot);
+	const { root } = tree;
 	const pageFile = await realpath(resolve(options.page));
-	const build = await buildInitiative(root, { siteRoot: options.siteRoot });
 	const { namespace } = options;
 	const prefix = kind === 'assumption' ? 'A' : 'D';
-	const taken = build.design.records
-		.filter(({ id }) => id.startsWith(`${namespace}/`))
-		.map(({ id }) => new RegExp(`^${prefix}(\\d+)$`, 'u').exec(id.slice(namespace.length + 1)))
+	const taken = tree.records
+		.map(({ id }) => tree.split(id))
+		.filter((parts) => parts.namespace === namespace)
+		.map(({ localId }) => new RegExp(`^${prefix}(\\d+)$`, 'u').exec(localId))
 		.map((match) => (match?.[1] ? Number(match[1]) : 0));
 	const localId = `${prefix}${Math.max(0, ...taken) + 1}`;
-	const id = `${namespace}/${localId}`;
-	const { file, base, projectDirectory } = await targetRecordFile(
-		root,
+	const id = tree.qualify(namespace, localId);
+	const { file, base, localDirectory } = await tree.newRecordFile(
 		namespace,
-		kind,
-		build.projects,
+		kind === 'assumption' ? 'assumptions' : 'decisions',
 	);
-	const insideProject =
-		projectDirectory !== undefined && !relative(projectDirectory, pageFile).startsWith('..');
-	const reference = insideProject ? localId : id;
+	// A page inside the record's own project or design set names it by its local ID.
+	const insideLocal =
+		localDirectory !== undefined && !relative(localDirectory, pageFile).startsWith('..');
+	const reference = insideLocal ? localId : id;
 
 	const textOf = textCache();
 	const pageText = await textOf(pageFile);
@@ -294,6 +266,6 @@ export async function addRecord(
 		return [...report, 'Preview only; nothing written. Run again with --write to apply.'].join(
 			'\n',
 		);
-	const checked = await applyEditsThenCheck(root, edits, textOf, options.siteRoot);
+	const checked = await applyEditsThenCheck(edits, textOf, tree.checkAndWrite);
 	return [...report, 'Added.', checked].join('\n');
 }

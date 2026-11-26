@@ -10,6 +10,7 @@ import { containsPath } from '../local-site.ts';
 import {
 	designCheckNotes,
 	parseDeliveryEntries,
+	placeholderWarnings,
 	projectDelivery,
 	type DeliveryEntry,
 	type DeliveryProjection,
@@ -169,10 +170,14 @@ interface DesignPlan {
 }
 
 export interface CheckedDesignBuild extends DesignPlan {
+	/** Advice the check found, also printed in `result` as `Warning:` lines. */
+	readonly warnings: readonly string[];
 	readonly preparedPages: ReadonlyMap<string, string>;
 	readonly design: DesignCore;
 	readonly entries: readonly DeliveryEntry[];
 	readonly delivery: DeliveryProjection;
+	/** Record ID to the page and fragment that place it. */
+	readonly placements: RecordProjection['placements'];
 }
 
 interface DesignCheck {
@@ -668,17 +673,21 @@ export async function buildDesignSet(
 			await designIgnoreDirectory(set.directory),
 		);
 	else await check.verify();
+	const warnings = placeholderWarnings(design.records);
 	return {
 		...plan,
 		result: [
 			plan.result,
+			...warnings.map((warning) => `Warning: ${warning}`),
 			...(options.write ? [] : await generatedViewNotes('design', plan.generated, recordOutputs)),
 			...designCheckNotes(design.records, delivery),
 		].join('\n'),
+		warnings,
 		design,
 		entries,
 		preparedPages,
 		delivery,
+		placements: projection.placements,
 	};
 }
 
