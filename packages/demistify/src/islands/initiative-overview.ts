@@ -162,7 +162,7 @@ function renderDelivery(
 
 const projectStateLabels = {
 	accepted: 'Accepted',
-	'dependency-blocked': 'Blocked on prerequisite',
+	'dependency-blocked': 'Blocked by a deliverable',
 	'design-blocked': 'Blocked by design',
 	'in-progress': 'In progress',
 	planned: 'Planned',

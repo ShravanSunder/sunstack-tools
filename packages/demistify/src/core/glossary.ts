@@ -32,7 +32,7 @@ export const levelGlossary = {
 /** Plain-language meaning of each project state in an initiative. */
 export const projectStateGlossary: Readonly<Record<ProjectState, string>> = {
 	accepted: 'Every core deliverable in this project is accepted.',
-	'dependency-blocked': 'Every open core deliverable here waits on a deliverable it depends on.',
+	'dependency-blocked': 'Every open core deliverable here is blocked by another deliverable.',
 	'design-blocked': 'Every open core deliverable here waits on an open owner decision.',
 	'in-progress': 'Work has started on at least one core deliverable.',
 	planned: 'A core deliverable can start; none has started.',

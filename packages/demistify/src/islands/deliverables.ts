@@ -22,7 +22,7 @@ const deliveryStateLabels = {
 	'verification-failed': 'Verification failed',
 	'ready-for-acceptance': 'Ready for acceptance',
 	accepted: 'Accepted',
-	'dependency-blocked': 'Blocked on prerequisite',
+	'dependency-blocked': 'Blocked by a deliverable',
 } satisfies Record<DeliverableView['state'], string>;
 
 export function deliveryState(state: DeliverableView['state']): HTMLButtonElement {
