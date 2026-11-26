@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process';
-import { mkdir, mkdtemp, realpath, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, realpath, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -70,10 +70,18 @@ it('one check runs a typed page through its design set and a plain page through 
 		await expect(
 			run(process.execPath, [cli, 'check', join(root, 'mistyped.html')]),
 		).rejects.toThrow('mistyped.html: no such page or folder.');
-		await writeFile(join(root, 'stray.html'), typedPage);
-		await expect(run(process.execPath, [cli, 'check', join(root, 'stray.html')])).rejects.toThrow(
-			'binds generated design data, but no initiative.ts or design.ts encloses it.',
+		const published = join(root, 'published');
+		await mkdir(published);
+		await Promise.all(
+			['index.html', 'navigation.generated.json', 'records.generated.js'].map(async (file) =>
+				writeFile(join(published, file), await readFile(join(project, file), 'utf8')),
+			),
 		);
+		const copy = await run(process.execPath, [cli, 'check', join(published, 'index.html')]);
+		expect(copy.stdout).toContain(
+			`${join(published, 'index.html')}: no initiative.ts or design.ts encloses it, so it gets the page check as a published copy.`,
+		);
+		expect(copy.stdout).toContain('1 file: 0 errors');
 	} finally {
 		await rm(root, { recursive: true, force: true });
 	}
@@ -110,6 +118,7 @@ it('a project page routes to its enclosing initiative, once per tree', async ():
 					inputs: [join(project, 'index.html'), join(root, 'index.html')],
 				},
 			],
+			published: [],
 		});
 	} finally {
 		await rm(root, { recursive: true, force: true });
