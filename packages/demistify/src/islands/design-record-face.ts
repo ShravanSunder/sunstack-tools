@@ -59,7 +59,11 @@ function recordPresentation(record: RecordFace['record']): {
 		return { label: 'Needs you', tone: 'question', reviewPending: false };
 	if (authority.state === 'owner-decided')
 		return { label: 'You decided', tone: 'decision', reviewPending: false };
-	const reviewPending = authority.ownerReview === undefined;
+	// Keep the hydrated markup for existing records stable for saved review anchors.
+	const reviewPending =
+		authority.ownerReview === undefined &&
+		authority.sourceKind !== 'contract' &&
+		authority.weight === 'design';
 	return {
 		label: `${authority.by.alias} decided`,
 		tone: reviewPending ? 'risk' : 'decision',
