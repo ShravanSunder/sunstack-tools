@@ -27,7 +27,8 @@ type Weight = 'design' | 'process' | 'minor';
 type AgentActor = { alias: string; role: 'lead' | 'implementer' | 'verifier' | 'reviewer' | 'advisor' };
 type SettledAuthority =
   | { state: 'owner-decided'; sourceKind: 'owner-words' | 'owner-accepted'; decidedOn: string; source: SourceReference }
-  | ({ state: 'agent-decided'; by: AgentActor; rationale: string; decidedOn: string; weight: Weight } &
+  | ({ state: 'agent-decided'; by: AgentActor; rationale: string; decidedOn: string; weight: Weight;
+       ownerReview?: { reviewedOn: string; href: string } } &
       ({ sourceKind: 'contract'; source: SourceReference } | { sourceKind: 'author' }));
 type ChoiceOption = { id: string; title: string };
 export type DesignRecord = RecordFields & (
@@ -48,6 +49,7 @@ export type DesignAssumption = RecordFields & { kind: 'assumption'; by: AgentAct
 );
 export type DesignCore<TRecordId extends string = KnownRecordId> = {
   pages: readonly Page[];
+  workLogs?: Readonly<Record<string, string>>;
   mapGroups: readonly MapNode<TRecordId>[];
   walkthroughs?: readonly Walkthrough<TRecordId>[];
   records: readonly DesignRecord[];

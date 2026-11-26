@@ -1,0 +1,69 @@
+{
+  "version": 1,
+  "deliverables": [
+    {
+      "kind": "core",
+      "id": "handoff/DEL-01",
+      "title": "Save the completed result",
+      "state": "accepted",
+      "destination": {
+        "page": "project-overview.html",
+        "fragment": "handoff-plan"
+      }
+    },
+    {
+      "kind": "core",
+      "id": "handoff/DEL-02",
+      "title": "Resume from the saved result",
+      "state": "dependency-blocked",
+      "destination": {
+        "page": "project-overview.html",
+        "fragment": "resume-plan"
+      }
+    },
+    {
+      "kind": "later",
+      "id": "handoff/DEL-03",
+      "title": "Export a handoff receipt",
+      "state": "later"
+    }
+  ],
+  "documents": [
+    {
+      "title": "Requirements",
+      "href": "project-overview.html#requirements"
+    },
+    {
+      "title": "Specification",
+      "href": "project-overview.html#specification"
+    },
+    {
+      "title": "Program Design",
+      "href": "project-overview.html#program-design"
+    },
+    {
+      "title": "Verification Design",
+      "href": "project-overview.html#verification-design"
+    }
+  ],
+  "decisions": [
+    {
+      "title": "initiative/D60 \u00b7 Save before reporting completion",
+      "href": "project-overview.html#D60",
+      "status": "Needs review",
+      "outcome": "Save the result before returning success."
+    },
+    {
+      "title": "initiative/D61 \u00b7 When should the handoff expire?",
+      "href": "project-overview.html#D61",
+      "status": "Open"
+    }
+  ],
+  "workLogs": [
+    {
+      "title": "Reviewed the handoff",
+      "href": "project-overview.html#work-log",
+      "date": "2026-11-26"
+    }
+  ]
+}

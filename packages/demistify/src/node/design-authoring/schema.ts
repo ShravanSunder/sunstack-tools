@@ -94,6 +94,7 @@ const designRecords = [needRecord, ruleRecord, realizationRecord, plannedCheckRe
 
 export const authoredDesignSchema = z.strictObject({
 	pages: sharedNavigationSchema.shape.pages,
+	workLogs: z.record(z.string().min(1), z.iso.date()).optional(),
 	mapGroups: z.array(authoredMapNode),
 	walkthroughs: z.array(authoredWalkthrough).optional(),
 	acceptances: z.array(deliveryAcceptanceSchema.extend({ deliverableId: recordId })).optional(),

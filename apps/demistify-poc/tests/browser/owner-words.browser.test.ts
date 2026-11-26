@@ -13,6 +13,19 @@ afterEach(async (): Promise<void> => {
 	await page.viewport(1600, 1000);
 });
 
+test('owner review preserves existing agent card labels and credits the author', async (): Promise<void> => {
+	const { document: fixture, frame } = await openFixture('ui', '', 'owner-words.html');
+	const contractCard = requiredElement(fixture, '#D6');
+	const reviewedCard = requiredElement(fixture, '#D7');
+	expect([...contractCard.querySelectorAll('ex-badge')].map((badge) => badge.textContent)).toEqual([
+		'design',
+	]);
+	await expect
+		.element(fixtureLocator(frame, reviewedCard).getByText('Reviewed by you', { exact: true }))
+		.toHaveAttribute('title', 'Reviewed on 2026-11-26');
+	expect(reviewedCard.querySelector('.ex-record-state-line')?.textContent).toContain('· Lead');
+});
+
 test.each([1400, 390].flatMap((width) => ['light', 'dark'].map((theme) => ({ width, theme }))))(
 	'owner wording shows its attribution and exact source at $width px in $theme',
 	async ({ width, theme }): Promise<void> => {

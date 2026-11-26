@@ -17,6 +17,7 @@ import { MapIsland } from './islands/map.ts';
 import { MarkdownIsland } from './islands/markdown.ts';
 import { MermaidIsland } from './islands/mermaid.ts';
 import { PreformattedIsland } from './islands/preformatted.ts';
+import { ProjectOverviewIsland } from './islands/project-overview.ts';
 import { BadgeIsland, BreakdownIsland, ProgressIsland } from './islands/small-parts.ts';
 import { StatIsland } from './islands/stat.ts';
 import { FoldToggleIsland, SectionIsland } from './islands/story-section.ts';
@@ -64,6 +65,7 @@ const islands = [
 	['ex-explorer', ExplorerIsland],
 	['ex-deliverables', DeliverablesIsland],
 	['ex-initiative-overview', InitiativeOverviewIsland],
+	['ex-project-overview', ProjectOverviewIsland],
 	['ex-tree', TreeIsland],
 	['ex-map', MapIsland],
 	['ex-card', CardIsland],

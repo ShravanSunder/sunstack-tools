@@ -34,6 +34,7 @@ export interface PageMarkup {
 	readonly navigationSources: string[];
 	readonly deliverySources: string[];
 	readonly projectOverviewSources: string[];
+	readonly projectDetailsSources: string[];
 	readonly recordSourceMarkers: string[];
 	readonly placements: RecordBinding[];
 	readonly trees: RecordBinding[];
@@ -64,6 +65,7 @@ export function designPreviewSources(html: string): readonly string[] | undefine
 		['ex-nav', 'navigation.generated.json'],
 		['ex-deliverables', 'deliverables.generated.json'],
 		['ex-initiative-overview', 'initiative.generated.json'],
+		['ex-project-overview', 'project-overview.generated.json'],
 	]);
 	let bound = false;
 	const sources = new Set<string>();
@@ -106,6 +108,7 @@ export function readPageMarkup(html: string, file: string): PageMarkup {
 		navigationSources: [],
 		deliverySources: [],
 		projectOverviewSources: [],
+		projectDetailsSources: [],
 		recordSourceMarkers: [],
 		placements: [],
 		trees: [],
@@ -304,6 +307,8 @@ export function readPageMarkup(html: string, file: string): PageMarkup {
 			if (node.tagName === 'base' && href !== undefined) result.hasDocumentBase = true;
 			if (node.tagName === 'ex-nav') result.navigationSources.push(get('src') ?? '');
 			if (node.tagName === 'ex-deliverables') result.deliverySources.push(get('src') ?? '');
+			if (node.tagName === 'ex-project-overview')
+				result.projectDetailsSources.push(get('src') ?? '');
 			if (node.tagName === 'ex-initiative-overview')
 				result.projectOverviewSources.push(get('src') ?? '');
 			if (node.tagName === 'meta' && get('name') === 'demistify-records')

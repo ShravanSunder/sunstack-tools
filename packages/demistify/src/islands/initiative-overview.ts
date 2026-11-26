@@ -7,6 +7,7 @@ import {
 } from '../core/glossary.ts';
 import { createIconButton } from '../core/icons.ts';
 import {
+	decisionOutcome,
 	parseInitiativeView,
 	projectDecisions,
 	type ProjectDecision,
@@ -71,9 +72,7 @@ function renderDecision(list: HTMLUListElement, source: URL, decision: ProjectDe
 		glossaryTerm(status, decisionStatusGlossary[status]),
 	);
 	if (record.authority?.decidedOn) item.append(` · ${record.authority.decidedOn}`);
-	const answer =
-		record.authority?.decision ??
-		(record.kind === 'ruling' && record.title !== record.statement ? record.statement : undefined);
+	const answer = decisionOutcome(record);
 	if (answer) {
 		const outcome = document.createElement('p');
 		outcome.textContent = answer;
