@@ -18,7 +18,7 @@ type Walkthrough<TRecordId extends string> = {
   description: string;
   steps: readonly { target: NavigationTarget<TRecordId>; narration: string; icon?: SubjectIcon }[];
 };
-type SourceReference = { href: string; excerpt: string; verbatim?: true };
+type SourceReference = { href: string; excerpt: string } & ({ verbatim?: true; shown?: never } | { verbatim: true; shown: string });
 type RecordFields = { id: string; title?: string; statement: string };
 type RecordReference = string | readonly string[];
 type DesignDependencies = { governedBy?: readonly string[]; reliesOn?: readonly string[] };

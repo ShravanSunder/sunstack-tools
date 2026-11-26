@@ -10,11 +10,21 @@ const relativeHref = text.refine(
 		!value.startsWith('/') && !value.includes('\\') && !/^[a-z][a-z0-9+.-]*:/iu.test(value),
 	'must be a relative link',
 );
-export const decisionSource = z.strictObject({
-	href: relativeHref,
-	excerpt: text,
-	verbatim: z.literal(true).optional(),
-});
+export const decisionSource = z
+	.strictObject({
+		href: relativeHref,
+		excerpt: text,
+		verbatim: z.literal(true).optional(),
+		/**
+		 * The Lead's cleaned wording of a verbatim excerpt. The record then owns the owner's
+		 * exact words, shown one disclosure away, and `href` only links to where they were said.
+		 */
+		shown: text.optional(),
+	})
+	.refine((source) => source.shown === undefined || source.verbatim === true, {
+		message: 'shown cleans a verbatim excerpt; add verbatim: true or remove shown.',
+		path: ['shown'],
+	});
 export const recordActor = z.strictObject({
 	alias: text,
 	role: z.enum(['lead', 'implementer', 'verifier', 'reviewer', 'advisor']),
