@@ -12,8 +12,8 @@ every outcome; the declarations are generated from its Rust contracts.
 npm install @sunstack/sdk
 ```
 
-Requirements: Node 26 or later on macOS (arm64, x64) or Linux (arm64, x64; glibc or
-musl). The package manager installs the matching prebuilt native addon
+Requirements are Node 26 or later on Apple Silicon macOS or glibc Linux
+(ARM64 or x64). The package manager installs the matching prebuilt native addon
 (`@sunstack/sdk-<platform>`); no Rust toolchain is needed. Zod is not required.
 
 The installed package includes `node_modules/@sunstack/sdk/examples/`. Copy the
@@ -457,8 +457,8 @@ pnpm --filter @sunstack/sdk pack:candidate  # pack the SDK and this host's platf
 
 ## Publishing
 
-The CLI and all seven SDK packages share a version. A stable CLI tag runs the
-six-platform SDK build and candidate install checks through `sdk.yml`, then
+The CLI, SDK wrapper and three addons share a version. A stable CLI tag runs the
+three-platform SDK build and candidate install checks through `sdk.yml`, then
 `release.yml` publishes the addons before the SDK. Every package gets npm
 provenance through GitHub OIDC. The release smoke installs that exact SDK version
 from npm on Linux and macOS and exercises the native engine.
@@ -469,10 +469,8 @@ publisher. The existing `NPM_TRUSTED_PUBLISHING=true` variable also remains
 required. On each package's npm Settings page, select GitHub Actions, enter
 organization/user `ShravanSunder`, repository `sunstack-tools`, workflow filename
 `release.yml`, leave environment blank, and enable the `npm publish` action.
-Configure all seven packages: `@sunstack/sdk`, `@sunstack/sdk-darwin-arm64`,
-`@sunstack/sdk-darwin-x64`, `@sunstack/sdk-linux-arm64-gnu`,
-`@sunstack/sdk-linux-arm64-musl`, `@sunstack/sdk-linux-x64-gnu`, and
-`@sunstack/sdk-linux-x64-musl`.
+Configure trusted publishers for `@sunstack/sdk`, `@sunstack/sdk-darwin-arm64`,
+`@sunstack/sdk-linux-arm64-gnu`, and `@sunstack/sdk-linux-x64-gnu`.
 
 [npm requires the package to exist before configuring trust](https://docs.npmjs.com/cli/v11/commands/npm-trust#prerequisites).
 The first publication therefore uses the owner's interactive npm login and 2FA,
@@ -482,12 +480,12 @@ available. This workflow accepts no npm token. After bootstrap, configure
 [publishing trust](https://docs.npmjs.com/trusted-publishers) and run the first
 OIDC release within npm's two-day configuration validation window.
 
-PR CI runs `npm publish --dry-run` on all seven candidate tarballs, verifies the
+PR CI runs `npm publish --dry-run` on all four candidate tarballs, verifies the
 exact file lists, native library headers, platform metadata and same-version
 optional dependencies, and saves `package-checks.json` in the `sdk-candidate`
 artifact. A failed addon build or candidate install blocks publication. npm
 publishes packages individually: a publication failure can leave some addons
-published. The SDK publication waits until all six addon publications succeed;
+published. The SDK publication waits until all three addon publications succeed;
 recovery from a partial publication requires maintainer action.
 
 `captures` collects distinct regex results from the piece or a named text field

@@ -64,7 +64,7 @@ const binding = {
 const contract = await contractInfo();
 assert.equal(contract.kind, 'ready');
 if (contract.kind !== 'ready') throw new Error('installed contract unavailable');
-assert.equal(contract.contract.sdk_release, '0.24.0');
+assert.equal(contract.contract.sdk_release, '0.25.0');
 assert.equal(contract.contract.contract_revision, 23);
 const options = { root, scope: { kind: 'all' } } as const;
 const ordinary = await run(configuration, options);

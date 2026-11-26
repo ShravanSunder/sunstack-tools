@@ -88,7 +88,7 @@ jobs:
           name: artifacts-plan-dist-manifest
           path: plan-dist-manifest.json
 
-  # Heavy native SDK builds reuse the six-cell PR pipeline at this same tag.
+  # Heavy native SDK builds reuse the three-cell PR pipeline at this same tag.
   sdk:
     needs: [plan]
     if: ${{ needs.plan.outputs.publishing == 'true' && !fromJson(needs.plan.outputs.val).announcement_is_prerelease }}
@@ -483,11 +483,12 @@ jobs:
         id: publish-sdk
         background: true
         if: ${{ vars.SDK_NPM_TRUSTED_PUBLISHING == 'true' }}
-        # Owner bootstrap and all seven trusted publishers must exist first.
+        # Owner bootstrap and all four trusted publishers must exist first.
         # Each command must succeed before the SDK can become installable.
         run: |
-          for cell in darwin-arm64 darwin-x64 linux-arm64-gnu linux-arm64-musl linux-x64-gnu linux-x64-musl; do
-            npm publish --access public "candidate/sunstack-sdk-$cell-${GITHUB_REF_NAME#v}.tgz"
+          # The preceding package check enforces the exact supported tarball set.
+          for tarball in candidate/sunstack-sdk-*-"${GITHUB_REF_NAME#v}".tgz; do
+            npm publish --access public "$tarball"
           done
           npm publish --access public "candidate/sunstack-sdk-${GITHUB_REF_NAME#v}.tgz"
       - name: Publish assembled packages with GitHub OIDC

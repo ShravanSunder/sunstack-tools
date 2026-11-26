@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.25.0
+
+- Publish the TypeScript SDK and native addons for Apple Silicon macOS and
+  ARM64 and x64 glibc Linux. The CLI and SDK packages share version 0.25.0.
+- Add `@sunstack/sdk/rules` for rule-set loading, evidence inspection, request
+  preview and evaluation. Register custom JSONL transcript adapters and inspect
+  their evidence alongside Codex and Claude Code transcripts. Adapter mappings
+  can also use Draft 2020-12 JSON Schema output from producers such as Zod.
+- SDK contract revision 23 carries the rule and evidence outcomes. Use matching
+  SDK wrapper and native addon packages when reading saved SDK documents.
+
 ## 0.24.0
 
 - Rule cases can select an exact original-source byte range with optional

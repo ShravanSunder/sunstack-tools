@@ -123,7 +123,7 @@ function checkTarballs(): void {
 			.filter((name) => name.endsWith('.tgz'))
 			.toSorted(),
 		expectedTarballs.toSorted(),
-		'all seven packages, exactly once',
+		'the SDK and every supported addon, exactly once',
 	);
 	const reports = [...platformCells, null].map((cell) => {
 		const filename =
