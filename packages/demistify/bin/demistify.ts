@@ -2,7 +2,8 @@
 /**
  * demistify check [--fix] [--render] [--no-diagrams] [--site-root <dir>] [--write] <page.html | directory …>
  *   A directory with initiative.ts or design.ts, or a page that binds generated design data, gets
- *   that tree's typed check (once per tree); every other page gets the page check.
+ *   that tree's typed check (once per tree). A typed page outside any tree is a published copy and,
+ *   like every other page, gets the page check.
  * demistify check --hook      (Claude Code PostToolUse hook: reads the hook event from stdin)
  *
  * Prints one line per problem: file:line:col severity rule: message. Exits 1 when any error remains.
@@ -356,6 +357,10 @@ async function main(): Promise<number> {
 		write(report.text);
 		if (report.failed) errors += 1;
 	}
+	for (const page of routes.published)
+		write(
+			`${page}: no initiative.ts or design.ts encloses it, so it gets the page check as a published copy.`,
+		);
 	const results = await Promise.all(
 		routes.pages.map(async (file) => {
 			let source = await readFile(file, 'utf8');

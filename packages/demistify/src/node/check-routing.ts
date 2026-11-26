@@ -13,6 +13,8 @@ export interface TypedCheckTarget {
 export interface CheckRoutes {
 	readonly pages: readonly string[];
 	readonly trees: readonly TypedCheckTarget[];
+	/** Pages among `pages` that bind generated design data with no tree around them: published copies. */
+	readonly published: readonly string[];
 }
 
 /** Markup that only a typed check can verify: generated sources and record bindings. */
@@ -56,7 +58,8 @@ async function directoryTree(path: string): Promise<Omit<TypedCheckTarget, 'inpu
 /**
  * Decide what each argument needs. A directory is checked as the initiative or design set
  * it holds. A page that binds generated design data is checked through the tree that owns
- * it, once per tree. Every other page gets the page check.
+ * it, once per tree. A typed page with no tree around it is a published copy and gets the
+ * page check, listed in `published`. Every other page gets the page check.
  */
 export async function routeCheckTargets(paths: readonly string[]): Promise<CheckRoutes> {
 	const pages: string[] = [];
@@ -69,15 +72,13 @@ export async function routeCheckTargets(paths: readonly string[]): Promise<Check
 			const entry = await stat(path).catch(() => undefined);
 			if (!entry) throw new Error(`${path}: no such page or folder.`);
 			if (entry.isDirectory()) return { path, tree: await directoryTree(path) };
-			if (!typedPageMarkup.test(await readFile(path, 'utf8'))) return { path, tree: undefined };
+			if (!typedPageMarkup.test(await readFile(path, 'utf8')))
+				return { path, tree: undefined, published: false };
 			const tree = await enclosingTree(path);
-			if (!tree)
-				throw new Error(
-					`${path} binds generated design data, but no initiative.ts or design.ts encloses it.`,
-				);
-			return { path, tree };
+			return { path, tree, published: !tree };
 		}),
 	);
+	const published = routed.filter((route) => route.published).map(({ path }) => path);
 	for (const { path, tree } of routed) {
 		if (!tree) {
 			pages.push(path);
@@ -87,5 +88,5 @@ export async function routeCheckTargets(paths: readonly string[]): Promise<Check
 		known.inputs.push(path);
 		trees.set(tree.directory, known);
 	}
-	return { pages, trees: [...trees.values()] };
+	return { pages, trees: [...trees.values()], published };
 }
