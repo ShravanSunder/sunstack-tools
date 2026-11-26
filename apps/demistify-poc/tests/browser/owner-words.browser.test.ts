@@ -132,9 +132,17 @@ test.each([
 		);
 		expect(fixture.documentElement.scrollWidth).toBeLessThanOrEqual(width);
 
-		const chosen = requiredElement(fixture, '#D2 .ex-choice-detail-options > .ex-record-chosen');
-		const settled = view.getComputedStyle(chosen);
-		expect(settled.backgroundColor).toBe('rgba(0, 0, 0, 0)');
-		expect(settled.borderInlineStartWidth).toBe('0px');
+		const settledChoice = requiredElement(fixture, 'ex-section-item[record="D2"] > #D2');
+		const chosen = requiredElement(settledChoice, '.ex-choice-detail-options > .ex-record-chosen');
+		const alternative = requiredElement(settledChoice, '.ex-record-alternative');
+		const settledContext = view.getComputedStyle(settledChoice, '::before');
+		expect(settledContext.backgroundColor).toBe(context.backgroundColor);
+		expect(chosen.getBoundingClientRect().width).toBeCloseTo(
+			Number.parseFloat(settledContext.width),
+		);
+		expect(view.getComputedStyle(chosen).borderRadius).toBe('8px');
+		expect(view.getComputedStyle(alternative).borderRadius).toBe('8px');
+		expect(requiredElement(chosen, 'ex-badge').textContent).toBe('Chosen');
+		expect(requiredElement(alternative, 'ex-badge').textContent).toBe('Not chosen');
 	},
 );

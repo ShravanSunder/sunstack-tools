@@ -340,7 +340,6 @@ export class ChoiceIsland extends HTMLElement {
 			rendered.push({ optionId, label: optionLabel, input, target });
 		}
 		const chosenOption = settled ? rendered.find((option) => option.input.checked) : undefined;
-		if (inRecordSection && chosenOption) beside?.options.prepend(chosenOption.target);
 		this.options = rendered;
 		this.replaceChildren(this.source, fieldset);
 		if (face && beside) {
@@ -354,27 +353,25 @@ export class ChoiceIsland extends HTMLElement {
 					fullQuestion.textContent = this.question;
 					metadata.after(fullQuestion);
 				}
-				if (!settled) {
-					const context = [legend, metadata];
-					for (
-						let child = metadata.nextElementSibling;
-						child && child !== beside.layout;
-						child = child.nextElementSibling
-					) {
-						if (
-							!(child instanceof HTMLElement) ||
-							child.matches('ex-mermaid, ex-gallery, figure, [data-width="canvas"]')
-						)
-							break;
-						context.push(child);
-					}
-					for (const block of context) block.classList.add('ex-record-choice-context-part');
-					const last = context.at(-1);
-					if (last) {
-						last.classList.add('ex-record-choice-context-end');
-						this.contextEnd = last;
-						this.classList.add('ex-record-choice-context');
-					}
+				const context = [legend, metadata];
+				for (
+					let child = metadata.nextElementSibling;
+					child && child !== beside.layout;
+					child = child.nextElementSibling
+				) {
+					if (
+						!(child instanceof HTMLElement) ||
+						child.matches('ex-mermaid, ex-gallery, figure, [data-width="canvas"]')
+					)
+						break;
+					context.push(child);
+				}
+				for (const block of context) block.classList.add('ex-record-choice-context-part');
+				const last = context.at(-1);
+				if (last) {
+					last.classList.add('ex-record-choice-context-end');
+					this.contextEnd = last;
+					this.classList.add('ex-record-choice-context');
 				}
 			} else this.prepend(metadata);
 			legend.classList.add('ex-record-item-title');

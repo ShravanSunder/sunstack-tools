@@ -828,23 +828,6 @@ ex-section-item[record] .ex-record-detail-button:hover {
 .ex-record-surface > .ex-bound-choice.ex-choice-cards > fieldset {
 	padding-inline-end: 0;
 }
-ex-section-item[record] .ex-record-surface .ex-choice-detail-options {
-	gap: 0;
-}
-ex-section-item[record]
-	.ex-record-surface
-	.ex-choice-detail-options
-	> ex-option.ex-choice-option:is(.ex-record-chosen, .ex-record-alternative) {
-	border: 0;
-	border-block-start: 1px solid var(--rule);
-	border-radius: 0;
-	padding-inline: 0;
-	background: transparent;
-	cursor: default;
-}
-.ex-record-surface :is(.ex-record-chosen, .ex-record-alternative) .ex-choice-label {
-	cursor: inherit;
-}
 /* The record surface sets the reading edge. Its comment controls sit beside that edge. */
 ex-section-item[record] > .ex-bound-choice {
 	--choice-stack-width: var(--record-surface-width);
