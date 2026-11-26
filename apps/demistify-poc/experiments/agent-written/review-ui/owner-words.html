@@ -11,6 +11,7 @@
 <body>
 	<ex-document id="owner-decisions">
 		<h1>Owner decisions</h1>
+		<ex-section id="open-decisions" holds="needs-owner" title="For you to decide"></ex-section>
 		<ex-section id="settled" holds="settled" title="You decided"></ex-section>
 
 		<ex-section-item record="D1">
@@ -30,6 +31,17 @@
 		</ex-section-item>
 		<ex-section-item record="D4">
 			<p>Reuse the receipt in both views.</p>
+		</ex-section-item>
+
+		<ex-section-item record="D5">
+			<ex-choice>
+				<template data-record-body>
+					<p>See <code>packages/example/requests/retries/describe_a_very_long_internal_retry_policy.ts</code>.</p>
+					<table><thead><tr><th>Signal</th><th>Meaning</th></tr></thead><tbody><tr><td>Timeout</td><td>No response.</td></tr></tbody></table>
+				</template>
+				<ex-option data-option="wait"><template slot="summary">Give the service time to recover.</template></ex-option>
+				<ex-option data-option="stop"><template slot="summary">Return the failure immediately.</template></ex-option>
+			</ex-choice>
 		</ex-section-item>
 
 		<h2 id="source-notes">Source notes</h2>

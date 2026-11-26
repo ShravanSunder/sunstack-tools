@@ -339,39 +339,46 @@ export class ChoiceIsland extends HTMLElement {
 			}
 			rendered.push({ optionId, label: optionLabel, input, target });
 		}
+		const chosenOption = settled ? rendered.find((option) => option.input.checked) : undefined;
 		this.options = rendered;
 		this.replaceChildren(this.source, fieldset);
 		if (face && beside) {
 			const metadata = recordStateLine(face, inRecordSection);
 			if (inRecordSection) {
 				legend.after(metadata);
-				if (!settled) {
-					const context = [legend, metadata];
-					for (
-						let child = metadata.nextElementSibling;
-						child && child !== beside.layout;
-						child = child.nextElementSibling
-					) {
-						if (
-							!(child instanceof HTMLElement) ||
-							child.matches('ex-mermaid, ex-gallery, figure, [data-width="canvas"]')
-						)
-							break;
-						context.push(child);
-					}
-					for (const block of context) block.classList.add('ex-record-choice-context-part');
-					const last = context.at(-1);
-					if (last) {
-						last.classList.add('ex-record-choice-context-end');
-						this.contextEnd = last;
-						this.classList.add('ex-record-choice-context');
-					}
+				if (bound?.title && bound.title !== this.question) {
+					legend.textContent = bound.title;
+					fieldset.setAttribute('aria-label', this.question);
+					legend.setAttribute('data-record-display-title', '');
+					const fullQuestion = document.createElement('div');
+					fullQuestion.className = 'ex-record-statement';
+					fullQuestion.setAttribute('data-record-statement', '');
+					fullQuestion.textContent = this.question;
+					metadata.after(fullQuestion);
+				}
+				const context = [legend, metadata];
+				for (
+					let child = metadata.nextElementSibling;
+					child && child !== beside.layout;
+					child = child.nextElementSibling
+				) {
+					if (
+						!(child instanceof HTMLElement) ||
+						child.matches('ex-mermaid, ex-gallery, figure, [data-width="canvas"]')
+					)
+						break;
+					context.push(child);
+				}
+				for (const block of context) block.classList.add('ex-record-choice-context-part');
+				const last = context.at(-1);
+				if (last) {
+					last.classList.add('ex-record-choice-context-end');
+					this.contextEnd = last;
+					this.classList.add('ex-record-choice-context');
 				}
 			} else this.prepend(metadata);
 			legend.classList.add('ex-record-item-title');
-			const chosenTitle = settled
-				? rendered.find((option) => option.input.checked)?.label
-				: undefined;
+			const chosenTitle = chosenOption?.label;
 			appendRecordBasis(this, face, chosenTitle ? { chosenTitle } : undefined);
 			this.removeAttribute('title');
 			this.classList.add('ex-bound-choice');

@@ -183,6 +183,7 @@ async function fillBindings(elements: readonly HTMLElement[]): Promise<void> {
 						placement.face.record.kind === 'choice' &&
 						placement.face.record.authority.state !== 'owner-open'
 					) {
+						// Keep the review source identical to existing settled choices.
 						const surface = document.createElement('div');
 						surface.className = 'ex-record-surface';
 						choice.before(surface);

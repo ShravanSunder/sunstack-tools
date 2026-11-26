@@ -15,13 +15,25 @@ const inspectionCopy = '[data-inspector-copy],[data-inspector-content]';
 const placedSectionItems = 'ex-section > ex-section-item[section]';
 
 function reviewSourceMarkup(root: HTMLElement): string {
-	if (![...root.querySelectorAll(placedSectionItems)].some(sectionForReviewWrapper))
+	const displayTitles =
+		'ex-section-item[record] > .ex-record-surface > [data-record-display-title]';
+	if (
+		![...root.querySelectorAll(placedSectionItems)].some(sectionForReviewWrapper) &&
+		!root.querySelector(displayTitles)
+	)
 		return root.outerHTML;
 	// Reconstruct the old authored section body for the revision hash.
 	const copy = root.cloneNode(true);
 	if (!(copy instanceof HTMLElement)) return root.outerHTML;
 	for (const item of copy.querySelectorAll(placedSectionItems)) {
 		if (sectionForReviewWrapper(item)) item.replaceWith(...item.childNodes);
+	}
+	for (const title of copy.querySelectorAll(displayTitles)) {
+		const statement = title.parentElement?.querySelector(':scope > [data-record-statement]');
+		if (!statement) continue;
+		title.textContent = statement.textContent;
+		title.removeAttribute('data-record-display-title');
+		statement.remove();
 	}
 	return copy.outerHTML;
 }
