@@ -127,6 +127,12 @@ test.each([
 			requiredElement(first, '.ex-choice-label').getBoundingClientRect().left,
 		);
 		expect(first.querySelector('.ex-choice-details-button')).toBeNull();
+		expect(
+			view.getComputedStyle(requiredElement(first, '.ex-choice-summary')).marginBlockStart,
+		).toBe('8px');
+		expect(
+			view.getComputedStyle(requiredElement(second, '.ex-choice-summary')).marginBlockStart,
+		).toBe('4px');
 		expect(requiredElement(choice, 'table').getBoundingClientRect().left).toBeCloseTo(
 			choice.getBoundingClientRect().left + 16,
 		);
@@ -142,6 +148,9 @@ test.each([
 		);
 		expect(view.getComputedStyle(chosen).borderRadius).toBe('8px');
 		expect(view.getComputedStyle(alternative).borderRadius).toBe('8px');
+		expect(
+			view.getComputedStyle(requiredElement(chosen, '.ex-choice-summary')).marginBlockStart,
+		).toBe('8px');
 		expect(requiredElement(chosen, 'ex-badge').textContent).toBe('Chosen');
 		expect(requiredElement(alternative, 'ex-badge').textContent).toBe('Not chosen');
 	},

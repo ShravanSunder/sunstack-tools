@@ -6,6 +6,7 @@ ex-comments {
 	display: contents;
 }
 ex-choice {
+	--choice-stack-width: var(--width-reading);
 	display: block;
 	margin-block: var(--space-5) var(--space-10);
 }
@@ -125,7 +126,7 @@ ex-choice.ex-choice-default-width:has(> .ex-choice-beside-fieldset):not(
 		:has(> fieldset > .ex-choice-detail-layout > .ex-choice-detail-panels > :not([hidden])),
 		.ex-bound-choice:has(> fieldset > [data-width='canvas'])
 	) {
-	max-inline-size: var(--choice-stack-width, var(--width-reading));
+	max-inline-size: var(--choice-stack-width);
 	margin-inline: 0 auto;
 }
 .ex-choice-detail-layout {
@@ -212,6 +213,11 @@ ex-section-item[record] .ex-bound-choice > fieldset > .ex-choice-detail-layout {
 	margin-top: var(--space-1);
 	font: 400 var(--text-md)/1.5 var(--font-body);
 	color: var(--ink-soft);
+}
+ex-section-item[record]
+	.ex-choice-title-row:has(> .ex-record-option-metadata)
+	+ .ex-choice-summary {
+	margin-block-start: var(--space-2);
 }
 .ex-choice-summary :is(p, ul, ol, blockquote) {
 	margin: 0;
@@ -824,9 +830,6 @@ ex-section-item[record] .ex-record-detail-button {
 }
 ex-section-item[record] .ex-record-detail-button:hover {
 	background: color-mix(in srgb, currentColor 10%, transparent);
-}
-.ex-record-surface > .ex-bound-choice.ex-choice-cards > fieldset {
-	padding-inline-end: 0;
 }
 /* The record surface sets the reading edge. Its comment controls sit beside that edge. */
 ex-section-item[record] > .ex-bound-choice {
