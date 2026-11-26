@@ -6,7 +6,7 @@ import { initiativeWork, projectProgress } from './initiative-order.ts';
 function core(
 	id: string,
 	state: string,
-	dependsOn: string[] = [],
+	blockedBy: string[] = [],
 	candidate?: string,
 	steps: string[] = [],
 ): DeliverableView {
@@ -14,12 +14,12 @@ function core(
 		kind: 'core',
 		id,
 		title: id,
-		dependsOn,
+		blockedBy,
 		state,
 		reasons: [],
-		progress: { state: 'planned', reason: 'Start the scoped implementation tasks.' },
+		progress: { state: 'planned', reason: 'Start the scoped issues.' },
 		implementation: {
-			tasks: steps.map((step) => ({ id: step, state: 'open' })),
+			issues: steps.map((step) => ({ id: step, title: step, state: 'open' })),
 			evidence: [],
 			...(candidate ? { candidate } : {}),
 		},

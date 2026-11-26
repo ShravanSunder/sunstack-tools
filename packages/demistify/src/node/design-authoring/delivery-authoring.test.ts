@@ -50,7 +50,7 @@ import preventJob from './deliverables/del-01-prevent-cancelled-job-from-running
 import reportClaim from './deliverables/del-02-report-job-already-started.ts';
 export default defineDelivery(design, [
   { deliverable: preventJob },
-  { deliverable: reportClaim, dependsOn: ['DEL-01'] },
+  { deliverable: reportClaim, blockedBy: ['DEL-01'] },
 ]);
 `;
 const complete = `import { defineDeliverable } from '../design-sdk.generated.ts';
@@ -59,8 +59,8 @@ export default defineDeliverable({
   id: 'DEL-01',
   title: 'Prevent cancelled jobs from running',
   destination: { page: 'index.html', fragment: 'DEL-01' },
-  scope: { rules: ['R3'], implementationTasks: ['guard-handler'], verificationChecks: ['V3'] },
-  implementation: { completedTasks: ['guard-handler'], candidate: 'build-87', evidence: ['evidence.txt'] },
+  scope: { rules: ['R3'], issues: [{ id: 'guard-handler', title: 'Guard handler' }], verificationChecks: ['V3'] },
+  implementation: { closedIssues: ['guard-handler'], candidate: 'build-87', evidence: ['evidence.txt'] },
   verification: { build: 'build-87', outcomes: { V3: {
     kind: 'passed', observation: 'Zero handler entries', evidence: 'evidence.txt',
   } } },
@@ -72,8 +72,8 @@ export default defineDeliverable({
   id: 'DEL-02',
   title: 'Report when a job has already started',
   destination: { page: 'index.html', fragment: 'DEL-02' },
-  scope: { rules: ['R12'], implementationTasks: ['report-claim'], verificationChecks: ['V12'] },
-  implementation: { completedTasks: ['report-claim'], candidate: 'build-87', evidence: ['evidence.txt'] },
+  scope: { rules: ['R12'], issues: [{ id: 'report-claim', title: 'Report claim' }], verificationChecks: ['V12'] },
+  implementation: { closedIssues: ['report-claim'], candidate: 'build-87', evidence: ['evidence.txt'] },
   verification: { build: 'build-87', outcomes: { V12: { kind: 'blocked', reason: 'Caller response unavailable' } } },
 });
 `;
@@ -153,7 +153,7 @@ export default defineDeliverable({ kind: 'later', id: 'DEL-03', title: 'Review f
 						"import later from './deliverables/later.ts';\nexport default defineDelivery",
 					)
 					.replace(
-						"{ deliverable: reportClaim, dependsOn: ['DEL-01'] },",
+						"{ deliverable: reportClaim, blockedBy: ['DEL-01'] },",
 						'{ deliverable: reportClaim },\n  { deliverable: later },',
 					),
 			),
@@ -306,13 +306,13 @@ it('composes typed work files into one delivery graph and keeps the last output 
 		expect(checked.stdout).toContain('V12 is blocked. Caller response unavailable');
 		expect(checked.stdout).not.toMatch(/Last checked snapshot|Scope revision:/);
 		expect(JSON.parse(produced[2] ?? '')).toMatchObject({
-			version: 1,
+			version: 2,
 			deliverables: {
 				'DEL-01': { state: 'accepted', progress: { acceptance: { evidence: 'acceptance.txt' } } },
 				'DEL-02': {
 					title: 'Report when a job has already started',
 					state: 'verification-blocked',
-					dependsOn: ['DEL-01'],
+					blockedBy: ['DEL-01'],
 					links: { plan: { page: 'index.html', fragment: 'DEL-02' } },
 					verification: {
 						checks: [{ id: 'V12', state: 'blocked', reason: 'Caller response unavailable' }],
@@ -332,7 +332,7 @@ it('composes typed work files into one delivery graph and keeps the last output 
 
 		await writeFile(
 			join(directory, 'old-delivery.json'),
-			JSON.stringify({ version: 1, deliverables: {} }),
+			JSON.stringify({ version: 2, deliverables: {} }),
 		);
 		await writeFile(
 			join(directory, 'index.html'),
@@ -354,14 +354,14 @@ it('composes typed work files into one delivery graph and keeps the last output 
 			graphFile,
 			rootSource.replace(
 				'{ deliverable: preventJob }',
-				"{ deliverable: preventJob, dependsOn: ['DEL-02'] }",
+				"{ deliverable: preventJob, blockedBy: ['DEL-02'] }",
 			),
 		);
 		await expect(run(process.execPath, check)).rejects.toThrow(/cycle/i);
 		expect(await readOutputs()).toEqual(produced);
 		await writeFile(
 			graphFile,
-			rootSource.replace("dependsOn: ['DEL-01']", "dependsOn: ['DEL-99']"),
+			rootSource.replace("blockedBy: ['DEL-01']", "blockedBy: ['DEL-99']"),
 		);
 		await expect(run(process.execPath, check)).rejects.toThrow(/DEL-99/);
 		expect(await readOutputs()).toEqual(produced);
@@ -458,7 +458,7 @@ it('keeps the shared check gates in each brief and scopes rules and acceptance t
 			writeFile(join(directory, 'index.html'), page),
 			writeFile(
 				join(directory, 'design-delivery.ts'),
-				rootSource.replace(", dependsOn: ['DEL-01']", ''),
+				rootSource.replace(", blockedBy: ['DEL-01']", ''),
 			),
 			writeFile(
 				join(directory, 'deliverables/del-01-prevent-cancelled-job-from-running.ts'),

@@ -127,22 +127,27 @@ function renderDelivery(
 	if (delivery.kind === 'later') return;
 	const details = deliveryDetails(delivery, source, false);
 	const context = document.createElement('div');
-	if (delivery.builder) {
-		const builder = document.createElement('p');
-		builder.textContent = `Builder ${delivery.builder}`;
-		context.append(builder);
+	for (const [role, alias] of [
+		['Implementer', delivery.implementer],
+		['Verifier', delivery.verifier],
+		['Reviewer', delivery.reviewer],
+	] as const) {
+		if (!alias) continue;
+		const assignment = document.createElement('p');
+		assignment.textContent = `${role} ${alias}`;
+		context.append(assignment);
 	}
 	for (const reason of delivery.state === 'accepted' ? [] : delivery.reasons) {
 		const paragraph = document.createElement('p');
 		paragraph.textContent = reason;
 		context.append(paragraph);
 	}
-	if (delivery.dependsOn.length) {
+	if (delivery.blockedBy.length) {
 		const list = appendList(context);
-		for (const id of delivery.dependsOn) {
+		for (const id of delivery.blockedBy) {
 			const required = view.deliverables[id];
 			const item = appendItem(list);
-			item.append(glossaryTerm('Prerequisite', levelGlossary.dependsOn), ' ');
+			item.append(glossaryTerm('Blocked by', levelGlossary.blockedBy), ' ');
 			item.append(
 				required?.kind === 'core'
 					? linkTo(source, required.links.plan.page, id, required.links.plan.fragment)

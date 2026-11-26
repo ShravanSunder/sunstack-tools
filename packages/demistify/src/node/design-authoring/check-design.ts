@@ -452,7 +452,7 @@ export async function openDesignCheck(siteRoot: string): Promise<DesignCheck> {
 				),
 			]);
 			const deliverables = deliverablesViewSchema.parse({
-				version: 1,
+				version: 2,
 				deliverables: delivery.deliverables,
 			});
 			await Promise.all([
@@ -625,8 +625,8 @@ export async function loadDesignSet(
 			])
 			.find((reference): boolean => reference.includes('/')) ??
 		set.entries
-			.flatMap(({ dependsOn, deliverable }) => [
-				...dependsOn,
+			.flatMap(({ blockedBy, deliverable }) => [
+				...blockedBy,
 				...(deliverable.kind === 'core'
 					? [
 							...deliverable.scope.needs,

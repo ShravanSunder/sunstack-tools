@@ -126,7 +126,7 @@ function projectEntry(
 		),
 	});
 	return {
-		dependsOn: ids(entry.dependsOn),
+		blockedBy: ids(entry.blockedBy),
 		deliverable: {
 			...work,
 			id: qualify(name, work.id),
@@ -283,14 +283,17 @@ export async function loadInitiative(
 					`${name}: unknown Lead alias ${set.lead}. Register it in agents-identity.ts.`,
 				);
 			for (const { deliverable } of set.entries) {
-				if (
-					deliverable.kind === 'core' &&
-					deliverable.builder &&
-					(!identities || !Object.hasOwn(identities.agents, deliverable.builder))
-				)
-					throw new Error(
-						`${name}/${deliverable.id}: unknown Builder alias ${deliverable.builder}. Register it in agents-identity.ts.`,
-					);
+				if (deliverable.kind !== 'core') continue;
+				for (const [role, alias] of [
+					['Implementer', deliverable.implementer],
+					['Verifier', deliverable.verifier],
+					['Reviewer', deliverable.reviewer],
+				] as const) {
+					if (alias && (!identities || !Object.hasOwn(identities.agents, alias)))
+						throw new Error(
+							`${name}/${deliverable.id}: unknown ${role} alias ${alias}. Register it in agents-identity.ts.`,
+						);
+				}
 			}
 			return Object.assign({ name }, set);
 		}),
@@ -376,13 +379,13 @@ function orderWarnings(
 	projects: Readonly<Record<string, { readonly number: number }>>,
 ): string[] {
 	const warnings: string[] = [];
-	for (const { deliverable, dependsOn } of entries) {
+	for (const { deliverable, blockedBy } of entries) {
 		const own = projects[projectOf(deliverable.id)]?.number;
-		for (const prerequisite of dependsOn) {
+		for (const prerequisite of blockedBy) {
 			const other = projects[projectOf(prerequisite)]?.number;
 			if (own !== undefined && other !== undefined && other > own)
 				warnings.push(
-					`${deliverable.id} (project number ${own}) depends on ${prerequisite} (project number ${other}); the cut or the number is wrong.`,
+					`${deliverable.id} (project number ${own}) is blocked by ${prerequisite} (project number ${other}); the cut or the number is wrong.`,
 				);
 		}
 	}
@@ -444,7 +447,7 @@ export async function buildInitiative(
 		]),
 	);
 	const output = {
-		version: 2,
+		version: 3,
 		...(owner === undefined ? {} : { owner }),
 		projects: Object.fromEntries(
 			preparedSets.map((set) => {
@@ -458,6 +461,9 @@ export async function buildInitiative(
 						title: set.firstPage.title,
 						...(set.lead ? { lead: set.lead } : {}),
 						number: manifest.projects[set.name]?.number ?? 1,
+						...(manifest.projects[set.name]?.area
+							? { area: manifest.projects[set.name]?.area }
+							: {}),
 						...(manifest.projects[set.name]?.achieves
 							? { achieves: manifest.projects[set.name]?.achieves }
 							: {}),

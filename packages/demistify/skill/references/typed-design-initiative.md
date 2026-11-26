@@ -8,7 +8,7 @@ An initiative is the whole plan. It holds projects; each project holds deliverab
 | Project | One piece of work that finishes, with its own design; it says what it achieves and what the owner checks to accept it | `docs/initiatives/<initiative>/projects/<project>/`, with the files from [typed-design.md](typed-design.md) |
 | Deliverable | A piece of a project that is built, checked and accepted | `deliverables/` in its project |
 
-**Order.** Each project has a number, the order the owner wants. Every project numbered 1 runs side by side; projects numbered 2 come after them, then 3, and so on. **Dependencies** are only between deliverables: a deliverable's `dependsOn` names deliverables in its own or any other project, and it cannot be accepted before them. The check warns when a deliverable depends on one in a higher-numbered project: the cut or the number is wrong. Projects have no `dependsOn`.
+**Order.** Each project has a number, the order the owner wants. Every project numbered 1 runs side by side; projects numbered 2 come after them, then 3, and so on. **Dependencies** are only between deliverables: a deliverable's `blockedBy` names deliverables in its own or any other project, and it cannot be accepted before them. The check warns when a deliverable is blocked by one in a higher-numbered project: the cut or the number is wrong. Projects have no `blockedBy`. A project may name the one workspace `area` it belongs to.
 
 ```ts
 // initiative.ts
@@ -23,6 +23,7 @@ export default {
     sessions: {
       design: sessions,
       number: 1,
+      area: 'platform',
       achieves: 'Central knows every session.',
       acceptance: 'A Claude session registers with central on staging and is listed there.',
     },
@@ -76,7 +77,7 @@ const messagesBuilder = agentId('replace-with-the-builder-session-id');
 export default { owner: 'owner', agents: { 'messages-lead': messagesLead, 'messages-builder': messagesBuilder } };
 ```
 
-Declare each `agentId` as a top-level `const`. Use aliases from this file in agent decisions, recommendations and assumptions, for example `by: { alias: 'messages-lead', role: 'lead' }`. Name a project's Lead with `defineDelivery(design, entries, { lead: 'messages-lead' })` and a deliverable's builder with `builder: 'messages-builder'`. The checker validates aliases used for delivery assignments against the identity file. Generated views show aliases. Session IDs stay in the identity file.
+Declare each `agentId` as a top-level `const`. Use aliases from this file in agent decisions, recommendations and assumptions, for example `by: { alias: 'messages-lead', role: 'lead' }`. Name a project's Lead with `defineDelivery(design, entries, { lead: 'messages-lead' })` and a deliverable's roles with `implementer: 'messages-builder'` and the optional `verifier` and `reviewer`. The checker validates aliases used for delivery assignments against the identity file. Generated views show aliases. Session IDs stay in the identity file.
 
 ## Check and read the initiative
 

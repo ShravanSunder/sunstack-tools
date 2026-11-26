@@ -19,24 +19,26 @@ import type { DesignCore, DesignRecord } from './schema.ts';
 const scopedIds = z.array(recordId).default([]);
 const scopedAddresses = z.array(address).default([]);
 const deliveryEntry = z.strictObject({
-	dependsOn: scopedAddresses,
+	blockedBy: scopedAddresses,
 	deliverable: z.discriminatedUnion('kind', [
 		z.strictObject({
 			kind: z.literal('core'),
 			id: address,
 			title: text,
-			builder: recordId.optional(),
+			implementer: recordId.optional(),
+			verifier: recordId.optional(),
+			reviewer: recordId.optional(),
 			destination: htmlDestination,
 			scope: z.strictObject({
 				needs: scopedAddresses,
 				rules: scopedAddresses,
 				designItems: scopedAddresses,
-				implementationTasks: scopedIds,
+				issues: z.array(z.strictObject({ id: recordId, title: text })).default([]),
 				verificationChecks: scopedAddresses,
 			}),
 			implementation: z
 				.strictObject({
-					completedTasks: scopedIds,
+					closedIssues: scopedIds,
 					candidate: text.optional(),
 					evidence: z.array(evidenceHref).default([]),
 				})
@@ -176,11 +178,28 @@ function parseEntry(input: unknown, index: number): DeliveryEntry {
 		})
 		.safeParse(input);
 	const label = identity.success ? identity.data.deliverable.id : `Delivery entry ${index + 1}`;
-	const issues = result.error.issues.map(
-		({ path, message }): string => `${path.join('.') || 'entry'}: ${message}`,
-	);
+	const issues = result.error.issues.map((issue): string => {
+		const renames =
+			issue.code === 'unrecognized_keys'
+				? issue.keys.flatMap((key): string[] =>
+						Object.hasOwn(renamedDeliveryFields, key)
+							? [`${key} is now ${renamedDeliveryFields[key]}`]
+							: [],
+					)
+				: [];
+		const hint = renames.length ? ` (${renames.join('; ')})` : '';
+		return `${issue.path.join('.') || 'entry'}: ${issue.message}${hint}`;
+	});
 	throw new Error(`${label}: ${issues.join('; ')}`);
 }
+
+/** Fields renamed to the Central workspace's words; old design files name them in errors. */
+const renamedDeliveryFields: Readonly<Record<string, string>> = {
+	dependsOn: 'blockedBy',
+	builder: 'implementer',
+	implementationTasks: 'issues, each { id, title }',
+	completedTasks: 'closedIssues',
+};
 
 function checkUniqueIds(deliverableId: string, ids: readonly string[], label: string): void {
 	const seen = new Set<string>();
@@ -330,20 +349,22 @@ function projectImplementation(
 	deliverable: CoreDeliverable,
 ): CoreDeliverableView['implementation'] {
 	const { id, scope, implementation } = deliverable;
-	const completedTasks = implementation?.completedTasks ?? [];
-	checkUniqueIds(id, scope.implementationTasks, 'implementation task in scope');
-	checkUniqueIds(id, completedTasks, 'completed task');
-	for (const taskId of completedTasks) {
-		if (!scope.implementationTasks.includes(taskId))
-			throw new Error(`${id}: unknown implementation task ${taskId} in completedTasks.`);
+	const closedIssues = implementation?.closedIssues ?? [];
+	const issueIds = scope.issues.map((issue): string => issue.id);
+	checkUniqueIds(id, issueIds, 'issue in scope');
+	checkUniqueIds(id, closedIssues, 'closed issue');
+	for (const issueId of closedIssues) {
+		if (!issueIds.includes(issueId))
+			throw new Error(`${id}: unknown issue ${issueId} in closedIssues.`);
 	}
-	const completed = new Set(completedTasks);
+	const closed = new Set(closedIssues);
 	return {
 		...(implementation?.candidate === undefined ? {} : { candidate: implementation.candidate }),
 		evidence: implementation?.evidence ?? [],
-		tasks: scope.implementationTasks.map((taskId) => ({
-			id: taskId,
-			state: completed.has(taskId) ? 'completed' : 'open',
+		issues: scope.issues.map((issue) => ({
+			id: issue.id,
+			title: issue.title,
+			state: closed.has(issue.id) ? 'closed' : 'open',
 		})),
 	};
 }
@@ -403,26 +424,26 @@ function projectProgress({
 	if (workBlocker) return { state: 'design-blocked', reason: workBlocker.reason };
 
 	const { scope } = deliverable;
-	const { candidate, tasks, evidence } = implementation;
+	const { candidate, issues, evidence } = implementation;
 	const missingScope = [
 		...(!scope.rules.length ? ['governing rules'] : []),
-		...(!tasks.length ? ['implementation tasks'] : []),
+		...(!issues.length ? ['issues'] : []),
 	];
 	const started =
 		candidate !== undefined ||
 		evidence.length > 0 ||
-		tasks.some(({ state }): boolean => state === 'completed');
+		issues.some(({ state }): boolean => state === 'closed');
 	if (missingScope.length)
 		return {
 			state: started ? 'implementation-in-progress' : 'planned',
 			reason: `Define the scoped ${missingScope.join(', ')}.`,
 		};
-	if (!started) return { state: 'planned', reason: 'Start the scoped implementation tasks.' };
-	const openTasks = tasks.filter(({ state }): boolean => state === 'open');
-	if (openTasks.length)
+	if (!started) return { state: 'planned', reason: 'Start the scoped issues.' };
+	const openIssues = issues.filter(({ state }): boolean => state === 'open');
+	if (openIssues.length)
 		return {
 			state: 'implementation-in-progress',
-			reason: `Complete implementation tasks: ${openTasks.map(({ id }): string => id).join(', ')}.`,
+			reason: `Close issues: ${openIssues.map(({ id }): string => id).join(', ')}.`,
 		};
 	if (!candidate)
 		return { state: 'implementation-in-progress', reason: 'Record the implementation candidate.' };
@@ -472,10 +493,10 @@ function deliverablesInDependencyOrder(
 	const visited = new Set<string>();
 
 	function visit(entry: DeliveryEntry): void {
-		const { deliverable, dependsOn } = entry;
+		const { deliverable, blockedBy } = entry;
 		const { id } = deliverable;
-		if (deliverable.kind === 'later' && dependsOn.length)
-			throw new Error(`${id}: only core deliverables can declare prerequisites.`);
+		if (deliverable.kind === 'later' && blockedBy.length)
+			throw new Error(`${id}: only core deliverables can be blocked by others.`);
 		if (visited.has(id)) return;
 		if (currentPath.has(id)) {
 			const path = [...currentPath];
@@ -483,10 +504,10 @@ function deliverablesInDependencyOrder(
 			throw new Error(`Delivery dependency cycle: ${[...cycle, id].join(' -> ')}.`);
 		}
 		currentPath.add(id);
-		checkUniqueIds(id, dependsOn, 'prerequisite');
-		for (const prerequisite of dependsOn) {
+		checkUniqueIds(id, blockedBy, 'blocking deliverable');
+		for (const prerequisite of blockedBy) {
 			const dependency = entries.get(prerequisite);
-			if (!dependency) throw new Error(`${id}: unknown prerequisite ${prerequisite}.`);
+			if (!dependency) throw new Error(`${id}: unknown blocking deliverable ${prerequisite}.`);
 			visit(dependency);
 		}
 		currentPath.delete(id);
@@ -542,13 +563,13 @@ export function projectDelivery(
 	const coverage = new Map<string, DeliveryCoverage>();
 	const destinations: Destination[] = [];
 	const byDependencyOrder = new Map<string, DeliverableView>();
-	for (const { deliverable, dependsOn } of deliverablesInDependencyOrder(byId)) {
+	for (const { deliverable, blockedBy } of deliverablesInDependencyOrder(byId)) {
 		const { id, title } = deliverable;
 		if (deliverable.kind === 'later') {
 			byDependencyOrder.set(id, { kind: 'later', id, title, state: 'later' });
 			continue;
 		}
-		const { builder } = deliverable;
+		const { implementer, verifier, reviewer } = deliverable;
 		const { links: scopeLinks, coverageGaps } = resolveScope(
 			deliverable,
 			records,
@@ -575,14 +596,16 @@ export function projectDelivery(
 			verification,
 			acceptances,
 		});
-		const unmetPrerequisites = dependsOn.filter(
+		const unmetPrerequisites = blockedBy.filter(
 			(prerequisite): boolean => byDependencyOrder.get(prerequisite)?.state !== 'accepted',
 		);
 
 		const reasons = [...new Set([progress.reason, ...designBlockers.map(({ reason }) => reason)])];
 		for (const gap of coverageGaps) if (gap !== progress.reason) reasons.push(gap);
 		if (unmetPrerequisites.length)
-			reasons.unshift(`Awaiting acceptance of prerequisites: ${unmetPrerequisites.join(', ')}.`);
+			reasons.unshift(
+				`Blocked by deliverables not yet accepted: ${unmetPrerequisites.join(', ')}.`,
+			);
 		if (progress.state !== 'accepted') {
 			if (acceptances.some(({ build }) => build !== implementation.candidate))
 				reasons.push('The earlier Lead acceptance is for a different build.');
@@ -592,8 +615,10 @@ export function projectDelivery(
 			kind: 'core',
 			id,
 			title,
-			...(builder === undefined ? {} : { builder }),
-			dependsOn,
+			...(implementer === undefined ? {} : { implementer }),
+			...(verifier === undefined ? {} : { verifier }),
+			...(reviewer === undefined ? {} : { reviewer }),
+			blockedBy,
 			state: unmetPrerequisites.length ? 'dependency-blocked' : progress.state,
 			reasons,
 			progress,

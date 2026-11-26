@@ -37,7 +37,7 @@ export type ProjectState = (typeof projectStates)[number];
 
 /** The generated view of an initiative: its projects, the order their dependencies produce, records and deliverables. */
 export const initiativeViewSchema = z.strictObject({
-	version: z.literal(2),
+	version: z.literal(3),
 	owner: z.string().optional(),
 	projects: z.record(
 		z.string(),
@@ -48,6 +48,8 @@ export const initiativeViewSchema = z.strictObject({
 			title: z.string().min(1).optional(),
 			/** The initiative's order: lower first; the same number means side by side. */
 			number: z.number().int().nonnegative(),
+			/** The workspace area the project belongs to. */
+			area: z.string().min(1).optional(),
 			achieves: z.string().min(1).optional(),
 			acceptance: z.string().min(1).optional(),
 			state: z.enum(projectStates),

@@ -228,7 +228,7 @@ A Map node or Walkthrough step in `design.ts` targets `{ record: 'R1' }` and lin
 
 ## Plan deliverables
 
-`design-delivery.ts` lists one module per deliverable under `deliverables/`, each with optional `dependsOn` prerequisites. A `core` deliverable has a scope and is checked. A `later` one is only `defineDeliverable({ kind: 'later', id: 'DEL-02', title: 'Grey out expired rows' })`: listed, not checked, and without a brief.
+`design-delivery.ts` lists one module per deliverable under `deliverables/`, each with an optional `blockedBy` list of deliverables that must be accepted first. A `core` deliverable has a scope and is checked. A `later` one is only `defineDeliverable({ kind: 'later', id: 'DEL-02', title: 'Grey out expired rows' })`: listed, not checked, and without a brief.
 
 ```ts
 // design-delivery.ts
@@ -253,25 +253,28 @@ export default defineDeliverable({
     needs: ['U1'],
     rules: ['R1'],
     designItems: ['M1'],
-    implementationTasks: ['store-expiry', 'sweep-expired'],
+    issues: [
+      { id: 'store-expiry', title: 'Store each row\'s expiry time' },
+      { id: 'sweep-expired', title: 'Sweep expired rows' },
+    ],
     verificationChecks: ['V1'],
   },
 });
 ```
 
-`destination` names a real `id` on a declared page, such as `<h2 id="DEL-01">`. Optional `needs` lists the needs this deliverable covers. `designItems` lists scoped realizations. Each scoped check must cover a scoped rule. Progress goes in the same module:
+`destination` names a real `id` on a declared page, such as `<h2 id="DEL-01">`. Optional `needs` lists the needs this deliverable covers. `designItems` lists scoped realizations. `issues` lists the work items, each with a stable `id` and a `title` that names the work in plain words. Each scoped check must cover a scoped rule. Progress goes in the same module:
 
-- `implementation: { completedTasks, candidate, evidence }`: finished tasks, the build, evidence links.
+- `implementation: { closedIssues, candidate, evidence }`: the IDs of closed issues, the build, evidence links.
 - `verification: { build, outcomes }`, keyed by check ID. An outcome is `{ kind: 'passed' | 'failed', observation, evidence }` or `{ kind: 'blocked', reason }`. When the assigned checks change, move the old receipt to `verificationHistory`.
 
 Record acceptance in `design.ts` as `acceptances: [{ deliverableId: 'DEL-01', build: 'build-87', evidence: 'acceptance.md' }]`, where `build` equals the implementation candidate. The check holds a core deliverable short of acceptance while:
 
-- its scope has no rules or no tasks, a task is open, or no candidate is recorded;
+- its scope has no rules or no issues, an issue is open, or no candidate is recorded;
 - a scoped rule serves no need, or no assigned check covers it;
 - no scoped rule serves one of its explicitly scoped needs;
 - a check outcome is missing, failed, blocked, or recorded on another build;
 - a governing open owner question or refuted assumption blocks the work, or a governing assumption is still open;
-- a prerequisite is not accepted.
+- a deliverable in its `blockedBy` is not accepted.
 
 Known loss: the check does not flag a rule that changed after acceptance. Treat such an edit as new scope and verify it again.
 
@@ -282,4 +285,4 @@ Show progress with `<ex-deliverables src="./deliverables.generated.json" label="
 
 ## Brief a deliverable
 
-`demistify brief DEL-01 <project>` prints a Markdown brief with the title, prerequisites, scoped needs, rules, realizations and checks, tasks, open owner questions and assumptions, and coverage gaps and notes. It validates the typed inputs without preparing HTML or writing files. Give the helper this brief and run the typed check to validate the pages.
+`demistify brief DEL-01 <project>` prints a Markdown brief with the title, the deliverables it is blocked by, scoped needs, rules, realizations and checks, issues, open owner questions and assumptions, and coverage gaps and notes. It validates the typed inputs without preparing HTML or writing files. Give the helper this brief and run the typed check to validate the pages.

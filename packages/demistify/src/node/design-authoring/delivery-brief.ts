@@ -54,7 +54,7 @@ export async function deliveryBrief(
 		);
 	const [entry] = matches;
 	if (!entry) throw new Error(`Unknown deliverable: ${scopedId}.`);
-	const { deliverable, dependsOn } = entry;
+	const { deliverable, blockedBy } = entry;
 	if (deliverable.kind !== 'core')
 		throw new Error(`${deliverable.id} is a later deliverable with no brief.`);
 	const { scope } = deliverable;
@@ -70,16 +70,16 @@ export async function deliveryBrief(
 	return [
 		`# ${deliverable.id} · ${deliverable.title}`,
 		...section(
-			'Prerequisites',
-			dependsOn.map((id): string => `- ${id}`),
+			'Blocked by',
+			blockedBy.map((id): string => `- ${id}`),
 		),
 		...section('Needs', selected(scope.needs).flatMap(briefRecord)),
 		...section('Rules', selected(scope.rules).flatMap(briefRecord)),
 		...section('Realizations', selected(scope.designItems).flatMap(briefRecord)),
 		...section('Checks', selected(scope.verificationChecks).flatMap(briefRecord)),
 		...section(
-			'Tasks',
-			scope.implementationTasks.map((id): string => `- ${id}`),
+			'Issues',
+			scope.issues.map(({ id, title }): string => `- ${id}: ${title}`),
 		),
 		...section(
 			'Open owner decisions',
