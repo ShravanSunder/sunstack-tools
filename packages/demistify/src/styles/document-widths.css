@@ -1,7 +1,36 @@
-ex-initiative-overview {
+ex-initiative-overview,
+ex-project-overview {
 	display: block;
 	min-width: 0;
 	overflow-wrap: anywhere;
+}
+ex-project-overview h2 {
+	margin-block-end: var(--space-3);
+}
+ex-project-overview ex-grid + details {
+	margin-block-start: var(--space-3);
+}
+ex-project-overview :is(th, td) {
+	overflow-wrap: normal;
+}
+ex-project-overview td > :is(a, p) {
+	overflow-wrap: anywhere;
+}
+ex-project-overview td > p {
+	margin-block: var(--space-1) 0;
+}
+ex-project-overview td > time {
+	white-space: nowrap;
+}
+ex-project-overview td > .ex-glossary-marker[tone] {
+	display: inline-grid;
+	place-items: center;
+	margin-inline-start: 0;
+}
+ex-project-overview table[data-width='canvas'] :is(th, td):first-child {
+	inline-size: 1%;
+	text-align: center;
+	white-space: nowrap;
 }
 :is(ex-initiative-overview, .ex-initiative-project-summary) li {
 	margin-block: 0.25rem;

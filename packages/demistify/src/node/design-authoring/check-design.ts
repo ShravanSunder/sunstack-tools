@@ -4,6 +4,7 @@ import { basename, dirname, extname, join, relative, resolve } from 'node:path';
 import { isDecision } from '../../core/decision-record.ts';
 import { deliverablesViewSchema } from '../../core/deliverables-view.ts';
 import { designRecordsFilename, type DesignRecordView } from '../../core/design-record-view.ts';
+import { projectOverviewFilename } from '../../core/project-overview-view.ts';
 import type { NavigationTarget, SharedMapNode } from '../../core/shared-navigation.ts';
 import { checkHtml, documentFragmentIds, formatFindings } from '../check.ts';
 import { containsPath } from '../local-site.ts';
@@ -36,6 +37,7 @@ import {
 	generatedDesignPaths,
 	planDesignIgnore,
 } from './generated-ignore.ts';
+import { buildProjectOverview } from './project-overview-output.ts';
 import { readDeliveryEntries } from './read-delivery.ts';
 import { readDesignSources } from './read-design.ts';
 import { putPageRecords, recordOutputFile, recordRegistrationScript } from './record-output.ts';
@@ -294,23 +296,36 @@ export async function openDesignCheck(siteRoot: string): Promise<DesignCheck> {
 					record.kind === 'assumption' && record.status !== 'open' ? record.resolution : undefined;
 				const basis =
 					isDecision(record) && 'source' in record.authority ? record.authority.source : undefined;
-				return [...sources, ...(resolution ? [resolution] : []), ...(basis ? [basis] : [])].map(
-					async (source) => {
-						const target = resolveLink(source.href, sourceFile);
-						if (!target) throw new Error(`Source reference must be local: ${source.href}`);
-						// With `shown`, the record owns the owner's words; `href` only says where.
-						const pageVerbatim = source.verbatim === true && source.shown === undefined;
-						await checkDestination(target.file, target.fragment, pageVerbatim);
-						if (!pageVerbatim) return;
-						if (!isHtml(target.file))
-							throw new Error(
-								`${record.id}: verbatim excerpts require an HTML source: ${source.href}`,
-							);
-						const text = passageText(await readSiteFile(target.file), target.fragment || undefined);
-						if (!text.includes(normalizeExcerpt(source.excerpt)))
-							throw new Error(`${record.id}: verbatim excerpt does not appear in ${source.href}.`);
-					},
-				);
+				const references = [
+					...sources,
+					...(resolution ? [resolution] : []),
+					...(basis ? [basis] : []),
+				].map(async (source) => {
+					const target = resolveLink(source.href, sourceFile);
+					if (!target) throw new Error(`Source reference must be local: ${source.href}`);
+					// With `shown`, the record owns the owner's words; `href` only says where.
+					const pageVerbatim = source.verbatim === true && source.shown === undefined;
+					await checkDestination(target.file, target.fragment, pageVerbatim);
+					if (!pageVerbatim) return;
+					if (!isHtml(target.file))
+						throw new Error(
+							`${record.id}: verbatim excerpts require an HTML source: ${source.href}`,
+						);
+					const text = passageText(await readSiteFile(target.file), target.fragment || undefined);
+					if (!text.includes(normalizeExcerpt(source.excerpt)))
+						throw new Error(`${record.id}: verbatim excerpt does not appear in ${source.href}.`);
+				});
+				if (
+					isDecision(record) &&
+					record.authority.state === 'agent-decided' &&
+					record.authority.ownerReview
+				) {
+					const { href } = record.authority.ownerReview;
+					const target = resolveLink(href, sourceFile);
+					if (!target) throw new Error(`Owner review evidence must be local: ${href}`);
+					references.push(checkDestination(target.file, target.fragment));
+				}
+				return references;
 			}),
 		);
 	}
@@ -401,6 +416,7 @@ export async function openDesignCheck(siteRoot: string): Promise<DesignCheck> {
 	}: LoadedDesign): Promise<PreparedDesign> {
 		const navigationFile = join(setDirectory, 'navigation.generated.json');
 		const deliverablesFile = join(setDirectory, 'deliverables.generated.json');
+		const projectOverviewFile = join(setDirectory, projectOverviewFilename);
 		const pages = await Promise.all(
 			design.pages.map(async (page) => {
 				const file = declaredDesignPagePath(page.href, designFile, siteDirectory);
@@ -469,6 +485,15 @@ export async function openDesignCheck(siteRoot: string): Promise<DesignCheck> {
 				}),
 			]);
 
+			const projectOverview = buildProjectOverview({
+				directory: setDirectory,
+				namespace,
+				pages,
+				projection,
+				delivery: deliverables,
+				workLogs: design.workLogs,
+			});
+			const projectOverviewText = JSON.stringify(projectOverview);
 			const navigationText = JSON.stringify(navigation);
 			const deliverablesText = JSON.stringify(deliverables);
 			const results = await Promise.all(
@@ -486,6 +511,16 @@ export async function openDesignCheck(siteRoot: string): Promise<DesignCheck> {
 						)
 							throw new Error(
 								`The ex-deliverables src in ${label(file)} must resolve to the design set's deliverables.generated.json.`,
+							);
+					}
+					for (const source of markup.projectDetailsSources) {
+						if (
+							!source ||
+							/[?#]/.test(source) ||
+							resolveLink(source, file)?.file !== projectOverviewFile
+						)
+							throw new Error(
+								`The ex-project-overview src in ${label(file)} must resolve to the design set's ${projectOverviewFilename}.`,
 							);
 					}
 					const [binding] = markup.navigationSources;
@@ -511,6 +546,7 @@ export async function openDesignCheck(siteRoot: string): Promise<DesignCheck> {
 							if (!target) return undefined;
 							if (target.file === navigationFile) return navigationText;
 							if (target.file === deliverablesFile) return deliverablesText;
+							if (target.file === projectOverviewFile) return projectOverviewText;
 							if (target.file === projectSource?.file) return projectSource.text;
 							return (
 								preparedPages.get(target.file) ??
@@ -548,6 +584,7 @@ export async function openDesignCheck(siteRoot: string): Promise<DesignCheck> {
 				],
 				[navigationFile, navigation],
 				[deliverablesFile, deliverables],
+				[projectOverviewFile, projectOverview],
 			]);
 			const result = [
 				details,

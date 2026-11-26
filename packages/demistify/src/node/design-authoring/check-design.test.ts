@@ -422,3 +422,101 @@ export default (() => { writeFileSync(${JSON.stringify(sentinel)}, 'ran'); retur
 		await rm(directory, { recursive: true, force: true });
 	}
 }, 60_000);
+
+it('generates the project overview from declared design pages and dated work logs', async (): Promise<void> => {
+	const directory = await mkdtemp(join(tmpdir(), 'demistify-project-overview-'));
+	try {
+		await run(process.execPath, [cli, 'design', 'init', directory]);
+		const definition = join(directory, 'design.ts');
+		const binding =
+			'<ex-project-overview src="./project-overview.generated.json"><a slot="decision-history" href="requirements.html#all-decisions">All decisions</a></ex-project-overview>';
+		const decisionsFile = join(directory, 'design-decisions.ts');
+		const agentAuthority =
+			"{ state: 'agent-decided', by: { alias: 'Design Lead', role: 'lead' }, weight: 'design', decidedOn: '2026-11-25', sourceKind: 'author', rationale: 'Both cases use the same result.' }";
+		const decisionsSource = `import type { DesignDecision } from './design-schema.d.ts';
+export default [
+  { id: 'D1', kind: 'ruling', title: 'Result', statement: 'Use the current result.', authority: ${agentAuthority} },
+  { id: 'D2', kind: 'ruling', statement: 'Keep the older result in the log.', authority:
+    ${agentAuthority.replace(/ \}$/u, ", ownerReview: { reviewedOn: '2026-11-26', href: 'work-log.html#review-evidence' } }")} },
+  { id: 'D3', kind: 'ruling', statement: 'Show where the result came from.', authority: {
+    state: 'owner-decided', sourceKind: 'owner-words', decidedOn: '2026-11-25', source: { href: 'work-log.html', excerpt: 'Show the source.' } } },
+] as const satisfies readonly DesignDecision[];`;
+		const bodyByPage = {
+			'index.html': binding,
+			'requirements.html':
+				'<h2 id="all-decisions">All decisions</h2><p data-design-record="D1"></p><p data-design-record="D2"></p><p data-design-record="D3"></p>',
+			'work-log.html': '<p id="review-evidence">Reviewed D2.</p>',
+		};
+		await Promise.all(
+			Object.entries(bodyByPage).map(([filename, body]) =>
+				writeFile(
+					join(directory, filename),
+					page.replace(
+						'<h2 data-design-record="NeedOverview"></h2><p><a href="../overview.html#scope">Overview</a> and <a href="../overview.html#details--from-markdown">details</a></p>',
+						body,
+					),
+				),
+			),
+		);
+		await writeFile(decisionsFile, decisionsSource);
+		await writeFile(
+			definition,
+			`export default {
+			pages: [
+				{ id: 'home', title: 'Overview', href: 'index.html', icon: 'file' },
+				{ id: 'needs', title: 'Requirements', href: 'requirements.html', icon: 'file' },
+				{ id: 'log', title: 'Reviewed the design', href: 'work-log.html', icon: 'file' },
+			],
+			mapGroups: [], records: [],
+			workLogs: { log: '2026-11-26' },
+		};`,
+		);
+		const check = [cli, 'design', 'check', directory];
+		const output = join(directory, 'project-overview.generated.json');
+		await run(process.execPath, check);
+		await expect(stat(output)).rejects.toMatchObject({ code: 'ENOENT' });
+		await run(process.execPath, [...check, '--write']);
+		expect(JSON.parse(await readFile(output, 'utf8'))).toEqual({
+			version: 1,
+			deliverables: [],
+			documents: [{ title: 'Requirements', href: 'requirements.html' }],
+			decisions: [
+				{
+					title: 'D1 · Result',
+					href: 'requirements.html#D1',
+					status: 'Needs review',
+					outcome: 'Use the current result.',
+				},
+			],
+			workLogs: [{ title: 'Reviewed the design', href: 'work-log.html', date: '2026-11-26' }],
+		});
+		expect(
+			JSON.parse(await readFile(join(directory, 'design.generated.json'), 'utf8')),
+		).toMatchObject({
+			records: [
+				{ id: 'D1' },
+				{
+					id: 'D2',
+					authority: {
+						state: 'agent-decided',
+						['by']: { alias: 'Design Lead' },
+						ownerReview: { reviewedOn: '2026-11-26', href: 'work-log.html#review-evidence' },
+					},
+				},
+				{ id: 'D3' },
+			],
+		});
+		await writeFile(decisionsFile, decisionsSource.replace('#review-evidence', '#missing-review'));
+		await expect(run(process.execPath, check)).rejects.toThrow(
+			/Missing HTML target: .*#missing-review/,
+		);
+		await writeFile(decisionsFile, decisionsSource);
+		const source = await readFile(definition, 'utf8');
+		await writeFile(definition, source.replace("log: '2026-11-26'", "unknown: '2026-11-26'"));
+		await expect(run(process.execPath, check)).rejects.toThrow(
+			/Work log names an undeclared page: unknown/,
+		);
+	} finally {
+		await rm(directory, { recursive: true, force: true });
+	}
+});

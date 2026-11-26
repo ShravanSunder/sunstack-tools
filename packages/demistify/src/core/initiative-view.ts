@@ -86,6 +86,13 @@ export function parseInitiativeView(source: string): InitiativeView {
 	return initiativeViewSchema.parse(JSON.parse(source));
 }
 
+export function decisionOutcome(record: ProjectRecord): string | undefined {
+	return (
+		record.authority?.decision ??
+		(record.kind === 'ruling' && record.title !== record.statement ? record.statement : undefined)
+	);
+}
+
 export function projectDecisions(records: readonly ProjectRecord[]): ProjectDecision[] {
 	const decisions = records.filter(({ kind }): boolean => kind === 'choice' || kind === 'ruling');
 	const replacements = new Map<string, ProjectRecord>();

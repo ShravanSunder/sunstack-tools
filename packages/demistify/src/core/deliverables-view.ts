@@ -106,6 +106,13 @@ const laterDeliverableView = z.strictObject({
 	title: text,
 	state: z.literal('later'),
 });
+export const deliverablePlanSummarySchema = z.discriminatedUnion('kind', [
+	coreDeliverableView
+		.pick({ kind: true, id: true, title: true, state: true })
+		.extend({ destination }),
+	laterDeliverableView,
+]);
+
 export const deliverableViewSchema = z.discriminatedUnion('kind', [
 	coreDeliverableView,
 	laterDeliverableView,

@@ -42,6 +42,7 @@ const agentFields = {
 	rationale: text,
 	decidedOn: z.iso.date(),
 	weight,
+	ownerReview: z.strictObject({ reviewedOn: z.iso.date(), href: relativeHref }).optional(),
 };
 const contractAuthority = z.strictObject({
 	...agentFields,
