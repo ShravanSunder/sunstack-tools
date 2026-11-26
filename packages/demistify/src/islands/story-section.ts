@@ -2,8 +2,16 @@ import { createDisclosureControl, type ScopeControl } from '../core/disclosure-s
 import { createHead, readIcon } from '../core/head.ts';
 import { reportIssue } from '../core/issues.ts';
 import { readSectionMembership, smallerStoriesSelector } from '../core/section-membership.ts';
+import { sectionHolds, type SectionHold } from '../core/section-routing.ts';
 import { prepareStoryDisclosure } from '../core/story-content.ts';
 import { readTone } from '../core/tones.ts';
+
+const recordSectionIcons = {
+	'needs-owner': 'user',
+	'decided-by-agent': 'robot',
+	settled: 'user',
+	assumed: 'test-tube',
+} satisfies Record<SectionHold, string>;
 
 export class SectionIsland extends HTMLElement {
 	private headerObserver: ResizeObserver | undefined;
@@ -18,10 +26,12 @@ export class SectionIsland extends HTMLElement {
 				reportIssue(this, 'A section needs its stable id and title.');
 				return;
 			}
+			const hold = sectionHolds.find((state) => state === this.getAttribute('holds'));
+			const tone = readTone(this, undefined);
 			const header = createHead('h3', 'ex-section-head', {
 				title,
-				icon: readIcon(this),
-				tone: readTone(this, undefined),
+				icon: readIcon(this) ?? (hold && !tone ? recordSectionIcons[hold] : undefined),
+				tone,
 			});
 			const count = document.createElement('span');
 			count.className = 'ex-section-count';

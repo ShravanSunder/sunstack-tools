@@ -339,12 +339,21 @@ export class ChoiceIsland extends HTMLElement {
 			}
 			rendered.push({ optionId, label: optionLabel, input, target });
 		}
+		const chosenOption = settled ? rendered.find((option) => option.input.checked) : undefined;
+		if (inRecordSection && chosenOption) beside?.options.prepend(chosenOption.target);
 		this.options = rendered;
 		this.replaceChildren(this.source, fieldset);
 		if (face && beside) {
 			const metadata = recordStateLine(face, inRecordSection);
 			if (inRecordSection) {
 				legend.after(metadata);
+				if (bound?.title && bound.title !== this.question) {
+					legend.textContent = bound.title;
+					fieldset.setAttribute('aria-label', this.question);
+					const fullQuestion = document.createElement('p');
+					fullQuestion.textContent = this.question;
+					metadata.after(fullQuestion);
+				}
 				if (!settled) {
 					const context = [legend, metadata];
 					for (
@@ -369,9 +378,7 @@ export class ChoiceIsland extends HTMLElement {
 				}
 			} else this.prepend(metadata);
 			legend.classList.add('ex-record-item-title');
-			const chosenTitle = settled
-				? rendered.find((option) => option.input.checked)?.label
-				: undefined;
+			const chosenTitle = chosenOption?.label;
 			appendRecordBasis(this, face, chosenTitle ? { chosenTitle } : undefined);
 			this.removeAttribute('title');
 			this.classList.add('ex-bound-choice');

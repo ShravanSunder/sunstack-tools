@@ -194,14 +194,20 @@ export function appendRecordBasis(
 
 export function renderSectionRecord(item: HTMLElement, face: RecordFace): void {
 	if (face.record.kind === 'choice') return;
-	const title = textNode('h4', face.record.statement);
+	const { statement } = face.record;
+	const heading = face.record.title ?? statement;
+	const title = textNode('h4', heading);
 	title.className = 'ex-record-item-title';
 	item.dataset['commentLabel'] = face.record.statement;
 	const body = document.createElement('article');
 	body.className = 'ex-record-surface';
 	body.dataset['commentSlot'] = '';
 	const reason = recordReason(face);
-	body.append(title, recordStateLine(face, true), ...(reason ? [reason] : []), ...item.childNodes);
+	const content = [...item.childNodes];
+	body.append(title, recordStateLine(face, true));
+	if (heading !== statement) body.append(textNode('p', statement));
+	if (reason) body.append(reason);
+	body.append(...content);
 	item.append(body);
 	appendRecordBasis(item, face, { body });
 }

@@ -1,13 +1,16 @@
 :root {
 	--surface-document-card: var(--surface-content);
+	--surface-record: var(--surface-code);
 }
 @media (prefers-color-scheme: dark) {
 	:root:not([data-theme='light']) {
 		--surface-document-card: color-mix(in srgb, var(--surface-page) 99%, #fff);
+		--surface-record: color-mix(in srgb, var(--surface-content) 75%, var(--surface-page));
 	}
 }
 :root[data-theme='dark'] {
 	--surface-document-card: color-mix(in srgb, var(--surface-page) 99%, #fff);
+	--surface-record: color-mix(in srgb, var(--surface-content) 75%, var(--surface-page));
 }
 ex-section {
 	--section-padding: var(--space-5);
@@ -25,6 +28,18 @@ ex-section {
 	border-radius: var(--radius-md);
 	background: var(--surface-document-card);
 	font: 400 var(--text-md)/1.5 var(--font-body);
+}
+ex-section[holds='needs-owner']:not([series], [tone]) {
+	--surface-category: var(--chart-5);
+}
+ex-section[holds='decided-by-agent']:not([series], [tone]) {
+	--surface-category: var(--chart-2);
+}
+ex-section[holds='settled']:not([series], [tone]) {
+	--surface-category: var(--chart-3);
+}
+ex-section[holds='assumed']:not([series], [tone]) {
+	--surface-category: var(--chart-1);
 }
 .ex-section-head {
 	position: sticky;
@@ -279,13 +294,22 @@ ex-section-item + ex-section-item {
 }
 ex-section > ex-section-item[record] {
 	--record-surface-width: calc(var(--width-reading) + 2 * var(--space-4) + 2px);
+	--record-item-start: 0px;
 	position: relative;
-	padding-block: var(--space-4) var(--space-8);
+	isolation: isolate;
+	padding-block: var(--record-item-start) 0;
+	overflow-wrap: anywhere;
+}
+ex-section > ex-section-item[record]:first-of-type {
+	--record-item-start: var(--space-4);
+}
+ex-section > ex-section-item[record] + ex-section-item[record] {
+	margin-block-start: var(--space-6);
 }
 ex-section > ex-section-item[record]::before {
 	content: '';
 	position: absolute;
-	inset-block: var(--space-4) var(--space-8);
+	inset-block: var(--record-item-start) 0;
 	inset-inline-start: calc(2px - var(--section-padding));
 	inline-size: 6px;
 	border-radius: var(--radius-pill);
@@ -303,7 +327,7 @@ ex-section-item[record] > .ex-bound-choice {
 	padding: var(--space-4);
 	border: 1px solid var(--rule);
 	border-radius: var(--radius-md);
-	background: var(--surface-content);
+	background: var(--surface-record);
 }
 .ex-record-surface > ex-choice {
 	margin-block: 0;

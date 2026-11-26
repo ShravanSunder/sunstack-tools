@@ -60,6 +60,18 @@ const records = [
 		excerpt: 'Keep the log',
 	}),
 	{
+		id: 'D5',
+		kind: 'choice',
+		title: 'Retry policy',
+		question: 'How should a slow request be retried?',
+		options: [
+			{ id: 'wait', title: 'Wait before retrying' },
+			{ id: 'stop', title: 'Stop after the first failure' },
+		],
+		recommended: { option: 'wait', 'by': { alias: 'Lead', role: 'lead' } },
+		authority: { state: 'owner-open' },
+	},
+	{
 		id: 'D4',
 		kind: 'ruling',
 		statement: 'Use one receipt.',
@@ -81,7 +93,10 @@ document.currentScript.dataset.demistifyRecords = JSON.stringify({
 				...(record.kind === 'choice' && { decision: record.id }),
 				face: { record, dependents: [] },
 			})),
-			sectionItems: records.map(({ id }) => ({ reference: id, holds: 'settled' })),
+			sectionItems: records.map((record) => ({
+				reference: record.id,
+				holds: record.authority.state === 'owner-open' ? 'needs-owner' : 'settled',
+			})),
 			trees: [],
 		},
 	},

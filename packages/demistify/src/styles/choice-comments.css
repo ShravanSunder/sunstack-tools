@@ -125,7 +125,7 @@ ex-choice.ex-choice-default-width:has(> .ex-choice-beside-fieldset):not(
 		:has(> fieldset > .ex-choice-detail-layout > .ex-choice-detail-panels > :not([hidden])),
 		.ex-bound-choice:has(> fieldset > [data-width='canvas'])
 	) {
-	max-inline-size: var(--width-reading);
+	max-inline-size: var(--choice-stack-width, var(--width-reading));
 	margin-inline: 0 auto;
 }
 .ex-choice-detail-layout {
@@ -133,6 +133,9 @@ ex-choice.ex-choice-default-width:has(> .ex-choice-beside-fieldset):not(
 	gap: var(--space-3);
 	align-items: start;
 	margin-block: var(--space-3);
+}
+ex-section-item[record] .ex-bound-choice > fieldset > .ex-choice-detail-layout {
+	margin-block: calc(var(--space-6) + var(--space-3)) var(--space-3);
 }
 .ex-choice-detail-options {
 	display: grid;
@@ -755,11 +758,12 @@ ex-choice.ex-choice-cards ex-option:has(:focus-visible) > .ex-entity-comment {
 
 ex-section-item[record] .ex-record-item-title {
 	margin-block-end: var(--space-2);
+	text-wrap: wrap;
 }
 ex-section-item[record] .ex-record-state-line {
 	max-inline-size: var(--width-reading);
 	margin-block-end: var(--space-6);
-	flex-wrap: wrap-reverse;
+	flex-wrap: wrap;
 }
 ex-section-item[record] .ex-record-state-line + p {
 	margin-block-start: 0;
@@ -790,10 +794,9 @@ ex-section-item[record] .ex-choice-title-row:has(> .ex-record-option-title) {
 .ex-record-option-metadata {
 	grid-row: 2;
 	grid-column: 1 / -1;
-	justify-self: end;
+	justify-self: start;
 	display: flex;
 	flex-wrap: wrap;
-	justify-content: flex-end;
 	align-items: center;
 	gap: var(--space-1) var(--space-2);
 	min-inline-size: 0;
@@ -825,6 +828,34 @@ ex-section-item[record] .ex-record-detail-button:hover {
 .ex-record-surface > .ex-bound-choice.ex-choice-cards > fieldset {
 	padding-inline-end: 0;
 }
+ex-section-item[record] .ex-record-surface .ex-choice-detail-options {
+	gap: 0;
+}
+ex-section-item[record]
+	.ex-record-surface
+	.ex-choice-detail-options
+	> ex-option.ex-choice-option:is(.ex-record-chosen, .ex-record-alternative) {
+	border: 0;
+	border-block-start: 1px solid var(--rule);
+	border-radius: 0;
+	padding-inline: 0;
+	background: transparent;
+	cursor: default;
+}
+.ex-record-surface :is(.ex-record-chosen, .ex-record-alternative) .ex-choice-label {
+	cursor: inherit;
+}
+/* The record surface sets the reading edge. Its comment controls sit beside that edge. */
+ex-section-item[record] > .ex-bound-choice {
+	--choice-stack-width: var(--record-surface-width);
+}
+ex-section-item[record] .ex-bound-choice.ex-choice-cards > fieldset {
+	padding-inline-end: 0;
+}
+ex-section-item[record] ex-mermaid.ex-inspectable > .ex-inspect-controls:not([hidden]) {
+	opacity: 1;
+	pointer-events: auto;
+}
 .ex-record-choice-context {
 	isolation: isolate;
 }
@@ -838,7 +869,7 @@ ex-section-item[record] .ex-record-detail-button:hover {
 	block-size: var(--record-choice-context-height, 0px);
 	border: 1px solid var(--rule);
 	border-radius: var(--radius-md);
-	background: var(--surface-content);
+	background: var(--surface-record);
 	pointer-events: none;
 }
 .ex-record-choice-context > fieldset > .ex-record-choice-context-part {
@@ -851,4 +882,24 @@ ex-section-item[record] .ex-record-detail-button:hover {
 }
 .ex-record-choice-context > fieldset > .ex-record-choice-context-end {
 	padding-block-end: var(--space-4);
+}
+
+.ex-record-choice-context > fieldset > table.ex-record-choice-context-part {
+	--table-header-background: color-mix(in srgb, var(--ink) 8%, var(--surface-record));
+	--table-border: var(--rule);
+	inline-size: calc(100% - 2 * var(--space-4));
+	max-inline-size: calc(var(--record-surface-width) - 2 * var(--space-4));
+	margin-inline: var(--space-4);
+	padding-inline: 0;
+}
+
+.ex-record-choice-context > fieldset > table.ex-record-choice-context-part > tbody {
+	background: var(--surface-record);
+}
+.ex-record-choice-context
+	> fieldset
+	> table.ex-record-choice-context-part
+	> tbody
+	> tr:nth-child(even) {
+	background: color-mix(in srgb, var(--ink) 3%, var(--surface-record));
 }

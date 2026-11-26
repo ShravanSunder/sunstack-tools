@@ -85,3 +85,56 @@ test.each([1400, 390].flatMap((width) => ['light', 'dark'].map((theme) => ({ wid
 		expect(fixture.querySelector('#D4 summary')).toBeNull();
 	},
 );
+
+test.each([
+	{ width: 1400, theme: 'dark' },
+	{ width: 390, theme: 'light' },
+])(
+	'typed records share one reading edge at $width px in $theme',
+	async ({ width, theme }): Promise<void> => {
+		await page.viewport(width, 1000);
+		const { document: fixture, frame } = await openFixture('ui', '', 'owner-words.html');
+		fixture.documentElement.dataset['theme'] = theme;
+		await expect.element(frame.getByText('Retry policy', { exact: true })).toBeVisible();
+
+		const view = fixture.defaultView;
+		if (!view) throw new Error('Missing preview window.');
+		const openSection = requiredElement(fixture, '#open-decisions');
+		const heading = requiredElement(openSection, '.ex-section-head');
+		requiredElement(heading, '.ex-tone-icon');
+		const choice = requiredElement(openSection, '#D5');
+		const item = requiredElement(openSection, 'ex-section-item[record="D5"]');
+		expect(view.getComputedStyle(heading, '::after').backgroundColor).toBe(
+			view.getComputedStyle(item, '::before').backgroundColor,
+		);
+		const context = view.getComputedStyle(choice, '::before');
+		const ruling = requiredElement(fixture, '#D1 > .ex-record-surface');
+		expect(context.backgroundColor).toBe(view.getComputedStyle(ruling).backgroundColor);
+		expect(requiredElement(choice, 'fieldset').getAttribute('aria-label')).toBe(
+			'How should a slow request be retried?',
+		);
+
+		const layout = requiredElement(choice, '.ex-choice-detail-layout');
+		const spacing = view.getComputedStyle(layout);
+		expect([spacing.marginBlockStart, spacing.marginBlockEnd]).toEqual(['36px', '12px']);
+		const [first, second] = choice.querySelectorAll('ex-option.ex-choice-option');
+		if (!first || !second) throw new Error('Expected two open options.');
+		expect(first.getBoundingClientRect().width).toBeCloseTo(Number.parseFloat(context.width));
+		expect(second.getBoundingClientRect().top - first.getBoundingClientRect().bottom).toBeCloseTo(
+			12,
+		);
+		expect(requiredElement(first, '.ex-record-option-metadata').getBoundingClientRect().left).toBe(
+			requiredElement(first, '.ex-choice-label').getBoundingClientRect().left,
+		);
+		expect(first.querySelector('.ex-choice-details-button')).toBeNull();
+		expect(requiredElement(choice, 'table').getBoundingClientRect().left).toBeCloseTo(
+			choice.getBoundingClientRect().left + 16,
+		);
+		expect(fixture.documentElement.scrollWidth).toBeLessThanOrEqual(width);
+
+		const chosen = requiredElement(fixture, '#D2 .ex-choice-detail-options > .ex-record-chosen');
+		const settled = view.getComputedStyle(chosen);
+		expect(settled.backgroundColor).toBe('rgba(0, 0, 0, 0)');
+		expect(settled.borderInlineStartWidth).toBe('0px');
+	},
+);
