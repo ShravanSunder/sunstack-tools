@@ -832,15 +832,33 @@ ex-section-item[record] .ex-record-detail-button:hover {
 	background: color-mix(in srgb, currentColor 10%, transparent);
 }
 /* The record surface sets the reading edge. Its comment controls sit beside that edge. */
-ex-section-item[record] > .ex-bound-choice {
+ex-section-item[record] > .ex-bound-choice,
+ex-section-item[record] > div.ex-record-surface > .ex-bound-choice {
 	--choice-stack-width: var(--record-surface-width);
 }
 ex-section-item[record] .ex-bound-choice.ex-choice-cards > fieldset {
 	padding-inline-end: 0;
 }
-ex-section-item[record] ex-mermaid.ex-inspectable > .ex-inspect-controls:not([hidden]) {
+ex-section-item[record]
+	ex-mermaid.ex-inspectable:not([data-comment-gutter-offscreen])
+	> .ex-inspect-controls:not([hidden]) {
 	opacity: 1;
 	pointer-events: auto;
+}
+.ex-record-statement {
+	margin-block: 0 var(--space-3);
+}
+@media (max-width: 760px), (hover: none) {
+	[data-show-comment-markers] ex-section-item[record] ex-option.ex-choice-option {
+		padding-inline-end: calc(var(--space-8) + var(--space-4));
+	}
+	ex-section-item[record]
+		ex-choice.ex-choice-cards
+		ex-option.ex-choice-option
+		> .ex-entity-comment {
+		inset-inline-start: auto;
+		inset-inline-end: var(--space-2);
+	}
 }
 .ex-record-choice-context {
 	isolation: isolate;

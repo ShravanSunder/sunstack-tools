@@ -179,6 +179,16 @@ async function fillBindings(elements: readonly HTMLElement[]): Promise<void> {
 				const choice = element.querySelector<HTMLElement>(':scope > ex-choice');
 				if (choice) {
 					hydrateChoice(choice, placement);
+					if (
+						placement.face.record.kind === 'choice' &&
+						placement.face.record.authority.state !== 'owner-open'
+					) {
+						// Keep the review source identical to existing settled choices.
+						const surface = document.createElement('div');
+						surface.className = 'ex-record-surface';
+						choice.before(surface);
+						surface.append(choice);
+					}
 				} else {
 					element.id = placement.reference;
 					renderSectionRecord(element, placement.face);

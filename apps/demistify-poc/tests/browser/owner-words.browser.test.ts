@@ -1,6 +1,10 @@
 import { afterEach, expect, test } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 
+import {
+	readReviewTargets,
+	resolveCommentAnchor,
+} from '../../../../packages/demistify/src/core/review-anchors.ts';
 import { browserScreenshotPath } from './browser-evidence.ts';
 import { fixtureLocator, openFixture, requiredElement } from './fixture-page.ts';
 
@@ -138,7 +142,9 @@ test.each([
 		);
 		expect(fixture.documentElement.scrollWidth).toBeLessThanOrEqual(width);
 
-		const settledChoice = requiredElement(fixture, 'ex-section-item[record="D2"] > #D2');
+		const settledChoice = requiredElement(fixture, '#D2');
+		const wrapper = requiredElement(fixture, 'ex-section-item[record="D2"] > .ex-record-surface');
+		expect(view.getComputedStyle(wrapper).display).toBe('contents');
 		const chosen = requiredElement(settledChoice, '.ex-choice-detail-options > .ex-record-chosen');
 		const alternative = requiredElement(settledChoice, '.ex-record-alternative');
 		const settledContext = view.getComputedStyle(settledChoice, '::before');
@@ -155,3 +161,44 @@ test.each([
 		expect(requiredElement(alternative, 'ex-badge').textContent).toBe('Not chosen');
 	},
 );
+
+test('legacy title selections still resolve to the visible question and statement', (): void => {
+	const question = 'How should a slow request be retried?';
+	const statement = 'Limit retries to three attempts.';
+	const root = document.createElement('ex-document');
+	root.id = 'previous-record-layout';
+	root.innerHTML = `<ex-section-item record="D5">
+		<ex-choice id="D5"><fieldset><legend data-record-display-title>Retry policy</legend><div>D5</div><div data-record-statement>${question}</div></fieldset></ex-choice>
+	</ex-section-item><ex-section-item record="D1" id="D1">
+		<article class="ex-record-surface"><h4 data-record-display-title>Retry limit</h4><div>D1</div><div data-record-statement>${statement}</div><p>Apply the limit on every retry.</p></article>
+	</ex-section-item>`;
+	document.body.append(root);
+	const targets = readReviewTargets(root);
+	const ruling = requiredElement(root, '#D1 h4');
+	const anchor = {
+		kind: 'text',
+		targetId: 'D5',
+		label: 'Retry policy',
+		selectedText: question,
+		sourceText: question,
+		start: 0,
+		end: question.length,
+		prefix: '',
+		suffix: 'D5',
+	} as const;
+	const choice = resolveCommentAnchor(anchor, targets);
+	expect(choice.kind === 'resolved' && choice.range?.toString()).toBe(question);
+	const priorRuling = resolveCommentAnchor(
+		{
+			...anchor,
+			targetId: ruling.id,
+			label: statement,
+			selectedText: statement,
+			sourceText: statement,
+			end: statement.length,
+			suffix: '',
+		},
+		targets,
+	);
+	expect(priorRuling.kind === 'resolved' && priorRuling.range?.toString()).toBe(statement);
+});

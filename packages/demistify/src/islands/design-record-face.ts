@@ -205,7 +205,13 @@ export function renderSectionRecord(item: HTMLElement, face: RecordFace): void {
 	const reason = recordReason(face);
 	const content = [...item.childNodes];
 	body.append(title, recordStateLine(face, true));
-	if (heading !== statement) body.append(textNode('p', statement));
+	if (heading !== statement) {
+		title.setAttribute('data-record-display-title', '');
+		const fullStatement = textNode('div', statement);
+		fullStatement.className = 'ex-record-statement';
+		fullStatement.setAttribute('data-record-statement', '');
+		body.append(fullStatement);
+	}
 	if (reason) body.append(reason);
 	body.append(...content);
 	item.append(body);

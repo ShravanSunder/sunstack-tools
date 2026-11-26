@@ -349,7 +349,10 @@ export class ChoiceIsland extends HTMLElement {
 				if (bound?.title && bound.title !== this.question) {
 					legend.textContent = bound.title;
 					fieldset.setAttribute('aria-label', this.question);
-					const fullQuestion = document.createElement('p');
+					legend.setAttribute('data-record-display-title', '');
+					const fullQuestion = document.createElement('div');
+					fullQuestion.className = 'ex-record-statement';
+					fullQuestion.setAttribute('data-record-statement', '');
 					fullQuestion.textContent = this.question;
 					metadata.after(fullQuestion);
 				}

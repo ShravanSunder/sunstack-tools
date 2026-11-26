@@ -41,6 +41,7 @@ const records = [
 	{
 		id: 'D1',
 		kind: 'ruling',
+		title: 'Retry limit',
 		statement: 'Limit retries to three attempts.',
 		authority: ownerDecision('owner-words', {
 			href: '#retry-source',

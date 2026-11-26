@@ -332,6 +332,11 @@ ex-section-item[record] > .ex-bound-choice {
 .ex-record-surface > ex-choice {
 	margin-block: 0;
 }
+/* Settled Choices retain their historical review wrapper without drawing a second card. */
+ex-section-item[record] > div.ex-record-surface:has(> ex-choice) {
+	display: contents;
+}
+
 ex-section-item[record] > :is(ex-card, ex-choice, ex-code) + ex-code {
 	margin-block-start: var(--space-4);
 }
