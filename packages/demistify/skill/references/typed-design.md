@@ -8,6 +8,8 @@ Use typed records when agents refer to a project's needs, rules, decisions and c
 demistify design init <project>
 demistify design types [project]
 demistify design check [project] [--site-root <directory>] [--write]
+demistify design answer <review.md|-> [project] [--site-root <directory>] [--write]
+demistify design add <choice|ruling|assumption> [project] --page <page.html> [--words <owner words>] [--author <alias>] [--write]
 demistify brief <deliverable> [project] [--site-root <directory>]
 demistify open <page.html> [--site-root <directory>]
 ```
@@ -17,7 +19,8 @@ Run the CLI from the selected Demistify binding: prefix `npm exec --` for a loca
 - `init` writes `design.ts`, `design-decisions.ts`, `design-assumptions.ts`, `design-delivery.ts` and the generated SDK, seeding Pages, Map and Walkthroughs from an existing `navigation.json`. You write the HTML pages.
 - `types` regenerates `design-sdk.generated.ts` and `design-schema.d.ts`. Git ignores both, so run it after a fresh checkout and after adding or renaming an ID, for the editor. `check`, `brief` and `open` build what they need without it.
 - `design check` and `initiative check` validate typed inputs and prepared pages in memory, then print deliverable states and design notes. These commands supply the questions, option titles and anchors that the typed HTML refers to. Use `check <page.html>` for ordinary standalone HTML.
-- After a checkout or record edit, run `demistify initiative check --write` (or `demistify design check --write` for a standalone project). Serve the authored pages with any static HTTP server and the matching runtime. Opened from disk in Chrome, pages show records from `records.generated.js`. Shared navigation and delivery tables still need HTTP. `open` runs the write step for you. One `.gitignore` covers generated files in the enclosing `projects/` folder when the project is directly under it, otherwise in the project root or standalone project folder. Existing ancestor rules that cover all generated files need no update. A browser may show old text until you rerun the write command. Read-only checks tell you when the generated views need refreshing.
+- `design answer` applies the owner's copied review to the open choices it answers, and `design add` scaffolds a choice, ruling or assumption with its section item. They work as `initiative answer` and `initiative add` do, with local IDs such as `D3` and no `--namespace`: each previews without `--write`, then writes, runs `design check --write`, and restores every file it changed if that check fails.
+- After a checkout or record edit, run `demistify initiative check --write` (or `demistify design check --write` for a standalone project). `--write` writes only after every check passes, so one run is enough. Serve the authored pages with any static HTTP server and the matching runtime. Opened from disk in Chrome, pages show records from `records.generated.js`. Shared navigation and delivery tables still need HTTP. `open` runs the write step for you. One `.gitignore` covers generated files in the enclosing `projects/` folder when the project is directly under it, otherwise in the project root or standalone project folder. Existing ancestor rules that cover all generated files need no update. A browser may show old text until you rerun the write command. Read-only checks tell you when the generated views need refreshing.
 
 Pass `--site-root` with the enclosing docs directory when pages or evidence link outside the project folder.
 

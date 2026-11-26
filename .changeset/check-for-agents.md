@@ -9,3 +9,5 @@
 - A record that still holds a `TODO:` placeholder, such as one `initiative add` scaffolded, is a warning instead of passing silently.
 - A link that leaves the site root names the `--site-root` folder that would hold both files.
 - A page that only mentions a generated file name in its text is no longer taken for a published copy of a typed design.
+- `design answer` and `design add` bring `initiative answer` and `initiative add` to a standalone design set, with local record IDs and no `--namespace`.
+- The guide says one `--write` run is enough: it writes only after every check passes.

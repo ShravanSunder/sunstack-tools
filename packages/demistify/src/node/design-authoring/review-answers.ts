@@ -1,25 +1,20 @@
-import { realpath } from 'node:fs/promises';
-import { dirname, join, relative, resolve } from 'node:path';
+import { relative } from 'node:path';
 
 import typescript from 'typescript';
 
 import type { DecisionRecord } from '../../core/decision-record.ts';
 import { escapeHtml } from '../../core/html-text.ts';
 import { parseReviewAnswers, type ReviewedAnswer } from '../../core/review-model.ts';
-import { buildInitiative } from './check-initiative.ts';
+import { openEditableTree } from './editable-tree.ts';
 import {
 	applyEditsThenCheck,
 	formatLiteral,
 	isoDate,
 	localDate,
 	paragraphBeforeDocumentEnd,
-	readOptionalText,
-	readText,
 	type TextEdit,
 	textCache,
-} from './initiative-edits.ts';
-import { readDesignSources } from './read-design.ts';
-import { readInitiativeManifest } from './read-initiative.ts';
+} from './record-edits.ts';
 import { relativePage } from './record-projection.ts';
 
 type ChoiceRecord = Extract<DecisionRecord, { kind: 'choice' }>;
@@ -111,24 +106,6 @@ function chosenOption(
 	return option;
 }
 
-async function recordFiles(
-	root: string,
-	namespace: string,
-	projects: ReadonlyMap<string, string>,
-): Promise<{ base: string; files: string[] }> {
-	if (namespace === 'initiative') {
-		const initiativeFile = join(root, 'initiative.ts');
-		const manifest = readInitiativeManifest(initiativeFile, await readText(initiativeFile));
-		// Shared records resolve their links from the decisions file, as the check does.
-		if (!manifest.decisions) return { base: root, files: [] };
-		return { base: dirname(manifest.decisions), files: [manifest.decisions] };
-	}
-	const directory = [...projects].find(([, name]) => name === namespace)?.[0];
-	if (!directory) throw new Error(`No project named ${namespace} in this initiative.`);
-	const { designFile, sources } = await readDesignSources(directory, readText, readOptionalText);
-	return { base: directory, files: [designFile, ...sources.keys()] };
-}
-
 /**
  * Record the owner's review answers on their open choices: the authority, the
  * owner's words on the page that places the record, and refreshed generated views.
@@ -143,9 +120,9 @@ export async function applyReviewAnswers(
 	if (!isoDate.test(decidedOn))
 		throw new Error(`--decided-on takes a date as yyyy-mm-dd, not ${decidedOn}.`);
 	const review = parseReviewAnswers(reviewText);
-	const root = await realpath(resolve(directory));
-	const build = await buildInitiative(root, { siteRoot: options.siteRoot });
-	const records = new Map(build.design.records.map((record) => [record.id, record]));
+	const tree = await openEditableTree(directory, options.siteRoot);
+	const { root } = tree;
+	const records = new Map(tree.records.map((record) => [record.id, record]));
 
 	const textOf = textCache();
 
@@ -157,19 +134,15 @@ export async function applyReviewAnswers(
 		if (!id)
 			return { note: `Skipped ${answer.questionId}: it is not a typed record (no Decision ID).` };
 		const record = records.get(id);
-		if (!record) throw new Error(`${id}: no record with this ID in the initiative.`);
+		if (!record) throw new Error(`${id}: no record with this ID in the ${tree.kind}.`);
 		if (record.kind !== 'choice') throw new Error(`${id}: only a choice takes a review answer.`);
 		if (record.authority.state !== 'owner-open')
 			throw new Error(`${id}: already decided (${record.authority.state}); nothing to apply.`);
 		const option = chosenOption(answer, record);
-		const slash = id.indexOf('/');
-		if (slash === -1)
-			throw new Error(`${id}: expected a qualified record ID such as initiative/D1.`);
-		const namespace = id.slice(0, slash);
-		const localId = id.slice(slash + 1);
-		const placement = build.placements.get(id);
+		const { namespace, localId } = tree.split(id);
+		const placement = tree.placements.get(id);
 		if (!placement) throw new Error(`${id}: the record is not placed on a page.`);
-		const { base, files } = await recordFiles(root, namespace, build.projects);
+		const { base, files } = await tree.recordFiles(namespace);
 		const spans = (
 			await Promise.all(
 				files.map(async (file) =>
@@ -272,6 +245,6 @@ export async function applyReviewAnswers(
 			'\n',
 		);
 
-	const checked = await applyEditsThenCheck(root, edits, textOf, options.siteRoot);
+	const checked = await applyEditsThenCheck(edits, textOf, tree.checkAndWrite);
 	return [...report, 'Applied.', checked].join('\n');
 }

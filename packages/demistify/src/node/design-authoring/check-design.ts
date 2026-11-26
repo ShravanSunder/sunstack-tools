@@ -176,6 +176,8 @@ export interface CheckedDesignBuild extends DesignPlan {
 	readonly design: DesignCore;
 	readonly entries: readonly DeliveryEntry[];
 	readonly delivery: DeliveryProjection;
+	/** Record ID to the page and fragment that place it. */
+	readonly placements: RecordProjection['placements'];
 }
 
 interface DesignCheck {
@@ -685,6 +687,7 @@ export async function buildDesignSet(
 		entries,
 		preparedPages,
 		delivery,
+		placements: projection.placements,
 	};
 }
 

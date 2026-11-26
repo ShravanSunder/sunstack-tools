@@ -26,6 +26,69 @@ const write = (text: string): void => {
 	if (text) process.stdout.write(`${text}\n`);
 };
 
+/** Options `answer` and `add` take, under `initiative` and under `design`. */
+const recordEditOptions = {
+	'site-root': { type: 'string' },
+	write: { type: 'boolean' },
+	'decided-on': { type: 'string' },
+	namespace: { type: 'string' },
+	page: { type: 'string' },
+	words: { type: 'string' },
+	author: { type: 'string' },
+} as const;
+
+interface RecordEditValues {
+	readonly 'site-root'?: string | undefined;
+	readonly write?: boolean | undefined;
+	readonly 'decided-on'?: string | undefined;
+	readonly namespace?: string | undefined;
+	readonly page?: string | undefined;
+	readonly words?: string | undefined;
+	readonly author?: string | undefined;
+}
+
+/**
+ * Run `answer` or `add` on the initiative or standalone design set in the given directory.
+ * Returns undefined when the arguments don't fit, so the caller prints its usage.
+ */
+async function runRecordEdit(
+	action: 'answer' | 'add',
+	values: RecordEditValues,
+	positionals: readonly string[],
+): Promise<number | undefined> {
+	if (positionals.length < 1 || positionals.length > 2) return undefined;
+	if (action === 'answer') {
+		const [reviewFile = '-', directory = '.'] = positionals;
+		const reviewText =
+			reviewFile === '-' ? await readStreamText(process.stdin) : await readFile(reviewFile, 'utf8');
+		const { applyReviewAnswers } = await import('../src/node/design-authoring/review-answers.ts');
+		write(
+			await applyReviewAnswers(reviewText, directory, {
+				siteRoot: values['site-root'],
+				decidedOn: values['decided-on'],
+				write: values.write,
+			}),
+		);
+		return 0;
+	}
+	const [kind, directory = '.'] = positionals;
+	const { addRecord, scaffoldKinds } =
+		await import('../src/node/design-authoring/record-scaffold.ts');
+	const scaffoldKind = scaffoldKinds.find((candidate) => candidate === kind);
+	if (!scaffoldKind || !values.page) return undefined;
+	write(
+		await addRecord(scaffoldKind, directory, {
+			namespace: values.namespace,
+			page: values.page,
+			words: values.words,
+			author: values.author,
+			siteRoot: values['site-root'],
+			write: values.write,
+		}),
+	);
+	return 0;
+}
+
 async function readHookFile(): Promise<string | undefined> {
 	process.stdin.setEncoding('utf8');
 	let text = '';
@@ -102,42 +165,10 @@ async function main(): Promise<number> {
 			write(usage);
 			return 0;
 		}
-		if (action === 'answer' && positionals.length >= 1 && positionals.length <= 2 && !values.json) {
-			const [reviewFile = '-', answerDirectory = '.'] = positionals;
-			const reviewText =
-				reviewFile === '-'
-					? await readStreamText(process.stdin)
-					: await readFile(reviewFile, 'utf8');
-			const { applyReviewAnswers } = await import('../src/node/design-authoring/review-answers.ts');
-			write(
-				await applyReviewAnswers(reviewText, answerDirectory, {
-					siteRoot: values['site-root'],
-					decidedOn: values['decided-on'],
-					write: values.write,
-				}),
-			);
-			return 0;
-		}
-		if (action === 'add' && positionals.length >= 1 && positionals.length <= 2) {
-			const [kind, addDirectory = '.'] = positionals;
-			const { addRecord, scaffoldKinds } =
-				await import('../src/node/design-authoring/record-scaffold.ts');
-			const scaffoldKind = scaffoldKinds.find((candidate) => candidate === kind);
-			if (!scaffoldKind || !values.namespace || !values.page) {
-				write(usage);
-				return 1;
-			}
-			write(
-				await addRecord(scaffoldKind, addDirectory, {
-					namespace: values.namespace,
-					page: values.page,
-					words: values.words,
-					author: values.author,
-					siteRoot: values['site-root'],
-					write: values.write,
-				}),
-			);
-			return 0;
+		if ((action === 'answer' || action === 'add') && !values.json) {
+			const code = await runRecordEdit(action, values, positionals);
+			if (code === undefined) write(usage);
+			return code ?? 1;
 		}
 		const [directory = '.'] = positionals;
 		if (action === 'check' && positionals.length <= 1 && !values.json && !values['decided-on']) {
@@ -177,10 +208,24 @@ async function main(): Promise<number> {
 	if (command === 'design') {
 		const [action, ...args] = rest;
 		const usage =
-			'Usage: demistify design init [directory]\n       demistify design types [directory]\n       demistify design check [directory] [--site-root <directory>] [--write]';
+			'Usage: demistify design init [directory]\n       demistify design types [directory]\n       demistify design check [directory] [--site-root <directory>] [--write]\n       demistify design answer <review.md|-> [directory] [--site-root <directory>] [--decided-on <yyyy-mm-dd>] [--write]\n       demistify design add <choice|ruling|assumption> [directory] --page <page.html> [--words <owner words>] [--author <alias>] [--site-root <directory>] [--write]';
 		if (!action || action === '--help') {
 			write(usage);
 			return 0;
+		}
+		if (action === 'answer' || action === 'add') {
+			const { values, positionals } = parseArgs({
+				args,
+				allowPositionals: true,
+				options: { ...recordEditOptions, help: { type: 'boolean', short: 'h' } },
+			});
+			if (values.help) {
+				write(usage);
+				return 0;
+			}
+			const code = await runRecordEdit(action, values, positionals);
+			if (code === undefined) write(usage);
+			return code ?? 1;
 		}
 		const { values, positionals } = parseArgs({
 			args,
