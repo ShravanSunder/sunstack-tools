@@ -90,11 +90,8 @@ test.each([1400, 390].flatMap((width) => ['light', 'dark'].map((theme) => ({ wid
 	},
 );
 
-test.each([
-	{ width: 1400, theme: 'dark' },
-	{ width: 390, theme: 'light' },
-])(
-	'typed records share one reading edge at $width px in $theme',
+test.each([1400, 390].flatMap((width) => ['light', 'dark'].map((theme) => ({ width, theme }))))(
+	'decision cards fill the section and option cards keep their reading width at $width px in $theme',
 	async ({ width, theme }): Promise<void> => {
 		await page.viewport(width, 1000);
 		const { document: fixture, frame } = await openFixture('ui', '', 'owner-words.html');
@@ -114,6 +111,11 @@ test.each([
 		const context = view.getComputedStyle(choice, '::before');
 		const ruling = requiredElement(fixture, '#D1 > .ex-record-surface');
 		expect(context.backgroundColor).toBe(view.getComputedStyle(ruling).backgroundColor);
+		const sectionWidth = item.getBoundingClientRect().width;
+		expect(Number.parseFloat(context.width)).toBeCloseTo(sectionWidth);
+		expect(ruling.getBoundingClientRect().width).toBeCloseTo(
+			ruling.parentElement?.getBoundingClientRect().width ?? 0,
+		);
 		expect(requiredElement(choice, 'fieldset').getAttribute('aria-label')).toBe(
 			'How should a slow request be retried?',
 		);
@@ -123,7 +125,8 @@ test.each([
 		expect([spacing.marginBlockStart, spacing.marginBlockEnd]).toEqual(['36px', '12px']);
 		const [first, second] = choice.querySelectorAll('ex-option.ex-choice-option');
 		if (!first || !second) throw new Error('Expected two open options.');
-		expect(first.getBoundingClientRect().width).toBeCloseTo(Number.parseFloat(context.width));
+		const optionWidth = Math.min(sectionWidth, 794);
+		expect(first.getBoundingClientRect().width).toBeCloseTo(optionWidth);
 		expect(second.getBoundingClientRect().top - first.getBoundingClientRect().bottom).toBeCloseTo(
 			12,
 		);
@@ -137,9 +140,9 @@ test.each([
 		expect(
 			view.getComputedStyle(requiredElement(second, '.ex-choice-summary')).marginBlockStart,
 		).toBe('4px');
-		expect(requiredElement(choice, 'table').getBoundingClientRect().left).toBeCloseTo(
-			choice.getBoundingClientRect().left + 16,
-		);
+		const table = requiredElement(choice, 'table').getBoundingClientRect();
+		expect(table.left).toBeCloseTo(choice.getBoundingClientRect().left + 16);
+		expect(table.right).toBeCloseTo(choice.getBoundingClientRect().right - 16);
 		expect(fixture.documentElement.scrollWidth).toBeLessThanOrEqual(width);
 
 		const settledChoice = requiredElement(fixture, '#D2');
@@ -149,9 +152,8 @@ test.each([
 		const alternative = requiredElement(settledChoice, '.ex-record-alternative');
 		const settledContext = view.getComputedStyle(settledChoice, '::before');
 		expect(settledContext.backgroundColor).toBe(context.backgroundColor);
-		expect(chosen.getBoundingClientRect().width).toBeCloseTo(
-			Number.parseFloat(settledContext.width),
-		);
+		expect(Number.parseFloat(settledContext.width)).toBeCloseTo(sectionWidth);
+		expect(chosen.getBoundingClientRect().width).toBeCloseTo(optionWidth);
 		expect(view.getComputedStyle(chosen).borderRadius).toBe('8px');
 		expect(view.getComputedStyle(alternative).borderRadius).toBe('8px');
 		expect(
@@ -159,6 +161,14 @@ test.each([
 		).toBe('8px');
 		expect(requiredElement(chosen, 'ex-badge').textContent).toBe('Chosen');
 		expect(requiredElement(alternative, 'ex-badge').textContent).toBe('Not chosen');
+
+		await expect.element(fixtureLocator(frame, first).getByRole('radio')).toBeVisible();
+		await fixtureLocator(frame, first).getByRole('radio').click();
+		await expect.element(fixtureLocator(frame, first).getByRole('radio')).toBeChecked();
+		choice.scrollIntoView({ block: 'start', behavior: 'instant' });
+		await page.screenshot({
+			path: browserScreenshotPath(`decision-card-width-${width}-${theme}.png`),
+		});
 	},
 );
 
