@@ -17,9 +17,13 @@ export interface CheckRoutes {
 	readonly published: readonly string[];
 }
 
-/** Markup that only a typed check can verify: generated sources and record bindings. */
+/**
+ * Markup that only a typed check can verify: generated sources and record bindings. A generated
+ * file counts only as an attribute value (`src="./navigation.generated.json"`,
+ * `content="records.generated.js"`), so a page that names the file in its prose stays a plain page.
+ */
 const typedPageMarkup =
-	/(?:navigation|deliverables|initiative|design)\.generated\.json|records\.generated\.js|name="demistify-records"|data-design-(?:record|status|need)=|<ex-section-item\b[^>]*\brecord=/u;
+	/=\s*["']?[^"'\s>]*(?:(?:navigation|deliverables|initiative|design)\.generated\.json|records\.generated\.js)|name="demistify-records"|data-design-(?:record|status|need)=|<ex-section-item\b[^>]*\brecord=/u;
 
 async function isFile(path: string): Promise<boolean> {
 	return stat(path).then(

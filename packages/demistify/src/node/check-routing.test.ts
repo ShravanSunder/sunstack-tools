@@ -87,6 +87,50 @@ it('one check runs a typed page through its design set and a plain page through 
 	}
 }, 30_000);
 
+it('a leftover TODO placeholder counts as a warning, in the summary and in --json', async (): Promise<void> => {
+	const root = await mkdtemp(join(tmpdir(), 'demistify-check-json-'));
+	const project = join(root, 'design');
+	try {
+		await run(process.execPath, [cli, 'design', 'init', project]);
+		await Promise.all([
+			writeFile(
+				join(project, 'design-decisions.ts'),
+				decisions.replace(
+					"question: 'Should an expired row stay visible until the reader scrolls?'",
+					"question: 'TODO: the question the owner answers?'",
+				),
+			),
+			writeFile(join(project, 'index.html'), typedPage),
+		]);
+
+		const summary = await run(process.execPath, [cli, 'check', project, '--write']);
+		const report = await run(process.execPath, [cli, 'check', project, '--json']);
+
+		expect(summary.stdout).toContain(
+			'Warning: D2: still holds a TODO: placeholder in question; replace it with the real text.',
+		);
+		expect(summary.stdout).toContain('1 typed tree: 0 errors, 1 warning');
+		const parsed: unknown = JSON.parse(report.stdout);
+		expect(parsed).toMatchObject({
+			errors: 0,
+			warnings: 1,
+			trees: [
+				{
+					kind: 'design',
+					error: null,
+					warnings: [
+						'D2: still holds a TODO: placeholder in question; replace it with the real text.',
+					],
+				},
+			],
+			published: [],
+			pages: [],
+		});
+	} finally {
+		await rm(root, { recursive: true, force: true });
+	}
+}, 30_000);
+
 it('a project page routes to its enclosing initiative, once per tree', async (): Promise<void> => {
 	const root = await realpath(await mkdtemp(join(tmpdir(), 'demistify-check-routes-')));
 	const project = join(root, 'projects/2026-11-notes');
@@ -101,16 +145,24 @@ it('a project page routes to its enclosing initiative, once per tree', async ():
 				'<meta name="demistify-records" content="records.generated.js">',
 			),
 			writeFile(join(root, 'plain.html'), plainPage),
+			writeFile(
+				join(root, 'mentions.html'),
+				plainPage.replace(
+					'<p>A plain page.</p>',
+					'<p>The check writes an ignored <code>records.generated.js</code> and <code>navigation.generated.json</code>.</p>',
+				),
+			),
 		]);
 
 		const routes = await routeCheckTargets([
 			join(project, 'index.html'),
 			join(root, 'index.html'),
 			join(root, 'plain.html'),
+			join(root, 'mentions.html'),
 		]);
 
 		expect(routes).toEqual({
-			pages: [join(root, 'plain.html')],
+			pages: [join(root, 'plain.html'), join(root, 'mentions.html')],
 			trees: [
 				{
 					kind: 'initiative',

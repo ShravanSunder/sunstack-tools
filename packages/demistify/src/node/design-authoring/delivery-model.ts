@@ -98,6 +98,36 @@ function statementLengthNote(record: DesignRecord): string | undefined {
 	return undefined;
 }
 
+/** Where a value still holds a `TODO:` placeholder, as dotted field paths (`options.0.title`). */
+function placeholderPaths(value: unknown, path: string): string[] {
+	if (typeof value === 'string') return value.trimStart().startsWith('TODO:') ? [path] : [];
+	if (Array.isArray(value))
+		return value.flatMap((item, index) =>
+			placeholderPaths(item, path ? `${path}.${index}` : `${index}`),
+		);
+	if (value && typeof value === 'object')
+		return Object.entries(value).flatMap(([key, item]) =>
+			placeholderPaths(item, path ? `${path}.${key}` : key),
+		);
+	return [];
+}
+
+/**
+ * Records that still hold a `TODO:` placeholder, as `initiative add` scaffolds them. The
+ * scaffold is a valid tree so it can be filled in place; these warnings keep an unfilled one
+ * from passing unnoticed.
+ */
+export function placeholderWarnings(records: readonly DesignRecord[]): string[] {
+	return records.flatMap((record): string[] => {
+		const paths = placeholderPaths(record, '');
+		return paths.length
+			? [
+					`${record.id}: still holds a TODO: placeholder in ${paths.join(', ')}; replace it with the real text.`,
+				]
+			: [];
+	});
+}
+
 export function designCheckNotes(
 	records: readonly DesignRecord[],
 	delivery: DeliveryProjection,

@@ -126,7 +126,7 @@ it('checks a real adjacent page and source inside an explicitly selected site ro
 		expect(await readFile(join(deliverable, 'design.generated.json'), 'utf8')).toBe(output);
 		await writeFile(definition, withRecord);
 		await expect(run(process.execPath, check.slice(0, 4))).rejects.toThrow(
-			'escapes the site root: ../overview.html',
+			/escapes the site root: \.\.\/overview\.html from .+\. Pass --site-root \S*site so the root holds both files\./,
 		);
 		await writeFile(
 			join(site, 'overview.html'),
