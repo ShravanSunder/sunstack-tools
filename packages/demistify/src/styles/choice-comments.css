@@ -126,8 +126,11 @@ ex-choice.ex-choice-default-width:has(> .ex-choice-beside-fieldset):not(
 		:has(> fieldset > .ex-choice-detail-layout > .ex-choice-detail-panels > :not([hidden])),
 		.ex-bound-choice:has(> fieldset > [data-width='canvas'])
 	) {
-	max-inline-size: var(--choice-stack-width);
-	margin-inline: 0 auto;
+	&:not(.ex-record-choice-context),
+	&.ex-record-choice-context > fieldset > .ex-choice-detail-layout {
+		max-inline-size: var(--choice-stack-width);
+		margin-inline: 0 auto;
+	}
 }
 .ex-choice-detail-layout {
 	display: grid;
@@ -758,7 +761,7 @@ ex-choice.ex-choice-cards ex-option:has(:focus-visible) > .ex-entity-comment {
 		legend,
 		p:not([data-width='canvas']),
 		.ex-choice-detail-layout:not(:has(.ex-choice-detail-panel:not([hidden])))
-	) {
+	):not(.ex-record-choice-context-part) {
 	max-inline-size: var(--width-reading);
 }
 
@@ -767,7 +770,6 @@ ex-section-item[record] .ex-record-item-title {
 	text-wrap: wrap;
 }
 ex-section-item[record] .ex-record-state-line {
-	max-inline-size: var(--width-reading);
 	margin-block-end: var(--space-6);
 	flex-wrap: wrap;
 }
@@ -831,10 +833,10 @@ ex-section-item[record] .ex-record-detail-button {
 ex-section-item[record] .ex-record-detail-button:hover {
 	background: color-mix(in srgb, currentColor 10%, transparent);
 }
-/* The record surface sets the reading edge. Its comment controls sit beside that edge. */
+/* Keep options at the reading measure, including the former card padding and border. */
 ex-section-item[record] > .ex-bound-choice,
 ex-section-item[record] > div.ex-record-surface > .ex-bound-choice {
-	--choice-stack-width: var(--record-surface-width);
+	--choice-stack-width: calc(var(--width-reading) + 2 * var(--space-4) + 2px);
 }
 ex-section-item[record] .ex-bound-choice.ex-choice-cards > fieldset {
 	padding-inline-end: 0;
@@ -869,7 +871,7 @@ ex-section-item[record]
 	z-index: -1;
 	inset: 0 auto auto 0;
 	box-sizing: border-box;
-	inline-size: min(100%, var(--record-surface-width));
+	inline-size: 100%;
 	block-size: var(--record-choice-context-height, 0px);
 	border: 1px solid var(--rule);
 	border-radius: var(--radius-md);
@@ -878,7 +880,7 @@ ex-section-item[record]
 }
 .ex-record-choice-context > fieldset > .ex-record-choice-context-part {
 	box-sizing: border-box;
-	max-inline-size: var(--record-surface-width);
+	max-inline-size: 100%;
 	padding-inline: var(--space-4);
 }
 .ex-record-choice-context > fieldset > legend.ex-record-choice-context-part {
@@ -892,7 +894,6 @@ ex-section-item[record]
 	--table-header-background: color-mix(in srgb, var(--ink) 8%, var(--surface-record));
 	--table-border: var(--rule);
 	inline-size: calc(100% - 2 * var(--space-4));
-	max-inline-size: calc(var(--record-surface-width) - 2 * var(--space-4));
 	margin-inline: var(--space-4);
 	padding-inline: 0;
 }

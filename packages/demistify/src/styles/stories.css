@@ -293,7 +293,6 @@ ex-section-item + ex-section-item {
 	margin-block-start: var(--space-8);
 }
 ex-section > ex-section-item[record] {
-	--record-surface-width: calc(var(--width-reading) + 2 * var(--space-4) + 2px);
 	--record-item-start: 0px;
 	position: relative;
 	isolation: isolate;
@@ -322,7 +321,6 @@ ex-section-item[record] > .ex-bound-choice {
 .ex-record-surface {
 	box-sizing: border-box;
 	inline-size: 100%;
-	max-inline-size: var(--record-surface-width);
 	margin: 0;
 	padding: var(--space-4);
 	border: 1px solid var(--rule);
