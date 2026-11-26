@@ -1,5 +1,11 @@
 # @sunstack/demistify
 
+## 1.38.3
+
+### Patch Changes
+
+- 8ff0ae7: Let decision cards and their comparison tables fill the available section width while keeping selectable and settled option cards at their existing reading width.
+
 ## 1.38.2
 
 ### Patch Changes
