@@ -143,18 +143,22 @@ function recordReason({ record }: RecordFace, chosenTitle?: string): HTMLElement
 		if (authority.sourceKind === 'contract') reason.append(' · ', sourceLink(authority.source));
 		return reason;
 	}
-	const reason = document.createElement('p');
-
+	const { href, excerpt, shown } = authority.source;
 	const label = authority.sourceKind === 'owner-words' ? 'Your words' : 'Wording you accepted';
+	const reason = document.createElement('p');
 	reason.append(
-		textNode('strong', label),
+		textNode('strong', shown === undefined ? label : `${label}, tidied`),
 		' ',
-		sourceLink({
-			href: authority.source.href,
-			excerpt: chosenTitle === authority.source.excerpt ? 'your answer' : authority.source.excerpt,
-		}),
+		sourceLink({ href, excerpt: shown ?? (chosenTitle === excerpt ? 'your answer' : excerpt) }),
 	);
-	return reason;
+	if (shown === undefined) return reason;
+
+	const exactWords = document.createElement('details');
+	exactWords.append(textNode('summary', 'Your exact words'), textNode('p', excerpt));
+	const attribution = document.createElement('div');
+	attribution.className = 'ex-record-attributed-reason';
+	attribution.append(reason, exactWords);
+	return attribution;
 }
 
 export function appendRecordBasis(
@@ -165,9 +169,9 @@ export function appendRecordBasis(
 		chosenTitle,
 	}: { readonly body?: HTMLElement; readonly chosenTitle?: string } = {},
 ): void {
-	const reason = recordReason(face, chosenTitle);
-	if (reason && face.record.kind === 'choice') {
-		reason.className = 'ex-record-basis';
+	const reason = face.record.kind === 'choice' ? recordReason(face, chosenTitle) : undefined;
+	if (reason) {
+		reason.classList.add('ex-record-basis');
 		parent.append(reason);
 	}
 	let linkedWork: HTMLElement | undefined;
@@ -184,9 +188,7 @@ export function appendRecordBasis(
 		body.append(linkedWork);
 	}
 	const anchor =
-		(face.record.kind === 'choice' ? reason : undefined) ??
-		linkedWork ??
-		body.querySelector<HTMLElement>('legend, .ex-record-item-title');
+		reason ?? linkedWork ?? body.querySelector<HTMLElement>('legend, .ex-record-item-title');
 	if (anchor) anchor.id = decisionDetailsId(parent.id);
 }
 
