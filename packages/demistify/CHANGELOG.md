@@ -1,5 +1,11 @@
 # @sunstack/demistify
 
+## 1.40.0
+
+### Minor Changes
+
+- 59a19f4: Add a generated project overview with core deliverable progress, design documents, pending decisions, and dated work logs. Agent decisions can record owner review separately from authorship and delivery status.
+
 ## 1.39.0
 
 ### Minor Changes
