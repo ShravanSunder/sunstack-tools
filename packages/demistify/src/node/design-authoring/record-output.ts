@@ -21,6 +21,7 @@ export function recordOutputFile(
 	for (const [kind, sources, name] of [
 		['navigation', markup.navigationSources, 'navigation.generated.json'],
 		['overview', markup.projectOverviewSources, 'initiative.generated.json'],
+		['project overview', markup.projectDetailsSources, 'project-overview.generated.json'],
 	] as const) {
 		const candidates = sources.flatMap((source): string[] => {
 			const href = recordSourceHref(source, name);

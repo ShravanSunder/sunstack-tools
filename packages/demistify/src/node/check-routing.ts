@@ -23,7 +23,7 @@ export interface CheckRoutes {
  * `content="records.generated.js"`), so a page that names the file in its prose stays a plain page.
  */
 const typedPageMarkup =
-	/=\s*["']?[^"'\s>]*(?:(?:navigation|deliverables|initiative|design)\.generated\.json|records\.generated\.js)|name="demistify-records"|data-design-(?:record|status|need)=|<ex-section-item\b[^>]*\brecord=/u;
+	/=\s*["']?[^"'\s>]*(?:(?:navigation|deliverables|initiative|design|project-overview)\.generated\.json|records\.generated\.js)|name="demistify-records"|data-design-(?:record|status|need)=|<ex-section-item\b[^>]*\brecord=/u;
 
 async function isFile(path: string): Promise<boolean> {
 	return stat(path).then(

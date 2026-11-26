@@ -82,7 +82,41 @@ const records = [
 			verbatim: true,
 		}),
 	},
+	{
+		id: 'D6',
+		kind: 'ruling',
+		statement: 'Follow the existing receipt contract.',
+		authority: {
+			state: 'agent-decided',
+			sourceKind: 'contract',
+			'by': { alias: 'Lead', role: 'lead' },
+			weight: 'design',
+			rationale: 'The existing receipt contract governs this choice.',
+			decidedOn: '2026-11-25',
+			source: { href: '#receipt-source', excerpt: 'Reuse the receipt.' },
+		},
+	},
+	{
+		id: 'D7',
+		kind: 'ruling',
+		statement: 'Reuse the receipt explanation.',
+		authority: {
+			state: 'agent-decided',
+			sourceKind: 'author',
+			'by': { alias: 'Lead', role: 'lead' },
+			weight: 'design',
+			rationale: 'Keep the explanation consistent across pages.',
+			decidedOn: '2026-11-25',
+			ownerReview: { reviewedOn: '2026-11-26', href: '#receipt-source' },
+		},
+	},
 ];
+
+const sectionsByAuthority = {
+	'owner-open': 'needs-owner',
+	'owner-decided': 'settled',
+	'agent-decided': 'decided-by-agent',
+};
 
 document.currentScript.dataset.demistifyRecords = JSON.stringify({
 	version: 1,
@@ -96,7 +130,7 @@ document.currentScript.dataset.demistifyRecords = JSON.stringify({
 			})),
 			sectionItems: records.map((record) => ({
 				reference: record.id,
-				holds: record.authority.state === 'owner-open' ? 'needs-owner' : 'settled',
+				holds: sectionsByAuthority[record.authority.state],
 			})),
 			trees: [],
 		},

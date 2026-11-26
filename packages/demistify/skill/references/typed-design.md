@@ -163,6 +163,8 @@ When an assumption is `confirmed` or `refuted`, replace `settles` with `settledB
 
 When the owner explicitly approves an agent's decision, keep the record ID and answer. Replace the authority with `{ state: 'owner-decided', sourceKind: 'owner-accepted', decidedOn, source: { href, excerpt } }`, keeping `chosen` and `decision` for a choice. Link to and quote the approval. A reversal is a new settled decision with `supersedes: 'D3'`. Settle an open owner choice before using it to supersede a decision. Keep the earlier record for history and move active dependencies to the replacement. An owner decision can only be superseded by another owner decision.
 
+When the owner reviews a decision that remains the agent's, add `ownerReview: { reviewedOn: '2026-11-26', href: 'review.html#D3' }` within its `agent-decided` authority. The link points to local evidence of the review. Record it only when there is evidence the owner reviewed that decision. The review keeps the agent's authorship and lets the decision leave the overview. Delivery can proceed while the decision awaits review.
+
 ## Place records on pages
 
 Place needs, rules, realizations and planned checks with empty `data-design-record` elements beside their explanation. The placement supplies the anchor. After generating the views, the runtime adds `id="R1"` and the statement when the page loads, so any page can link to `#R1`. It finds the record data beside the page’s generated navigation source, or beside the initiative overview source if the page has no generated navigation. A declared external page with neither binding can use `<meta name="demistify-records" content="../project/records.generated.js">`.
@@ -280,6 +282,20 @@ Known loss: the check does not flag a rule that changed after acceptance. Treat 
 
 Design notes include each authored need that no rule in the checked design or initiative serves, even if the need is outside delivery scope. The check also notes scoped rules without a realization. These notes are informational and stay visible after acceptance.
 The check adds one informational note per need, rule, realization or planned check whose statement has more than one sentence or more than 40 whitespace-delimited words.
+
+### Place a project overview
+
+On the project home, write the explanation and diagrams around one generated view:
+
+```html
+<ex-project-overview src="./project-overview.generated.json">
+  <a slot="decision-history" href="./decisions.html#decisions">All decisions</a>
+</ex-project-overview>
+```
+
+The checker writes this file with the other generated views. The overview shows accepted core deliverables and their plan links, later deliverables, registered Requirements, Specification, Program Design and Verification Design pages, decisions needing owner attention, and dated work-log links. The four design documents use the conventional filenames `requirements.html`, `specification.html`, `program-design.html` and `verification.html` (or `verification-design.html`) within the project. Include them in `design.ts` Pages. The decision table shows open choices first, then agent decisions awaiting owner review. Its status icons explain the difference. Use the `decision-history` link to point to the project's full Decisions section.
+
+For a dated work log, declare the page in `pages` and add its page ID and calendar date to `workLogs` in `design.ts`, for example `workLogs: { 'november-26': '2026-11-26' }`. The overview sorts logs newest first. The date belongs to the authored log entry. The generated view displays links to the original pages.
 
 Show progress with `<ex-deliverables src="./deliverables.generated.json" label="Delivery progress"></ex-deliverables>`: each deliverable's state, open checks and evidence, linked to the governing records.
 

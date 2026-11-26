@@ -24,6 +24,7 @@ const designOutputs = [
 	'design.generated.json',
 	'navigation.generated.json',
 	'deliverables.generated.json',
+	'project-overview.generated.json',
 	...patterns.slice(1),
 ];
 const run = promisify(execFile);

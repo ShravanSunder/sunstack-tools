@@ -1,5 +1,6 @@
 import { idPrefixGlossary, recordKindGlossary } from '../core/glossary.ts';
 import { createPhosphorIcon } from '../core/icons.ts';
+import { createToneIcon, type Tone } from '../core/tones.ts';
 
 type RecordKind = keyof typeof recordKindGlossary;
 const prefixes: ReadonlyMap<string, string> = idPrefixGlossary;
@@ -87,14 +88,18 @@ function showExplanation(
 export function glossaryTerm(
 	label: string,
 	explanation: string,
-	marker = false,
+	marker: boolean | Tone = false,
 ): HTMLButtonElement {
 	const button = document.createElement('button');
 	button.type = 'button';
 	button.className = marker ? 'ex-glossary-term ex-glossary-marker' : 'ex-glossary-term';
 	if (marker) {
 		button.setAttribute('aria-label', `Explain ${label}`);
-		button.append(createPhosphorIcon('info'));
+		if (marker === true) button.append(createPhosphorIcon('info'));
+		else {
+			button.setAttribute('tone', marker);
+			button.append(createToneIcon(marker));
+		}
 	} else button.textContent = label;
 	button.setAttribute('aria-expanded', 'false');
 

@@ -167,6 +167,11 @@ export const vocabulary: Readonly<Record<string, ElementSpec>> = {
 			'Projects in dependency order, owner questions, deliverables and records from a checked initiative.',
 		attributes: { src: text('Relative initiative.generated.json output.', true) },
 	},
+	'ex-project-overview': {
+		description:
+			'One project’s deliverable progress, design documents, decisions and dated work logs.',
+		attributes: { src: text('Relative project-overview.generated.json output.', true) },
+	},
 	'ex-deliverables': {
 		description: 'Delivery progress, dependencies and evidence from a checked design set.',
 		attributes: { label, src: text('Relative deliverables.generated.json output.', true) },

@@ -1124,3 +1124,82 @@ for (const component of ['gallery', 'explorer']) {
 		expect(fixture.querySelector('.ex-issues')).toBeNull();
 	});
 }
+
+test.each([1400, 390])(
+	'project overview renders one checked source and follows its links at %ipx',
+	async (width): Promise<void> => {
+		await page.viewport(width, 1000);
+		const { document: fixture, frame } = await openFixture('ui', '', 'project-overview.html');
+		const owner = requiredElement(fixture, 'ex-project-overview');
+		const overview = fixtureLocator(frame, owner);
+		await expect.element(overview.getByText('1/2', { exact: true })).toBeVisible();
+		expect(owner.querySelectorAll('ex-card')).toHaveLength(2);
+		const tables = owner.querySelectorAll('table');
+		expect(
+			[...tables].map((table) =>
+				[...table.querySelectorAll('th')].map((header) => header.textContent),
+			),
+		).toEqual([['Document'], ['Status', 'Decision'], ['Date', 'Work log']]);
+		const decisions = requiredElement(owner, 'table:has(a[href$="#D61"])');
+		const statusCells = [...decisions.querySelectorAll('tbody td:first-child')];
+		expect(statusCells.map((cell) => cell.textContent)).toEqual(['', '']);
+		expect(
+			statusCells.map((cell) => cell.querySelector('button')?.getAttribute('aria-label')),
+		).toEqual(['Explain Open', 'Explain Needs review']);
+		expect(statusCells.map((cell) => cell.querySelector('.ex-tone-icon')?.className)).toEqual([
+			'ph ph-question ex-tone-icon',
+			'ph ph-info ex-tone-icon',
+		]);
+		await overview.getByRole('button', { name: 'Explain Open' }).click();
+		await expect
+			.poll(() => fixture.querySelector('[role="tooltip"]:popover-open')?.textContent)
+			.toBe('Waiting for you to decide.');
+		await userEvent.keyboard('{Escape}');
+		await overview.getByRole('button', { name: 'Explain Needs review' }).click();
+		await expect
+			.poll(() => fixture.querySelector('[role="tooltip"]:popover-open')?.textContent)
+			.toContain('Work can proceed');
+		await userEvent.keyboard('{Escape}');
+		const time = requiredElement(owner, 'table time');
+		expect(time.getAttribute('datetime')).toBe('2026-11-26');
+		const later = overview.getByText('Later deliverables (1)', { exact: true });
+		await later.click();
+		await expect.element(overview.getByText('DEL-03 · Export a handoff receipt')).toBeVisible();
+		const openDecision = overview.getByRole('link', {
+			name: 'initiative/D61 · When should the handoff expire?',
+		});
+		await expect.element(openDecision).toBeVisible();
+		const decision = overview.getByRole('link', {
+			name: 'initiative/D60 · Save before reporting completion',
+		});
+		await expect.element(decision).toBeVisible();
+		await expect
+			.element(overview.getByText('Save the result before returning success.'))
+			.toBeVisible();
+		await decision.click();
+		await expect.poll((): string | undefined => fixture.defaultView?.location.hash).toBe('#D60');
+		await overview.getByRole('link', { name: 'All decisions' }).click();
+		await expect
+			.poll((): string | undefined => fixture.defaultView?.location.hash)
+			.toBe('#all-decisions');
+		await overview.getByRole('link', { name: 'Reviewed the handoff' }).click();
+		await expect
+			.poll((): string | undefined => fixture.defaultView?.location.hash)
+			.toBe('#work-log');
+		expect(fixture.documentElement.scrollWidth).toBeLessThanOrEqual(width);
+		expect(decisions.getBoundingClientRect().width).toBeCloseTo(
+			requiredElement(owner, 'section:has(table[data-width="canvas"])').getBoundingClientRect()
+				.width,
+			0,
+		);
+		expect(decisions.getBoundingClientRect().right).toBeLessThanOrEqual(width);
+		for (const theme of ['light', 'dark']) {
+			fixture.documentElement.dataset['theme'] = theme;
+			decisions.closest('section')?.scrollIntoView({ block: 'center', behavior: 'instant' });
+			// oxlint-disable-next-line no-await-in-loop -- capture each theme after applying it.
+			await page.screenshot({
+				path: browserScreenshotPath(`project-overview-${width}-${theme}.png`),
+			});
+		}
+	},
+);

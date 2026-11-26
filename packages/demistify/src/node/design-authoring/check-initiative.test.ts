@@ -562,6 +562,21 @@ resolution: { href: 'evidence.txt', excerpt: 'Available.' }
 		const deliverablesPath = join(messages, 'deliverables.generated.json');
 		await expect(stat(deliverablesPath)).rejects.toMatchObject({ code: 'ENOENT' });
 		await check();
+		expect(
+			JSON.parse(await readFile(join(messages, 'project-overview.generated.json'), 'utf8')),
+		).toMatchObject({
+			deliverables: [
+				{
+					id: 'messages/DEL-01',
+					state: 'dependency-blocked',
+					destination: { page: '../../projects/2026-11-messages/index.html', fragment: 'DEL-01' },
+				},
+			],
+			decisions: [],
+		});
+		expect(
+			JSON.parse(await readFile(join(sessions, 'project-overview.generated.json'), 'utf8')),
+		).toMatchObject({ decisions: [] });
 		await run(process.execPath, [cli, 'design', 'types', messages]);
 		const generatedTypes = await readFile(join(messages, 'design-schema.d.ts'), 'utf8');
 		expect(generatedTypes).toContain('"initiative/D2"');

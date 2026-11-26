@@ -20,6 +20,7 @@ function recordsSource(): URL | undefined {
 	for (const [selector, filename] of [
 		['ex-nav[src]', 'navigation.generated.json'],
 		['ex-initiative-overview[src]', 'initiative.generated.json'],
+		['ex-project-overview[src]', 'project-overview.generated.json'],
 	] as const) {
 		implicit = Array.from(document.querySelectorAll(selector)).flatMap((element): string[] => {
 			const source = recordSourceHref(element.getAttribute('src') ?? '', filename);
@@ -225,7 +226,11 @@ async function fillBindings(elements: readonly HTMLElement[]): Promise<void> {
 		message.setAttribute('role', 'status');
 		for (const section of document.querySelectorAll<HTMLElement>('ex-section[holds]'))
 			section.hidden = true;
-		message.textContent = document.querySelector('ex-project-overview')
+		message.textContent = [...document.querySelectorAll('ex-project-overview')].some(
+			(element) =>
+				recordSourceHref(element.getAttribute('src') ?? '', 'project-overview.generated.json') ===
+				undefined,
+		)
 			? 'Design records are unavailable. ex-project-overview was replaced by ex-initiative-overview in 1.34. Update the page, regenerate its design records, and reload.'
 			: 'Design records are unavailable. Run demistify initiative check --write (or demistify design check --write for a standalone project), then reload.';
 		const scope = document.querySelector('ex-document');

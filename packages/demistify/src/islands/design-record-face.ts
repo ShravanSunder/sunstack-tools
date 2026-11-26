@@ -59,7 +59,11 @@ function recordPresentation(record: RecordFace['record']): {
 		return { label: 'Needs you', tone: 'question', reviewPending: false };
 	if (authority.state === 'owner-decided')
 		return { label: 'You decided', tone: 'decision', reviewPending: false };
-	const reviewPending = authority.sourceKind !== 'contract' && authority.weight === 'design';
+	// Keep the hydrated markup for existing records stable for saved review anchors.
+	const reviewPending =
+		authority.ownerReview === undefined &&
+		authority.sourceKind !== 'contract' &&
+		authority.weight === 'design';
 	return {
 		label: `${authority.by.alias} decided`,
 		tone: reviewPending ? 'risk' : 'decision',
@@ -106,6 +110,11 @@ export function recordStateLine(
 				chips.append(recordCategoryBadge(authority.weight));
 				if (presentation.reviewPending)
 					chips.append(recordCategoryBadge('Not reviewed by you', 'risk'));
+				else if (authority.ownerReview) {
+					const reviewed = recordCategoryBadge('Reviewed by you', 'note');
+					reviewed.title = `Reviewed on ${authority.ownerReview.reviewedOn}`;
+					chips.append(reviewed);
+				}
 				facts.push(' · ', authority.by.alias);
 				if (authority.sourceKind === 'contract') facts.push(' · from contract');
 			}

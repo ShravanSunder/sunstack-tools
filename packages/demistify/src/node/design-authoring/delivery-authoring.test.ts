@@ -655,9 +655,20 @@ export default [
 			"{ state: 'agent-decided', by: { alias: 'Queue Lead', role: 'lead' }, sourceKind: 'author', weight: 'design', chosen: 'keep', decision: 'Use existing claim operation.', rationale: 'Keeps the agreed behavior.', decidedOn: '2026-11-21' }";
 		const leadDecisions = decidedSource.replace(decided, leadDecision);
 		await writeFile(decisionsFile, leadDecisions);
-		expect(coreDelivery(await checkWithCurrentReceipts(assumedDesign), 'DEL-01').state).toBe(
-			'accepted',
+		const unreviewedAgentDecision = await checkWithCurrentReceipts(assumedDesign);
+		expect(coreDelivery(unreviewedAgentDecision, 'DEL-01').state).toBe('accepted');
+		await writeFile(
+			decisionsFile,
+			leadDecisions.replace(
+				leadDecision,
+				leadDecision.replace(
+					/ \}$/u,
+					", ownerReview: { reviewedOn: '2026-11-22', href: 'evidence.txt' } }",
+				),
+			),
 		);
+		await run(process.execPath, check);
+		expect(await readDelivery()).toEqual(unreviewedAgentDecision);
 		await writeFile(
 			decisionsFile,
 			leadDecisions.replace("'agent-decided'", "'implementer-decided'"),
