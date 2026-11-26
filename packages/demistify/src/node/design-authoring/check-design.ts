@@ -293,8 +293,10 @@ export async function openDesignCheck(siteRoot: string): Promise<DesignCheck> {
 					async (source) => {
 						const target = resolveLink(source.href, sourceFile);
 						if (!target) throw new Error(`Source reference must be local: ${source.href}`);
-						await checkDestination(target.file, target.fragment, source.verbatim === true);
-						if (!source.verbatim) return;
+						// With `shown`, the record owns the owner's words; `href` only says where.
+						const pageVerbatim = source.verbatim === true && source.shown === undefined;
+						await checkDestination(target.file, target.fragment, pageVerbatim);
+						if (!pageVerbatim) return;
 						if (!isHtml(target.file))
 							throw new Error(
 								`${record.id}: verbatim excerpts require an HTML source: ${source.href}`,

@@ -151,6 +151,26 @@ it('applies a copied review answer to its open choice, with the owner words on t
     },`);
 		expect(decided).toContain("authority: { state: 'owner-open' },");
 
+		const check = (): ReturnType<typeof run> =>
+			run(process.execPath, [cli, 'initiative', 'check', root]);
+		await writeFile(
+			join(root, 'decisions.html'),
+			page.replace('yes resume it, &lt;and&gt; log each one', 'moved'),
+		);
+		await expect(check()).rejects.toThrow('verbatim excerpt does not appear');
+		await writeFile(
+			join(root, 'records/initiative-decisions.ts'),
+			decided.replace(
+				"excerpt: 'yes resume it, <and> log each one',\n        verbatim: true",
+				"excerpt: 'yes resume it, <and> log each one',\n        verbatim: true,\n        shown: 'Yes, resume it, and log each one.'",
+			),
+		);
+		await check();
+		await Promise.all([
+			writeFile(join(root, 'decisions.html'), page),
+			writeFile(join(root, 'records/initiative-decisions.ts'), decided),
+		]);
+
 		const clashingPage = page.replace('<h1>', "<span id='initiative/D3-answer'></span><h1>");
 		await Promise.all([
 			writeFile(join(root, 'decisions.html'), clashingPage),

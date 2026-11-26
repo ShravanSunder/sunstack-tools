@@ -113,6 +113,24 @@ test.each([
 	);
 });
 
+test('a cleaned shown wording needs a verbatim excerpt', (): void => {
+	const source = {
+		href: 'index.html#answer',
+		excerpt: 'resume overdue wrok',
+		shown: 'Resume overdue work.',
+	};
+	const withSource = (verbatim?: true): string =>
+		'export default ' +
+		JSON.stringify([
+			{ ...answered, authority: { ...answered.authority, source: { ...source, verbatim } } },
+		]);
+
+	expect(() => readDesignItems(decisions, withSource(), 'choice', project)).toThrow(
+		'shown cleans a verbatim excerpt',
+	);
+	expect(readDesignItems(decisions, withSource(true), 'choice', project)).toHaveLength(1);
+});
+
 const recordPagePath = '/project/index.html';
 const sections = `<ex-section id="settled" holds="settled"></ex-section>
 <ex-section id="agent" holds="decided-by-agent"></ex-section>`;

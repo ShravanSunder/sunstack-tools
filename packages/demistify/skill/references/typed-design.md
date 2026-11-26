@@ -156,7 +156,7 @@ export default [
 ];
 ```
 
-When an assumption is `confirmed` or `refuted`, replace `settles` with `settledBy` (a name or alias) and `resolution: { href, excerpt }`. Choices, rulings and assumptions may also carry `sources`. Source links are relative to the owning design. Set `verbatim: true` when the excerpt must occur in the linked page.
+When an assumption is `confirmed` or `refuted`, replace `settles` with `settledBy` (a name or alias) and `resolution: { href, excerpt }`. Choices, rulings and assumptions may also carry `sources`. Source links are relative to the owning design. Set `verbatim: true` when the excerpt must occur in the linked page. To show the owner a cleaned sentence while keeping their exact words, keep the exact words in `excerpt` with `verbatim: true` and add `shown: 'The cleaned sentence.'`. The record then owns the exact words, so the linked page need not repeat them; `href` still says where they were said. The record face labels `shown` as your tidied wording and keeps the exact words one disclosure away.
 
 When the owner explicitly approves an agent's decision, keep the record ID and answer. Replace the authority with `{ state: 'owner-decided', sourceKind: 'owner-accepted', decidedOn, source: { href, excerpt } }`, keeping `chosen` and `decision` for a choice. Link to and quote the approval. A reversal is a new settled decision with `supersedes: 'D3'`. Settle an open owner choice before using it to supersede a decision. Keep the earlier record for history and move active dependencies to the replacement. An owner decision can only be superseded by another owner decision.
 
