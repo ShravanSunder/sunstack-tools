@@ -26,7 +26,7 @@ export const levelGlossary = {
 		'Deliverable: a piece of a project that is built, checked and accepted. It can be blocked by deliverables in any project.',
 	number:
 		'Lower numbers come first. Projects with the same number can run side by side. Number 0 can show finished groundwork.',
-	blockedBy: 'Blocked by: this deliverable cannot be accepted before the deliverables it names.',
+	blockedBy: 'These deliverables must be accepted before this one.',
 } as const;
 
 /** Plain-language meaning of each project state in an initiative. */

@@ -142,11 +142,13 @@ function renderDelivery(
 		context.append(paragraph);
 	}
 	if (delivery.blockedBy.length) {
+		const label = document.createElement('p');
+		label.append(glossaryTerm('Delivery dependencies', levelGlossary.blockedBy));
+		context.append(label);
 		const list = appendList(context);
 		for (const id of delivery.blockedBy) {
 			const required = view.deliverables[id];
 			const item = appendItem(list);
-			item.append(glossaryTerm('Blocked by', levelGlossary.blockedBy), ' ');
 			item.append(
 				required?.kind === 'core'
 					? linkTo(source, required.links.plan.page, id, required.links.plan.fragment)

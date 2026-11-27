@@ -166,7 +166,8 @@
 				"verificationChecks": []
 			},
 			"blockedBy": [
-				"queue/DEL-01"
+				"queue/DEL-01",
+				"worker/DEL-01"
 			]
 		},
 		"queue/DEL-01": {

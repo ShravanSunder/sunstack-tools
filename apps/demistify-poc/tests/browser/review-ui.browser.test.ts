@@ -365,8 +365,14 @@ test.each([1400, 390])(
 		const evidence = summary.getByText('Checks and evidence', { exact: true });
 		await evidence.click();
 		await expect
+			.element(summary.getByRole('button', { name: 'Delivery dependencies', exact: true }))
+			.toBeVisible();
+		await expect
 			.element(summary.getByRole('link', { name: 'queue/DEL-01', exact: true }))
 			.toHaveAttribute('href', expect.stringMatching(/decision-views\.html#queue-deliverable$/));
+		await expect
+			.element(summary.getByRole('link', { name: 'worker/DEL-01', exact: true }))
+			.toHaveAttribute('href', expect.stringMatching(/decision-views\.html#worker-deliverable$/));
 		await summary.getByRole('button', { name: 'Closed', exact: true }).click();
 		await expect
 			.poll(() => fixture.querySelector('[role="tooltip"]:popover-open')?.textContent ?? '')

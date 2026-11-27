@@ -76,9 +76,9 @@ export function deliveryDetails(
 		if (item.verifier) add(`Verifier: ${item.verifier}`);
 		if (item.reviewer) add(`Reviewer: ${item.reviewer}`);
 		if (item.blockedBy.length) {
-			const prerequisites = add('Blocked by ');
+			const dependencies = add('Delivery dependencies ');
 			for (const [index, id] of item.blockedBy.entries())
-				prerequisites.append(index ? ', ' : '', id, explainRecord(id, 'deliverable'));
+				dependencies.append(index ? ', ' : '', id, explainRecord(id, 'deliverable'));
 		}
 	}
 	if (item.implementation.candidate) add(`Candidate: ${item.implementation.candidate}`);
