@@ -41,6 +41,9 @@ ex-section[holds='settled']:not([series], [tone]) {
 ex-section[holds='assumed']:not([series], [tone]) {
 	--surface-category: var(--chart-1);
 }
+ex-section[tone]:not([series]) {
+	--surface-category: var(--tone);
+}
 .ex-section-head {
 	position: sticky;
 	top: var(--ex-document-toolbar-height, 0px);
@@ -291,6 +294,38 @@ ex-section-item ex-markdown.ex-inspectable > .ex-inspect-controls:not(.ex-inspec
 }
 ex-section-item + ex-section-item {
 	margin-block-start: var(--space-8);
+}
+.ex-section-floating[tone] > ex-section-item[section] {
+	position: relative;
+	box-sizing: border-box;
+	padding: var(--space-4);
+}
+.ex-section-floating[tone] > ex-section-item[section]:not(:has(> ex-flow)) {
+	border: 1px solid var(--rule);
+	border-radius: var(--radius-md);
+	background: var(--surface-record);
+}
+.ex-section-floating[tone] > ex-section-item[section]::before {
+	content: '';
+	position: absolute;
+	inset-block: 0;
+	inset-inline-start: calc(-1 * var(--space-4));
+	inline-size: var(--space-1);
+	border-radius: var(--radius-pill);
+	background: var(--section-heading-fill);
+	pointer-events: none;
+}
+.ex-section-floating[tone] > ex-section-item[section] + ex-section-item[section] {
+	margin-block-start: var(--space-4);
+}
+.ex-section-floating[tone] > ex-section-item[section] > :first-child {
+	margin-block-start: 0;
+}
+.ex-section-floating[tone] > ex-section-item[section] > :last-child {
+	margin-block-end: 0;
+}
+.ex-section-floating[tone] > ex-section-item[section] > p {
+	max-inline-size: var(--width-reading);
 }
 ex-section > ex-section-item[record] {
 	--record-item-start: 0px;

@@ -567,6 +567,9 @@ ex-section-item[record]
 		translate: -50% -50%;
 		z-index: 11;
 	}
+	.ex-table-scroll[data-layout='verification'] .ex-comment-target > .ex-entity-comment {
+		inset-inline-start: calc(100% - var(--space-1));
+	}
 	.ex-comment-target:is(p, li, h1, h2, h3, h4, h5, h6) {
 		padding-inline-end: var(--space-5);
 	}
