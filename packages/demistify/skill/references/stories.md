@@ -46,6 +46,8 @@ A record item uses `record="D5"`. Demistify places it using the checked decision
 
 Give a section a semantic `tone` to set its default icon and header tint. Use `icon` to choose a different subject icon or `series` to choose a different palette tint. For authored items using `section`, a toned section supplies the item surface, tinted rail, and spacing. Give each item a heading and put its summary, links, and evidence directly inside it. Use a [badge row](small-parts.md#short-status-labels) under the heading when an item has status chips. A table in the shared `ex-table-scroll` wrapper uses the standard text gap when it immediately follows a heading.
 
+Place a Flow directly in the section item when cards and arrows explain the change or dependency. The section keeps its rail and spacing. The Flow’s cards supply the surfaces.
+
 ```html
 <ex-section id="next" title="What’s done / what’s next" tone="note"></ex-section>
 <ex-section-item section="next">

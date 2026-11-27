@@ -299,6 +299,8 @@ ex-section-item + ex-section-item {
 	position: relative;
 	box-sizing: border-box;
 	padding: var(--space-4);
+}
+.ex-section-floating[tone] > ex-section-item[section]:not(:has(> ex-flow)) {
 	border: 1px solid var(--rule);
 	border-radius: var(--radius-md);
 	background: var(--surface-record);
