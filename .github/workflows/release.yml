@@ -41,13 +41,76 @@ permissions:
 # will be marked as a prerelease.
 on:
   pull_request:
+  workflow_dispatch:
   push:
     tags:
       - '**[0-9]+.[0-9]+.[0-9]+*'
 
 jobs:
+  # Recover the SDK packages from the original v0.25.0 release artifacts.
+  recover-sdk-0-25-0:
+    if: ${{ github.event_name == 'workflow_dispatch' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/recover/sdk-0.25.0') && vars.SDK_NPM_TRUSTED_PUBLISHING == 'true' }}
+    runs-on: ubuntu-22.04
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: 469c1305e6eb0c1f4b4723e02e9a019679921aaf
+          persist-credentials: false
+      - name: Fetch the original release candidate
+        uses: actions/download-artifact@v8
+        with:
+          run-id: '45986451092'
+          github-token: ${{ github.token }}
+          name: sdk-candidate
+          path: candidate/
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '26'
+          registry-url: 'https://registry.npmjs.org'
+          package-manager-cache: false
+      - name: Install npm with trusted publishing support
+        run: npm install --global npm@11.17.0
+      - name: Verify the original SDK archives
+        run: |
+          sha256sum -c - <<'CHECKSUMS'
+          a3dee2af953caea35824fff18ebe9f821480c509790f174df2b26b282c10fbce  candidate/sunstack-sdk-darwin-arm64-0.25.0.tgz
+          d02848bdc4335c9533abc9df6f105ad3819a80b6fc3dc7bcc3d34b53e2c20fdf  candidate/sunstack-sdk-linux-arm64-gnu-0.25.0.tgz
+          b36456da298d28eae09601805a7e2214914a2e352501560649e205253aeee10e  candidate/sunstack-sdk-linux-x64-gnu-0.25.0.tgz
+          abdf19c285fc90a63fd638361fa1e86e844d16184b59293754365a62d3ec5dee  candidate/sunstack-sdk-0.25.0.tgz
+          CHECKSUMS
+          node packages/sdk/scripts/check-packages.ts --tarballs "$PWD/candidate" --tag v0.25.0 > "$RUNNER_TEMP/sdk-package-checks.json"
+      - name: Publish the missing SDK packages with GitHub OIDC
+        shell: bash
+        run: |
+          packages=$(jq -er '.[] | [.manifest.name, .filename] | @tsv' "$RUNNER_TEMP/sdk-package-checks.json")
+          while IFS=$'\t' read -r name filename; do
+            tarball="$PWD/candidate/$filename"
+            metadata=$(curl --fail --silent --show-error --retry 3 "https://registry.npmjs.org/${name/\//%2f}")
+            latest=$(jq -er '."dist-tags".latest' <<< "$metadata")
+            if [[ "$latest" != 0.0.0-bootstrap.1 && "$latest" != 0.25.0 ]]; then
+              echo "Unexpected latest for $name: $latest" >&2
+              exit 1
+            fi
+            published_integrity=$(jq -r '.versions["0.25.0"].dist.integrity // ""' <<< "$metadata")
+            if [[ -n "$published_integrity" ]]; then
+              expected_integrity="sha512-$(openssl dgst -sha512 -binary "$tarball" | openssl base64 -A)"
+              if [[ "$published_integrity" != "$expected_integrity" || "$latest" != 0.25.0 ]]; then
+                echo "Published $name@0.25.0 does not match the expected archive and latest tag" >&2
+                exit 1
+              fi
+              echo "$name@0.25.0 is already published from the expected archive"
+            else
+              npm publish --access public --tag latest "$tarball"
+            fi
+          done <<< "$packages"
+
   # Run 'dist plan' (or host) to determine what tasks we need to do
   plan:
+    if: ${{ github.event_name != 'workflow_dispatch' }}
     runs-on: 'ubuntu-22.04'
     outputs:
       val: ${{ steps.plan.outputs.manifest }}
