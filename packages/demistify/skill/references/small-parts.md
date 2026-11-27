@@ -121,6 +121,16 @@ When there is no meaningful phase comparison, leave the bars out. For example, `
 <p><ex-badge>Observation supplied</ex-badge> The follow-up is not classified.</p>
 ```
 
+In a card, place status and category badges together in an `ex-badge-row` below the title. Put the explanation in its own following paragraph. The shared row wraps as needed and uses the same spacing before the explanation as a Choice option’s metadata.
+
+```html
+<h4>Import checks</h4>
+<div class="ex-badge-row">
+  <ex-badge tone="note">Local fixture passed</ex-badge>
+</div>
+<p>A run against the deployed service is next.</p>
+```
+
 Use a badge for a compact status or category label. Without a tone, the badge is neutral and has no dot. Use an explicit `icon` when the label needs one of the shipped badge symbols: `target`, `article`, `code`, or `shield-check`. The badge text by itself never selects an icon. `done`, `note`, `risk`, `question` and `decision` add a dot and use the shared semantic paint. Other valid tones render with neutral paint. Keep a known queued state neutral by omitting `tone`. These appearance rules apply to `ex-badge`; other components keep their own tone styles. Keep a sentence in prose, and do not use badge color to stand in for a count or phase category.
 
 ## Exact counts and the selected ring

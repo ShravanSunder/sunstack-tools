@@ -44,13 +44,16 @@ An `ex-section` is an empty declaration. Write its content in separate `ex-secti
 
 A record item uses `record="D5"`. Demistify places it using the checked decision or assumption state. Author one item per record. Within each section, items keep their source order. Declare each reachable `holds` value once, using the [routing table for typed records](typed-design.md#place-records-on-pages). For ordinary prose or a story, use `section="know"` to target a section without `holds`. Each item takes one destination. The header and Map share the count: each record or prose item counts once, and a Story group counts its stories.
 
-Give a section a semantic `tone` to set its default icon and header tint. Use `icon` to choose a different subject icon or `series` to choose a different palette tint. For authored items using `section`, a toned section supplies the item surface, tinted rail, and spacing. Give each item a heading and put its summary, links, and evidence directly inside it. A table in the shared `ex-table-scroll` wrapper uses the standard text gap when it immediately follows a heading.
+Give a section a semantic `tone` to set its default icon and header tint. Use `icon` to choose a different subject icon or `series` to choose a different palette tint. For authored items using `section`, a toned section supplies the item surface, tinted rail, and spacing. Give each item a heading and put its summary, links, and evidence directly inside it. Use a [badge row](small-parts.md#short-status-labels) under the heading when an item has status chips. A table in the shared `ex-table-scroll` wrapper uses the standard text gap when it immediately follows a heading.
 
 ```html
 <ex-section id="next" title="What’s done / what’s next" tone="note"></ex-section>
 <ex-section-item section="next">
   <h4>Import checks</h4>
-  <p>The local fixture passed. A run against the deployed service is next.</p>
+  <div class="ex-badge-row">
+    <ex-badge tone="note">Local fixture passed</ex-badge>
+  </div>
+  <p>A run against the deployed service is next.</p>
 </ex-section-item>
 ```
 

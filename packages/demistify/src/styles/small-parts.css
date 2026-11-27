@@ -60,6 +60,17 @@ ex-badge:is(
 	background: currentColor;
 }
 
+.ex-badge-row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--space-1) var(--space-2);
+	margin-block-start: var(--space-1);
+}
+.ex-badge-row + p {
+	margin-block-start: var(--space-2);
+}
+
 .ex-identity {
 	display: inline-flex;
 	align-items: center;
