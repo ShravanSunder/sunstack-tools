@@ -19,7 +19,7 @@ export function projectProgress(deliverables: readonly DeliverableView[]): Proje
 	);
 	if (designBlocked.length + dependencyBlocked.length === open.length) {
 		const waitingOn = [
-			...new Set(dependencyBlocked.flatMap((deliverable) => deliverable.dependsOn)),
+			...new Set(dependencyBlocked.flatMap((deliverable) => deliverable.blockedBy)),
 		];
 		if (!designBlocked.length)
 			return {
@@ -66,7 +66,7 @@ export function initiativeWork(
 	const dependents = new Map<string, string[]>();
 	for (const view of open)
 		if (view.kind === 'core')
-			for (const prerequisite of view.dependsOn)
+			for (const prerequisite of view.blockedBy)
 				dependents.set(prerequisite, [...(dependents.get(prerequisite) ?? []), view.id]);
 	const waitingOn = (id: string): number => {
 		const seen = new Set<string>();
@@ -82,12 +82,12 @@ export function initiativeWork(
 		readyNow: open
 			.filter(
 				(view) =>
-					view.kind === 'core' && view.state === 'planned' && view.implementation.tasks.length > 0,
+					view.kind === 'core' && view.state === 'planned' && view.implementation.issues.length > 0,
 			)
 			.map(({ id }) => id)
 			.toSorted((left, right) => projectNumber(left) - projectNumber(right)),
 		needsPlan: open
-			.filter((view) => view.kind === 'core' && view.implementation.tasks.length === 0)
+			.filter((view) => view.kind === 'core' && view.implementation.issues.length === 0)
 			.map(({ id }) => id)
 			.toSorted((left, right) => projectNumber(left) - projectNumber(right)),
 		blocksMost: open

@@ -76,14 +76,18 @@ const coreDeliverableView = z.strictObject({
 	kind: z.literal('core'),
 	id: recordId,
 	title: text,
-	builder: z.string().min(1).optional(),
-	dependsOn: z.array(recordId),
+	implementer: z.string().min(1).optional(),
+	verifier: z.string().min(1).optional(),
+	reviewer: z.string().min(1).optional(),
+	blockedBy: z.array(recordId),
 	state: z.union([openProgressState, z.enum(['accepted', 'dependency-blocked'])]),
 	reasons: z.array(text),
 	progress,
 	implementation: z.strictObject({
 		candidate: text.optional(),
-		tasks: z.array(z.strictObject({ id: recordId, state: z.enum(['completed', 'open']) })),
+		issues: z.array(
+			z.strictObject({ id: recordId, title: text, state: z.enum(['closed', 'open']) }),
+		),
 		evidence: z.array(localDeliveryHref),
 	}),
 	verification: z.strictObject({
@@ -119,7 +123,7 @@ export const deliverableViewSchema = z.discriminatedUnion('kind', [
 ]);
 
 export const deliverablesViewSchema = z.strictObject({
-	version: z.literal(1),
+	version: z.literal(2),
 	deliverables: z.record(recordId, deliverableViewSchema),
 });
 

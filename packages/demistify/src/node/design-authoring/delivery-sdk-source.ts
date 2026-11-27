@@ -9,7 +9,7 @@ interface DeliverableScope {
 	readonly needs?: readonly string[];
 	readonly rules?: readonly string[];
 	readonly designItems?: readonly string[];
-	readonly implementationTasks?: readonly string[];
+	readonly issues?: readonly { readonly id: string; readonly title: string }[];
 	readonly verificationChecks?: readonly string[];
 }
 
@@ -22,11 +22,13 @@ interface CoreDeliverableInput {
 	readonly kind: 'core';
 	readonly id: string;
 	readonly title: string;
-	readonly builder?: string;
+	readonly implementer?: string;
+	readonly verifier?: string;
+	readonly reviewer?: string;
 	readonly destination: { readonly page: string; readonly fragment: string };
 	readonly scope: DeliverableScope;
 	readonly implementation?: {
-		readonly completedTasks?: readonly string[];
+		readonly closedIssues?: readonly string[];
 		readonly candidate?: string;
 		readonly evidence?: readonly string[];
 	};
@@ -43,12 +45,14 @@ interface LaterDeliverableInput {
 }
 type DeliverableInput = CoreDeliverableInput | LaterDeliverableInput;
 
-type ScopedIds<TScope extends DeliverableScope, TField extends keyof DeliverableScope> =
+type ScopedIds<TScope extends DeliverableScope, TField extends 'verificationChecks'> =
 	TField extends keyof TScope ? NonNullable<TScope[TField]>[number] : never;
+type ScopedIssueIds<TScope extends DeliverableScope> =
+	'issues' extends keyof TScope ? NonNullable<TScope['issues']>[number]['id'] : never;
 
 type AssignedResults<TDeliverable extends DeliverableInput> = TDeliverable extends CoreDeliverableInput ? {
 	readonly implementation?: {
-		readonly completedTasks?: readonly ScopedIds<TDeliverable['scope'], 'implementationTasks'>[];
+		readonly closedIssues?: readonly ScopedIssueIds<TDeliverable['scope']>[];
 	};
 	readonly verification?: {
 		readonly outcomes?: Readonly<
@@ -71,7 +75,7 @@ export function defineDeliverable<const TDeliverable extends DeliverableInput>(
 
 interface DeliveryEntry {
 	readonly deliverable: DeliverableInput;
-	readonly dependsOn?: readonly string[];
+	readonly blockedBy?: readonly string[];
 }
 
 type QualifiedDeliverableId = \`\${string}/\${string}\`;
@@ -82,7 +86,7 @@ interface DeliveryOptions {
 export function defineDelivery<const TDesign, const TEntries extends readonly DeliveryEntry[]>(
 	design: TDesign,
 	entries: TEntries & readonly (DeliveryEntry & {
-		readonly dependsOn?: readonly (NoInfer<TEntries[number]['deliverable']['id']> | QualifiedDeliverableId)[];
+		readonly blockedBy?: readonly (NoInfer<TEntries[number]['deliverable']['id']> | QualifiedDeliverableId)[];
 	})[],
 	options?: DeliveryOptions,
 ): { readonly design: TDesign; readonly entries: TEntries; readonly lead?: string } {

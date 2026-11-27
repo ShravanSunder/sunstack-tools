@@ -1,5 +1,5 @@
 {
-	"version": 2,
+	"version": 3,
 	"records": [
 		{
 			"id": "jobs/D1",
@@ -116,9 +116,6 @@
 			"kind": "core",
 			"id": "jobs/DEL-01",
 			"title": "Prove cancellation",
-			"dependsOn": [
-				"queue/DEL-01"
-			],
 			"state": "dependency-blocked",
 			"reasons": [
 				"The candidate needs a check.",
@@ -130,13 +127,14 @@
 			},
 			"implementation": {
 				"candidate": "build-2",
-				"tasks": [
+				"evidence": [],
+				"issues": [
 					{
 						"id": "capture-proof",
-						"state": "completed"
+						"title": "Capture proof",
+						"state": "closed"
 					}
-				],
-				"evidence": []
+				]
 			},
 			"verification": {
 				"build": "build-2",
@@ -166,13 +164,16 @@
 					}
 				],
 				"verificationChecks": []
-			}
+			},
+			"blockedBy": [
+				"queue/DEL-01",
+				"worker/DEL-01"
+			]
 		},
 		"queue/DEL-01": {
 			"kind": "core",
 			"id": "queue/DEL-01",
 			"title": "Acknowledge stop requests",
-			"dependsOn": [],
 			"state": "planned",
 			"reasons": [
 				"Ready to start."
@@ -182,13 +183,14 @@
 				"reason": "Ready to start."
 			},
 			"implementation": {
-				"tasks": [
+				"evidence": [],
+				"issues": [
 					{
 						"id": "add-queue-acknowledgement",
+						"title": "Add queue acknowledgement",
 						"state": "open"
 					}
-				],
-				"evidence": []
+				]
 			},
 			"verification": {
 				"checks": []
@@ -202,13 +204,13 @@
 				"designItems": [],
 				"governingItems": [],
 				"verificationChecks": []
-			}
+			},
+			"blockedBy": []
 		},
 		"worker/DEL-01": {
 			"kind": "core",
 			"id": "worker/DEL-01",
 			"title": "Process a queued job",
-			"dependsOn": [],
 			"state": "accepted",
 			"reasons": [],
 			"progress": {
@@ -222,8 +224,8 @@
 			},
 			"implementation": {
 				"candidate": "worker-1",
-				"tasks": [],
-				"evidence": []
+				"evidence": [],
+				"issues": []
 			},
 			"verification": {
 				"build": "worker-1",
@@ -238,13 +240,13 @@
 				"designItems": [],
 				"governingItems": [],
 				"verificationChecks": []
-			}
+			},
+			"blockedBy": []
 		},
 		"queue/DEL-02": {
 			"kind": "core",
 			"id": "queue/DEL-02",
 			"title": "Report stuck stop requests",
-			"dependsOn": [],
 			"state": "planned",
 			"reasons": [
 				"Implementation steps have yet to be written."
@@ -254,8 +256,8 @@
 				"reason": "Implementation steps have yet to be written."
 			},
 			"implementation": {
-				"tasks": [],
-				"evidence": []
+				"evidence": [],
+				"issues": []
 			},
 			"verification": {
 				"checks": []
@@ -269,7 +271,8 @@
 				"designItems": [],
 				"governingItems": [],
 				"verificationChecks": []
-			}
+			},
+			"blockedBy": []
 		}
 	},
 	"projects": {

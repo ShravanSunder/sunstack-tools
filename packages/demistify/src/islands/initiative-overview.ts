@@ -126,22 +126,29 @@ function renderDelivery(
 	if (delivery.kind === 'later') return;
 	const details = deliveryDetails(delivery, source, false);
 	const context = document.createElement('div');
-	if (delivery.builder) {
-		const builder = document.createElement('p');
-		builder.textContent = `Builder ${delivery.builder}`;
-		context.append(builder);
+	for (const [role, alias] of [
+		['Implementer', delivery.implementer],
+		['Verifier', delivery.verifier],
+		['Reviewer', delivery.reviewer],
+	] as const) {
+		if (!alias) continue;
+		const assignment = document.createElement('p');
+		assignment.textContent = `${role} ${alias}`;
+		context.append(assignment);
 	}
 	for (const reason of delivery.state === 'accepted' ? [] : delivery.reasons) {
 		const paragraph = document.createElement('p');
 		paragraph.textContent = reason;
 		context.append(paragraph);
 	}
-	if (delivery.dependsOn.length) {
+	if (delivery.blockedBy.length) {
+		const label = document.createElement('p');
+		label.append(glossaryTerm('Delivery dependencies', levelGlossary.blockedBy));
+		context.append(label);
 		const list = appendList(context);
-		for (const id of delivery.dependsOn) {
+		for (const id of delivery.blockedBy) {
 			const required = view.deliverables[id];
 			const item = appendItem(list);
-			item.append(glossaryTerm('Prerequisite', levelGlossary.dependsOn), ' ');
 			item.append(
 				required?.kind === 'core'
 					? linkTo(source, required.links.plan.page, id, required.links.plan.fragment)
@@ -156,7 +163,7 @@ function renderDelivery(
 
 const projectStateLabels = {
 	accepted: 'Accepted',
-	'dependency-blocked': 'Blocked on prerequisite',
+	'dependency-blocked': 'Blocked by a deliverable',
 	'design-blocked': 'Blocked by design',
 	'in-progress': 'In progress',
 	planned: 'Planned',

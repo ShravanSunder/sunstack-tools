@@ -66,7 +66,7 @@ test.each([1400, 390])(
 test('empty delivery progress shows only its status', async (): Promise<void> => {
 	const { document: fixture, frame } = await openFixture('ui');
 	const progress = fixture.createElement('ex-deliverables');
-	const view = { version: 1, deliverables: {} };
+	const view = { version: 2, deliverables: {} };
 	progress.setAttribute('src', `data:application/json,${encodeURIComponent(JSON.stringify(view))}`);
 	requiredElement(fixture, 'ex-document').append(progress);
 	const overview = fixtureLocator(frame, progress);
@@ -89,13 +89,13 @@ test.each([1400, 390])(
 		const initiative = fixture.createElement('ex-initiative-overview');
 		progress.setAttribute(
 			'src',
-			`data:application/json,${encodeURIComponent(JSON.stringify({ version: 1, deliverables }))}`,
+			`data:application/json,${encodeURIComponent(JSON.stringify({ version: 2, deliverables }))}`,
 		);
 		initiative.setAttribute(
 			'src',
 			`data:application/json,${encodeURIComponent(
 				JSON.stringify({
-					version: 2,
+					version: 3,
 					projects: {
 						jobs: {
 							path: 'design.ts',
@@ -246,11 +246,11 @@ test.each([1400, 390])(
 		const state = fixtureLocator(
 			frame,
 			requiredElement(jobs, '.ex-initiative-project-state'),
-		).getByRole('button', { name: 'Blocked on prerequisite', exact: true });
+		).getByRole('button', { name: 'Blocked by a deliverable', exact: true });
 		await state.hover();
 		await expect
 			.element(frame.getByRole('tooltip'))
-			.toHaveTextContent('Every open core deliverable here waits on a deliverable it depends on.');
+			.toHaveTextContent('Every open core deliverable here is blocked by another deliverable.');
 		await state.click();
 		await userEvent.keyboard('{Escape}');
 		const recordHelp = overview
@@ -360,14 +360,20 @@ test.each([1400, 390])(
 			[...ownerDecisions.querySelectorAll('a')].map((link) => new URL(link.href).hash),
 		).toEqual(['#D3', '#D4', '#D5']);
 		await expect.element(summary.getByRole('link', { name: /jobs\/DEL-01/ })).toBeVisible();
-		const states = summary.getByRole('button', { name: 'Blocked on prerequisite', exact: true });
+		const states = summary.getByRole('button', { name: 'Blocked by a deliverable', exact: true });
 		await expect.element(states.last()).toBeVisible();
 		const evidence = summary.getByText('Checks and evidence', { exact: true });
 		await evidence.click();
 		await expect
+			.element(summary.getByRole('button', { name: 'Delivery dependencies', exact: true }))
+			.toBeVisible();
+		await expect
 			.element(summary.getByRole('link', { name: 'queue/DEL-01', exact: true }))
 			.toHaveAttribute('href', expect.stringMatching(/decision-views\.html#queue-deliverable$/));
-		await summary.getByRole('button', { name: 'Completed', exact: true }).click();
+		await expect
+			.element(summary.getByRole('link', { name: 'worker/DEL-01', exact: true }))
+			.toHaveAttribute('href', expect.stringMatching(/decision-views\.html#worker-deliverable$/));
+		await summary.getByRole('button', { name: 'Closed', exact: true }).click();
 		await expect
 			.poll(() => fixture.querySelector('[role="tooltip"]:popover-open')?.textContent ?? '')
 			.toMatch(/Recorded as done in the current candidate/);

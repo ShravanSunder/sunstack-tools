@@ -2,12 +2,11 @@ import type { ProjectState } from './initiative-view.ts';
 
 /** Plain-language meaning of each deliverable state, shown wherever a state appears. */
 export const deliverableStateGlossary = {
-	planned: 'Designed and ready to build; no implementation task is done yet.',
-	'implementation-in-progress':
-		'Being built: some implementation tasks are done, or no build is recorded yet.',
+	planned: 'Designed and ready to build; no issue is closed yet.',
+	'implementation-in-progress': 'Being built: some issues are closed, or no build is recorded yet.',
 	'design-blocked':
 		'Waiting on an open owner decision or an unsettled design item this deliverable relies on.',
-	'dependency-blocked': 'Waiting for a deliverable it depends on to be accepted.',
+	'dependency-blocked': 'Blocked until a deliverable it names in blockedBy is accepted.',
 	'awaiting-verification': 'Built; its planned checks have not all passed or been run yet.',
 	'verification-blocked': 'A planned check cannot run until something it needs is in place.',
 	'verification-failed': 'A planned check ran and failed.',
@@ -24,16 +23,16 @@ export const levelGlossary = {
 	project:
 		'Project: one piece of work that finishes, with its own design. It says what it achieves and what the owner checks to accept it.',
 	deliverable:
-		'Deliverable: a piece of a project that is built, checked and accepted. It can depend on deliverables in any project.',
+		'Deliverable: a piece of a project that is built, checked and accepted. It can be blocked by deliverables in any project.',
 	number:
 		'Lower numbers come first. Projects with the same number can run side by side. Number 0 can show finished groundwork.',
-	dependsOn: 'Depends on: this deliverable cannot be accepted before the deliverables it names.',
+	blockedBy: 'These deliverables must be accepted before this one.',
 } as const;
 
 /** Plain-language meaning of each project state in an initiative. */
 export const projectStateGlossary: Readonly<Record<ProjectState, string>> = {
 	accepted: 'Every core deliverable in this project is accepted.',
-	'dependency-blocked': 'Every open core deliverable here waits on a deliverable it depends on.',
+	'dependency-blocked': 'Every open core deliverable here is blocked by another deliverable.',
 	'design-blocked': 'Every open core deliverable here waits on an open owner decision.',
 	'in-progress': 'Work has started on at least one core deliverable.',
 	planned: 'A core deliverable can start; none has started.',
@@ -74,9 +73,9 @@ export const checkStateGlossary = {
 	blocked: 'The check could not run; the reason is recorded.',
 } as const;
 
-/** What each implementation task's state means. */
-export const taskStateGlossary = {
-	completed: 'Recorded as done in the current candidate.',
+/** What each issue's state means. */
+export const issueStateGlossary = {
+	closed: 'Recorded as done in the current candidate.',
 	open: 'Not done yet.',
 } as const;
 

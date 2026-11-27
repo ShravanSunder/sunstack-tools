@@ -1,7 +1,7 @@
 import { expect, it } from 'vitest';
 
 import { parseDeliverablesView } from '../../core/deliverables-view.ts';
-import { projectDelivery } from './delivery-model.ts';
+import { parseDeliveryEntries, projectDelivery } from './delivery-model.ts';
 import { deliverySdkSource } from './delivery-sdk-source.ts';
 import { designTypeSource } from './design-type-source.ts';
 import { checkAuthoringTypes } from './read-design.ts';
@@ -50,29 +50,29 @@ const context = {
 	kind: 'core',
 	title: 'Skip cancelled work',
 	destination: { page: 'plan.html', fragment: 'DEL-01' },
-	scope: { implementationTasks: ['TASK-01'], verificationChecks: ['CHECK-01'] },
+	scope: { issues: [{ id: 'TASK-01', title: 'TASK 01' }], verificationChecks: ['CHECK-01'] },
 } as const;
 const first = defineDeliverable({
 	...context,
 	id: 'DEL-01',
-	implementation: { completedTasks: ['TASK-01'] },
+	implementation: { closedIssues: ['TASK-01'] },
 	verification: { build: 'build-a', outcomes: { 'CHECK-01': { kind: 'blocked', reason: 'Unavailable' } } },
 	verificationHistory: [{ build: 'build-old', outcomes: { 'CHECK-OLD': { kind: 'passed', observation: 'Previous check passed.', evidence: 'old.txt' } } }],
 });
 const firstId: 'DEL-01' = first.id;
 const second = defineDeliverable({ ...context, id: 'DEL-02' });
 const draft = defineDeliverable({ ...context, id: 'DEL-03', scope: {}, implementation: {} });
-defineDelivery({}, [{ deliverable: second, dependsOn: [firstId] }, { deliverable: first }, { deliverable: draft }]);
+defineDelivery({}, [{ deliverable: second, blockedBy: [firstId] }, { deliverable: first }, { deliverable: draft }]);
 
-// @ts-expect-error implementation task outside scope
-defineDeliverable({ ...context, id: 'DEL-01', implementation: { completedTasks: ['TASK-99'] } });
+// @ts-expect-error issue outside scope
+defineDeliverable({ ...context, id: 'DEL-01', implementation: { closedIssues: ['TASK-99'] } });
 // @ts-expect-error verification check outside scope
 defineDeliverable({ ...context, id: 'DEL-01', verification: { build: 'build-a', outcomes: { 'CHECK-99': { kind: 'blocked', reason: 'Unavailable' } } } });
 // @ts-expect-error a passed outcome requires an observation and evidence
 defineDeliverable({ ...context, id: 'DEL-01', verification: { build: 'build-a', outcomes: { 'CHECK-01': { kind: 'passed' } } } });
 
-// @ts-expect-error prerequisite omitted from this delivery
-defineDelivery({}, [{ deliverable: second, dependsOn: [firstId] }]);
+// @ts-expect-error blocking deliverable omitted from this delivery
+defineDelivery({}, [{ deliverable: second, blockedBy: [firstId] }]);
 const need = defineNeed({ id: 'N1', statement: 'Read the records.' });
 const thematic = { pages: [{ id: 'home', href: 'index.html', title: 'Home', icon: 'file' }], records: [need] } as const;
 defineDesign({ ...thematic, mapGroups: [{ description: 'Known', icon: 'file', target: { record: 'N1' } }] });
@@ -103,10 +103,10 @@ const candidateDraft = {
 	destination: { page: 'plan.html', fragment: 'DEL-01' },
 	scope: {
 		rules: ['RULE-01'],
-		implementationTasks: ['TASK-01'],
+		issues: [{ id: 'TASK-01', title: 'TASK 01' }],
 		verificationChecks: ['CHECK-01'],
 	},
-	implementation: { completedTasks: ['TASK-01'], candidate: 'build-a', evidence: ['change.md'] },
+	implementation: { closedIssues: ['TASK-01'], candidate: 'build-a', evidence: ['change.md'] },
 };
 const dependentDraft = { ...candidateDraft, id: 'DEL-02', title: 'Report already started work' };
 const verification = {
@@ -127,7 +127,7 @@ const acceptance = {
 
 	evidence: 'acceptance.md',
 };
-const entries = [{ deliverable: dependent, dependsOn: ['DEL-01'] }, { deliverable: candidate }];
+const entries = [{ deliverable: dependent, blockedBy: ['DEL-01'] }, { deliverable: candidate }];
 
 it('rejects an unrelated check and blocks a matching acceptance for uncovered rules', (): void => {
 	const rule = design.records.find((record) => record.kind === 'rule');
@@ -217,7 +217,7 @@ it('preserves archived verification and Lead evidence on the versioned wire', ()
 	);
 
 	const snapshot = parseDeliverablesView(
-		JSON.stringify({ version: 1, deliverables: result.deliverables }),
+		JSON.stringify({ version: 2, deliverables: result.deliverables }),
 	);
 
 	expect(view.deliverables['DEL-01']).toMatchObject({
@@ -226,7 +226,7 @@ it('preserves archived verification and Lead evidence on the versioned wire', ()
 	});
 	expect(view.evidence).toContain('receipt.md');
 	expect(snapshot).toMatchObject({
-		version: 1,
+		version: 2,
 		deliverables: {
 			'DEL-01': {
 				state: 'accepted',
@@ -283,7 +283,7 @@ it('requires a Lead receipt for the current build to clear a prerequisite', (): 
 		'DEL-01': { state: 'ready-for-acceptance' },
 		'DEL-02': {
 			state: 'dependency-blocked',
-			dependsOn: ['DEL-01'],
+			blockedBy: ['DEL-01'],
 			verification: { checks: [{ id: 'CHECK-01', state: 'passed' }] },
 		},
 	});
@@ -359,7 +359,13 @@ it('keeps changed candidates and incomplete scoped work open despite a Lead rece
 	};
 	const unfinished = {
 		...candidate,
-		scope: { ...candidate.scope, implementationTasks: ['TASK-01', 'TASK-02'] },
+		scope: {
+			...candidate.scope,
+			issues: [
+				{ id: 'TASK-01', title: 'TASK 01' },
+				{ id: 'TASK-02', title: 'TASK 02' },
+			],
+		},
 	};
 	const failed = {
 		...candidate,
@@ -387,14 +393,14 @@ it('rejects invalid dependency graphs and role results with a deliverable ID in 
 	expect(() =>
 		projectDelivery(
 			design,
-			[{ deliverable: candidate, dependsOn: ['DEL-99'] }],
+			[{ deliverable: candidate, blockedBy: ['DEL-99'] }],
 			recordDestinations,
 		),
-	).toThrow(/DEL-01.*unknown prerequisite.*DEL-99/i);
+	).toThrow(/DEL-01.*unknown blocking deliverable.*DEL-99/i);
 	expect(() =>
 		projectDelivery(
 			design,
-			[...entries.slice(0, 1), { deliverable: candidate, dependsOn: ['DEL-02'] }],
+			[...entries.slice(0, 1), { deliverable: candidate, blockedBy: ['DEL-02'] }],
 			recordDestinations,
 		),
 	).toThrow(/cycle.*DEL-02.*DEL-01.*DEL-02/i);
@@ -410,12 +416,15 @@ it('rejects invalid dependency graphs and role results with a deliverable ID in 
 			design,
 			[
 				{
-					deliverable: { ...candidate, implementation: { completedTasks: ['TASK-99'] } },
+					deliverable: { ...candidate, implementation: { closedIssues: ['TASK-99'] } },
 				},
 			],
 			recordDestinations,
 		),
-	).toThrow(/DEL-01.*unknown implementation task.*TASK-99/i);
+	).toThrow(/DEL-01.*unknown issue.*TASK-99/i);
+	expect(() =>
+		parseDeliveryEntries([{ deliverable: { ...candidate, builder: 'old' }, dependsOn: [] }]),
+	).toThrow(/DEL-01.*builder is now implementer.*dependsOn is now blockedBy/);
 	expect(() =>
 		projectDelivery(
 			design,

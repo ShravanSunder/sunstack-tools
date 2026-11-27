@@ -15,6 +15,8 @@ const initiativeProjectSchema = z.strictObject({
 	design: filePath,
 	/** The initiative's order: lower first; the same number means side by side. */
 	number: z.number().int().nonnegative(),
+	/** The workspace area the project belongs to; a project has at most one. */
+	area: alias.optional(),
 	/** What the project achieves, in one sentence. */
 	achieves: sentence.optional(),
 	/** What the owner checks to accept the project. */

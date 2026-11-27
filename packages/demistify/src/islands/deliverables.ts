@@ -6,7 +6,7 @@ import {
 import {
 	checkStateGlossary,
 	deliverableStateGlossary,
-	taskStateGlossary,
+	issueStateGlossary,
 } from '../core/glossary.ts';
 import { reportIssue } from '../core/issues.ts';
 import { registerReviewSource, type ReviewSourceResult } from '../core/review-document.ts';
@@ -22,7 +22,7 @@ const deliveryStateLabels = {
 	'verification-failed': 'Verification failed',
 	'ready-for-acceptance': 'Ready for acceptance',
 	accepted: 'Accepted',
-	'dependency-blocked': 'Blocked on prerequisite',
+	'dependency-blocked': 'Blocked by a deliverable',
 } satisfies Record<DeliverableView['state'], string>;
 
 export function deliveryState(state: DeliverableView['state']): HTMLButtonElement {
@@ -72,21 +72,20 @@ export function deliveryDetails(
 		return entry;
 	};
 	if (showAssignments) {
-		if (item.builder) add(`Builder: ${item.builder}`);
-		if (item.dependsOn.length) {
-			const prerequisites = add('Prerequisites ');
-			for (const [index, id] of item.dependsOn.entries())
-				prerequisites.append(index ? ', ' : '', id, explainRecord(id, 'deliverable'));
+		if (item.implementer) add(`Implementer: ${item.implementer}`);
+		if (item.verifier) add(`Verifier: ${item.verifier}`);
+		if (item.reviewer) add(`Reviewer: ${item.reviewer}`);
+		if (item.blockedBy.length) {
+			const dependencies = add('Delivery dependencies ');
+			for (const [index, id] of item.blockedBy.entries())
+				dependencies.append(index ? ', ' : '', id, explainRecord(id, 'deliverable'));
 		}
 	}
 	if (item.implementation.candidate) add(`Candidate: ${item.implementation.candidate}`);
 	if (item.verification.build) add(`Verification build: ${item.verification.build}`);
-	for (const task of item.implementation.tasks)
-		add(`${task.id} · `).append(
-			glossaryTerm(
-				task.state === 'completed' ? 'Completed' : 'Open',
-				taskStateGlossary[task.state],
-			),
+	for (const issue of item.implementation.issues)
+		add(`${issue.title} · `).append(
+			glossaryTerm(issue.state === 'closed' ? 'Closed' : 'Open', issueStateGlossary[issue.state]),
 		);
 	for (const check of item.verification.checks) {
 		const reason = 'reason' in check ? check.reason : undefined;

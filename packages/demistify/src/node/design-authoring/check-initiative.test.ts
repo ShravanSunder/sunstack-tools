@@ -77,7 +77,7 @@ function deliverableSource(receipt?: { build: string }, builder?: string): strin
 	const progress = receipt
 		? {
 				implementation: {
-					completedTasks: ['task'],
+					closedIssues: ['task'],
 					candidate: receipt.build,
 					evidence: ['evidence.txt'],
 				},
@@ -94,9 +94,9 @@ export default defineDeliverable(${JSON.stringify({
 		kind: 'core',
 		id: 'DEL-01',
 		title: 'Deliverable',
-		...(builder ? { builder } : {}),
+		...(builder ? { implementer: builder } : {}),
 		destination: { page: 'index.html', fragment: 'DEL-01' },
-		scope: { rules: ['R1'], implementationTasks: ['task'], verificationChecks: ['V1'] },
+		scope: { rules: ['R1'], issues: [{ id: 'task', title: 'Task' }], verificationChecks: ['V1'] },
 		...progress,
 	})});`;
 }
@@ -105,7 +105,7 @@ function deliverySource(dependency?: string, lead?: string): string {
 	return `import design from './design.ts';
 import unit from './deliverables/unit.ts';
 import { defineDelivery } from './design-sdk.generated.ts';
-export default defineDelivery(design, [{ deliverable: unit${dependency ? `, dependsOn: ['${dependency}']` : ''} }]${lead ? `, { lead: '${lead}' }` : ''});`;
+export default defineDelivery(design, [{ deliverable: unit${dependency ? `, blockedBy: ['${dependency}']` : ''} }]${lead ? `, { lead: '${lead}' }` : ''});`;
 }
 
 it('checks an empty project without discovering files beside the manifest', async (): Promise<void> => {
@@ -123,7 +123,7 @@ it('checks an empty project without discovering files beside the manifest', asyn
 		await run(process.execPath, [cli, 'initiative', 'check', directory, '--write']);
 		const empty = await readFile(output, 'utf8');
 		expect(JSON.parse(empty)).toEqual({
-			version: 2,
+			version: 3,
 			projects: {},
 			order: [],
 			work: { readyNow: [], needsPlan: [], blocksMost: [], builtNotAccepted: [] },
@@ -505,7 +505,7 @@ import sessionsDesign from './projects/2026-11-sessions#archive/design-delivery.
 import decisions from './shared/initiative-decisions.ts';
 import assumptions from './shared/initiative-assumptions.ts';
 import agents from './agents-identity.ts';
-export default { projects: { messages: { design: messagesDesign, number: 2 }, sessions: { design: sessionsDesign, number: 1 } }, decisions, assumptions, identities: agents };`,
+export default { projects: { messages: { design: messagesDesign, number: 2, area: 'messaging' }, sessions: { design: sessionsDesign, number: 1 } }, decisions, assumptions, identities: agents };`,
 			),
 			writeFile(
 				join(root, 'agents-identity.ts'),
@@ -676,6 +676,7 @@ resolution: { href: 'evidence.txt', excerpt: 'Available.' }
 			'initiative/A1',
 		]);
 		const published = await readFile(outputPath, 'utf8');
+		expect(JSON.parse(published).projects.messages.area).toBe('messaging');
 		expect(published).toContain('messages-lead');
 		expect(published).toContain('messages-builder');
 		expect(published).not.toContain('private-fixture-session');
@@ -709,11 +710,16 @@ resolution: { href: 'evidence.txt', excerpt: 'Available.' }
 		expect(await readFile(deliverablesPath, 'utf8')).toBe(beforeAssignment);
 		await check();
 		expect((await readView()).deliverables['messages/DEL-01']).toMatchObject({
-			builder: 'messages-lead',
+			implementer: 'messages-lead',
 			state: 'accepted',
 		});
 		await writeFile(messagesFile, withBuilder.replace('messages-builder', 'unknown-builder'));
-		await expect(check(false)).rejects.toThrow(/unknown Builder alias unknown-builder/);
+		await expect(check(false)).rejects.toThrow(/unknown Implementer alias unknown-builder/);
+		await writeFile(
+			messagesFile,
+			withBuilder.replace('"implementer":"messages-builder"', '"verifier":"unknown-verifier"'),
+		);
+		await expect(check(false)).rejects.toThrow(/unknown Verifier alias unknown-verifier/);
 		await writeFile(messagesFile, withBuilder);
 		await stamp(sessions, 'sessions', 'build-2');
 		const revised = await readView();

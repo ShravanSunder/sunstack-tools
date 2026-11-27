@@ -12,15 +12,16 @@ interface DeliverableStatus {
 	readonly id: string;
 	readonly title: string;
 	readonly state: string;
-	readonly tasks: string;
+	readonly issues: string;
 	readonly checks: string;
-	readonly dependsOn: readonly string[];
+	readonly blockedBy: readonly string[];
 }
 
 interface InitiativeStatus {
 	readonly projects: readonly {
 		readonly name: string;
 		readonly number: number;
+		readonly area?: string | undefined;
 		readonly state: string;
 		readonly reason: string;
 		readonly achieves?: string | undefined;
@@ -39,6 +40,7 @@ function summarize(view: InitiativeView): InitiativeStatus {
 			return {
 				name,
 				number: project.number,
+				area: project.area,
 				state: project.state,
 				reason: project.reason,
 				achieves: project.achieves,
@@ -51,19 +53,19 @@ function summarize(view: InitiativeView): InitiativeStatus {
 								id: deliverable.id,
 								title: deliverable.title,
 								state: 'later',
-								tasks: '-',
+								issues: '-',
 								checks: '-',
-								dependsOn: [],
+								blockedBy: [],
 							};
-						const { tasks } = deliverable.implementation;
+						const { issues } = deliverable.implementation;
 						const { checks } = deliverable.verification;
 						return {
 							id: deliverable.id,
 							title: deliverable.title,
 							state: deliverable.state,
-							tasks: `${tasks.filter(({ state }) => state === 'completed').length}/${tasks.length}`,
+							issues: `${issues.filter(({ state }) => state === 'closed').length}/${issues.length}`,
 							checks: `${checks.filter(({ state }) => state === 'passed').length}/${checks.length}`,
-							dependsOn: deliverable.dependsOn,
+							blockedBy: deliverable.blockedBy,
 						};
 					}),
 			};
@@ -76,12 +78,13 @@ function formatStatus(status: InitiativeStatus): string {
 	const lines: string[] = [];
 	for (const project of status.projects) {
 		lines.push(`${project.number} · ${project.name} · ${project.state} · ${project.reason}`);
+		if (project.area) lines.push(`  Area: ${project.area}`);
 		if (project.achieves) lines.push(`  Achieves: ${project.achieves}`);
 		if (project.acceptance) lines.push(`  Owner checks: ${project.acceptance}`);
 		for (const deliverable of project.deliverables)
 			lines.push(
-				`  ${deliverable.id} · ${deliverable.state} · tasks ${deliverable.tasks} · checks ${deliverable.checks} · ${deliverable.title}${
-					deliverable.dependsOn.length ? ` · waits on ${deliverable.dependsOn.join(', ')}` : ''
+				`  ${deliverable.id} · ${deliverable.state} · issues ${deliverable.issues} · checks ${deliverable.checks} · ${deliverable.title}${
+					deliverable.blockedBy.length ? ` · blocked by ${deliverable.blockedBy.join(', ')}` : ''
 				}`,
 			);
 	}
