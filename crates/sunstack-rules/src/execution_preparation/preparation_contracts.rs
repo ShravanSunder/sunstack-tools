@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use sunstack_decisions::{AccountingBasis, RequestBudgetCounts};
 use sunstack_evidence::{CaptureCoverage, ReturnedCursor, SelectionResult};
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct PreparedRules {
@@ -20,6 +21,7 @@ pub struct PreparedRules {
     pub cursors: Vec<ReturnedCursor>,
     pub measurements: InvocationMeasurements,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum PreparedRouting {
@@ -30,11 +32,13 @@ pub enum PreparedRouting {
         groups: Vec<usize>,
     },
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum RouterPreparationStatus {
     NotEvaluated,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct PreparedGroup {
@@ -44,6 +48,7 @@ pub struct PreparedGroup {
     pub leading_entries: Vec<EvaluatedEntry>,
     pub status: PreparedGroupStatus,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum PreparedGroupStatus {
@@ -51,12 +56,14 @@ pub enum PreparedGroupStatus {
     NotApplicable { entry: EntryKey, basis: EntryBasis },
     ApplicabilityFailed { entry: EntryKey, cause: Cause },
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct PreparedOccurrence {
     pub key: RuleOccurrenceKey,
     pub status: PreparedOccurrenceStatus,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum PreparedOccurrenceStatus {
@@ -65,6 +72,7 @@ pub enum PreparedOccurrenceStatus {
     NotApplicable { entry: EntryKey, basis: EntryBasis },
     SelectionFailed { diagnostics: DiagnosticList },
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct PlannedRequestRecord {
@@ -75,6 +83,7 @@ pub struct PlannedRequestRecord {
     pub prerequisites: Vec<EntryKey>,
     pub readiness: RequestPreparationReadiness,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum RequestPreparationReadiness {
@@ -86,6 +95,7 @@ pub enum RequestPreparationReadiness {
         on: Vec<EntryKey>,
     },
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum PreparedRequestBudget {
@@ -100,12 +110,14 @@ pub enum PreparedRequestBudget {
         diagnostics: DiagnosticList,
     },
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum PreparationCancellationProgress {
     BeforePreparationAdmission,
     PreparationAdmitted { partial: Box<PreparedRules> },
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum RulePreparationOutcome {
@@ -138,4 +150,38 @@ impl RulePreparationOutcome {
             Self::Cancelled { .. } => 4,
         }
     }
+}
+
+/// The credential-free request encoded for this plan position.
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ModelRequestPreview {
+    pub index: usize,
+    pub backend: sunstack_decisions::BackendSelection,
+    pub body: String,
+}
+
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
+pub enum RulePreviewOutcome {
+    ReadySingle {
+        request: ModelRequestPreview,
+        preparation: Box<PreparedRules>,
+    },
+    NoModelWork {
+        report: Box<RuleInvocationReport>,
+    },
+    PendingDependency {
+        ready: Vec<ModelRequestPreview>,
+        preparation: Box<PreparedRules>,
+    },
+    UnsupportedMultiple {
+        ready: Vec<ModelRequestPreview>,
+        preparation: Box<PreparedRules>,
+    },
+    Unavailable {
+        outcome: Box<RulePreparationOutcome>,
+    },
 }

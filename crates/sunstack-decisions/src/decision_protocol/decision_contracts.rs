@@ -196,6 +196,7 @@ pub struct ExecutionReceipt {
     pub usage: ExecutionUsage,
 }
 
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum BackendSelection {
@@ -208,6 +209,7 @@ pub enum BackendSelection {
             deserialize_with = "specified_context_ceiling"
         )]
         #[schemars(with = "NonZeroU64")]
+        #[cfg_attr(feature = "typescript", specta(type = NonZeroU64, optional))]
         context_ceiling_tokens: Option<NonZeroU64>,
     },
 }
@@ -216,6 +218,7 @@ fn specified_context_ceiling<'de, TDeserializer: Deserializer<'de>>(
 ) -> Result<Option<NonZeroU64>, TDeserializer::Error> {
     NonZeroU64::deserialize(deserializer).map(Some)
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct AttemptSettings {
@@ -257,12 +260,14 @@ impl AttemptSettings {
         }
     }
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum AccountingPolicy {
     RequireExact,
     AllowEstimated,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct RequestBudgetSettings {

@@ -39,7 +39,7 @@ export interface PlatformCell {
 	readonly key: string;
 	readonly platform: NodeJS.Platform;
 	readonly arch: string;
-	readonly libc: 'glibc' | 'musl' | null;
+	readonly libc: 'glibc' | null;
 	readonly target: string;
 }
 
@@ -51,7 +51,6 @@ export const platformCells: readonly PlatformCell[] = [
 		libc: null,
 		target: 'aarch64-apple-darwin',
 	},
-	{ key: 'darwin-x64', platform: 'darwin', arch: 'x64', libc: null, target: 'x86_64-apple-darwin' },
 	{
 		key: 'linux-arm64-gnu',
 		platform: 'linux',
@@ -60,25 +59,11 @@ export const platformCells: readonly PlatformCell[] = [
 		target: 'aarch64-unknown-linux-gnu',
 	},
 	{
-		key: 'linux-arm64-musl',
-		platform: 'linux',
-		arch: 'arm64',
-		libc: 'musl',
-		target: 'aarch64-unknown-linux-musl',
-	},
-	{
 		key: 'linux-x64-gnu',
 		platform: 'linux',
 		arch: 'x64',
 		libc: 'glibc',
 		target: 'x86_64-unknown-linux-gnu',
-	},
-	{
-		key: 'linux-x64-musl',
-		platform: 'linux',
-		arch: 'x64',
-		libc: 'musl',
-		target: 'x86_64-unknown-linux-musl',
 	},
 ];
 

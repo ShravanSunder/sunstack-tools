@@ -1,0 +1,6 @@
+{"event":"operator","message_id":"example-user","body":{"text":"Read the café fixture."}}
+{"event":"tool_started","id":"example-call","name":"fixture_read","arguments":{"path":"sample.txt","sequence":9007199254740993}}
+{"event":"tool_finished","id":"example-call","output":"EXAMPLE_SELECTED_RESULT","failed":false}
+{"event":"assistant","message_id":"example-assistant","body":{"text":"The fixture is ready."}}
+{"event":"tool_started","id":"example-pending","name":"fixture_read","arguments":"literal argument"}
+{"event":"heartbeat"}

@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 
+import { CONTRACT_REVISION } from '../src/contracts/contract-revision.ts';
 import type {
 	CaseBinding,
 	CaseExecutionOwner,
@@ -372,7 +373,7 @@ await test('genuine old20 and old21 documents are incompatible before their payl
 					if (restored.kind !== 'incompatible')
 						throw new Error('old document reached payload decoder');
 					assert.equal(restored.actual_contract_revision, revision);
-					assert.equal(restored.expected_contract_revision, 22);
+					assert.equal(restored.expected_contract_revision, CONTRACT_REVISION);
 				}),
 			);
 		}),

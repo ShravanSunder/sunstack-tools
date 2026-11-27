@@ -3,7 +3,7 @@ use serde_json::Value;
 use std::collections::BTreeMap;
 
 #[derive(Default)]
-struct NormalizationState {
+pub(super) struct NormalizationState {
     output: AdapterOutput,
     messages: BTreeMap<RecordId, usize>,
     calls: BTreeMap<CallId, usize>,
@@ -16,7 +16,7 @@ fn field<'value>(value: &'value Value, key: &str) -> EvidenceResult<&'value str>
         .filter(|text| !text.is_empty())
         .ok_or_else(|| EvidenceCode::AdapterOutputInvalid.into())
 }
-fn category(name: &str, namespaced: bool) -> ToolCategory {
+pub(super) fn category(name: &str, namespaced: bool) -> ToolCategory {
     if namespaced || name.starts_with("mcp__") {
         return ToolCategory::Mcp;
     }
@@ -29,6 +29,11 @@ fn category(name: &str, namespaced: bool) -> ToolCategory {
         _ => ToolCategory::Unknown,
     }
 }
+
+pub(super) fn tool_record_id(call_id: &CallId) -> EvidenceResult<RecordId> {
+    RecordId::new(format!("tool:{}", call_id.as_str()))
+}
+
 impl NormalizationState {
     fn add_record(&mut self, record: ConversationRecord) {
         if matches!(record.body, ConversationBody::UserMessage { .. }) {
@@ -71,7 +76,7 @@ impl NormalizationState {
         }
         self.output.records.push(record);
     }
-    fn message(
+    pub(super) fn message(
         &mut self,
         id: RecordId,
         position: u64,
@@ -105,25 +110,25 @@ impl NormalizationState {
         }
         Ok(())
     }
-    fn call(
+    pub(super) fn call(
         &mut self,
         id: CallId,
         name: String,
         input: StructuredJson,
         position: u64,
-        namespaced: bool,
+        tool_category: ToolCategory,
     ) -> EvidenceResult<()> {
         if self.calls.contains_key(&id) {
             return Err(EvidenceCode::AdapterOutputInvalid.into());
         }
-        let record_id = RecordId::new(format!("tool:{}", id.as_str()))?;
+        let record_id = tool_record_id(&id)?;
         self.calls.insert(id.clone(), self.output.records.len());
         self.add_record(ConversationRecord {
             record_id,
             position,
             body: ConversationBody::ToolUse(ToolUse {
                 call_id: id,
-                category: category(&name, namespaced),
+                category: tool_category,
                 tool_name: name,
                 input,
                 outcome: ToolOutcome::ResultMissing,
@@ -134,7 +139,13 @@ impl NormalizationState {
         });
         Ok(())
     }
-    fn result(&mut self, id: CallId, result: ToolResult, outcome: ToolOutcome, position: u64) {
+    pub(super) fn result(
+        &mut self,
+        id: CallId,
+        result: ToolResult,
+        outcome: ToolOutcome,
+        position: u64,
+    ) {
         if let Some(index) = self.calls.get(&id).copied() {
             let record = &mut self.output.records[index];
             if let ConversationBody::ToolUse(tool) = &mut record.body {
@@ -148,6 +159,11 @@ impl NormalizationState {
                 position,
             });
         }
+    }
+    pub(super) fn unsupported_record(&mut self, position: u64) {
+        self.output
+            .gaps
+            .push(CoverageGap::UnsupportedRecord { position });
     }
     fn claude(&mut self, value: Value, position: u64) -> EvidenceResult<()> {
         let kind = field(&value, "type")?;
@@ -240,7 +256,7 @@ impl NormalizationState {
                     )
                     .map_err(|_| EvidenceCode::AdapterOutputInvalid)?,
                     position,
-                    false,
+                    category(field(item, "name")?, false),
                 )?,
                 "tool_result" => {
                     let content = item
@@ -370,8 +386,45 @@ impl NormalizationState {
                         .map_or_else(|| name.into(), |namespace| format!("{namespace}.{name}")),
                     input,
                     position,
-                    namespace.is_some(),
+                    category(name, namespace.is_some()),
                 )?;
+            }
+            "custom_tool_call" => {
+                let name = field(payload, "name")?;
+                let tool_category = match name {
+                    "apply_patch" => ToolCategory::EditFile,
+                    "exec" | "Bash" | "exec_command" | "shell_command" => ToolCategory::Shell,
+                    _ => ToolCategory::Other,
+                };
+                let input = payload
+                    .get("input")
+                    .ok_or(EvidenceCode::AdapterOutputInvalid)?;
+                self.call(
+                    CallId::new(field(payload, "call_id")?)?,
+                    name.into(),
+                    serde_json::from_value(input.clone())
+                        .map_err(|_| EvidenceCode::AdapterOutputInvalid)?,
+                    position,
+                    tool_category,
+                )?;
+            }
+            "custom_tool_call_output" => {
+                let outcome = match payload.get("is_error").and_then(Value::as_bool) {
+                    Some(true) => ToolOutcome::Failed,
+                    Some(false) => ToolOutcome::Succeeded,
+                    None => ToolOutcome::ResultPresentStatusUnknown,
+                };
+                let output = payload
+                    .get("output")
+                    .ok_or(EvidenceCode::AdapterOutputInvalid)?;
+                self.result(
+                    CallId::new(field(payload, "call_id")?)?,
+                    ToolResult::FullObserved {
+                        text: codex_custom_output_text(output)?,
+                    },
+                    outcome,
+                    position,
+                );
             }
             "function_call_output" => self.result(
                 CallId::new(field(payload, "call_id")?)?,
@@ -399,14 +452,49 @@ fn observed_text(value: &Value) -> EvidenceResult<String> {
         _ => serde_json::to_string(value).map_err(|_| EvidenceCode::AdapterOutputInvalid.into()),
     }
 }
+fn codex_custom_output_text(value: &Value) -> EvidenceResult<String> {
+    let Some(blocks) = value.as_array().filter(|blocks| !blocks.is_empty()) else {
+        return observed_text(value);
+    };
+    let mut combined = String::new();
+    for block in blocks {
+        // Flatten only plain text blocks. Additional fields and non-text values
+        // retain their JSON so the projection does not discard information.
+        let Some(text) = block
+            .as_object()
+            .filter(|fields| {
+                fields.len() == 2
+                    && matches!(
+                        fields.get("type").and_then(Value::as_str),
+                        Some("text" | "input_text" | "output_text")
+                    )
+            })
+            .and_then(|fields| fields.get("text"))
+            .and_then(Value::as_str)
+        else {
+            return observed_text(value);
+        };
+        combined.push_str(text);
+    }
+    Ok(combined)
+}
 pub(crate) fn normalize_builtin(format: &str, bytes: &[u8]) -> AdapterOutput {
+    normalize_records(bytes, |state, value, position| match format {
+        "claude_code_jsonl" => state.claude(value, position),
+        _ => state.codex(value, position),
+    })
+}
+
+pub(super) fn normalize_records(
+    bytes: &[u8],
+    mut normalize: impl FnMut(&mut NormalizationState, Value, u64) -> EvidenceResult<()>,
+) -> AdapterOutput {
     let mut state = NormalizationState::default();
     let mut position = 0_u64;
     for line in bytes.split_inclusive(|byte| *byte == b'\n') {
         let parsed = serde_json::from_slice(line);
         let result = match parsed {
-            Ok(value) if format == "claude_code_jsonl" => state.claude(value, position),
-            Ok(value) => state.codex(value, position),
+            Ok(value) => normalize(&mut state, value, position),
             Err(_) => Err(EvidenceCode::AdapterOutputInvalid.into()),
         };
         if result.is_err() {

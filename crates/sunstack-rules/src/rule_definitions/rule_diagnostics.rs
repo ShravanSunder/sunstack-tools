@@ -1,6 +1,7 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum RuleDiagnosticCode {
@@ -41,6 +42,7 @@ pub enum RuleDiagnosticCode {
     UnexpectedExecutionError,
     CallerAborted,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum RuleDiagnosticOrigin {
@@ -53,6 +55,7 @@ pub enum RuleDiagnosticOrigin {
     Execution,
     Invocation,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum RuleDiagnosticLocation {
@@ -85,6 +88,7 @@ pub enum RuleDiagnosticLocation {
         question_name: sunstack_decisions::QuestionName,
     },
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, thiserror::Error)]
 #[error("{code:?}: {guidance}")]
 #[serde(deny_unknown_fields)]
@@ -198,6 +202,7 @@ impl RuleDiagnostic {
     }
 }
 /// Wrapping preserves the boundary owner's closed diagnostic and safe message.
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged)]
 pub enum ReportDiagnostic {
@@ -205,6 +210,7 @@ pub enum ReportDiagnostic {
     Evidence(Box<sunstack_evidence::Diagnostic>),
     Decision(Box<sunstack_decisions::DecisionDiagnostic>),
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct DiagnosticList {

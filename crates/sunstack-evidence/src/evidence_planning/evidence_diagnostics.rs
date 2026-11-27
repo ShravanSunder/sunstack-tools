@@ -2,6 +2,7 @@ use crate::evidence_planning::evidence_contracts::{SourceRef, SourceSpan};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum DiagnosticOrigin {
@@ -12,6 +13,7 @@ pub enum DiagnosticOrigin {
     Selection,
     Invocation,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum EvidenceCode {
@@ -56,6 +58,7 @@ pub enum EvidenceCode {
     RequiredGroupIncomplete,
     NoChangeSelection,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum DiagnosticLocation {
@@ -79,6 +82,7 @@ pub enum DiagnosticLocation {
         record_id: String,
     },
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum RetryAdvice {
@@ -91,6 +95,7 @@ pub enum RetryAdvice {
     DoNotRetry,
     Unknown,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct Diagnostic {
@@ -246,6 +251,7 @@ impl Diagnostic {
         }
     }
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct DiagnosticList {

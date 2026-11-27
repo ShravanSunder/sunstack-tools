@@ -3,13 +3,18 @@ import { test } from 'node:test';
 
 import { CONTRACT_REVISION } from '../src/contracts/contract-revision.ts';
 import type { BindingResolution, HostRuntime } from '../src/native-binding.ts';
-import { installedBindingSources, platformCells, resolveBinding } from '../src/native-binding.ts';
+import {
+	installedBindingSources,
+	platformCells,
+	resolveBinding,
+	selectPlatformCell,
+} from '../src/native-binding.ts';
 
 const supportedHost: HostRuntime = {
 	nodeVersion: '26.11.1',
 	platform: 'linux',
 	arch: 'x64',
-	libc: 'musl',
+	libc: 'glibc',
 	hasRawJson: true,
 };
 
@@ -32,18 +37,18 @@ function addonReporting(contract: unknown): unknown {
 	};
 }
 
-await test('the declared matrix is exactly six macOS/Linux cells', () => {
+await test('the three supported hosts select their exact native targets', () => {
 	assert.deepEqual(
-		platformCells.map((cell) => cell.key),
+		platformCells.map(({ key, target }) => [key, target]),
 		[
-			'darwin-arm64',
-			'darwin-x64',
-			'linux-arm64-gnu',
-			'linux-arm64-musl',
-			'linux-x64-gnu',
-			'linux-x64-musl',
+			['darwin-arm64', 'aarch64-apple-darwin'],
+			['linux-arm64-gnu', 'aarch64-unknown-linux-gnu'],
+			['linux-x64-gnu', 'x86_64-unknown-linux-gnu'],
 		],
 	);
+	for (const cell of platformCells) {
+		assert.equal(selectPlatformCell({ ...supportedHost, ...cell }), cell);
+	}
 });
 
 const neverLoad = (): never => assert.fail('no addon load');
@@ -69,16 +74,17 @@ await test('unsupported runtimes and platforms fail before any addon is loaded',
 		),
 		'unsupported_runtime',
 	);
-	assert.equal(
-		failureReason(
-			resolveBinding({
-				host: { ...supportedHost, platform: 'win32', libc: null },
-				sdkRelease: '0.12.0',
-				loadAddon: neverLoad,
-			}),
-		),
-		'unsupported_platform',
-	);
+	for (const host of [
+		{ ...supportedHost, platform: 'win32', libc: null },
+		{ ...supportedHost, platform: 'darwin', arch: 'x64', libc: null },
+		{ ...supportedHost, arch: 'arm64', libc: 'musl' },
+		{ ...supportedHost, arch: 'x64', libc: 'musl' },
+	] as const) {
+		assert.equal(
+			failureReason(resolveBinding({ host, sdkRelease: '0.12.0', loadAddon: neverLoad })),
+			'unsupported_platform',
+		);
+	}
 });
 
 await test('a missing addon package is a closed failure naming the package', () => {
@@ -92,7 +98,7 @@ await test('a missing addon package is a closed failure naming the package', () 
 	assert.equal(failureReason(resolution), 'addon_missing');
 	assert.match(
 		resolution.kind === 'failed' ? resolution.failure.message : '',
-		/@sunstack\/sdk-linux-x64-musl/u,
+		/@sunstack\/sdk-linux-x64-gnu/u,
 	);
 });
 
@@ -100,12 +106,12 @@ await test('release, revision and target skew are refused before any engine call
 	const exact = {
 		sdk_release: '0.12.0',
 		contract_revision: CONTRACT_REVISION,
-		target: 'x86_64-unknown-linux-musl',
+		target: 'x86_64-unknown-linux-gnu',
 	};
 	for (const skewed of [
 		{ ...exact, sdk_release: '0.11.9' },
 		{ ...exact, contract_revision: CONTRACT_REVISION + 1 },
-		{ ...exact, target: 'x86_64-unknown-linux-gnu' },
+		{ ...exact, target: 'x86_64-unknown-linux-musl' },
 		{ unexpected: true },
 	]) {
 		const resolution = resolveBinding({

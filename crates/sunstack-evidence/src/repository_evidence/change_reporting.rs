@@ -5,6 +5,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::{collections::BTreeSet, path::PathBuf};
 
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct ResolvedChangeSelection {
@@ -13,6 +14,7 @@ pub struct ResolvedChangeSelection {
     pub members: Vec<ResolvedChangeMember>,
     pub coverage: DiscoveryCoverage,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct ResolvedChangeMember {
@@ -22,6 +24,7 @@ pub struct ResolvedChangeMember {
     pub recency: ChangeRecencyBasis,
     pub diagnostics: DiagnosticList,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum ResolvedChangeBounds {
@@ -51,6 +54,7 @@ pub enum ResolvedChangeBounds {
         unknown_recency: UnknownRecencyPolicy,
     },
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct ResolvedChangedPath {
@@ -59,6 +63,7 @@ pub struct ResolvedChangedPath {
     pub before: Option<SourceRef>,
     pub after: Option<SourceRef>,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum ChangeRecencyBasis {
@@ -66,6 +71,7 @@ pub enum ChangeRecencyBasis {
     CommitTime,
     ApproximateFileTime { unknown: UnknownFileRecency },
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum UnknownFileRecency {

@@ -7,6 +7,7 @@ use sunstack_evidence::{
     InvocationLimits, PayloadSchemaPath, RepositoryBinding, RepositoryId, ReturnedCursor,
     SourceName, StructuredJson, TranscriptFormatName,
 };
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct RuleInvocationInput {
@@ -26,6 +27,7 @@ pub struct RuleInvocationInput {
     pub attempts: AttemptSettings,
     pub request_budget: RequestBudgetSettings,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum InvocationDefinitions {
@@ -39,6 +41,7 @@ pub enum InvocationDefinitions {
         rule_sets: Vec<BoundRuleSet>,
     },
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct BoundRuleSet {
@@ -46,12 +49,14 @@ pub struct BoundRuleSet {
     #[schemars(length(min = 1))]
     pub binding_groups: Vec<BindingGroup>,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct BindingGroup {
     #[schemars(extend("minProperties"=1))]
     pub bindings: BTreeMap<SourceName, InputBinding>,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum InputBinding {
@@ -72,18 +77,21 @@ pub enum InputBinding {
         repository: RepositoryId,
     },
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum Speculation {
     Off,
     On,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct ExecutionSettings {
     pub speculation: Speculation,
     pub max_concurrent_requests: NonZeroUsize,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum InvocationOrigin {
@@ -102,6 +110,7 @@ pub enum InvocationOrigin {
     },
 }
 
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum OriginAgent {
@@ -113,6 +122,7 @@ pub enum OriginAgent {
     },
     Unknown {},
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum ObservedField<TValue> {
@@ -127,6 +137,7 @@ impl<TValue> From<Option<TValue>> for ObservedField<TValue> {
         }
     }
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum ReportedAgent {
@@ -139,6 +150,7 @@ pub enum ReportedAgent {
     Unknown,
     Unavailable,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum ReportedOrigin {

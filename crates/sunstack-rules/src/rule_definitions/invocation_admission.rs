@@ -31,24 +31,82 @@ pub(crate) struct AdmittedInvocation {
     pub router: Option<AdmittedRouter>,
     pub evidence: EvidencePlanInput,
 }
-pub(crate) async fn admit_invocation(
-    input: &RuleInvocationInput,
-    adapters: &AdapterRegistry,
-    cancellation: &CancellationToken,
-) -> Result<AdmittedInvocation, DiagnosticList> {
-    input.attempts.validate().map_err(|diagnostic| {
+/// Validated rule definitions stored by the native engine for a later binding.
+#[derive(Clone)]
+pub struct CapturedRuleSet {
+    definition_root: PathBuf,
+    requested_path: PathBuf,
+    set: Arc<LoadedRuleSet>,
+}
+
+pub async fn capture_rule_set(
+    definition_root: PathBuf,
+    requested_path: PathBuf,
+    input_contract: BTreeMap<SourceName, InputDeclaration>,
+    max_file_bytes: usize,
+    cancellation: CancellationToken,
+) -> Result<CapturedRuleSet, DiagnosticList> {
+    if requested_path.as_os_str().is_empty() || definition_root.as_os_str().is_empty() {
+        return Err(DiagnosticList::rule(
+            RuleDiagnosticCode::InvalidConfiguration,
+        ));
+    }
+    tokio::task::spawn_blocking(move || {
+        let cwd = std::env::current_dir()
+            .map_err(|_| DiagnosticList::rule(RuleDiagnosticCode::InvalidConfiguration))?;
+        let root = resolved_path(&cwd, &definition_root)?;
+        let path = resolved_path(&root, &requested_path)?;
+        let set = DefinitionLoader::new(max_file_bytes, cancellation).load_set(path)?;
+        if set.definition.inputs != input_contract {
+            let mut diagnostic = RuleDiagnostic::new(RuleDiagnosticCode::InputKindMismatch);
+            diagnostic.guidance =
+                "Match the companion's input names and declarations to the captured rule set."
+                    .into();
+            diagnostic = diagnostic.definition(&set.path, 1, 1, vec!["inputs".into()]);
+            return Err(diagnostic.into());
+        }
+        Ok(CapturedRuleSet {
+            definition_root,
+            requested_path,
+            set,
+        })
+    })
+    .await
+    .map_err(|_| DiagnosticList::rule(RuleDiagnosticCode::UnexpectedExecutionError))?
+}
+
+pub fn validate_rule_settings(
+    definition_root: &Path,
+    attempts: &sunstack_decisions::AttemptSettings,
+    request_budget: &sunstack_decisions::RequestBudgetSettings,
+) -> Result<(), DiagnosticList> {
+    attempts.validate().map_err(|diagnostic| {
         DiagnosticList::from(sunstack_decisions::DiagnosticList::from(diagnostic))
     })?;
-    if input.request_budget.max_input_tokens == 0
-        || input.request_budget.max_request_bytes == 0
-        || input.request_budget.max_questions == 0
-        || input.request_budget.max_requests == 0
-        || input.definition_root.as_os_str().is_empty()
+    if request_budget.max_input_tokens == 0
+        || request_budget.max_request_bytes == 0
+        || request_budget.max_questions == 0
+        || request_budget.max_requests == 0
+        || definition_root.as_os_str().is_empty()
     {
         return Err(DiagnosticList::rule(
             RuleDiagnosticCode::InvalidConfiguration,
         ));
     }
+    Ok(())
+}
+
+pub(crate) async fn admit_invocation(
+    input: &RuleInvocationInput,
+    adapters: &AdapterRegistry,
+    cancellation: &CancellationToken,
+    capture: Option<CapturedRuleSet>,
+) -> Result<AdmittedInvocation, DiagnosticList> {
+    validate_rule_settings(
+        &input.definition_root,
+        &input.attempts,
+        &input.request_budget,
+    )?;
     if let InvocationOrigin::Hook {
         host,
         event,
@@ -70,12 +128,13 @@ pub(crate) async fn admit_invocation(
     let owned = input.clone();
     let cancellation = cancellation.clone();
     let (groups, router, sources) = tokio::task::spawn_blocking(move || {
-        load_invocation(
+        load_invocation_with_capture(
             &owned.definition_root,
             &owned.definitions,
             &owned.repositories,
             owned.limits.max_file_bytes.get(),
             cancellation,
+            capture,
         )
     })
     .await
@@ -123,6 +182,33 @@ pub(crate) fn load_invocation(
     max_bytes: usize,
     cancellation: CancellationToken,
 ) -> Result<LoadedInvocation, DiagnosticList> {
+    load_invocation_with_capture(
+        definition_root,
+        definitions,
+        repositories,
+        max_bytes,
+        cancellation,
+        None,
+    )
+}
+
+fn load_invocation_with_capture(
+    definition_root: &Path,
+    definitions: &InvocationDefinitions,
+    repositories: &[sunstack_evidence::RepositoryBinding],
+    max_bytes: usize,
+    cancellation: CancellationToken,
+    capture: Option<CapturedRuleSet>,
+) -> Result<LoadedInvocation, DiagnosticList> {
+    if let Some(captured) = &capture
+        && (captured.definition_root != definition_root
+            || !matches!(definitions, InvocationDefinitions::RuleSets { rule_sets }
+                if rule_sets.len() == 1 && rule_sets[0].path == captured.requested_path))
+    {
+        return Err(DiagnosticList::rule(
+            RuleDiagnosticCode::InvalidConfiguration,
+        ));
+    }
     let cwd = std::env::current_dir()
         .map_err(|_| DiagnosticList::rule(RuleDiagnosticCode::InvalidConfiguration))?;
     let root = resolved_path(&cwd, definition_root)?;
@@ -143,11 +229,15 @@ pub(crate) fn load_invocation(
                         RuleDiagnosticCode::InvalidConfiguration,
                     ));
                 }
-                let path = resolved_path(&root, &requested.path)?;
-                if !requested_paths.insert(path.clone()) {
-                    return Err(DiagnosticList::rule(RuleDiagnosticCode::DuplicateRuleSet));
-                }
-                let set = loader.load_set(path)?;
+                let set = if let Some(captured) = &capture {
+                    captured.set.clone()
+                } else {
+                    let path = resolved_path(&root, &requested.path)?;
+                    if !requested_paths.insert(path.clone()) {
+                        return Err(DiagnosticList::rule(RuleDiagnosticCode::DuplicateRuleSet));
+                    }
+                    loader.load_set(path)?
+                };
                 for (position, group) in requested.binding_groups.iter().enumerate() {
                     let bound =
                         admit_group(&set.definition.inputs, group, repositories, &mut sources)?;

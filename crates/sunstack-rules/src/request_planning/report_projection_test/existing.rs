@@ -19,6 +19,7 @@ async fn a_missing_local_settlement_is_unresolved_and_incomplete_while_its_compl
         &input,
         &registry,
         &cancellation,
+        None,
     )
     .await
     .unwrap();

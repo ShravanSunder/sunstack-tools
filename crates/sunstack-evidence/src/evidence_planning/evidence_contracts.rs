@@ -117,6 +117,7 @@ pub struct SourceSpan {
     pub end_line: usize,
     pub end_column: usize,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum SourceSpec {
@@ -138,12 +139,14 @@ pub enum SourceSpec {
         repository: RepositoryId,
     },
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum QueryPath {
     Exact { path: PathBuf },
     Glob { pattern: String },
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct RepositoryBinding {
@@ -152,6 +155,7 @@ pub struct RepositoryBinding {
     pub input_paths: Vec<QueryPath>,
     pub change_scope: ChangeScope,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct InvocationLimits {
@@ -162,6 +166,7 @@ pub struct InvocationLimits {
     pub max_transcript_bytes: NonZeroUsize,
     pub include_ignored: bool,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum EvidenceRequirement {
@@ -169,6 +174,7 @@ pub enum EvidenceRequirement {
     Required,
     Optional,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct EvidenceDeclaration {
@@ -182,6 +188,7 @@ pub struct EvidenceDeclaration {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub max_bytes: Option<NonZeroUsize>,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum EvidenceSelection {
@@ -269,6 +276,7 @@ impl EvidenceSelection {
         }
     }
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct CaptureCoverage {
@@ -279,18 +287,21 @@ pub struct CaptureCoverage {
     pub bytes_read: u64,
     pub bytes_parsed: u64,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum CursorBasis {
     NoCursorSupplied,
     ContinuedFromCursor,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum CaptureTail {
     Complete,
     Incomplete { bytes: u64 },
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct ReturnedCursor {
@@ -298,6 +309,7 @@ pub struct ReturnedCursor {
     pub format: TranscriptFormatName,
     pub cursor: String,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum OmissionReason {
@@ -306,12 +318,14 @@ pub enum OmissionReason {
     Limit,
     OptionalUnavailable,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct Omission {
     pub reason: OmissionReason,
     pub count: usize,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct EvidenceMatch {
@@ -319,6 +333,7 @@ pub struct EvidenceMatch {
     pub text: String,
     pub captures: BTreeMap<String, SourceSpan>,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum SelectionContent {
@@ -358,6 +373,7 @@ pub enum SelectionContent {
         value: StructuredJson,
     },
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum SelectionReadiness {
@@ -370,12 +386,14 @@ pub enum SelectionReadiness {
         diagnostics: DiagnosticList,
     },
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct SelectionResult {
     pub id: DeclarationId,
     pub readiness: SelectionReadiness,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum TargetLocation {

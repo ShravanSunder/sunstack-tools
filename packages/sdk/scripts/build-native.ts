@@ -27,11 +27,6 @@ const profile = values.profile ?? 'release';
 
 function cargoEnvironment(): NodeJS.ProcessEnv {
 	const environment: NodeJS.ProcessEnv = { ...process.env };
-	if (cell?.libc === 'musl') {
-		// A musl cdylib must link the C runtime dynamically to load into Node.
-		environment['RUSTFLAGS'] =
-			`${environment['RUSTFLAGS'] ?? ''} -C target-feature=-crt-static`.trim();
-	}
 	if (process.platform === 'darwin' && environment['SDKROOT'] === undefined) {
 		const sdk = execFileSync('xcrun', ['--show-sdk-path'], { encoding: 'utf8' }).trim();
 		environment['SDKROOT'] = sdk;

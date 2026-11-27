@@ -1,0 +1,5 @@
+{"type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"Inspect two source files."}]}}
+{"type":"response_item","payload":{"type":"custom_tool_call","name":"exec_command","call_id":"list_sources","input":"ls src"}}
+{"type":"response_item","payload":{"type":"function_call","namespace":"mcp__filesystem","name":"read_file","call_id":"read_source","arguments":"{\"path\":\"src/sample.ts\"}"}}
+{"type":"response_item","payload":{"type":"custom_tool_call_output","call_id":"list_sources","output":[{"type":"output_text","text":"sample.ts"}]}}
+{"type":"response_item","payload":{"type":"function_call_output","call_id":"read_source","output":"export const sample = true;"}}

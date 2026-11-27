@@ -3,18 +3,21 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::{collections::BTreeMap, num::NonZeroUsize, path::PathBuf};
 
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct PayloadSchemaPath {
     pub name: SchemaName,
     pub path: PathBuf,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct NativeQuery {
     pub id: DeclarationId,
     pub selector: EvidenceSelector,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum EvidenceSelector {
@@ -49,6 +52,7 @@ pub enum EvidenceSelector {
         pattern: String,
     },
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct PackageSourceBinding {
@@ -58,6 +62,7 @@ pub struct PackageSourceBinding {
     pub target_path_prefix: PathBuf,
     pub language: String,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct DiscoveryLimits {
@@ -72,12 +77,14 @@ pub struct DiscoveryLimits {
     pub max_history_commits: NonZeroUsize,
     pub max_local_time_ms: NonZeroUsize,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum EvidenceDiscovery {
     None {},
     Bounded { limits: DiscoveryLimits },
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct EvidencePlanInput {
@@ -91,6 +98,7 @@ pub struct EvidencePlanInput {
     pub limits: InvocationLimits,
     pub discovery: EvidenceDiscovery,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct EvidenceMeasurements {
@@ -103,6 +111,7 @@ pub struct EvidenceMeasurements {
     pub bytes_included: usize,
     pub local_elapsed_ms: u64,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct PartialEvidencePlan {
@@ -111,12 +120,14 @@ pub struct PartialEvidencePlan {
     pub change_selections: Vec<ResolvedChangeSelection>,
     pub cursors: Vec<ReturnedCursor>,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum EvidenceCancellationProgress {
     BeforePlanAdmission,
     PlanAdmitted { partial: PartialEvidencePlan },
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum EvidencePlanOutcome {

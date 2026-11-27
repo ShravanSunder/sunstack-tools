@@ -5,29 +5,29 @@ import { checkNativeHeader, checkPackageMetadata } from '../scripts/check-packag
 import type { PlatformCell } from '../src/native-binding.ts';
 
 const linux: PlatformCell = {
-	key: 'linux-x64-musl',
+	key: 'linux-x64-gnu',
 	platform: 'linux',
 	arch: 'x64',
-	libc: 'musl',
-	target: 'x86_64-unknown-linux-musl',
+	libc: 'glibc',
+	target: 'x86_64-unknown-linux-gnu',
 };
 const manifest = {
-	name: '@sunstack/sdk-linux-x64-musl',
+	name: '@sunstack/sdk-linux-x64-gnu',
 	version: '0.21.2',
 	repository: { url: 'https://github.com/ShravanSunder/sunstack-tools' },
 	engines: { node: '>=26.0.0' },
 	os: ['linux'],
 	cpu: ['x64'],
-	libc: ['musl'],
-	main: 'sunstack-sdk.linux-x64-musl.node',
-	files: ['sunstack-sdk.linux-x64-musl.node'],
+	libc: ['glibc'],
+	main: 'sunstack-sdk.linux-x64-gnu.node',
+	files: ['sunstack-sdk.linux-x64-gnu.node'],
 };
-const files = ['LICENSE', 'package.json', 'sunstack-sdk.linux-x64-musl.node'];
+const files = ['LICENSE', 'package.json', 'sunstack-sdk.linux-x64-gnu.node'];
 
 void test('package gate accepts the advertised platform and rejects absent binaries or wrong metadata', () => {
 	assert.doesNotThrow(() => checkPackageMetadata(manifest, files, '0.21.2', linux, []));
 	for (const invalid of [
-		{ ...manifest, libc: ['glibc'] },
+		{ ...manifest, libc: ['musl'] },
 		{ ...manifest, cpu: ['arm64'] },
 		{ ...manifest, os: ['darwin'] },
 		{ ...manifest, version: '0.21.1' },
@@ -39,8 +39,15 @@ void test('package gate accepts the advertised platform and rejects absent binar
 	);
 });
 
-void test('SDK package gate requires six exact-version optional dependencies and public entry points', () => {
-	const sdkFiles = ['package.json', 'README.md', 'dist/index.js', 'dist/index.d.ts'];
+void test('SDK package gate requires three exact-version optional dependencies and public entry points', () => {
+	const sdkFiles = [
+		'package.json',
+		'README.md',
+		'dist/index.js',
+		'dist/index.d.ts',
+		'dist/rules.js',
+		'dist/rules.d.ts',
+	];
 	const sdk = {
 		name: '@sunstack/sdk',
 		version: '0.21.2',
@@ -49,15 +56,13 @@ void test('SDK package gate requires six exact-version optional dependencies and
 		type: 'module',
 		exports: {
 			'.': { types: './dist/index.d.ts', default: './dist/index.js' },
+			'./rules': { types: './dist/rules.d.ts', default: './dist/rules.js' },
 			'./package.json': './package.json',
 		},
 		optionalDependencies: {
 			'@sunstack/sdk-darwin-arm64': '0.21.2',
-			'@sunstack/sdk-darwin-x64': '0.21.2',
 			'@sunstack/sdk-linux-arm64-gnu': '0.21.2',
-			'@sunstack/sdk-linux-arm64-musl': '0.21.2',
 			'@sunstack/sdk-linux-x64-gnu': '0.21.2',
-			'@sunstack/sdk-linux-x64-musl': '0.21.2',
 		},
 	};
 	assert.doesNotThrow(() => checkPackageMetadata(sdk, sdkFiles, '0.21.2', null, sdkFiles));

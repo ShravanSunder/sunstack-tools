@@ -1,0 +1,13 @@
+{
+	"schema_version": 1,
+	"name": "general-conversation",
+	"description": "General SDK conversation example",
+	"inputs": {
+		"subject": {
+			"kind": "conversation"
+		}
+	},
+	"applicability": [],
+	"common_ruleset_instructions": null,
+	"rule_paths": ["general-conversation.rules.jsonl"]
+}

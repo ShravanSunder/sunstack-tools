@@ -2,6 +2,10 @@
 use std::{fs::OpenOptions, io::Write};
 use sunstack_evidence::*;
 use tokio_util::sync::CancellationToken;
+
+#[path = "conversation_capture/custom_tool_calls.rs"]
+mod custom_tool_calls;
+
 fn selection() -> ConversationSelection {
     ConversationSelection {
         turns: TurnWindow::SinceCursor {},
