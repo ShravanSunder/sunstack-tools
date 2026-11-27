@@ -2,6 +2,7 @@ use crate::*;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::{num::NonZeroUsize, path::PathBuf};
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum SourceLanguage {
@@ -10,6 +11,7 @@ pub enum SourceLanguage {
     Tsx,
     Markdown,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum GraphLanguage {
@@ -17,6 +19,7 @@ pub enum GraphLanguage {
     Typescript,
     Tsx,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum UnitKindFilter {
@@ -26,6 +29,7 @@ pub enum UnitKindFilter {
     Paragraph,
     Section,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum SourceSides {
@@ -34,6 +38,7 @@ pub enum SourceSides {
     BothAvailable,
     PairedRequired,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(
     Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, JsonSchema,
 )]
@@ -44,6 +49,7 @@ pub enum RelationDirection {
     Imports,
     ImportedBy,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(
     Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, JsonSchema,
 )]
@@ -56,6 +62,7 @@ pub struct SourceUnitKey {
     pub byte_start: usize,
     pub byte_end: usize,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum SourceUnitKind {
@@ -65,12 +72,14 @@ pub enum SourceUnitKind {
     Paragraph,
     Section,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum SyntaxQuality {
     Parsed,
     RecoveredWithErrors,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct SourceUnit {
@@ -80,18 +89,21 @@ pub struct SourceUnit {
     pub content_identity: String,
     pub syntax_quality: SyntaxQuality,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct SelectedSourceUnit {
     pub unit: SourceUnit,
     pub text: String,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum SourceUnitSeeds {
     ChangedUnits { repository_ids: Vec<RepositoryId> },
     SelectorUnits { selectors: Vec<EvidenceSelector> },
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct SourceUnitQuery {
@@ -100,6 +112,7 @@ pub struct SourceUnitQuery {
     pub unit_kinds: Vec<UnitKindFilter>,
     pub source_sides: SourceSides,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct RelationshipQuery {
@@ -108,18 +121,21 @@ pub struct RelationshipQuery {
     pub directions: Vec<RelationDirection>,
     pub requested_hops: NonZeroUsize,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum UnitContent {
     WholeUnit {},
     BoundedExcerpt { max_bytes: NonZeroUsize },
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum ChunkGrouping {
     SingleGroup,
     PerSeed,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct ChunkSettings {
@@ -128,6 +144,7 @@ pub struct ChunkSettings {
     pub related_content: UnitContent,
     pub max_chunk_bytes: NonZeroUsize,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct QueryBounds {
@@ -135,6 +152,7 @@ pub struct QueryBounds {
     pub requested_hops: usize,
     pub windows: Vec<ResolvedTimeWindow>,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum DiscoveryLimit {
@@ -148,6 +166,7 @@ pub enum DiscoveryLimit {
     HistoryCommits,
     LocalTime,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct DiscoveryCutoff {
@@ -156,6 +175,7 @@ pub struct DiscoveryCutoff {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub path: Option<PathBuf>,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum DiscoveryCoverage {
@@ -170,6 +190,7 @@ pub enum DiscoveryCoverage {
         diagnostics: DiagnosticList,
     },
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum SelectionCoverage {
@@ -182,6 +203,7 @@ pub enum SelectionCoverage {
         discovery: DiscoveryCoverage,
     },
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum RelationshipFact {
@@ -199,6 +221,7 @@ pub enum RelationshipFact {
         target_repository: RepositoryId,
     },
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum RelationshipUncertainty {
@@ -210,6 +233,7 @@ pub enum RelationshipUncertainty {
     MissingSource,
     RecoveredSyntax,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum RelationshipCandidate {
@@ -236,12 +260,14 @@ pub enum RelationshipCandidate {
         reason: RelationshipUncertainty,
     },
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum RelationshipContradiction {
     LexicalShadow,
     AmbiguousBinding,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum ExcerptContext {
@@ -251,6 +277,7 @@ pub enum ExcerptContext {
     },
     Markdown,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct Excerpt {
@@ -261,6 +288,7 @@ pub struct Excerpt {
     pub context: ExcerptContext,
     pub content_identity: String,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct SemanticChunk {
@@ -272,6 +300,7 @@ pub struct SemanticChunk {
     pub unknown_recency_context: Vec<SourceRef>,
     pub coverage: DiscoveryCoverage,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum ContextGroupOutcome {
@@ -289,6 +318,7 @@ pub enum ContextGroupOutcome {
         diagnostics: DiagnosticList,
     },
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct SeedContextGroup {

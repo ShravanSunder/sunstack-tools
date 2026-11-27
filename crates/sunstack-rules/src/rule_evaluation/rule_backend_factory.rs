@@ -1,19 +1,23 @@
 use crate::{DiagnosticList, RuleDiagnosticCode};
-use std::sync::Arc;
+use std::{future::Future, pin::Pin, sync::Arc};
 use sunstack_decisions::{BackendSelection, DecisionBackend};
+
+pub type RuleBackendPreparation =
+    Pin<Box<dyn Future<Output = Result<Arc<dyn DecisionBackend>, DiagnosticList>> + Send>>;
 
 /// Selection is credential-free; construction waits for reachable model work.
 pub trait RuleBackendFactory: Send + Sync {
     fn selection(&self) -> &BackendSelection;
-    fn prepare(self: Arc<Self>) -> Result<Arc<dyn DecisionBackend>, DiagnosticList>;
+    fn prepare(self: Arc<Self>) -> RuleBackendPreparation;
 }
 
 impl<Backend: DecisionBackend + 'static> RuleBackendFactory for Backend {
     fn selection(&self) -> &BackendSelection {
         DecisionBackend::selection(self)
     }
-    fn prepare(self: Arc<Self>) -> Result<Arc<dyn DecisionBackend>, DiagnosticList> {
-        Ok(self)
+    fn prepare(self: Arc<Self>) -> RuleBackendPreparation {
+        let backend: Arc<dyn DecisionBackend> = self;
+        Box::pin(std::future::ready(Ok(backend)))
     }
 }
 
@@ -28,17 +32,19 @@ impl RuleBackendSession {
             prepared: None,
         }
     }
-    pub(crate) fn resolve(&mut self) -> Result<Arc<dyn DecisionBackend>, DiagnosticList> {
-        self.prepared
-            .get_or_insert_with(|| {
-                let backend = self.factory.clone().prepare()?;
-                if backend.selection() != self.factory.selection() {
-                    return Err(DiagnosticList::rule(
-                        RuleDiagnosticCode::InvalidConfiguration,
-                    ));
-                }
-                Ok(backend)
-            })
-            .clone()
+    pub(crate) async fn resolve(&mut self) -> Result<Arc<dyn DecisionBackend>, DiagnosticList> {
+        if let Some(prepared) = &self.prepared {
+            return prepared.clone();
+        }
+        let prepared = self.factory.clone().prepare().await.and_then(|backend| {
+            if backend.selection() != self.factory.selection() {
+                return Err(DiagnosticList::rule(
+                    RuleDiagnosticCode::InvalidConfiguration,
+                ));
+            }
+            Ok(backend)
+        });
+        self.prepared = Some(prepared.clone());
+        prepared
     }
 }

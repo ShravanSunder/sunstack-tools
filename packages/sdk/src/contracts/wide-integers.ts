@@ -3,6 +3,68 @@ import type { SdkDocumentValue } from './contracts.ts';
 import type { WideDefinition, WideShape } from './wide-integer-shapes.ts';
 
 export const wideIntegerDefinitions = {
+	AccountingBasis: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						provider_ceiling: {
+							arguments: {},
+							ref: 'ProviderContextCeiling',
+						},
+					},
+				},
+				{
+					object: {
+						provider_ceiling: {
+							arguments: {},
+							ref: 'ProviderContextCeiling',
+						},
+					},
+				},
+			],
+		},
+	},
+	ApplicabilityOutcome: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						basis: {
+							arguments: {},
+							ref: 'EntryBasis',
+						},
+						entry: {
+							arguments: {},
+							ref: 'EntryKey',
+						},
+					},
+				},
+				{
+					object: {
+						cause: {
+							arguments: {},
+							ref: 'Cause',
+						},
+						entry: {
+							arguments: {},
+							ref: 'EntryKey',
+						},
+					},
+				},
+				{
+					object: {
+						reason: {
+							arguments: {},
+							ref: 'NotEvaluatedReason',
+						},
+					},
+				},
+			],
+		},
+	},
 	AskBinaryWire: {
 		generics: [],
 		shape: {
@@ -70,6 +132,76 @@ export const wideIntegerDefinitions = {
 			],
 		},
 	},
+	AttemptSettings: {
+		generics: [],
+		shape: {
+			object: {
+				attempt_timeout_ms: 'bigint',
+				initial_backoff_ms: 'bigint',
+				max_backoff_ms: 'bigint',
+				max_response_bytes: 'bigint',
+			},
+		},
+	},
+	BackendSelection: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						context_ceiling_tokens: 'bigint',
+						model: {
+							arguments: {},
+							ref: 'ModelName',
+						},
+					},
+				},
+			],
+		},
+	},
+	BindingGroup: {
+		generics: [],
+		shape: {
+			object: {
+				bindings: {
+					map: {
+						arguments: {},
+						ref: 'InputBinding',
+					},
+				},
+			},
+		},
+	},
+	BoundRuleRun: {
+		generics: [],
+		shape: {
+			object: {
+				inputs: {
+					map: {
+						arguments: {},
+						ref: 'InputBinding',
+					},
+				},
+				origin: {
+					arguments: {},
+					ref: 'InvocationOrigin',
+				},
+			},
+		},
+	},
+	BoundRuleSet: {
+		generics: [],
+		shape: {
+			object: {
+				binding_groups: {
+					list: {
+						arguments: {},
+						ref: 'BindingGroup',
+					},
+				},
+			},
+		},
+	},
 	CandidateId: {
 		generics: [],
 		shape: {
@@ -83,6 +215,45 @@ export const wideIntegerDefinitions = {
 					ref: 'SourceSpan',
 				},
 			},
+		},
+	},
+	CaptureCoverage: {
+		generics: [],
+		shape: {
+			object: {
+				bytes_parsed: 'bigint',
+				bytes_read: 'bigint',
+				cursor_basis: {
+					arguments: {},
+					ref: 'CursorBasis',
+				},
+				gaps: {
+					list: {
+						arguments: {},
+						ref: 'CoverageGap',
+					},
+				},
+				source: {
+					arguments: {},
+					ref: 'SourceRef',
+				},
+				tail: {
+					arguments: {},
+					ref: 'CaptureTail',
+				},
+			},
+		},
+	},
+	CaptureTail: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						bytes: 'bigint',
+					},
+				},
+			],
 		},
 	},
 	CapturedEvidence: {
@@ -351,6 +522,187 @@ export const wideIntegerDefinitions = {
 			],
 		},
 	},
+	Cause: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						request_index: 'bigint',
+					},
+				},
+				{
+					object: {
+						diagnostics: {
+							arguments: {},
+							ref: 'RuleDiagnosticList',
+						},
+					},
+				},
+				{
+					object: {
+						diagnostics: {
+							arguments: {},
+							ref: 'RuleDiagnosticList',
+						},
+					},
+				},
+				{
+					object: {
+						entry: {
+							arguments: {},
+							ref: 'EntryKey',
+						},
+					},
+				},
+				{
+					object: {
+						diagnostic: {
+							arguments: {},
+							ref: 'ReportDiagnostic',
+						},
+						entry: {
+							arguments: {},
+							ref: 'EntryKey',
+						},
+					},
+				},
+			],
+		},
+	},
+	ChangeMemberBasis: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						layer: {
+							arguments: {},
+							ref: 'DirtyLayer',
+						},
+					},
+				},
+				{
+					object: {
+						commit_id: {
+							arguments: {},
+							ref: 'GitObjectId',
+						},
+						parent: {
+							arguments: {},
+							ref: 'ParentBasis',
+						},
+					},
+				},
+				{
+					object: {
+						base: {
+							arguments: {},
+							ref: 'GitObjectId',
+						},
+						head: {
+							arguments: {},
+							ref: 'SourceRevision',
+						},
+					},
+				},
+			],
+		},
+	},
+	ChangeRecencyBasis: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						unknown: {
+							arguments: {},
+							ref: 'UnknownFileRecency',
+						},
+					},
+				},
+			],
+		},
+	},
+	ChangeScope: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						layers: {
+							list: {
+								arguments: {},
+								ref: 'DirtyLayer',
+							},
+						},
+					},
+				},
+				{
+					object: {
+						head: {
+							arguments: {},
+							ref: 'RevisionHead',
+						},
+					},
+				},
+				{
+					object: {
+						commit_ids: {
+							list: {
+								arguments: {},
+								ref: 'GitObjectId',
+							},
+						},
+						parent_policy: {
+							arguments: {},
+							ref: 'CommitParentPolicy',
+						},
+					},
+				},
+				{
+					object: {
+						parent_policy: {
+							arguments: {},
+							ref: 'CommitParentPolicy',
+						},
+						window: {
+							arguments: {},
+							ref: 'TimeWindow',
+						},
+					},
+				},
+				{
+					object: {
+						layers: {
+							list: {
+								arguments: {},
+								ref: 'DirtyLayer',
+							},
+						},
+						unknown_recency: {
+							arguments: {},
+							ref: 'UnknownRecencyPolicy',
+						},
+						window: {
+							arguments: {},
+							ref: 'TimeWindow',
+						},
+					},
+				},
+				{
+					object: {
+						members: {
+							list: {
+								arguments: {},
+								ref: 'ChangeScope',
+							},
+						},
+					},
+				},
+			],
+		},
+	},
 	CheckOutcome: {
 		generics: [],
 		shape: {
@@ -429,6 +781,26 @@ export const wideIntegerDefinitions = {
 			},
 		},
 	},
+	ChunkSettings: {
+		generics: [],
+		shape: {
+			object: {
+				grouping: {
+					arguments: {},
+					ref: 'ChunkGrouping',
+				},
+				max_chunk_bytes: 'bigint',
+				related_content: {
+					arguments: {},
+					ref: 'UnitContent',
+				},
+				seed_content: {
+					arguments: {},
+					ref: 'UnitContent',
+				},
+			},
+		},
+	},
 	CombineStepWire: {
 		generics: [],
 		shape: {
@@ -446,6 +818,73 @@ export const wideIntegerDefinitions = {
 					ref: 'RouteWire',
 				},
 			},
+		},
+	},
+	ConditionBasis: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						input: {
+							arguments: {},
+							ref: 'SourceName',
+						},
+					},
+				},
+				{
+					object: {
+						input: {
+							arguments: {},
+							ref: 'SourceName',
+						},
+					},
+				},
+				{
+					object: {
+						input: {
+							arguments: {},
+							ref: 'SourceName',
+						},
+					},
+				},
+				{
+					object: {
+						field: {
+							arguments: {},
+							ref: 'OriginField',
+						},
+					},
+				},
+				{
+					object: {
+						input: {
+							arguments: {},
+							ref: 'SourceName',
+						},
+						max_scan_bytes: 'bigint',
+						pattern_kind: {
+							arguments: {},
+							ref: 'PatternKind',
+						},
+					},
+				},
+			],
+		},
+	},
+	ConditionOutcome: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						diagnostic: {
+							arguments: {},
+							ref: 'ReportDiagnostic',
+						},
+					},
+				},
+			],
 		},
 	},
 	Configuration: {
@@ -500,6 +939,114 @@ export const wideIntegerDefinitions = {
 			},
 		},
 	},
+	ContextGroupOutcome: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						coverage: {
+							arguments: {},
+							ref: 'DiscoveryCoverage',
+						},
+						group: {
+							arguments: {},
+							ref: 'SemanticChunk',
+						},
+					},
+				},
+				{
+					object: {
+						coverage: {
+							arguments: {},
+							ref: 'DiscoveryCoverage',
+						},
+						diagnostics: {
+							arguments: {},
+							ref: 'EvidenceDiagnosticList',
+						},
+						group: {
+							arguments: {},
+							ref: 'SemanticChunk',
+						},
+						omissions: {
+							list: {
+								arguments: {},
+								ref: 'Omission',
+							},
+						},
+					},
+				},
+				{
+					object: {
+						diagnostics: {
+							arguments: {},
+							ref: 'EvidenceDiagnosticList',
+						},
+					},
+				},
+			],
+		},
+	},
+	ConversationBody: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						blocks: {
+							list: {
+								arguments: {},
+								ref: 'MessageBlock',
+							},
+						},
+					},
+				},
+				{
+					object: {
+						blocks: {
+							list: {
+								arguments: {},
+								ref: 'MessageBlock',
+							},
+						},
+					},
+				},
+				{
+					all: [
+						{
+							arguments: {},
+							ref: 'ToolUse',
+						},
+					],
+				},
+			],
+		},
+	},
+	ConversationRecord: {
+		generics: [],
+		shape: {
+			object: {
+				body: {
+					arguments: {},
+					ref: 'ConversationBody',
+				},
+				injection: {
+					arguments: {},
+					ref: 'InjectionOrigin',
+				},
+				position: 'bigint',
+				provenance: {
+					arguments: {},
+					ref: 'RecordProvenance',
+				},
+				record_id: {
+					arguments: {},
+					ref: 'RecordId',
+				},
+			},
+		},
+	},
 	CountBound: {
 		generics: [],
 		shape: {
@@ -517,6 +1064,49 @@ export const wideIntegerDefinitions = {
 				{
 					object: {
 						greater_than: 'bigint',
+					},
+				},
+			],
+		},
+	},
+	CoverageGap: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						position: 'bigint',
+					},
+				},
+				{
+					object: {
+						position: 'bigint',
+					},
+				},
+				{
+					object: {
+						call_id: {
+							arguments: {},
+							ref: 'CallId',
+						},
+						position: 'bigint',
+					},
+				},
+				{
+					object: {
+						position: 'bigint',
+						reason: {
+							arguments: {},
+							ref: 'AmbiguousReason',
+						},
+					},
+				},
+				{
+					object: {
+						record_id: {
+							arguments: {},
+							ref: 'RecordId',
+						},
 					},
 				},
 			],
@@ -553,6 +1143,37 @@ export const wideIntegerDefinitions = {
 					object: {
 						column: 'bigint',
 						line: 'bigint',
+					},
+				},
+			],
+		},
+	},
+	DecisionEntryOutcome: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						answer: {
+							arguments: {},
+							ref: 'JudgmentReference',
+						},
+					},
+				},
+				{
+					object: {
+						answer: {
+							arguments: {},
+							ref: 'JudgmentReference',
+						},
+					},
+				},
+				{
+					object: {
+						cause: {
+							arguments: {},
+							ref: 'Cause',
+						},
 					},
 				},
 			],
@@ -890,6 +1511,154 @@ export const wideIntegerDefinitions = {
 			},
 		},
 	},
+	DiagnosticLocation: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						column: 'bigint',
+						line: 'bigint',
+					},
+				},
+				{
+					object: {
+						source: {
+							arguments: {},
+							ref: 'SourceRef',
+						},
+						span: {
+							arguments: {},
+							ref: 'SourceSpan',
+						},
+					},
+				},
+				{
+					object: {
+						source: {
+							arguments: {},
+							ref: 'SourceRef',
+						},
+					},
+				},
+			],
+		},
+	},
+	DimensionResult: {
+		generics: [],
+		shape: {
+			object: {
+				answer: {
+					arguments: {},
+					ref: 'JudgmentReference',
+				},
+				question: {
+					arguments: {},
+					ref: 'QuestionName',
+				},
+			},
+		},
+	},
+	DiscardReason: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						entry: {
+							arguments: {},
+							ref: 'EntryKey',
+						},
+					},
+				},
+			],
+		},
+	},
+	DiscardedAnswer: {
+		generics: [],
+		shape: {
+			object: {
+				question_name: {
+					arguments: {},
+					ref: 'QuestionName',
+				},
+				reason: {
+					arguments: {},
+					ref: 'DiscardReason',
+				},
+			},
+		},
+	},
+	DiscoveryCoverage: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						query_bounds: {
+							arguments: {},
+							ref: 'QueryBounds',
+						},
+					},
+				},
+				{
+					object: {
+						cutoffs: {
+							list: {
+								arguments: {},
+								ref: 'DiscoveryCutoff',
+							},
+						},
+						query_bounds: {
+							arguments: {},
+							ref: 'QueryBounds',
+						},
+					},
+				},
+				{
+					object: {
+						diagnostics: {
+							arguments: {},
+							ref: 'EvidenceDiagnosticList',
+						},
+					},
+				},
+			],
+		},
+	},
+	DiscoveryCutoff: {
+		generics: [],
+		shape: {
+			object: {
+				frontier: {
+					list: {
+						arguments: {},
+						ref: 'SourceUnitKey',
+					},
+				},
+				limit: {
+					arguments: {},
+					ref: 'DiscoveryLimit',
+				},
+			},
+		},
+	},
+	DiscoveryLimits: {
+		generics: [],
+		shape: {
+			object: {
+				max_fan_out: 'bigint',
+				max_file_bytes: 'bigint',
+				max_files: 'bigint',
+				max_history_commits: 'bigint',
+				max_local_time_ms: 'bigint',
+				max_matches: 'bigint',
+				max_relationship_candidates: 'bigint',
+				max_total_bytes: 'bigint',
+				max_unit_visits: 'bigint',
+			},
+		},
+	},
 	DocumentCandidates: {
 		generics: [],
 		shape: {
@@ -908,6 +1677,165 @@ export const wideIntegerDefinitions = {
 				max_response_bytes: 'bigint',
 				max_total_bytes: 'bigint',
 				max_transcript_bytes: 'bigint',
+			},
+		},
+	},
+	EntryBasis: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						test: {
+							arguments: {},
+							ref: 'ConditionBasis',
+						},
+					},
+				},
+				{
+					object: {
+						answer: {
+							arguments: {},
+							ref: 'JudgmentReference',
+						},
+					},
+				},
+			],
+		},
+	},
+	EntryKey: {
+		generics: [],
+		shape: {
+			object: {
+				owner: {
+					arguments: {},
+					ref: 'EntryOwner',
+				},
+				position: 'bigint',
+			},
+		},
+	},
+	EntryOwner: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						group: 'bigint',
+					},
+				},
+				{
+					object: {
+						group: 'bigint',
+						route: {
+							arguments: {},
+							ref: 'ChoiceLabel',
+						},
+					},
+				},
+				{
+					object: {
+						group: 'bigint',
+						route: {
+							arguments: {},
+							ref: 'ChoiceLabel',
+						},
+						rule_id: {
+							arguments: {},
+							ref: 'RuleId',
+						},
+					},
+				},
+			],
+		},
+	},
+	EntryResult: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						basis: {
+							arguments: {},
+							ref: 'ConditionBasis',
+						},
+						outcome: {
+							arguments: {},
+							ref: 'ConditionOutcome',
+						},
+					},
+				},
+				{
+					object: {
+						outcome: {
+							arguments: {},
+							ref: 'DecisionEntryOutcome',
+						},
+					},
+				},
+				{
+					object: {
+						reason: {
+							arguments: {},
+							ref: 'NotEvaluatedReason',
+						},
+					},
+				},
+			],
+		},
+	},
+	EvaluatedEntry: {
+		generics: [],
+		shape: {
+			object: {
+				key: {
+					arguments: {},
+					ref: 'EntryKey',
+				},
+				result: {
+					arguments: {},
+					ref: 'EntryResult',
+				},
+			},
+		},
+	},
+	EvidenceCancellationProgress: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						partial: {
+							arguments: {},
+							ref: 'PartialEvidencePlan',
+						},
+					},
+				},
+			],
+		},
+	},
+	EvidenceDeclaration: {
+		generics: [],
+		shape: {
+			object: {
+				id: {
+					arguments: {},
+					ref: 'DeclarationId',
+				},
+				input: {
+					arguments: {},
+					ref: 'SourceName',
+				},
+				max_bytes: 'bigint',
+				max_items: 'bigint',
+				requirement: {
+					arguments: {},
+					ref: 'EvidenceRequirement',
+				},
+				select: {
+					arguments: {},
+					ref: 'EvidenceSelection',
+				},
 			},
 		},
 	},
@@ -988,6 +1916,58 @@ export const wideIntegerDefinitions = {
 			],
 		},
 	},
+	EvidenceDiagnostic: {
+		generics: [],
+		shape: {
+			object: {
+				code: {
+					arguments: {},
+					ref: 'EvidenceCode',
+				},
+				location: {
+					arguments: {},
+					ref: 'DiagnosticLocation',
+				},
+				origin: {
+					arguments: {},
+					ref: 'DiagnosticOrigin',
+				},
+				retry_advice: {
+					arguments: {},
+					ref: 'EvidenceRetryAdvice',
+				},
+			},
+		},
+	},
+	EvidenceDiagnosticList: {
+		generics: [],
+		shape: {
+			object: {
+				items: {
+					list: {
+						arguments: {},
+						ref: 'EvidenceDiagnostic',
+					},
+				},
+				omitted_count: 'bigint',
+			},
+		},
+	},
+	EvidenceDiscovery: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						limits: {
+							arguments: {},
+							ref: 'DiscoveryLimits',
+						},
+					},
+				},
+			],
+		},
+	},
 	EvidenceKindDefinition: {
 		generics: [],
 		shape: {
@@ -1048,6 +2028,38 @@ export const wideIntegerDefinitions = {
 			],
 		},
 	},
+	EvidenceMatch: {
+		generics: [],
+		shape: {
+			object: {
+				captures: {
+					map: {
+						arguments: {},
+						ref: 'SourceSpan',
+					},
+				},
+				span: {
+					arguments: {},
+					ref: 'SourceSpan',
+				},
+			},
+		},
+	},
+	EvidenceMeasurements: {
+		generics: [],
+		shape: {
+			object: {
+				bytes_included: 'bigint',
+				bytes_scanned: 'bigint',
+				files_considered: 'bigint',
+				files_parsed: 'bigint',
+				files_read: 'bigint',
+				local_elapsed_ms: 'bigint',
+				transcript_bytes_parsed: 'bigint',
+				transcript_bytes_read: 'bigint',
+			},
+		},
+	},
 	EvidencePiece: {
 		generics: [],
 		shape: {
@@ -1073,6 +2085,563 @@ export const wideIntegerDefinitions = {
 			},
 		},
 	},
+	EvidencePlanInput: {
+		generics: [],
+		shape: {
+			object: {
+				cursors: {
+					list: {
+						arguments: {},
+						ref: 'ReturnedCursor',
+					},
+				},
+				declarations: {
+					list: {
+						arguments: {},
+						ref: 'EvidenceDeclaration',
+					},
+				},
+				discovery: {
+					arguments: {},
+					ref: 'EvidenceDiscovery',
+				},
+				limits: {
+					arguments: {},
+					ref: 'InvocationLimits',
+				},
+				native_queries: {
+					list: {
+						arguments: {},
+						ref: 'NativeQuery',
+					},
+				},
+				package_bindings: {
+					list: {
+						arguments: {},
+						ref: 'PackageSourceBinding',
+					},
+				},
+				payload_schemas: {
+					list: {
+						arguments: {},
+						ref: 'PayloadSchemaPath',
+					},
+				},
+				repositories: {
+					list: {
+						arguments: {},
+						ref: 'RepositoryBinding',
+					},
+				},
+				sources: {
+					map: {
+						arguments: {},
+						ref: 'SourceSpec',
+					},
+				},
+			},
+		},
+	},
+	EvidencePlanOutcome: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						captures: {
+							list: {
+								arguments: {},
+								ref: 'CaptureCoverage',
+							},
+						},
+						change_selections: {
+							list: {
+								arguments: {},
+								ref: 'ResolvedChangeSelection',
+							},
+						},
+						cursors: {
+							list: {
+								arguments: {},
+								ref: 'ReturnedCursor',
+							},
+						},
+						measurements: {
+							arguments: {},
+							ref: 'EvidenceMeasurements',
+						},
+						selections: {
+							list: {
+								arguments: {},
+								ref: 'SelectionResult',
+							},
+						},
+					},
+				},
+				{
+					object: {
+						captures: {
+							list: {
+								arguments: {},
+								ref: 'CaptureCoverage',
+							},
+						},
+						change_selections: {
+							list: {
+								arguments: {},
+								ref: 'ResolvedChangeSelection',
+							},
+						},
+						cursors: {
+							list: {
+								arguments: {},
+								ref: 'ReturnedCursor',
+							},
+						},
+						diagnostics: {
+							arguments: {},
+							ref: 'EvidenceDiagnosticList',
+						},
+						measurements: {
+							arguments: {},
+							ref: 'EvidenceMeasurements',
+						},
+						selections: {
+							list: {
+								arguments: {},
+								ref: 'SelectionResult',
+							},
+						},
+					},
+				},
+				{
+					object: {
+						diagnostics: {
+							arguments: {},
+							ref: 'EvidenceDiagnosticList',
+						},
+					},
+				},
+				{
+					object: {
+						diagnostics: {
+							arguments: {},
+							ref: 'EvidenceDiagnosticList',
+						},
+						measurements: {
+							arguments: {},
+							ref: 'EvidenceMeasurements',
+						},
+						progress: {
+							arguments: {},
+							ref: 'EvidenceCancellationProgress',
+						},
+					},
+				},
+			],
+		},
+	},
+	EvidenceRetryAdvice: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						milliseconds: 'bigint',
+					},
+				},
+			],
+		},
+	},
+	EvidenceSelection: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					all: [
+						{
+							union: [
+								{
+									object: {
+										levels: {
+											arguments: {},
+											ref: 'HeadingLevels',
+										},
+										mode: {
+											arguments: {},
+											ref: 'MarkdownUnitOnly',
+										},
+										units: {
+											list: {
+												arguments: {},
+												ref: 'MarkdownUnitKind',
+											},
+										},
+									},
+								},
+								{
+									object: {
+										levels: {
+											arguments: {},
+											ref: 'HeadingLevels',
+										},
+										mode: {
+											arguments: {},
+											ref: 'SelectionMode',
+										},
+										units: {
+											list: {
+												arguments: {},
+												ref: 'MarkdownUnitKind',
+											},
+										},
+									},
+								},
+								{
+									object: {
+										levels: {
+											arguments: {},
+											ref: 'HeadingLevels',
+										},
+										mode: {
+											arguments: {},
+											ref: 'SelectionMode',
+										},
+										units: {
+											list: {
+												arguments: {},
+												ref: 'MarkdownUnitKind',
+											},
+										},
+									},
+								},
+							],
+						},
+					],
+				},
+				{
+					all: [
+						{
+							union: [
+								{
+									object: {
+										levels: {
+											arguments: {},
+											ref: 'HeadingLevels',
+										},
+										mode: {
+											arguments: {},
+											ref: 'UnitOnly',
+										},
+										units: {
+											list: {
+												arguments: {},
+												ref: 'HtmlUnitKind',
+											},
+										},
+									},
+								},
+								{
+									object: {
+										levels: {
+											arguments: {},
+											ref: 'HeadingLevels',
+										},
+										mode: {
+											arguments: {},
+											ref: 'UnitOnly',
+										},
+										units: {
+											list: {
+												arguments: {},
+												ref: 'HtmlUnitKind',
+											},
+										},
+									},
+								},
+								{
+									object: {
+										levels: {
+											arguments: {},
+											ref: 'HeadingLevels',
+										},
+										mode: {
+											arguments: {},
+											ref: 'UnitOnly',
+										},
+										units: {
+											list: {
+												arguments: {},
+												ref: 'HtmlUnitKind',
+											},
+										},
+									},
+								},
+							],
+						},
+					],
+				},
+				{
+					object: {
+						paths: {
+							list: {
+								arguments: {},
+								ref: 'QueryPath',
+							},
+						},
+					},
+				},
+				{
+					object: {
+						paths: {
+							list: {
+								arguments: {},
+								ref: 'QueryPath',
+							},
+						},
+					},
+				},
+				{
+					object: {
+						paths: {
+							list: {
+								arguments: {},
+								ref: 'QueryPath',
+							},
+						},
+					},
+				},
+				{
+					object: {
+						languages: {
+							list: {
+								arguments: {},
+								ref: 'SourceLanguage',
+							},
+						},
+						source_sides: {
+							arguments: {},
+							ref: 'SourceSides',
+						},
+						unit_kinds: {
+							list: {
+								arguments: {},
+								ref: 'UnitKindFilter',
+							},
+						},
+					},
+				},
+				{
+					object: {
+						chunk_settings: {
+							arguments: {},
+							ref: 'ChunkSettings',
+						},
+						directions: {
+							list: {
+								arguments: {},
+								ref: 'RelationDirection',
+							},
+						},
+						languages: {
+							list: {
+								arguments: {},
+								ref: 'GraphLanguage',
+							},
+						},
+						minimum_related_units: 'bigint',
+						requested_hops: 'bigint',
+						source_sides: {
+							arguments: {},
+							ref: 'SourceSides',
+						},
+						unit_kinds: {
+							list: {
+								arguments: {},
+								ref: 'UnitKindFilter',
+							},
+						},
+					},
+				},
+				{
+					object: {
+						target_id: {
+							arguments: {},
+							ref: 'TargetId',
+						},
+					},
+				},
+				{
+					object: {
+						assistant_messages: {
+							arguments: {},
+							ref: 'AssistantSelection',
+						},
+						hook_injected: {
+							arguments: {},
+							ref: 'Inclusion',
+						},
+						tool_use: {
+							arguments: {},
+							ref: 'ToolUseSelection',
+						},
+						turns: {
+							arguments: {},
+							ref: 'TurnWindow',
+						},
+						user_messages: {
+							arguments: {},
+							ref: 'Inclusion',
+						},
+					},
+				},
+			],
+		},
+	},
+	EvidenceSelector: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						chunk_settings: {
+							arguments: {},
+							ref: 'ChunkSettings',
+						},
+						minimum_related_units: 'bigint',
+						query: {
+							arguments: {},
+							ref: 'RelationshipQuery',
+						},
+					},
+				},
+				{
+					object: {
+						repository_id: {
+							arguments: {},
+							ref: 'RepositoryId',
+						},
+						target_id: {
+							arguments: {},
+							ref: 'TargetId',
+						},
+					},
+				},
+				{
+					object: {
+						repository_id: {
+							arguments: {},
+							ref: 'RepositoryId',
+						},
+					},
+				},
+				{
+					object: {
+						paths: {
+							list: {
+								arguments: {},
+								ref: 'QueryPath',
+							},
+						},
+						repository_id: {
+							arguments: {},
+							ref: 'RepositoryId',
+						},
+					},
+				},
+				{
+					object: {
+						paths: {
+							list: {
+								arguments: {},
+								ref: 'QueryPath',
+							},
+						},
+						repository_id: {
+							arguments: {},
+							ref: 'RepositoryId',
+						},
+					},
+				},
+				{
+					object: {
+						paths: {
+							list: {
+								arguments: {},
+								ref: 'QueryPath',
+							},
+						},
+						repository_id: {
+							arguments: {},
+							ref: 'RepositoryId',
+						},
+					},
+				},
+			],
+		},
+	},
+	EvidenceStructuredJson: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					union: ['bigint', 'bigint'],
+				},
+				{
+					list: {
+						arguments: {},
+						ref: 'EvidenceStructuredJson',
+					},
+				},
+				{
+					map: {
+						arguments: {},
+						ref: 'EvidenceStructuredJson',
+					},
+				},
+			],
+		},
+	},
+	Excerpt: {
+		generics: [],
+		shape: {
+			object: {
+				context: {
+					arguments: {},
+					ref: 'ExcerptContext',
+				},
+				membership: {
+					arguments: {},
+					ref: 'UnitContent',
+				},
+				span: {
+					arguments: {},
+					ref: 'SourceSpan',
+				},
+				unit: {
+					arguments: {},
+					ref: 'SourceUnitKey',
+				},
+			},
+		},
+	},
+	ExcerptContext: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						import_context: {
+							list: {
+								arguments: {},
+								ref: 'SourceSpan',
+							},
+						},
+					},
+				},
+			],
+		},
+	},
 	ExecutionReceipt: {
 		generics: [],
 		shape: {
@@ -1084,6 +2653,18 @@ export const wideIntegerDefinitions = {
 				usage: {
 					arguments: {},
 					ref: 'ExecutionUsage',
+				},
+			},
+		},
+	},
+	ExecutionSettings: {
+		generics: [],
+		shape: {
+			object: {
+				max_concurrent_requests: 'bigint',
+				speculation: {
+					arguments: {},
+					ref: 'Speculation',
 				},
 			},
 		},
@@ -1559,6 +3140,148 @@ export const wideIntegerDefinitions = {
 			},
 		},
 	},
+	FrontmatterFieldContent: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						source: {
+							arguments: {},
+							ref: 'SourceRef',
+						},
+						span: {
+							arguments: {},
+							ref: 'SourceSpan',
+						},
+						value: {
+							arguments: {},
+							ref: 'EvidenceStructuredJson',
+						},
+					},
+				},
+				{
+					object: {
+						frontmatter_span: {
+							arguments: {},
+							ref: 'SourceSpan',
+						},
+						source: {
+							arguments: {},
+							ref: 'SourceRef',
+						},
+					},
+				},
+				{
+					object: {
+						diagnostics: {
+							arguments: {},
+							ref: 'EvidenceDiagnosticList',
+						},
+						reason: {
+							arguments: {},
+							ref: 'FrontmatterUnavailableReason',
+						},
+						source: {
+							arguments: {},
+							ref: 'SourceRef',
+						},
+					},
+				},
+			],
+		},
+	},
+	FrontmatterFieldLocation: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						span: {
+							arguments: {},
+							ref: 'SourceSpan',
+						},
+					},
+				},
+				{
+					object: {
+						frontmatter_span: {
+							arguments: {},
+							ref: 'SourceSpan',
+						},
+					},
+				},
+				{
+					object: {
+						reason: {
+							arguments: {},
+							ref: 'FrontmatterUnavailableReason',
+						},
+					},
+				},
+			],
+		},
+	},
+	GeneralRuleCall: {
+		generics: ['TOutcome'],
+		shape: {
+			union: [
+				{
+					object: {
+						outcome: {
+							generic: 'TOutcome',
+						},
+					},
+				},
+				{
+					object: {
+						failure: {
+							arguments: {},
+							ref: 'SdkFailure',
+						},
+					},
+				},
+			],
+		},
+	},
+	GroupBinding: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						label: {
+							arguments: {},
+							ref: 'ChoiceLabel',
+						},
+						router_group: 'bigint',
+					},
+				},
+			],
+		},
+	},
+	GroupResult: {
+		generics: [],
+		shape: {
+			object: {
+				applicability: {
+					arguments: {},
+					ref: 'ApplicabilityOutcome',
+				},
+				binding: {
+					arguments: {},
+					ref: 'GroupBinding',
+				},
+				entries: {
+					list: {
+						arguments: {},
+						ref: 'EvaluatedEntry',
+					},
+				},
+				position: 'bigint',
+			},
+		},
+	},
 	HtmlEvidenceSettings: {
 		generics: [],
 		shape: {
@@ -1774,6 +3497,60 @@ export const wideIntegerDefinitions = {
 			},
 		},
 	},
+	InputBinding: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						repository: {
+							arguments: {},
+							ref: 'RepositoryId',
+						},
+					},
+				},
+				{
+					object: {
+						format: {
+							arguments: {},
+							ref: 'TranscriptFormatName',
+						},
+					},
+				},
+				{
+					object: {
+						value: {
+							arguments: {},
+							ref: 'EvidenceStructuredJson',
+						},
+					},
+				},
+				{
+					object: {
+						repository: {
+							arguments: {},
+							ref: 'RepositoryId',
+						},
+					},
+				},
+			],
+		},
+	},
+	InputDeclaration: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						schema: {
+							arguments: {},
+							ref: 'SchemaName',
+						},
+					},
+				},
+			],
+		},
+	},
 	InspectRequest: {
 		generics: [],
 		shape: {
@@ -1938,6 +3715,99 @@ export const wideIntegerDefinitions = {
 			},
 		},
 	},
+	InvocationCancellationProgress: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						partial_report: {
+							arguments: {},
+							ref: 'RuleInvocationReport',
+						},
+					},
+				},
+			],
+		},
+	},
+	InvocationDefinitions: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						binding_groups: {
+							list: {
+								arguments: {},
+								ref: 'BindingGroup',
+							},
+						},
+					},
+				},
+				{
+					object: {
+						rule_sets: {
+							list: {
+								arguments: {},
+								ref: 'BoundRuleSet',
+							},
+						},
+					},
+				},
+			],
+		},
+	},
+	InvocationLimits: {
+		generics: [],
+		shape: {
+			object: {
+				max_file_bytes: 'bigint',
+				max_files: 'bigint',
+				max_matches: 'bigint',
+				max_total_bytes: 'bigint',
+				max_transcript_bytes: 'bigint',
+			},
+		},
+	},
+	InvocationMeasurements: {
+		generics: [],
+		shape: {
+			object: {
+				applicability_entries_evaluated: 'bigint',
+				bytes_included: 'bigint',
+				bytes_scanned: 'bigint',
+				files_considered: 'bigint',
+				files_parsed: 'bigint',
+				files_read: 'bigint',
+				inference_attempts: 'bigint',
+				invalid_rule_entries: 'bigint',
+				local_elapsed_ms: 'bigint',
+				model_requests: 'bigint',
+				provider_elapsed_ms: 'bigint',
+				rules_failed: 'bigint',
+				rules_selected: 'bigint',
+				rules_skipped: 'bigint',
+				skipped_rule_sources: 'bigint',
+				transcript_bytes_parsed: 'bigint',
+				transcript_bytes_read: 'bigint',
+			},
+		},
+	},
+	InvocationOrigin: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						agent: {
+							arguments: {},
+							ref: 'OriginAgent',
+						},
+					},
+				},
+			],
+		},
+	},
 	JudgmentAnswer: {
 		generics: [],
 		shape: {
@@ -2008,6 +3878,18 @@ export const wideIntegerDefinitions = {
 					},
 				},
 			],
+		},
+	},
+	JudgmentReference: {
+		generics: [],
+		shape: {
+			object: {
+				question_name: {
+					arguments: {},
+					ref: 'QuestionName',
+				},
+				request_index: 'bigint',
+			},
 		},
 	},
 	JudgmentSummary: {
@@ -2172,6 +4054,50 @@ export const wideIntegerDefinitions = {
 			},
 		},
 	},
+	LocalObservation: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						span: {
+							arguments: {},
+							ref: 'SourceSpan',
+						},
+					},
+				},
+			],
+		},
+	},
+	LocalSettlement: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						observations: {
+							list: {
+								arguments: {},
+								ref: 'LocalObservation',
+							},
+						},
+						result: {
+							arguments: {},
+							ref: 'MechanicalResult',
+						},
+					},
+				},
+				{
+					object: {
+						diagnostics: {
+							arguments: {},
+							ref: 'RuleDiagnosticList',
+						},
+					},
+				},
+			],
+		},
+	},
 	Locator: {
 		generics: [],
 		shape: {
@@ -2204,6 +4130,15 @@ export const wideIntegerDefinitions = {
 			},
 		},
 	},
+	MarkdownByteRange: {
+		generics: [],
+		shape: {
+			object: {
+				end: 'bigint',
+				start: 'bigint',
+			},
+		},
+	},
 	MarkdownEvidenceSettings: {
 		generics: [],
 		shape: {
@@ -2213,6 +4148,105 @@ export const wideIntegerDefinitions = {
 					ref: 'HeadingAnchorScheme',
 				},
 			},
+		},
+	},
+	MarkdownOccurrence: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						span: {
+							arguments: {},
+							ref: 'SourceSpan',
+						},
+					},
+				},
+				{
+					object: {
+						match_span: {
+							arguments: {},
+							ref: 'SourceSpan',
+						},
+						unit_span: {
+							arguments: {},
+							ref: 'SourceSpan',
+						},
+						visible_range: {
+							arguments: {},
+							ref: 'MarkdownByteRange',
+						},
+					},
+				},
+			],
+		},
+	},
+	MarkdownUnitSelection: {
+		generics: [],
+		shape: {
+			arguments: {},
+			ref: 'MarkdownUnitSelectionWire',
+		},
+	},
+	MarkdownUnitSelectionWire: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						levels: {
+							arguments: {},
+							ref: 'HeadingLevels',
+						},
+						mode: {
+							arguments: {},
+							ref: 'MarkdownUnitOnly',
+						},
+						units: {
+							list: {
+								arguments: {},
+								ref: 'MarkdownUnitKind',
+							},
+						},
+					},
+				},
+				{
+					object: {
+						levels: {
+							arguments: {},
+							ref: 'HeadingLevels',
+						},
+						mode: {
+							arguments: {},
+							ref: 'SelectionMode',
+						},
+						units: {
+							list: {
+								arguments: {},
+								ref: 'MarkdownUnitKind',
+							},
+						},
+					},
+				},
+				{
+					object: {
+						levels: {
+							arguments: {},
+							ref: 'HeadingLevels',
+						},
+						mode: {
+							arguments: {},
+							ref: 'SelectionMode',
+						},
+						units: {
+							list: {
+								arguments: {},
+								ref: 'MarkdownUnitKind',
+							},
+						},
+					},
+				},
+			],
 		},
 	},
 	MarkdownUnitsKindWire: {
@@ -2344,6 +4378,29 @@ export const wideIntegerDefinitions = {
 			},
 		},
 	},
+	MessageBlock: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						call_id: {
+							arguments: {},
+							ref: 'CallId',
+						},
+					},
+				},
+				{
+					object: {
+						content: {
+							arguments: {},
+							ref: 'EvidenceStructuredJson',
+						},
+					},
+				},
+			],
+		},
+	},
 	ModelFieldValue: {
 		generics: [],
 		shape: {
@@ -2361,6 +4418,18 @@ export const wideIntegerDefinitions = {
 					},
 				},
 			],
+		},
+	},
+	ModelRequestPreview: {
+		generics: [],
+		shape: {
+			object: {
+				backend: {
+					arguments: {},
+					ref: 'BackendSelection',
+				},
+				index: 'bigint',
+			},
 		},
 	},
 	ModelView: {
@@ -2392,6 +4461,21 @@ export const wideIntegerDefinitions = {
 			],
 		},
 	},
+	NativeQuery: {
+		generics: [],
+		shape: {
+			object: {
+				id: {
+					arguments: {},
+					ref: 'DeclarationId',
+				},
+				selector: {
+					arguments: {},
+					ref: 'EvidenceSelector',
+				},
+			},
+		},
+	},
 	NotApplicableReason: {
 		generics: [],
 		shape: {
@@ -2405,6 +4489,37 @@ export const wideIntegerDefinitions = {
 						label: {
 							arguments: {},
 							ref: 'ChoiceLabel',
+						},
+					},
+				},
+			],
+		},
+	},
+	NotSentReason: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						entry: {
+							arguments: {},
+							ref: 'EntryKey',
+						},
+					},
+				},
+				{
+					object: {
+						diagnostics: {
+							arguments: {},
+							ref: 'RuleDiagnosticList',
+						},
+					},
+				},
+				{
+					object: {
+						diagnostics: {
+							arguments: {},
+							ref: 'RuleDiagnosticList',
 						},
 					},
 				},
@@ -2426,6 +4541,59 @@ export const wideIntegerDefinitions = {
 			},
 		},
 	},
+	ObservedField: {
+		generics: ['TValue'],
+		shape: {
+			union: [
+				{
+					object: {
+						value: {
+							generic: 'TValue',
+						},
+					},
+				},
+			],
+		},
+	},
+	OccurrenceSelection: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						selected_by: {
+							arguments: {},
+							ref: 'SelectedReasons',
+						},
+					},
+				},
+			],
+		},
+	},
+	Omission: {
+		generics: [],
+		shape: {
+			object: {
+				count: 'bigint',
+				reason: {
+					arguments: {},
+					ref: 'OmissionReason',
+				},
+			},
+		},
+	},
+	OriginalBytes: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						bytes: 'bigint',
+					},
+				},
+			],
+		},
+	},
 	OriginalConfiguration: {
 		generics: [],
 		shape: {
@@ -2433,6 +4601,79 @@ export const wideIntegerDefinitions = {
 				origin: {
 					arguments: {},
 					ref: 'SourceLocator',
+				},
+			},
+		},
+	},
+	PackageSourceBinding: {
+		generics: [],
+		shape: {
+			object: {
+				importing_repository_id: {
+					arguments: {},
+					ref: 'RepositoryId',
+				},
+				target_repository_id: {
+					arguments: {},
+					ref: 'RepositoryId',
+				},
+			},
+		},
+	},
+	ParentBasis: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						commit_id: {
+							arguments: {},
+							ref: 'GitObjectId',
+						},
+						position: 'bigint',
+					},
+				},
+			],
+		},
+	},
+	PartialEvidencePlan: {
+		generics: [],
+		shape: {
+			object: {
+				captures: {
+					list: {
+						arguments: {},
+						ref: 'CaptureCoverage',
+					},
+				},
+				change_selections: {
+					list: {
+						arguments: {},
+						ref: 'ResolvedChangeSelection',
+					},
+				},
+				cursors: {
+					list: {
+						arguments: {},
+						ref: 'ReturnedCursor',
+					},
+				},
+				selections: {
+					list: {
+						arguments: {},
+						ref: 'SelectionResult',
+					},
+				},
+			},
+		},
+	},
+	PayloadSchemaPath: {
+		generics: [],
+		shape: {
+			object: {
+				name: {
+					arguments: {},
+					ref: 'SchemaName',
 				},
 			},
 		},
@@ -2465,6 +4706,53 @@ export const wideIntegerDefinitions = {
 			],
 		},
 	},
+	PlannedRequestRecord: {
+		generics: [],
+		shape: {
+			object: {
+				index: 'bigint',
+				mode: {
+					arguments: {},
+					ref: 'RequestMode',
+				},
+				owner: {
+					arguments: {},
+					ref: 'RuleRequestOwner',
+				},
+				prerequisites: {
+					list: {
+						arguments: {},
+						ref: 'EntryKey',
+					},
+				},
+				questions: {
+					list: {
+						arguments: {},
+						ref: 'QuestionBinding',
+					},
+				},
+				readiness: {
+					arguments: {},
+					ref: 'RequestPreparationReadiness',
+				},
+			},
+		},
+	},
+	PreparationCancellationProgress: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						partial: {
+							arguments: {},
+							ref: 'PreparedRules',
+						},
+					},
+				},
+			],
+		},
+	},
 	PreparedGate: {
 		generics: [],
 		shape: {
@@ -2482,6 +4770,451 @@ export const wideIntegerDefinitions = {
 			},
 		},
 	},
+	PreparedGroup: {
+		generics: [],
+		shape: {
+			object: {
+				binding: {
+					arguments: {},
+					ref: 'GroupBinding',
+				},
+				leading_entries: {
+					list: {
+						arguments: {},
+						ref: 'EvaluatedEntry',
+					},
+				},
+				position: 'bigint',
+				status: {
+					arguments: {},
+					ref: 'PreparedGroupStatus',
+				},
+			},
+		},
+	},
+	PreparedGroupStatus: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						basis: {
+							arguments: {},
+							ref: 'EntryBasis',
+						},
+						entry: {
+							arguments: {},
+							ref: 'EntryKey',
+						},
+					},
+				},
+				{
+					object: {
+						cause: {
+							arguments: {},
+							ref: 'Cause',
+						},
+						entry: {
+							arguments: {},
+							ref: 'EntryKey',
+						},
+					},
+				},
+			],
+		},
+	},
+	PreparedOccurrence: {
+		generics: [],
+		shape: {
+			object: {
+				key: {
+					arguments: {},
+					ref: 'RuleOccurrenceKey',
+				},
+				status: {
+					arguments: {},
+					ref: 'PreparedOccurrenceStatus',
+				},
+			},
+		},
+	},
+	PreparedOccurrenceStatus: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						selection: {
+							arguments: {},
+							ref: 'OccurrenceSelection',
+						},
+					},
+				},
+				{
+					object: {
+						reason: {
+							arguments: {},
+							ref: 'OutsideChangeReason',
+						},
+					},
+				},
+				{
+					object: {
+						basis: {
+							arguments: {},
+							ref: 'EntryBasis',
+						},
+						entry: {
+							arguments: {},
+							ref: 'EntryKey',
+						},
+					},
+				},
+				{
+					object: {
+						diagnostics: {
+							arguments: {},
+							ref: 'RuleDiagnosticList',
+						},
+					},
+				},
+			],
+		},
+	},
+	PreparedRequestBudget: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						basis: {
+							arguments: {},
+							ref: 'AccountingBasis',
+						},
+						counts: {
+							arguments: {},
+							ref: 'RequestBudgetCounts',
+						},
+					},
+				},
+				{
+					object: {
+						diagnostics: {
+							arguments: {},
+							ref: 'RuleDiagnosticList',
+						},
+					},
+				},
+				{
+					object: {
+						diagnostics: {
+							arguments: {},
+							ref: 'RuleDiagnosticList',
+						},
+					},
+				},
+			],
+		},
+	},
+	PreparedRouting: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						groups: {
+							list: 'bigint',
+						},
+						status: {
+							arguments: {},
+							ref: 'RouterPreparationStatus',
+						},
+					},
+				},
+			],
+		},
+	},
+	PreparedRuleEvaluation: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						key: {
+							arguments: {},
+							ref: 'RuleEvaluationKey',
+						},
+						on: {
+							list: {
+								arguments: {},
+								ref: 'EntryKey',
+							},
+						},
+					},
+				},
+				{
+					object: {
+						key: {
+							arguments: {},
+							ref: 'RuleEvaluationKey',
+						},
+						occurrences: {
+							list: {
+								arguments: {},
+								ref: 'RuleOccurrenceKey',
+							},
+						},
+					},
+				},
+				{
+					object: {
+						input: {
+							arguments: {},
+							ref: 'SourceName',
+						},
+						key: {
+							arguments: {},
+							ref: 'RuleEvaluationKey',
+						},
+						source: {
+							arguments: {},
+							ref: 'SourceRef',
+						},
+					},
+				},
+				{
+					object: {
+						basis: {
+							arguments: {},
+							ref: 'EntryBasis',
+						},
+						key: {
+							arguments: {},
+							ref: 'RuleEvaluationKey',
+						},
+						stopped_at: {
+							arguments: {},
+							ref: 'EntryKey',
+						},
+					},
+				},
+				{
+					object: {
+						key: {
+							arguments: {},
+							ref: 'RuleEvaluationKey',
+						},
+						reason: {
+							arguments: {},
+							ref: 'OutsideChangeReason',
+						},
+					},
+				},
+				{
+					object: {
+						diagnostics: {
+							arguments: {},
+							ref: 'RuleDiagnosticList',
+						},
+						key: {
+							arguments: {},
+							ref: 'RuleEvaluationKey',
+						},
+					},
+				},
+				{
+					object: {
+						cause: {
+							arguments: {},
+							ref: 'Cause',
+						},
+						key: {
+							arguments: {},
+							ref: 'RuleEvaluationKey',
+						},
+					},
+				},
+				{
+					object: {
+						key: {
+							arguments: {},
+							ref: 'RuleEvaluationKey',
+						},
+					},
+				},
+			],
+		},
+	},
+	PreparedRules: {
+		generics: [],
+		shape: {
+			object: {
+				captures: {
+					list: {
+						arguments: {},
+						ref: 'CaptureCoverage',
+					},
+				},
+				change_selections: {
+					list: {
+						arguments: {},
+						ref: 'ResolvedChangeSelection',
+					},
+				},
+				cursors: {
+					list: {
+						arguments: {},
+						ref: 'ReturnedCursor',
+					},
+				},
+				groups: {
+					list: {
+						arguments: {},
+						ref: 'PreparedGroup',
+					},
+				},
+				measurements: {
+					arguments: {},
+					ref: 'InvocationMeasurements',
+				},
+				occurrences: {
+					list: {
+						arguments: {},
+						ref: 'PreparedOccurrence',
+					},
+				},
+				origin: {
+					arguments: {},
+					ref: 'ReportedOrigin',
+				},
+				planned_requests: {
+					list: {
+						arguments: {},
+						ref: 'PlannedRequestRecord',
+					},
+				},
+				routing: {
+					arguments: {},
+					ref: 'PreparedRouting',
+				},
+				rule_coverage: {
+					arguments: {},
+					ref: 'RuleCoverage',
+				},
+				rule_evaluations: {
+					list: {
+						arguments: {},
+						ref: 'PreparedRuleEvaluation',
+					},
+				},
+				skipped_rules: {
+					list: {
+						arguments: {},
+						ref: 'SkippedRule',
+					},
+				},
+			},
+		},
+	},
+	ProviderContextCeiling: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						tokens: 'bigint',
+					},
+				},
+			],
+		},
+	},
+	QueryBounds: {
+		generics: [],
+		shape: {
+			object: {
+				repository_ids: {
+					list: {
+						arguments: {},
+						ref: 'RepositoryId',
+					},
+				},
+				requested_hops: 'bigint',
+				windows: {
+					list: {
+						arguments: {},
+						ref: 'ResolvedTimeWindow',
+					},
+				},
+			},
+		},
+	},
+	QuestionBinding: {
+		generics: [],
+		shape: {
+			object: {
+				owner: {
+					arguments: {},
+					ref: 'QuestionOwner',
+				},
+				request_name: {
+					arguments: {},
+					ref: 'QuestionName',
+				},
+			},
+		},
+	},
+	QuestionOwner: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						group: 'bigint',
+					},
+				},
+				{
+					object: {
+						entry: {
+							arguments: {},
+							ref: 'EntryKey',
+						},
+					},
+				},
+				{
+					object: {
+						entry: {
+							arguments: {},
+							ref: 'EntryKey',
+						},
+						rule_id: {
+							arguments: {},
+							ref: 'RuleId',
+						},
+					},
+				},
+				{
+					object: {
+						key: {
+							arguments: {},
+							ref: 'RuleOccurrenceKey',
+						},
+					},
+				},
+				{
+					object: {
+						key: {
+							arguments: {},
+							ref: 'RuleOccurrenceKey',
+						},
+						name: {
+							arguments: {},
+							ref: 'QuestionName',
+						},
+					},
+				},
+			],
+		},
+	},
 	ReadsSpec: {
 		generics: [],
 		shape: {
@@ -2497,6 +5230,295 @@ export const wideIntegerDefinitions = {
 					ref: 'EvidenceKindName',
 				},
 			},
+		},
+	},
+	RelationshipCandidate: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						basis_spans: {
+							list: {
+								arguments: {},
+								ref: 'SourceSpan',
+							},
+						},
+						call_site_span: {
+							arguments: {},
+							ref: 'SourceSpan',
+						},
+						facts: {
+							list: {
+								arguments: {},
+								ref: 'RelationshipFact',
+							},
+						},
+						relation_kind: {
+							arguments: {},
+							ref: 'RelationDirection',
+						},
+						source_unit: {
+							arguments: {},
+							ref: 'SourceUnitKey',
+						},
+						target_unit: {
+							arguments: {},
+							ref: 'SourceUnitKey',
+						},
+						uncertainties: {
+							list: {
+								arguments: {},
+								ref: 'RelationshipUncertainty',
+							},
+						},
+					},
+				},
+				{
+					object: {
+						basis_spans: {
+							list: {
+								arguments: {},
+								ref: 'SourceSpan',
+							},
+						},
+						contradiction: {
+							arguments: {},
+							ref: 'RelationshipContradiction',
+						},
+						possible_target: {
+							arguments: {},
+							ref: 'SourceUnitKey',
+						},
+						source_unit: {
+							arguments: {},
+							ref: 'SourceUnitKey',
+						},
+					},
+				},
+				{
+					object: {
+						basis_spans: {
+							list: {
+								arguments: {},
+								ref: 'SourceSpan',
+							},
+						},
+						reason: {
+							arguments: {},
+							ref: 'RelationshipUncertainty',
+						},
+						relation_kind: {
+							arguments: {},
+							ref: 'RelationDirection',
+						},
+						source_unit: {
+							arguments: {},
+							ref: 'SourceUnitKey',
+						},
+					},
+				},
+			],
+		},
+	},
+	RelationshipFact: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						span: {
+							arguments: {},
+							ref: 'SourceSpan',
+						},
+					},
+				},
+				{
+					object: {
+						span: {
+							arguments: {},
+							ref: 'SourceSpan',
+						},
+					},
+				},
+				{
+					object: {
+						span: {
+							arguments: {},
+							ref: 'SourceSpan',
+						},
+					},
+				},
+				{
+					object: {
+						importing_repository: {
+							arguments: {},
+							ref: 'RepositoryId',
+						},
+						target_repository: {
+							arguments: {},
+							ref: 'RepositoryId',
+						},
+					},
+				},
+			],
+		},
+	},
+	RelationshipQuery: {
+		generics: [],
+		shape: {
+			object: {
+				directions: {
+					list: {
+						arguments: {},
+						ref: 'RelationDirection',
+					},
+				},
+				repository_ids: {
+					list: {
+						arguments: {},
+						ref: 'RepositoryId',
+					},
+				},
+				requested_hops: 'bigint',
+				source_units: {
+					arguments: {},
+					ref: 'SourceUnitQuery',
+				},
+			},
+		},
+	},
+	ReportDiagnostic: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					arguments: {},
+					ref: 'RuleDiagnostic',
+				},
+				{
+					arguments: {},
+					ref: 'EvidenceDiagnostic',
+				},
+				{
+					arguments: {},
+					ref: 'DecisionDiagnostic',
+				},
+			],
+		},
+	},
+	ReportedAgent: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						type: {
+							arguments: {
+								TValue: null,
+							},
+							ref: 'ObservedField',
+						},
+					},
+				},
+			],
+		},
+	},
+	ReportedOrigin: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						agent: {
+							arguments: {},
+							ref: 'ReportedAgent',
+						},
+						observed_at: {
+							arguments: {
+								TValue: null,
+							},
+							ref: 'ObservedField',
+						},
+						session: {
+							arguments: {
+								TValue: null,
+							},
+							ref: 'ObservedField',
+						},
+						turn: {
+							arguments: {
+								TValue: null,
+							},
+							ref: 'ObservedField',
+						},
+					},
+				},
+			],
+		},
+	},
+	RepositoryBinding: {
+		generics: [],
+		shape: {
+			object: {
+				change_scope: {
+					arguments: {},
+					ref: 'ChangeScope',
+				},
+				input_paths: {
+					list: {
+						arguments: {},
+						ref: 'QueryPath',
+					},
+				},
+				key: {
+					arguments: {},
+					ref: 'RepositoryId',
+				},
+			},
+		},
+	},
+	RequestBudgetCounts: {
+		generics: [],
+		shape: {
+			object: {
+				basis: {
+					arguments: {},
+					ref: 'AccountingBasis',
+				},
+				input_tokens: 'bigint',
+				questions: 'bigint',
+				request_bytes: 'bigint',
+			},
+		},
+	},
+	RequestBudgetSettings: {
+		generics: [],
+		shape: {
+			object: {
+				accounting_policy: {
+					arguments: {},
+					ref: 'AccountingPolicy',
+				},
+				max_input_tokens: 'bigint',
+				max_questions: 'bigint',
+				max_request_bytes: 'bigint',
+				max_requests: 'bigint',
+				safety_margin_tokens: 'bigint',
+			},
+		},
+	},
+	RequestMode: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						of: 'bigint',
+						part: 'bigint',
+					},
+				},
+			],
 		},
 	},
 	RequestNotSentReason: {
@@ -2557,6 +5579,235 @@ export const wideIntegerDefinitions = {
 			],
 		},
 	},
+	RequestPreparationReadiness: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						budget: {
+							arguments: {},
+							ref: 'PreparedRequestBudget',
+						},
+						evidence: {
+							list: {
+								arguments: {},
+								ref: 'SelectionResult',
+							},
+						},
+					},
+				},
+				{
+					object: {
+						on: {
+							list: {
+								arguments: {},
+								ref: 'EntryKey',
+							},
+						},
+					},
+				},
+			],
+		},
+	},
+	RequestRecord: {
+		generics: [],
+		shape: {
+			object: {
+				discarded: {
+					list: {
+						arguments: {},
+						ref: 'DiscardedAnswer',
+					},
+				},
+				index: 'bigint',
+				mode: {
+					arguments: {},
+					ref: 'RequestMode',
+				},
+				owner: {
+					arguments: {},
+					ref: 'RuleRequestOwner',
+				},
+				prerequisites: {
+					list: {
+						arguments: {},
+						ref: 'EntryKey',
+					},
+				},
+				questions: {
+					list: {
+						arguments: {},
+						ref: 'QuestionBinding',
+					},
+				},
+				status: {
+					arguments: {},
+					ref: 'RequestStatus',
+				},
+			},
+		},
+	},
+	RequestStatus: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						outcome: {
+							arguments: {},
+							ref: 'DecisionRunOutcome',
+						},
+					},
+				},
+				{
+					object: {
+						reason: {
+							arguments: {},
+							ref: 'NotSentReason',
+						},
+					},
+				},
+			],
+		},
+	},
+	ResolvedChangeBounds: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						layers: {
+							list: {
+								arguments: {},
+								ref: 'DirtyLayer',
+							},
+						},
+					},
+				},
+				{
+					object: {
+						base_revision: {
+							arguments: {},
+							ref: 'GitObjectId',
+						},
+						head: {
+							arguments: {},
+							ref: 'SourceRevision',
+						},
+					},
+				},
+				{
+					object: {
+						commit_ids: {
+							list: {
+								arguments: {},
+								ref: 'GitObjectId',
+							},
+						},
+						parent_policy: {
+							arguments: {},
+							ref: 'CommitParentPolicy',
+						},
+					},
+				},
+				{
+					object: {
+						commit_ids: {
+							list: {
+								arguments: {},
+								ref: 'GitObjectId',
+							},
+						},
+						parent_policy: {
+							arguments: {},
+							ref: 'CommitParentPolicy',
+						},
+					},
+				},
+				{
+					object: {
+						layers: {
+							list: {
+								arguments: {},
+								ref: 'DirtyLayer',
+							},
+						},
+						unknown_recency: {
+							arguments: {},
+							ref: 'UnknownRecencyPolicy',
+						},
+					},
+				},
+			],
+		},
+	},
+	ResolvedChangeMember: {
+		generics: [],
+		shape: {
+			object: {
+				bounds: {
+					arguments: {},
+					ref: 'ResolvedChangeBounds',
+				},
+				changed_paths: {
+					list: {
+						arguments: {},
+						ref: 'ResolvedChangedPath',
+					},
+				},
+				diagnostics: {
+					arguments: {},
+					ref: 'EvidenceDiagnosticList',
+				},
+				recency: {
+					arguments: {},
+					ref: 'ChangeRecencyBasis',
+				},
+				scope_position: 'bigint',
+			},
+		},
+	},
+	ResolvedChangeSelection: {
+		generics: [],
+		shape: {
+			object: {
+				coverage: {
+					arguments: {},
+					ref: 'DiscoveryCoverage',
+				},
+				members: {
+					list: {
+						arguments: {},
+						ref: 'ResolvedChangeMember',
+					},
+				},
+				repository: {
+					arguments: {},
+					ref: 'RepositoryId',
+				},
+			},
+		},
+	},
+	ResolvedChangedPath: {
+		generics: [],
+		shape: {
+			object: {
+				after: {
+					arguments: {},
+					ref: 'SourceRef',
+				},
+				before: {
+					arguments: {},
+					ref: 'SourceRef',
+				},
+				provenance: {
+					arguments: {},
+					ref: 'ChangeMemberBasis',
+				},
+			},
+		},
+	},
 	ResolvedConfiguration: {
 		generics: [],
 		shape: {
@@ -2612,6 +5863,17 @@ export const wideIntegerDefinitions = {
 			],
 		},
 	},
+	ReturnedCursor: {
+		generics: [],
+		shape: {
+			object: {
+				format: {
+					arguments: {},
+					ref: 'TranscriptFormatName',
+				},
+			},
+		},
+	},
 	RouteWire: {
 		generics: [],
 		shape: {
@@ -2623,6 +5885,173 @@ export const wideIntegerDefinitions = {
 				{
 					arguments: {},
 					ref: 'LabelRoute',
+				},
+			],
+		},
+	},
+	RouterGroupResult: {
+		generics: [],
+		shape: {
+			object: {
+				outcome: {
+					arguments: {},
+					ref: 'RouterOutcome',
+				},
+				position: 'bigint',
+			},
+		},
+	},
+	RouterOutcome: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						answer: {
+							arguments: {},
+							ref: 'JudgmentReference',
+						},
+						label: {
+							arguments: {},
+							ref: 'ChoiceLabel',
+						},
+					},
+				},
+				{
+					object: {
+						answer: {
+							arguments: {},
+							ref: 'JudgmentReference',
+						},
+					},
+				},
+				{
+					object: {
+						answer: {
+							arguments: {},
+							ref: 'JudgmentReference',
+						},
+						label: {
+							arguments: {},
+							ref: 'ChoiceLabel',
+						},
+					},
+				},
+				{
+					object: {
+						cause: {
+							arguments: {},
+							ref: 'Cause',
+						},
+					},
+				},
+				{
+					object: {
+						reason: {
+							arguments: {},
+							ref: 'RouterNotEvaluated',
+						},
+					},
+				},
+			],
+		},
+	},
+	RoutingReport: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						groups: {
+							list: {
+								arguments: {},
+								ref: 'RouterGroupResult',
+							},
+						},
+					},
+				},
+			],
+		},
+	},
+	RuleDiagnostic: {
+		generics: [],
+		shape: {
+			object: {
+				code: {
+					arguments: {},
+					ref: 'RuleDiagnosticCode',
+				},
+				location: {
+					arguments: {},
+					ref: 'RuleDiagnosticLocation',
+				},
+				origin: {
+					arguments: {},
+					ref: 'RuleDiagnosticOrigin',
+				},
+				retry_advice: {
+					arguments: {},
+					ref: 'RetryAdvice',
+				},
+			},
+		},
+	},
+	RuleDiagnosticList: {
+		generics: [],
+		shape: {
+			object: {
+				items: {
+					list: {
+						arguments: {},
+						ref: 'ReportDiagnostic',
+					},
+				},
+				omitted_count: 'bigint',
+			},
+		},
+	},
+	RuleDiagnosticLocation: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						column: 'bigint',
+						line: 'bigint',
+					},
+				},
+				{
+					object: {
+						source: {
+							arguments: {},
+							ref: 'SourceRef',
+						},
+						span: {
+							arguments: {},
+							ref: 'SourceSpan',
+						},
+					},
+				},
+				{
+					object: {
+						record_id: {
+							arguments: {},
+							ref: 'RecordId',
+						},
+						source: {
+							arguments: {},
+							ref: 'SourceRef',
+						},
+					},
+				},
+				{
+					object: {
+						question_name: {
+							arguments: {},
+							ref: 'QuestionName',
+						},
+						request_index: 'bigint',
+					},
 				},
 			],
 		},
@@ -2674,6 +6103,535 @@ export const wideIntegerDefinitions = {
 					ref: 'Severity',
 				},
 			},
+		},
+	},
+	RuleEvaluationKey: {
+		generics: [],
+		shape: {
+			object: {
+				group: 'bigint',
+				rule_id: {
+					arguments: {},
+					ref: 'RuleId',
+				},
+			},
+		},
+	},
+	RuleEvaluationResult: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						key: {
+							arguments: {},
+							ref: 'RuleEvaluationKey',
+						},
+						occurrences: {
+							list: {
+								arguments: {},
+								ref: 'RuleOccurrenceKey',
+							},
+						},
+					},
+				},
+				{
+					object: {
+						input: {
+							arguments: {},
+							ref: 'SourceName',
+						},
+						key: {
+							arguments: {},
+							ref: 'RuleEvaluationKey',
+						},
+						source: {
+							arguments: {},
+							ref: 'SourceRef',
+						},
+					},
+				},
+				{
+					object: {
+						basis: {
+							arguments: {},
+							ref: 'EntryBasis',
+						},
+						key: {
+							arguments: {},
+							ref: 'RuleEvaluationKey',
+						},
+						stopped_at: {
+							arguments: {},
+							ref: 'EntryKey',
+						},
+					},
+				},
+				{
+					object: {
+						key: {
+							arguments: {},
+							ref: 'RuleEvaluationKey',
+						},
+						reason: {
+							arguments: {},
+							ref: 'OutsideChangeReason',
+						},
+					},
+				},
+				{
+					object: {
+						diagnostics: {
+							arguments: {},
+							ref: 'RuleDiagnosticList',
+						},
+						key: {
+							arguments: {},
+							ref: 'RuleEvaluationKey',
+						},
+					},
+				},
+				{
+					object: {
+						cause: {
+							arguments: {},
+							ref: 'Cause',
+						},
+						key: {
+							arguments: {},
+							ref: 'RuleEvaluationKey',
+						},
+					},
+				},
+				{
+					object: {
+						key: {
+							arguments: {},
+							ref: 'RuleEvaluationKey',
+						},
+					},
+				},
+			],
+		},
+	},
+	RuleInvocationInput: {
+		generics: [],
+		shape: {
+			object: {
+				attempts: {
+					arguments: {},
+					ref: 'AttemptSettings',
+				},
+				backend: {
+					arguments: {},
+					ref: 'BackendSelection',
+				},
+				cursors: {
+					list: {
+						arguments: {},
+						ref: 'ReturnedCursor',
+					},
+				},
+				definitions: {
+					arguments: {},
+					ref: 'InvocationDefinitions',
+				},
+				discovery: {
+					arguments: {},
+					ref: 'EvidenceDiscovery',
+				},
+				execution: {
+					arguments: {},
+					ref: 'ExecutionSettings',
+				},
+				limits: {
+					arguments: {},
+					ref: 'InvocationLimits',
+				},
+				origin: {
+					arguments: {},
+					ref: 'InvocationOrigin',
+				},
+				package_bindings: {
+					list: {
+						arguments: {},
+						ref: 'PackageSourceBinding',
+					},
+				},
+				payload_schemas: {
+					list: {
+						arguments: {},
+						ref: 'PayloadSchemaPath',
+					},
+				},
+				repositories: {
+					list: {
+						arguments: {},
+						ref: 'RepositoryBinding',
+					},
+				},
+				request_budget: {
+					arguments: {},
+					ref: 'RequestBudgetSettings',
+				},
+			},
+		},
+	},
+	RuleInvocationOutcome: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						diagnostics: {
+							arguments: {},
+							ref: 'RuleDiagnosticList',
+						},
+					},
+				},
+				{
+					object: {
+						diagnostics: {
+							arguments: {},
+							ref: 'RuleDiagnosticList',
+						},
+						measurements: {
+							arguments: {},
+							ref: 'InvocationMeasurements',
+						},
+					},
+				},
+				{
+					object: {
+						report: {
+							arguments: {},
+							ref: 'RuleInvocationReport',
+						},
+					},
+				},
+				{
+					object: {
+						report: {
+							arguments: {},
+							ref: 'RuleInvocationReport',
+						},
+					},
+				},
+				{
+					object: {
+						diagnostics: {
+							arguments: {},
+							ref: 'RuleDiagnosticList',
+						},
+						measurements: {
+							arguments: {},
+							ref: 'InvocationMeasurements',
+						},
+						progress: {
+							arguments: {},
+							ref: 'InvocationCancellationProgress',
+						},
+					},
+				},
+			],
+		},
+	},
+	RuleInvocationReport: {
+		generics: [],
+		shape: {
+			object: {
+				captures: {
+					list: {
+						arguments: {},
+						ref: 'CaptureCoverage',
+					},
+				},
+				change_selections: {
+					list: {
+						arguments: {},
+						ref: 'ResolvedChangeSelection',
+					},
+				},
+				cursors: {
+					list: {
+						arguments: {},
+						ref: 'ReturnedCursor',
+					},
+				},
+				diagnostics: {
+					arguments: {},
+					ref: 'RuleDiagnosticList',
+				},
+				groups: {
+					list: {
+						arguments: {},
+						ref: 'GroupResult',
+					},
+				},
+				measurements: {
+					arguments: {},
+					ref: 'InvocationMeasurements',
+				},
+				occurrences: {
+					list: {
+						arguments: {},
+						ref: 'RuleOccurrenceResult',
+					},
+				},
+				origin: {
+					arguments: {},
+					ref: 'ReportedOrigin',
+				},
+				requests: {
+					list: {
+						arguments: {},
+						ref: 'RequestRecord',
+					},
+				},
+				routing: {
+					arguments: {},
+					ref: 'RoutingReport',
+				},
+				rule_coverage: {
+					arguments: {},
+					ref: 'RuleCoverage',
+				},
+				rule_evaluations: {
+					list: {
+						arguments: {},
+						ref: 'RuleEvaluationResult',
+					},
+				},
+				skipped_rules: {
+					list: {
+						arguments: {},
+						ref: 'SkippedRule',
+					},
+				},
+			},
+		},
+	},
+	RuleJudgment: {
+		generics: [],
+		shape: {
+			object: {
+				answers: {
+					map: {
+						arguments: {},
+						ref: 'JudgmentReference',
+					},
+				},
+				declared_severity: {
+					arguments: {},
+					ref: 'Severity',
+				},
+				key: {
+					arguments: {},
+					ref: 'RuleOccurrenceKey',
+				},
+				target: {
+					arguments: {},
+					ref: 'TargetLocation',
+				},
+				verdict: {
+					arguments: {},
+					ref: 'VerdictOutcome',
+				},
+			},
+		},
+	},
+	RuleOccurrenceKey: {
+		generics: [],
+		shape: {
+			object: {
+				group: 'bigint',
+				rule_id: {
+					arguments: {},
+					ref: 'RuleId',
+				},
+				target: {
+					arguments: {},
+					ref: 'RuleOccurrenceTarget',
+				},
+			},
+		},
+	},
+	RuleOccurrenceResult: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						declared_severity: {
+							arguments: {},
+							ref: 'Severity',
+						},
+						key: {
+							arguments: {},
+							ref: 'RuleOccurrenceKey',
+						},
+						outcome: {
+							arguments: {},
+							ref: 'LocalSettlement',
+						},
+						selected_by: {
+							arguments: {},
+							ref: 'SelectedReasons',
+						},
+						target: {
+							arguments: {},
+							ref: 'TargetLocation',
+						},
+					},
+				},
+				{
+					object: {
+						judgment: {
+							arguments: {},
+							ref: 'RuleJudgment',
+						},
+						key: {
+							arguments: {},
+							ref: 'RuleOccurrenceKey',
+						},
+						selected_by: {
+							arguments: {},
+							ref: 'SelectedReasons',
+						},
+					},
+				},
+				{
+					object: {
+						basis: {
+							arguments: {},
+							ref: 'EntryBasis',
+						},
+						key: {
+							arguments: {},
+							ref: 'RuleOccurrenceKey',
+						},
+						stopped_at: {
+							arguments: {},
+							ref: 'EntryKey',
+						},
+					},
+				},
+				{
+					object: {
+						key: {
+							arguments: {},
+							ref: 'RuleOccurrenceKey',
+						},
+						reason: {
+							arguments: {},
+							ref: 'OutsideChangeReason',
+						},
+					},
+				},
+				{
+					object: {
+						diagnostics: {
+							arguments: {},
+							ref: 'RuleDiagnosticList',
+						},
+						key: {
+							arguments: {},
+							ref: 'RuleOccurrenceKey',
+						},
+					},
+				},
+				{
+					object: {
+						cause: {
+							arguments: {},
+							ref: 'Cause',
+						},
+						key: {
+							arguments: {},
+							ref: 'RuleOccurrenceKey',
+						},
+						selection: {
+							arguments: {},
+							ref: 'OccurrenceSelection',
+						},
+					},
+				},
+				{
+					object: {
+						key: {
+							arguments: {},
+							ref: 'RuleOccurrenceKey',
+						},
+						selection: {
+							arguments: {},
+							ref: 'OccurrenceSelection',
+						},
+					},
+				},
+				{
+					object: {
+						key: {
+							arguments: {},
+							ref: 'RuleOccurrenceKey',
+						},
+						reason: {
+							arguments: {},
+							ref: 'NotStartedReason',
+						},
+						selection: {
+							arguments: {},
+							ref: 'OccurrenceSelection',
+						},
+					},
+				},
+			],
+		},
+	},
+	RuleOccurrenceTarget: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						range: {
+							arguments: {},
+							ref: 'MarkdownByteRange',
+						},
+						source: {
+							arguments: {},
+							ref: 'SourceRef',
+						},
+					},
+				},
+				{
+					object: {
+						match_range: {
+							arguments: {},
+							ref: 'MarkdownByteRange',
+						},
+						source: {
+							arguments: {},
+							ref: 'SourceRef',
+						},
+						unit_range: {
+							arguments: {},
+							ref: 'MarkdownByteRange',
+						},
+						visible_range: {
+							arguments: {},
+							ref: 'MarkdownByteRange',
+						},
+					},
+				},
+				{
+					object: {
+						source: {
+							arguments: {},
+							ref: 'SourceRef',
+						},
+					},
+				},
+			],
 		},
 	},
 	RulePieceEnding: {
@@ -2762,6 +6720,248 @@ export const wideIntegerDefinitions = {
 				{
 					arguments: {},
 					ref: 'RulePieceEnding',
+				},
+			],
+		},
+	},
+	RulePreparationOutcome: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						preparation: {
+							arguments: {},
+							ref: 'PreparedRules',
+						},
+					},
+				},
+				{
+					object: {
+						diagnostics: {
+							arguments: {},
+							ref: 'RuleDiagnosticList',
+						},
+						preparation: {
+							arguments: {},
+							ref: 'PreparedRules',
+						},
+					},
+				},
+				{
+					object: {
+						diagnostics: {
+							arguments: {},
+							ref: 'RuleDiagnosticList',
+						},
+						measurements: {
+							arguments: {},
+							ref: 'InvocationMeasurements',
+						},
+					},
+				},
+				{
+					object: {
+						diagnostics: {
+							arguments: {},
+							ref: 'RuleDiagnosticList',
+						},
+					},
+				},
+				{
+					object: {
+						diagnostics: {
+							arguments: {},
+							ref: 'RuleDiagnosticList',
+						},
+						measurements: {
+							arguments: {},
+							ref: 'InvocationMeasurements',
+						},
+						progress: {
+							arguments: {},
+							ref: 'PreparationCancellationProgress',
+						},
+					},
+				},
+			],
+		},
+	},
+	RulePreviewOutcome: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						preparation: {
+							arguments: {},
+							ref: 'PreparedRules',
+						},
+						request: {
+							arguments: {},
+							ref: 'ModelRequestPreview',
+						},
+					},
+				},
+				{
+					object: {
+						report: {
+							arguments: {},
+							ref: 'RuleInvocationReport',
+						},
+					},
+				},
+				{
+					object: {
+						preparation: {
+							arguments: {},
+							ref: 'PreparedRules',
+						},
+						ready: {
+							list: {
+								arguments: {},
+								ref: 'ModelRequestPreview',
+							},
+						},
+					},
+				},
+				{
+					object: {
+						preparation: {
+							arguments: {},
+							ref: 'PreparedRules',
+						},
+						ready: {
+							list: {
+								arguments: {},
+								ref: 'ModelRequestPreview',
+							},
+						},
+					},
+				},
+				{
+					object: {
+						outcome: {
+							arguments: {},
+							ref: 'RulePreparationOutcome',
+						},
+					},
+				},
+			],
+		},
+	},
+	RuleRequestOwner: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						group: 'bigint',
+					},
+				},
+				{
+					object: {
+						group: 'bigint',
+						route: {
+							arguments: {},
+							ref: 'ChoiceLabel',
+						},
+					},
+				},
+			],
+		},
+	},
+	RuleRunProfile: {
+		generics: [],
+		shape: {
+			object: {
+				attempts: {
+					arguments: {},
+					ref: 'AttemptSettings',
+				},
+				backend: {
+					arguments: {},
+					ref: 'BackendSelection',
+				},
+				cursors: {
+					list: {
+						arguments: {},
+						ref: 'ReturnedCursor',
+					},
+				},
+				discovery: {
+					arguments: {},
+					ref: 'EvidenceDiscovery',
+				},
+				execution: {
+					arguments: {},
+					ref: 'ExecutionSettings',
+				},
+				limits: {
+					arguments: {},
+					ref: 'InvocationLimits',
+				},
+				package_bindings: {
+					list: {
+						arguments: {},
+						ref: 'PackageSourceBinding',
+					},
+				},
+				payload_schemas: {
+					list: {
+						arguments: {},
+						ref: 'PayloadSchemaPath',
+					},
+				},
+				repositories: {
+					list: {
+						arguments: {},
+						ref: 'RepositoryBinding',
+					},
+				},
+				request_budget: {
+					arguments: {},
+					ref: 'RequestBudgetSettings',
+				},
+			},
+		},
+	},
+	RuleSetLoadRequest: {
+		generics: [],
+		shape: {
+			object: {
+				input_contract: {
+					map: {
+						arguments: {},
+						ref: 'InputDeclaration',
+					},
+				},
+				profile: {
+					arguments: {},
+					ref: 'RuleRunProfile',
+				},
+			},
+		},
+	},
+	RuleSetLoadStatus: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						diagnostics: {
+							arguments: {},
+							ref: 'RuleDiagnosticList',
+						},
+					},
+				},
+				{
+					object: {
+						failure: {
+							arguments: {},
+							ref: 'SdkFailure',
+						},
+					},
 				},
 			],
 		},
@@ -3152,6 +7352,22 @@ export const wideIntegerDefinitions = {
 						},
 					},
 				},
+				{
+					object: {
+						value: {
+							arguments: {},
+							ref: 'RuleInvocationOutcome',
+						},
+					},
+				},
+				{
+					object: {
+						value: {
+							arguments: {},
+							ref: 'EvidencePlanOutcome',
+						},
+					},
+				},
 			],
 		},
 	},
@@ -3511,6 +7727,60 @@ export const wideIntegerDefinitions = {
 			],
 		},
 	},
+	SeedContextGroup: {
+		generics: [],
+		shape: {
+			object: {
+				outcome: {
+					arguments: {},
+					ref: 'ContextGroupOutcome',
+				},
+				seed: {
+					arguments: {},
+					ref: 'SourceUnitKey',
+				},
+			},
+		},
+	},
+	SelectedMarkdownUnit: {
+		generics: [],
+		shape: {
+			object: {
+				kind: {
+					arguments: {},
+					ref: 'MarkdownUnitKind',
+				},
+				occurrence: {
+					arguments: {},
+					ref: 'MarkdownOccurrence',
+				},
+				span: {
+					arguments: {},
+					ref: 'SourceSpan',
+				},
+			},
+		},
+	},
+	SelectedReasons: {
+		generics: [],
+		shape: {
+			list: {
+				arguments: {},
+				ref: 'SelectedReason',
+			},
+		},
+	},
+	SelectedSourceUnit: {
+		generics: [],
+		shape: {
+			object: {
+				unit: {
+					arguments: {},
+					ref: 'SourceUnit',
+				},
+			},
+		},
+	},
 	SelectionCandidate: {
 		generics: [],
 		shape: {
@@ -3540,6 +7810,111 @@ export const wideIntegerDefinitions = {
 			},
 		},
 	},
+	SelectionContent: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						result: {
+							arguments: {},
+							ref: 'FrontmatterFieldContent',
+						},
+					},
+				},
+				{
+					object: {
+						units: {
+							list: {
+								arguments: {},
+								ref: 'SelectedMarkdownUnit',
+							},
+						},
+					},
+				},
+				{
+					object: {
+						groups: {
+							list: {
+								arguments: {},
+								ref: 'SeedContextGroup',
+							},
+						},
+					},
+				},
+				{
+					object: {
+						units: {
+							list: {
+								arguments: {},
+								ref: 'SelectedSourceUnit',
+							},
+						},
+					},
+				},
+				{
+					object: {
+						group: {
+							arguments: {},
+							ref: 'ContextGroupOutcome',
+						},
+					},
+				},
+				{
+					object: {
+						span: {
+							arguments: {},
+							ref: 'SourceSpan',
+						},
+					},
+				},
+				{
+					object: {
+						span: {
+							arguments: {},
+							ref: 'SourceSpan',
+						},
+					},
+				},
+				{
+					object: {
+						matches: {
+							list: {
+								arguments: {},
+								ref: 'EvidenceMatch',
+							},
+						},
+					},
+				},
+				{
+					object: {
+						records: {
+							list: {
+								arguments: {},
+								ref: 'ConversationRecord',
+							},
+						},
+						source: {
+							arguments: {},
+							ref: 'SourceRef',
+						},
+					},
+				},
+				{
+					object: {
+						input: {
+							arguments: {},
+							ref: 'SourceName',
+						},
+						value: {
+							arguments: {},
+							ref: 'EvidenceStructuredJson',
+						},
+					},
+				},
+			],
+		},
+	},
 	SelectionCount: {
 		generics: [],
 		shape: {
@@ -3552,6 +7927,39 @@ export const wideIntegerDefinitions = {
 				unavailable: 'bigint',
 				uncertain: 'bigint',
 			},
+		},
+	},
+	SelectionCoverage: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						capture: {
+							arguments: {},
+							ref: 'CaptureCoverage',
+						},
+					},
+				},
+				{
+					object: {
+						discovery: {
+							arguments: {},
+							ref: 'DiscoveryCoverage',
+						},
+						repository: {
+							arguments: {},
+							ref: 'RepositoryId',
+						},
+						sources: {
+							list: {
+								arguments: {},
+								ref: 'SourceRef',
+							},
+						},
+					},
+				},
+			],
 		},
 	},
 	SelectionEntry: {
@@ -3651,6 +8059,39 @@ export const wideIntegerDefinitions = {
 			],
 		},
 	},
+	SelectionReadiness: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						content: {
+							arguments: {},
+							ref: 'SelectionContent',
+						},
+						coverage: {
+							arguments: {},
+							ref: 'SelectionCoverage',
+						},
+						omissions: {
+							list: {
+								arguments: {},
+								ref: 'Omission',
+							},
+						},
+					},
+				},
+				{
+					object: {
+						diagnostics: {
+							arguments: {},
+							ref: 'EvidenceDiagnosticList',
+						},
+					},
+				},
+			],
+		},
+	},
 	SelectionRequestEvidence: {
 		generics: [],
 		shape: {
@@ -3668,6 +8109,21 @@ export const wideIntegerDefinitions = {
 			},
 		},
 	},
+	SelectionResult: {
+		generics: [],
+		shape: {
+			object: {
+				id: {
+					arguments: {},
+					ref: 'DeclarationId',
+				},
+				readiness: {
+					arguments: {},
+					ref: 'SelectionReadiness',
+				},
+			},
+		},
+	},
 	SelectionWire: {
 		generics: [],
 		shape: {
@@ -3680,6 +8136,47 @@ export const wideIntegerDefinitions = {
 					list: {
 						arguments: {},
 						ref: 'FieldName',
+					},
+				},
+			},
+		},
+	},
+	SemanticChunk: {
+		generics: [],
+		shape: {
+			object: {
+				coverage: {
+					arguments: {},
+					ref: 'DiscoveryCoverage',
+				},
+				excerpts: {
+					list: {
+						arguments: {},
+						ref: 'Excerpt',
+					},
+				},
+				omitted_optional: {
+					list: {
+						arguments: {},
+						ref: 'Omission',
+					},
+				},
+				relationships: {
+					list: {
+						arguments: {},
+						ref: 'RelationshipCandidate',
+					},
+				},
+				units: {
+					list: {
+						arguments: {},
+						ref: 'SourceUnitKey',
+					},
+				},
+				unknown_recency_context: {
+					list: {
+						arguments: {},
+						ref: 'SourceRef',
 					},
 				},
 			},
@@ -3734,6 +8231,33 @@ export const wideIntegerDefinitions = {
 					ref: 'EvidenceRuleId',
 				},
 			},
+		},
+	},
+	SkippedRule: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						diagnostics: {
+							arguments: {},
+							ref: 'RuleDiagnosticList',
+						},
+						rule_id: {
+							arguments: {},
+							ref: 'RuleId',
+						},
+					},
+				},
+				{
+					object: {
+						diagnostics: {
+							arguments: {},
+							ref: 'RuleDiagnosticList',
+						},
+					},
+				},
+			],
 		},
 	},
 	SourceRef: {
@@ -3837,6 +8361,147 @@ export const wideIntegerDefinitions = {
 			},
 		},
 	},
+	SourceSpec: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						repository: {
+							arguments: {},
+							ref: 'RepositoryId',
+						},
+					},
+				},
+				{
+					object: {
+						format: {
+							arguments: {},
+							ref: 'TranscriptFormatName',
+						},
+					},
+				},
+				{
+					object: {
+						schema: {
+							arguments: {},
+							ref: 'SchemaName',
+						},
+						value: {
+							arguments: {},
+							ref: 'EvidenceStructuredJson',
+						},
+					},
+				},
+				{
+					object: {
+						repository: {
+							arguments: {},
+							ref: 'RepositoryId',
+						},
+					},
+				},
+			],
+		},
+	},
+	SourceUnit: {
+		generics: [],
+		shape: {
+			object: {
+				key: {
+					arguments: {},
+					ref: 'SourceUnitKey',
+				},
+				kind: {
+					arguments: {},
+					ref: 'SourceUnitKind',
+				},
+				span: {
+					arguments: {},
+					ref: 'SourceSpan',
+				},
+				syntax_quality: {
+					arguments: {},
+					ref: 'SyntaxQuality',
+				},
+			},
+		},
+	},
+	SourceUnitKey: {
+		generics: [],
+		shape: {
+			object: {
+				byte_end: 'bigint',
+				byte_start: 'bigint',
+				repository: {
+					arguments: {},
+					ref: 'RepositoryId',
+				},
+				revision: {
+					arguments: {},
+					ref: 'SourceRevision',
+				},
+				snapshot: {
+					arguments: {},
+					ref: 'SnapshotId',
+				},
+			},
+		},
+	},
+	SourceUnitQuery: {
+		generics: [],
+		shape: {
+			object: {
+				languages: {
+					list: {
+						arguments: {},
+						ref: 'SourceLanguage',
+					},
+				},
+				seeds: {
+					arguments: {},
+					ref: 'SourceUnitSeeds',
+				},
+				source_sides: {
+					arguments: {},
+					ref: 'SourceSides',
+				},
+				unit_kinds: {
+					list: {
+						arguments: {},
+						ref: 'UnitKindFilter',
+					},
+				},
+			},
+		},
+	},
+	SourceUnitSeeds: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						repository_ids: {
+							list: {
+								arguments: {},
+								ref: 'RepositoryId',
+							},
+						},
+					},
+				},
+				{
+					object: {
+						selectors: {
+							list: {
+								arguments: {},
+								ref: 'EvidenceSelector',
+							},
+						},
+					},
+				},
+			],
+		},
+	},
 	StructuredEntry: {
 		generics: [],
 		shape: {
@@ -3921,6 +8586,213 @@ export const wideIntegerDefinitions = {
 			},
 		},
 	},
+	TargetLocation: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						source: {
+							arguments: {},
+							ref: 'SourceRef',
+						},
+						state: {
+							arguments: {},
+							ref: 'FrontmatterFieldLocation',
+						},
+					},
+				},
+				{
+					object: {
+						occurrence: {
+							arguments: {},
+							ref: 'MarkdownOccurrence',
+						},
+					},
+				},
+				{
+					object: {
+						units: {
+							list: {
+								arguments: {},
+								ref: 'SourceUnitKey',
+							},
+						},
+					},
+				},
+				{
+					object: {
+						span: {
+							arguments: {},
+							ref: 'SourceSpan',
+						},
+						target_id: {
+							arguments: {},
+							ref: 'TargetId',
+						},
+					},
+				},
+				{
+					object: {
+						record_ids: {
+							list: {
+								arguments: {},
+								ref: 'RecordId',
+							},
+						},
+						source: {
+							arguments: {},
+							ref: 'SourceRef',
+						},
+					},
+				},
+				{
+					object: {
+						input: {
+							arguments: {},
+							ref: 'SourceName',
+						},
+					},
+				},
+			],
+		},
+	},
+	TimeWindow: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						seconds: 'bigint',
+					},
+				},
+			],
+		},
+	},
+	ToolFilter: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						categories: {
+							list: {
+								arguments: {},
+								ref: 'ToolCategory',
+							},
+						},
+					},
+				},
+			],
+		},
+	},
+	ToolResult: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						original_bytes: {
+							arguments: {},
+							ref: 'OriginalBytes',
+						},
+					},
+				},
+			],
+		},
+	},
+	ToolUse: {
+		generics: [],
+		shape: {
+			object: {
+				call_id: {
+					arguments: {},
+					ref: 'CallId',
+				},
+				category: {
+					arguments: {},
+					ref: 'ToolCategory',
+				},
+				input: {
+					arguments: {},
+					ref: 'EvidenceStructuredJson',
+				},
+				outcome: {
+					arguments: {},
+					ref: 'ToolOutcome',
+				},
+				result: {
+					arguments: {},
+					ref: 'ToolResult',
+				},
+			},
+		},
+	},
+	ToolUseSelection: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						results: {
+							arguments: {},
+							ref: 'Inclusion',
+						},
+						tools: {
+							arguments: {},
+							ref: 'ToolFilter',
+						},
+					},
+				},
+			],
+		},
+	},
+	TranscriptAdapterMapping: {
+		generics: [],
+		shape: {
+			object: {
+				format: {
+					arguments: {},
+					ref: 'TranscriptFormatName',
+				},
+				records: {
+					map: {
+						arguments: {},
+						ref: 'TranscriptRecordMapping',
+					},
+				},
+				schema: {
+					arguments: {},
+					ref: 'TranscriptRecordSchema',
+				},
+			},
+		},
+	},
+	TranscriptRecordSchema: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					map: {
+						arguments: {},
+						ref: 'EvidenceStructuredJson',
+					},
+				},
+			],
+		},
+	},
+	TurnWindow: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						count: 'bigint',
+					},
+				},
+			],
+		},
+	},
 	UnavailableCounts: {
 		generics: [],
 		shape: {
@@ -3966,6 +8838,30 @@ export const wideIntegerDefinitions = {
 			},
 		},
 	},
+	UnitContent: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						max_bytes: 'bigint',
+					},
+				},
+			],
+		},
+	},
+	UnknownFileRecency: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						count: 'bigint',
+					},
+				},
+			],
+		},
+	},
 	UsageSummary: {
 		generics: [],
 		shape: {
@@ -3993,6 +8889,61 @@ export const wideIntegerDefinitions = {
 					map: {
 						arguments: {},
 						ref: 'Value',
+					},
+				},
+			],
+		},
+	},
+	VerdictBasis: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						answer: {
+							arguments: {},
+							ref: 'JudgmentReference',
+						},
+					},
+				},
+				{
+					object: {
+						dimensions: {
+							list: {
+								arguments: {},
+								ref: 'DimensionResult',
+							},
+						},
+					},
+				},
+			],
+		},
+	},
+	VerdictOutcome: {
+		generics: [],
+		shape: {
+			object: {
+				basis: {
+					arguments: {},
+					ref: 'VerdictBasis',
+				},
+				result: {
+					arguments: {},
+					ref: 'VerdictResult',
+				},
+			},
+		},
+	},
+	VerdictResult: {
+		generics: [],
+		shape: {
+			union: [
+				{
+					object: {
+						activation: {
+							arguments: {},
+							ref: 'Activation',
+						},
 					},
 				},
 			],
@@ -4040,6 +8991,10 @@ export const documentRootShapes = {
 		arguments: {},
 		ref: 'Configuration',
 	},
+	evidence_plan_outcome: {
+		arguments: {},
+		ref: 'EvidencePlanOutcome',
+	},
 	inspection_outcome: {
 		arguments: {},
 		ref: 'InspectionOutcome',
@@ -4069,6 +9024,10 @@ export const documentRootShapes = {
 			},
 		},
 		ref: 'SdkReport',
+	},
+	rule_invocation_outcome: {
+		arguments: {},
+		ref: 'RuleInvocationOutcome',
 	},
 	run_outcome: {
 		arguments: {},

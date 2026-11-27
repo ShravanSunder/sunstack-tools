@@ -39,6 +39,7 @@ fn leading_stop(plan: &ExecutionPlan, entries: &[EntryIndex]) -> Option<LeadingC
 }
 pub(crate) struct PreparationProjection {
     pub records: BTreeMap<RequestId, (Vec<QuestionBinding>, RequestPreparationReadiness)>,
+    pub request_bodies: BTreeMap<RequestId, String>,
     pub measurements: InvocationMeasurements,
     pub captures: Vec<CaptureCoverage>,
     pub change_selections: Vec<sunstack_evidence::ResolvedChangeSelection>,
@@ -50,9 +51,10 @@ pub(crate) fn project_preparation(
     origin: &InvocationOrigin,
     projection: PreparationProjection,
     diagnostics: &mut DiagnosticList,
-) -> PreparedRules {
+) -> (PreparedRules, Vec<(usize, String)>) {
     let PreparationProjection {
         mut records,
+        mut request_bodies,
         mut measurements,
         captures,
         change_selections,
@@ -206,11 +208,15 @@ pub(crate) fn project_preparation(
         .filter(|request| records.contains_key(&request.id))
         .collect::<Vec<_>>();
     ordered.sort_by_key(|request| report_order(plan, request));
+    let mut ready_bodies = Vec::new();
     let planned_requests = ordered
         .into_iter()
         .enumerate()
         .filter_map(|(index, request)| {
             let (questions, readiness) = records.remove(&request.id)?;
+            if let Some(body) = request_bodies.remove(&request.id) {
+                ready_bodies.push((index, body));
+            }
             Some(PlannedRequestRecord {
                 index,
                 owner: request.owner.clone(),
@@ -266,18 +272,21 @@ pub(crate) fn project_preparation(
         plan.groups.iter().map(|group| group.admitted.set.as_ref()),
         &mut measurements,
     );
-    PreparedRules {
-        rule_evaluations,
-        rule_coverage: source_summary.coverage,
-        skipped_rules: source_summary.skipped,
-        origin: origin.into(),
-        routing,
-        groups,
-        occurrences,
-        planned_requests,
-        captures,
-        change_selections,
-        cursors,
-        measurements,
-    }
+    (
+        PreparedRules {
+            rule_evaluations,
+            rule_coverage: source_summary.coverage,
+            skipped_rules: source_summary.skipped,
+            origin: origin.into(),
+            routing,
+            groups,
+            occurrences,
+            planned_requests,
+            captures,
+            change_selections,
+            cursors,
+            measurements,
+        },
+        ready_bodies,
+    )
 }

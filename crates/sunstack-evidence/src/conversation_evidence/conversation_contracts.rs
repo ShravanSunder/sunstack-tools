@@ -9,12 +9,14 @@ validated_name!(TranscriptFormatName, |value: &str| !value.is_empty()
     && value.len() <= 128);
 validated_name!(RecordId, |value: &str| !value.is_empty());
 validated_name!(CallId, |value: &str| !value.is_empty());
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum Inclusion {
     Included,
     Excluded,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum AssistantSelection {
@@ -22,6 +24,7 @@ pub enum AssistantSelection {
     All,
     FinalOnly,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum TurnWindow {
@@ -29,6 +32,7 @@ pub enum TurnWindow {
     Last { count: NonZeroUsize },
     SinceCursor {},
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum ToolFilter {
@@ -36,6 +40,7 @@ pub enum ToolFilter {
     Named { names: Vec<String> },
     Categories { categories: Vec<ToolCategory> },
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum ToolUseSelection {
@@ -54,6 +59,7 @@ pub struct ConversationSelection {
     pub tool_use: ToolUseSelection,
     pub hook_injected: Inclusion,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum ToolCategory {
@@ -66,6 +72,7 @@ pub enum ToolCategory {
     Other,
     Unknown,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum ToolOutcome {
@@ -74,12 +81,14 @@ pub enum ToolOutcome {
     ResultPresentStatusUnknown,
     ResultMissing,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum OriginalBytes {
     Known { bytes: usize },
     Unknown,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum ToolResult {
@@ -92,6 +101,7 @@ pub enum ToolResult {
     },
     Absent,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct ToolUse {
@@ -102,6 +112,7 @@ pub struct ToolUse {
     pub outcome: ToolOutcome,
     pub result: ToolResult,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum MessageBlock {
@@ -119,6 +130,7 @@ pub enum MessageBlock {
         content: StructuredJson,
     },
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum ConversationBody {
@@ -126,12 +138,14 @@ pub enum ConversationBody {
     AssistantMessage { blocks: Vec<MessageBlock> },
     ToolUse(ToolUse),
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum RecordProvenance {
     Transcript,
     HookSupplement,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum InjectionOrigin {
@@ -139,6 +153,7 @@ pub enum InjectionOrigin {
     NotInjected,
     Unknown,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct ConversationRecord {
@@ -148,6 +163,7 @@ pub struct ConversationRecord {
     pub provenance: RecordProvenance,
     pub injection: InjectionOrigin,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum AmbiguousReason {
@@ -173,6 +189,7 @@ pub struct ConversationTurn {
     pub records: Vec<RecordId>,
     pub boundary: TurnBoundary,
 }
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum CoverageGap {
@@ -206,6 +223,8 @@ pub struct TranscriptSource {
 pub struct MonitoringCursor {
     pub source: TranscriptSource,
     pub format: TranscriptFormatName,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub adapter_identity: Option<String>,
     pub committed_bytes: u64,
     pub prefix_digest: String,
     pub record_watermarks: BTreeMap<RecordId, u64>,

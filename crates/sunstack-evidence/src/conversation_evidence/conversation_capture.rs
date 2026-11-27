@@ -66,6 +66,7 @@ fn capture_blocking(acquisition: ConversationAcquisition) -> EvidenceResult<Conv
         .as_deref()
         .map(MonitoringCursor::decode)
         .transpose()?;
+    let adapter = registry.adapter(&request.format)?;
     let path = request
         .transcript_path
         .canonicalize()
@@ -81,6 +82,7 @@ fn capture_blocking(acquisition: ConversationAcquisition) -> EvidenceResult<Conv
     if let Some(cursor) = &previous_cursor
         && (cursor.source != source
             || cursor.format != request.format
+            || cursor.adapter_identity.as_deref() != adapter.cursor_identity()
             || before.len() < cursor.committed_bytes)
     {
         return Err(EvidenceCode::TranscriptDiscontinuous.into());
@@ -136,7 +138,6 @@ fn capture_blocking(acquisition: ConversationAcquisition) -> EvidenceResult<Conv
             return Err(EvidenceCode::TranscriptDiscontinuous.into());
         }
     }
-    let adapter = registry.adapter(&request.format)?;
     let output = adapter.normalize(&CapturedTranscript {
         bytes: &bytes[..committed],
         source_identity: &source.file_identity,
@@ -196,6 +197,7 @@ fn capture_blocking(acquisition: ConversationAcquisition) -> EvidenceResult<Conv
     let cursor = MonitoringCursor {
         source: source.clone(),
         format: request.format.clone(),
+        adapter_identity: adapter.cursor_identity().map(str::to_owned),
         committed_bytes: committed as u64,
         prefix_digest: content_digest(&bytes[..committed]),
         record_watermarks: watermarks,

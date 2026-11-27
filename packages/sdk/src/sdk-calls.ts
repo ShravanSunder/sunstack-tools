@@ -99,7 +99,7 @@ type SignalSelection =
 	| { readonly kind: 'selected'; readonly signal: AbortSignal | undefined }
 	| { readonly kind: 'rejected'; readonly message: string };
 
-function selectSignal(options: CallOptions | undefined): SignalSelection {
+export function selectSignal(options: CallOptions | undefined): SignalSelection {
 	try {
 		return { kind: 'selected', signal: options?.signal };
 	} catch (error) {
@@ -146,12 +146,12 @@ function encodeInspectRequest(options: InspectOptions): WireEncoding {
 	}
 }
 
-function describeRejection(error: unknown): string {
+export function describeRejection(error: unknown): string {
 	return error instanceof Error ? error.message : String(error);
 }
 
 /** Tie an AbortSignal to one native cancellation for the duration of one call. */
-async function withCancellation<TValue>(
+export async function withCancellation<TValue>(
 	binding: NativeBinding,
 	signal: AbortSignal | undefined,
 	call: (cancellation: NativeCallCancellation) => Promise<TValue>,

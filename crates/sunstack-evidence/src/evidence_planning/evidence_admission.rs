@@ -1,3 +1,4 @@
+use crate::source_acquisition::structured_json::valid_pointer;
 use crate::*;
 use std::collections::BTreeSet;
 
@@ -70,22 +71,6 @@ pub(crate) fn admission(
     }
     Ok(())
 }
-fn valid_pointer(pointer: &str) -> bool {
-    if pointer.is_empty() {
-        return true;
-    }
-    if !pointer.starts_with('/') {
-        return false;
-    }
-    let mut chars = pointer.chars();
-    while let Some(character) = chars.next() {
-        if character == '~' && !matches!(chars.next(), Some('0' | '1')) {
-            return false;
-        }
-    }
-    true
-}
-
 /// Validate a selector against its bound source without acquiring that source.
 pub fn admit_evidence_declaration(
     declaration: &EvidenceDeclaration,

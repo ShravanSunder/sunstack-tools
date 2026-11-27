@@ -6,7 +6,7 @@ use std::{
     path::{Path, PathBuf},
     sync::Arc,
 };
-use sunstack_decisions::{BackendSelection, CancellationToken, DecisionBackend};
+use sunstack_decisions::{BackendSelection, CancellationToken};
 use sunstack_evidence::{AdapterRegistry, MarkdownByteRange, MarkdownDocument, content_digest};
 use sunstack_rules::test_support::rule_fixture as fixture;
 use sunstack_rules::*;
@@ -48,10 +48,12 @@ impl RuleBackendFactory for RefusingFactory {
     fn selection(&self) -> &BackendSelection {
         &self.0
     }
-    fn prepare(self: Arc<Self>) -> Result<Arc<dyn DecisionBackend>, DiagnosticList> {
-        Err(DiagnosticList::rule(
-            RuleDiagnosticCode::InvalidConfiguration,
-        ))
+    fn prepare(self: Arc<Self>) -> RuleBackendPreparation {
+        Box::pin(async move {
+            Err(DiagnosticList::rule(
+                RuleDiagnosticCode::InvalidConfiguration,
+            ))
+        })
     }
 }
 fn rule(id: &str, kind: &str, ast_grep: &Value) -> Value {

@@ -52,6 +52,7 @@ export function checkPackageMetadata(
 		assert.equal(metadata['type'], 'module');
 		assert.deepEqual(metadata['exports'], {
 			'.': { types: './dist/index.d.ts', default: './dist/index.js' },
+			'./rules': { types: './dist/rules.d.ts', default: './dist/rules.js' },
 			'./package.json': './package.json',
 		});
 	} else {
@@ -122,7 +123,7 @@ function checkTarballs(): void {
 			.filter((name) => name.endsWith('.tgz'))
 			.toSorted(),
 		expectedTarballs.toSorted(),
-		'all seven packages, exactly once',
+		'the SDK and every supported addon, exactly once',
 	);
 	const reports = [...platformCells, null].map((cell) => {
 		const filename =

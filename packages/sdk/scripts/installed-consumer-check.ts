@@ -126,6 +126,7 @@ const sdkSpecifier =
 // Examples run keyless: no provider request can be made from this check.
 const keyless: NodeJS.ProcessEnv = { ...process.env, SUNSTACK_CREDENTIAL_STORE: 'off' };
 delete keyless['OPENROUTER_API_KEY'];
+delete keyless['SUNSTACK_JEV_ENDPOINT'];
 
 /** Run one step, keeping its command, output and exit in `<label>.log` even when it fails. */
 function step({
@@ -133,17 +134,19 @@ function step({
 	command,
 	args,
 	expectedExit = 0,
+	environment = keyless,
 }: {
 	readonly label: string;
 	readonly command: string;
 	readonly args: readonly string[];
 	readonly expectedExit?: number;
+	readonly environment?: NodeJS.ProcessEnv;
 }): string {
 	process.stdout.write(`\n$ ${command} ${args.join(' ')}\n`);
 	const result = spawnSync(command, args, {
 		cwd: consumer,
 		encoding: 'utf8',
-		env: keyless,
+		env: environment,
 		stdio: ['ignore', 'pipe', 'pipe'],
 	});
 	writeFileSync(
@@ -214,6 +217,29 @@ copyFileSync(
 	join(packageDirectory, 'tests', 'installed-cases', 'load-receipt.ts'),
 	join(consumer, 'load-receipt.ts'),
 );
+const installedExamples = join(consumer, 'node_modules', '@sunstack', 'sdk', 'examples');
+const generalRecipe = readFileSync(join(installedExamples, 'general-rules.md'), 'utf8');
+const runnableSection = generalRecipe.split('## Runnable program\n')[1] ?? '';
+const generalProgram = /```ts\n([\s\S]+?)\n```/u.exec(runnableSection)?.[1];
+assert.ok(generalProgram, 'the installed general rule recipe contains a TypeScript program');
+const generalConsumer = join(consumer, 'general-default-package');
+mkdirSync(generalConsumer);
+writeFileSync(join(generalConsumer, 'package.json'), '{"private":true}\n');
+const generalProgramPath = join(generalConsumer, 'general-rules.mts');
+writeFileSync(generalProgramPath, generalProgram);
+const codexReaderSection = generalRecipe.split('## Read the selected Codex calls\n')[1] ?? '';
+const codexReader = /```ts\n([\s\S]+?)\n```/u.exec(codexReaderSection)?.[1];
+assert.ok(codexReader, 'the installed Codex recipe contains a record reader');
+const codexReaderPath = join(generalConsumer, 'read-codex-calls.mts');
+writeFileSync(codexReaderPath, codexReader);
+const generalFixtures = join(consumer, 'general-fixtures');
+mkdirSync(generalFixtures, { recursive: true });
+for (const entry of readdirSync(installedExamples)) {
+	if (entry.startsWith('general-') && entry !== 'general-rules.md') {
+		copyFileSync(join(installedExamples, entry), join(generalFixtures, entry));
+	}
+}
+
 writeFileSync(
 	join(consumer, 'tsconfig.json'),
 	`${JSON.stringify(
@@ -272,6 +298,100 @@ step({
 	command: process.execPath,
 	args: ['markdown-islands.ts'],
 });
+const generalCompilerArguments = /^npx tsc (.+)$/mu.exec(generalRecipe)?.[1];
+assert.ok(
+	generalCompilerArguments,
+	'the installed general rule recipe names its type-check command',
+);
+step({
+	label: 'general-default-package-typecheck',
+	command: join(consumer, 'node_modules', '.bin', 'tsc'),
+	args: generalCompilerArguments
+		.split(/\s+/u)
+		.map((argument) =>
+			argument === 'general-rules.mts' || argument === 'read-codex-calls.mts'
+				? join(generalConsumer, argument)
+				: argument,
+		),
+});
+for (const sourceKind of ['document', 'conversation'] as const) {
+	const evidence = step({
+		label: `general-${sourceKind}-inspection`,
+		command: process.execPath,
+		args: [generalProgramPath, generalFixtures, sourceKind, 'inspect'],
+	});
+	assert.match(
+		evidence,
+		new RegExp(
+			sourceKind === 'document' ? '"kind":"matches"' : '"kind":"conversation_records"',
+			'u',
+		),
+	);
+	if (sourceKind === 'conversation') checkCodexReaderCases(evidence);
+	const preview = step({
+		label: `general-${sourceKind}-preview`,
+		command: process.execPath,
+		args: [generalProgramPath, generalFixtures, sourceKind, 'preview'],
+		environment: { ...keyless, SUNSTACK_JEV_ENDPOINT: 'http://127.0.0.1:9/v1/systemone' },
+	});
+	assert.match(preview, /"questions":\{"q000001":/u);
+}
+
+function checkCodexReaderCases(evidence: string): void {
+	const original = readFileSync(join(generalFixtures, 'general-codex-session.jsonl'), 'utf8');
+	const entries = original.trimEnd().split('\n');
+	const firstEntry = entries[0];
+	assert.ok(firstEntry, 'the packaged rollout opens a turn');
+
+	const shell = {
+		call_id: 'list_sources',
+		tool_name: 'exec_command',
+		provenance: 'transcript',
+		outcome: 'result_present_status_unknown',
+		result: 'full_observed',
+	};
+	const filesystem = { ...shell, call_id: 'read_source', tool_name: 'mcp__filesystem.read_file' };
+	const cases = [
+		{ label: 'two-calls', transcript: null, tail: 'complete', calls: [shell, filesystem] },
+		{ label: 'empty', transcript: `${firstEntry}\n`, tail: 'complete', calls: [] },
+		{
+			label: 'partial',
+			transcript: `${entries.slice(0, -1).join('\n')}\n{"type":"response_item"`,
+			tail: 'incomplete',
+			calls: [shell, { ...filesystem, outcome: 'result_missing', result: 'absent' }],
+		},
+	];
+	for (const { label, transcript, tail, calls } of cases) {
+		const evidencePath = join(generalConsumer, `codex-${label}.sdk.json`);
+		let observed = evidence;
+		if (transcript !== null) {
+			const transcriptPath = join(generalConsumer, `codex-${label}.jsonl`);
+			writeFileSync(transcriptPath, transcript);
+			observed = step({
+				label: `general-codex-${label}-inspection`,
+				command: process.execPath,
+				args: [generalProgramPath, generalFixtures, 'conversation', 'inspect', transcriptPath],
+			});
+		}
+		writeFileSync(evidencePath, observed);
+		const summary: unknown = JSON.parse(
+			step({
+				label: `general-codex-${label}-reader`,
+				command: process.execPath,
+				args: [codexReaderPath, evidencePath],
+			}),
+		);
+		assert.ok(
+			typeof summary === 'object' &&
+				summary !== null &&
+				'calls' in summary &&
+				'coverage' in summary,
+		);
+		assert.deepEqual(summary.calls, calls);
+		assert.partialDeepStrictEqual(summary.coverage, [{ id: 'selected', kind: 'ready', tail }]);
+	}
+}
+
 step({ label: 'load-receipt', command: process.execPath, args: ['load-receipt.ts'] });
 step({ label: 'case-dispatch', command: process.execPath, args: ['case-dispatch.ts'] });
 

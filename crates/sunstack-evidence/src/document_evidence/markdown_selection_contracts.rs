@@ -13,6 +13,7 @@ pub enum MarkdownUnitKind {
     ListItem,
 }
 
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged, deny_unknown_fields)]
 pub enum MarkdownUnitFilter {
@@ -20,6 +21,7 @@ pub enum MarkdownUnitFilter {
     Regex { pattern: String },
 }
 
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(try_from = "SelectionWire", into = "SelectionWire")]
 #[schemars(with = "SelectionWire")]
@@ -37,6 +39,7 @@ pub enum MarkdownUnitSelection {
 
 // Flat wire alternatives are strict individually; nested Serde flatten would
 // reject valid filter fields together with deny_unknown_fields.
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged, deny_unknown_fields)]
 #[schemars(extend("allOf" = [{"if":{"required":["levels"]},"then":{"properties":{"mode":{"const":"unit"},"units":{"const":["section"]}}}}]))]
@@ -51,6 +54,7 @@ enum SelectionWire {
             deserialize_with = "super::heading_levels::optional_heading_levels"
         )]
         #[schemars(with = "HeadingLevels")]
+        #[cfg_attr(feature = "typescript", specta(type = HeadingLevels, optional))]
         levels: Option<HeadingLevels>,
     },
     StartsWith {
@@ -63,6 +67,7 @@ enum SelectionWire {
             deserialize_with = "super::heading_levels::optional_heading_levels"
         )]
         #[schemars(with = "HeadingLevels")]
+        #[cfg_attr(feature = "typescript", specta(type = HeadingLevels, optional))]
         levels: Option<HeadingLevels>,
         #[schemars(length(min = 1))]
         starts_with: String,
@@ -77,6 +82,7 @@ enum SelectionWire {
             deserialize_with = "super::heading_levels::optional_heading_levels"
         )]
         #[schemars(with = "HeadingLevels")]
+        #[cfg_attr(feature = "typescript", specta(type = HeadingLevels, optional))]
         levels: Option<HeadingLevels>,
         #[schemars(length(min = 1))]
         pattern: String,
@@ -126,6 +132,7 @@ pub(crate) enum MarkdownUnitsKindWire {
     },
 }
 
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 enum SelectionMode {
@@ -224,6 +231,7 @@ impl From<MarkdownUnitSelection> for SelectionWire {
     }
 }
 
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct MarkdownByteRange {
@@ -231,6 +239,7 @@ pub struct MarkdownByteRange {
     pub end: usize,
 }
 
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum MarkdownOccurrence {
@@ -244,6 +253,7 @@ pub enum MarkdownOccurrence {
     },
 }
 
+#[cfg_attr(feature = "typescript", derive(specta::Type))]
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct SelectedMarkdownUnit {
