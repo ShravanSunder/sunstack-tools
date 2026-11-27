@@ -486,11 +486,11 @@ jobs:
         # Owner bootstrap and all four trusted publishers must exist first.
         # Each command must succeed before the SDK can become installable.
         run: |
-          # The preceding package check enforces the exact supported tarball set.
-          for tarball in candidate/sunstack-sdk-*-"${GITHUB_REF_NAME#v}".tgz; do
-            npm publish --access public "$tarball"
-          done
-          npm publish --access public "candidate/sunstack-sdk-${GITHUB_REF_NAME#v}.tgz"
+          # The package checker reports the verified filenames, with the wrapper last.
+          verified_tarballs=$(jq -er '.[].filename' "$RUNNER_TEMP/sdk-package-checks.json")
+          while IFS= read -r filename; do
+            npm publish --access public "$PWD/candidate/$filename"
+          done <<< "$verified_tarballs"
       - name: Publish assembled packages with GitHub OIDC
         id: publish-cli
         background: true
