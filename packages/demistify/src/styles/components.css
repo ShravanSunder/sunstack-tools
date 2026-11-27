@@ -412,6 +412,13 @@ ex-document
 	width: 25%;
 	overflow-wrap: normal;
 }
+ex-document .ex-table-scroll[data-layout='verification'] > table > tbody > tr > th[scope='row'] {
+	font: inherit;
+	font-weight: 600;
+	letter-spacing: normal;
+	text-transform: none;
+	color: inherit;
+}
 ex-document .ex-table-scroll[data-layout='verification'] > table > tbody > tr > td:last-child {
 	min-width: 20ch;
 	overflow-wrap: anywhere;
