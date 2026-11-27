@@ -375,9 +375,59 @@ ex-document .ex-table-scroll:not(:is(ex-card, ex-callout, ex-compare, ex-grid) *
 	width: max-content;
 	min-width: 100%;
 }
+ex-document ex-section-item[section] > .ex-table-scroll[data-width='canvas'] > table {
+	width: 100%;
+}
 ex-document .ex-table-scroll:not(:is(ex-card, ex-callout, ex-compare, ex-grid) *) :is(td, th) {
 	min-width: 8ch;
 	max-width: 48ch;
+}
+ex-document .ex-table-scroll[data-layout='verification'] > table {
+	width: 100%;
+}
+ex-document
+	.ex-table-scroll[data-layout='verification']
+	> table
+	> :is(thead, tbody)
+	> tr
+	> :first-child {
+	width: 1%;
+	white-space: nowrap;
+}
+ex-document
+	.ex-table-scroll[data-layout='verification']
+	> table
+	> tbody
+	> tr
+	> td:first-child
+	> ex-badge {
+	white-space: nowrap;
+}
+ex-document
+	.ex-table-scroll[data-layout='verification']
+	> table
+	> :is(thead, tbody)
+	> tr
+	> :nth-child(2) {
+	width: 25%;
+	overflow-wrap: normal;
+}
+ex-document .ex-table-scroll[data-layout='verification'] > table > tbody > tr > td:last-child {
+	min-width: 20ch;
+	overflow-wrap: anywhere;
+}
+ex-document .ex-table-scroll[data-layout='verification'] > table > tbody > tr > td:last-child > p {
+	margin-block: 0;
+}
+ex-document
+	.ex-table-scroll[data-layout='verification']
+	> table
+	> tbody
+	> tr
+	> td:last-child
+	> p
+	+ p {
+	margin-block-start: var(--space-2);
 }
 :is(ex-code, ex-pre, pre) {
 	tab-size: 2;

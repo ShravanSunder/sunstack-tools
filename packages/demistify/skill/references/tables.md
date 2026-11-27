@@ -15,3 +15,9 @@ Markdown tables receive their scroll wrapper automatically. An authored HTML tab
 ```
 
 Both native tables and wrappers use a neutral frame with shared 8px corners, a gray header and quiet stripes. Use the existing wrapper when wide columns need horizontal scrolling; a narrow native table needs no wrapper for its corners. Native corners are CSS-only, preserving saved comment target ancestry. Preserve a real `thead` or a first header-only row. Do not add status colors or per-page border/radius overrides to reproduce the shared treatment. `layouts.md` owns Reading/Canvas and horizontal containment.
+
+Put the Canvas wrapper directly inside an authored Section item for a full-width check table. The table uses the wrapper’s width, with local scrolling when the content needs more room.
+
+## Verification tables
+
+Use `<div class="ex-table-scroll" data-width="canvas" data-layout="verification">` around a table with three columns in this order: Status, Claim, Result and limit. Put one `ex-badge` in each status cell and use `<th scope="row">` for each claim. The shared theme fits the Status column to the chips, gives Claim about a quarter of the width, and leaves the rest for the result, limits and evidence links.
